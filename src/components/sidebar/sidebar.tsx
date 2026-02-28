@@ -4,8 +4,8 @@ import { useState, useCallback, useRef, useEffect } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import {
-  Search,
   Bell,
+  Mail,
   SquareCheck,
   Calendar,
   Copy,
@@ -15,6 +15,7 @@ import {
   StickyNote,
   ChevronsLeft,
   ChevronsRight,
+  Wallet,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -40,14 +41,15 @@ const navigation: NavSection[] = [
     items: [
       { label: "Tasks", href: "/tasks", icon: SquareCheck },
       { label: "Calendar", href: "/calendar", icon: Calendar },
+      { label: "Email", href: "/email", icon: Mail },
     ],
   },
   {
     title: "People",
     items: [
       { label: "Clients", href: "/clients", icon: Copy },
-      { label: "Stakeholders", href: "/stakeholders", icon: Handshake },
-      { label: "Team", href: "/team", icon: User },
+      { label: "Contacts", href: "/contacts", icon: Handshake },
+      { label: "Staff", href: "/staff", icon: User },
     ],
   },
   {
@@ -55,6 +57,7 @@ const navigation: NavSection[] = [
     items: [
       { label: "Documents", href: "/documents", icon: FileText },
       { label: "Notes", href: "/notes", icon: StickyNote },
+      { label: "Budgets", href: "/budgets", icon: Wallet },
     ],
   },
 ]
@@ -195,27 +198,6 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* Search */}
-      {!isCollapsed && (
-        <div className="px-3 pb-2">
-          <div className="flex items-center gap-2 rounded border border-sidebar-border bg-white px-2 py-[5px]">
-            <Search className="h-[13px] w-[13px] text-sidebar-muted" strokeWidth={1.75} />
-            <span className="text-[12px] font-medium text-sidebar-muted">Search</span>
-          </div>
-        </div>
-      )}
-
-      {isCollapsed && (
-        <div className="flex justify-center px-2 pb-2">
-          <button
-            className="flex h-7 w-7 items-center justify-center rounded text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-sidebar-text"
-            aria-label="Search"
-            tabIndex={0}
-          >
-            <Search className="h-[13px] w-[13px]" strokeWidth={1.75} />
-          </button>
-        </div>
-      )}
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-2" role="navigation" aria-label="Main navigation">

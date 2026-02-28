@@ -14,11 +14,11 @@ const config: Config = {
       colors: {
         sidebar: {
           bg: "#f5f5f5",
-          text: "#262626",
+          text: "#3d3d3d",
           muted: "#888888",
           hover: "#ebebeb",
           active: "#f0f0f0",
-          border: "#e8e8e8",
+          border: "#dcdcdc",
         },
       },
     },
