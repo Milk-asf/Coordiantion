@@ -54,7 +54,7 @@ export default function ContactsPage() {
             <span className="text-[13px] font-medium text-[#262626]">Contacts</span>
           </div>
           <div className="h-[16px] w-px bg-[#e5e5e5]" />
-          <div className="flex items-center gap-[6px] rounded bg-[#f0f0f0] px-[6px] py-[3px] text-[14px] font-medium text-[#262626]">
+          <div className="flex items-center gap-[6px] rounded bg-[#f0f0f0] px-[6px] py-[3px] text-[13px] font-medium text-[#262626]">
             <Table2 className="h-[14px] w-[14px] text-[#262626]" strokeWidth={1.75} />
             <span>All</span>
           </div>
@@ -68,19 +68,19 @@ export default function ContactsPage() {
         </div>
         <div className="flex items-center gap-[8px]">
           <button
-            className="flex items-center gap-[5px] rounded px-[8px] py-[4px] text-[14px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+            className="flex items-center gap-[5px] rounded px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
             tabIndex={0}
           >
             <Download className="h-[13px] w-[13px]" strokeWidth={1.5} />
-            <span>Import CSV</span>
+            <span className="hidden sm:inline">Import CSV</span>
           </button>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[8px] py-[4px] text-[14px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+            className="flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
             tabIndex={0}
           >
             <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-            <span>Create contact</span>
+            <span className="hidden sm:inline">Create contact</span>
           </button>
         </div>
       </div>
@@ -88,7 +88,7 @@ export default function ContactsPage() {
       {contacts.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-[8px]">
           <Handshake className="h-[28px] w-[28px] text-[#ccc]" strokeWidth={1.25} />
-          <p className="text-[14px] font-medium text-[#888]">No contacts yet</p>
+          <p className="text-[13px] font-medium text-[#888]">No contacts yet</p>
           <p className="text-[13px] font-medium text-[#bbb]">Add contacts to keep track of stakeholders</p>
           <button
             onClick={() => setIsModalOpen(true)}
@@ -101,9 +101,9 @@ export default function ContactsPage() {
       ) : (
         <>
           {/* Filter bar */}
-          <div className="flex h-[41px] shrink-0 items-center border-b border-[#f0f0f0] px-[16px]">
+          <div className="flex h-[41px] shrink-0 items-center border-b border-[#dcdcdc] px-[16px]">
             <button
-              className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[14px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+              className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
               tabIndex={0}
             >
               <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -140,7 +140,7 @@ export default function ContactsPage() {
                 const initials = contact.name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase()
                 return (
                   <tr key={contact.id} className="group transition-colors hover:bg-[#f5f5f5]">
-                    <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[14px] font-medium text-[#262626] group-hover:bg-[#f5f5f5]">
+                    <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626] group-hover:bg-[#f5f5f5]">
                       <div className="flex items-center gap-[10px]">
                         <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[4px] bg-[#d4d4d4] text-[9px] font-semibold text-[#555]">
                           {initials}
@@ -148,20 +148,24 @@ export default function ContactsPage() {
                         {contact.name}
                       </div>
                     </td>
-                    <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[14px] font-medium text-[#262626] group-hover:bg-[#f5f5f5]">
-                      {contact.clientName || <span className="text-[#bbb]">—</span>}
+                    <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] group-hover:bg-[#f5f5f5]">
+                      {contact.clientName ? (
+                        <span className="inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] px-[8px] text-[13px] font-medium text-[#262626]">
+                          {contact.clientName}
+                        </span>
+                      ) : <span className="text-[#bbb]">—</span>}
                     </td>
                     <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] group-hover:bg-[#f5f5f5]">
                       {rel ? (
                         <span className="inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] px-[8px] text-[13px] font-medium text-[#262626]">{rel.label}</span>
                       ) : (
-                        <span className="text-[14px] font-medium text-[#bbb]">—</span>
+                        <span className="text-[13px] font-medium text-[#bbb]">—</span>
                       )}
                     </td>
-                    <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[14px] font-medium text-[#262626] group-hover:bg-[#f5f5f5]">
+                    <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626] group-hover:bg-[#f5f5f5]">
                       {contact.email || <span className="text-[#bbb]">—</span>}
                     </td>
-                    <td className="h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[14px] font-medium text-[#262626] group-hover:bg-[#f5f5f5]">
+                    <td className="h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626] group-hover:bg-[#f5f5f5]">
                       {contact.phone || <span className="text-[#bbb]">—</span>}
                     </td>
                   </tr>
@@ -172,7 +176,7 @@ export default function ContactsPage() {
           </div>
 
           {/* Footer */}
-          <div className="shrink-0 border-t border-[#f0f0f0] px-[20px] py-[10px]">
+          <div className="shrink-0 border-t border-[#dcdcdc] px-[20px] py-[10px]">
             <span className="text-[12px] font-medium text-[#999]">
               {contacts.length} {contacts.length === 1 ? "contact" : "contacts"}
             </span>

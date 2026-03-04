@@ -6,9 +6,9 @@ export default function BudgetsPage() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-[52px] shrink-0 items-center justify-between border-b border-[#f0f0f0] bg-white px-[20px]">
-        <h1 className="text-[14px] font-semibold text-[#262626]">Budgets</h1>
+        <h1 className="text-[13px] font-semibold text-[#262626]">Budgets</h1>
         <button
-          className="flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[10px] py-[5px] text-[14px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+          className="flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[10px] py-[5px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
           tabIndex={0}
         >
           <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />

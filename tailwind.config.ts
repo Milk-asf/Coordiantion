@@ -17,7 +17,7 @@ const config: Config = {
           text: "#3d3d3d",
           muted: "#888888",
           hover: "#ebebeb",
-          active: "#f0f0f0",
+          active: "#ebebeb",
           border: "#dcdcdc",
         },
       },

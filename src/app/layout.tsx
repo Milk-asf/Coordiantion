@@ -1,7 +1,5 @@
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
-import { Sidebar } from "@/components/sidebar/sidebar"
-import { ContactsProvider } from "@/lib/contacts-context"
 import "./globals.css"
 
 const inter = Inter({
@@ -22,14 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} font-sans`}>
-        <ContactsProvider>
-          <div className="flex h-screen overflow-hidden">
-            <Sidebar />
-            <main className="h-full flex-1 overflow-y-auto bg-[#fafafa]">
-              {children}
-            </main>
-          </div>
-        </ContactsProvider>
+        {children}
       </body>
     </html>
   )

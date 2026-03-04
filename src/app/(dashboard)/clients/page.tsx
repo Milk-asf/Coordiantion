@@ -2,19 +2,15 @@
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
+import { useContacts } from "@/lib/contacts-context"
 import {
   UserRound,
   ListFilter,
   Plus,
   Download,
   SlidersHorizontal,
-  ArrowDown,
   ArrowUpRight,
-  Building2,
-  Clock,
-  DollarSign,
   Users,
-  Landmark,
   Globe,
   Table2,
   X,
@@ -33,6 +29,12 @@ import {
   Languages,
   Stethoscope,
   ChevronDown,
+  ArrowUpDown,
+  ArrowDown,
+  ArrowUp,
+  ArrowRight,
+  ArrowLeft,
+  EyeOff,
   Copy,
   Check,
   SquarePen,
@@ -251,23 +253,40 @@ const clients: Client[] = [
   },
 ]
 
-const columns = [
-  { key: "name", label: "Client", sortable: true, sorted: false, icon: UserRound },
-  { key: "industry", label: "Industry", sortable: true, sorted: false, icon: Building2 },
-  { key: "lastInteraction", label: "Last interaction", sortable: true, sorted: true, icon: Clock },
-  { key: "revenue", label: "Revenue", sortable: true, sorted: false, icon: DollarSign },
-  { key: "headcount", label: "Headcount", sortable: true, sorted: false, icon: Users },
-  { key: "lastFunding", label: "Last funding", sortable: true, sorted: false, icon: Landmark },
-  { key: "website", label: "Website", sortable: true, sorted: false, icon: Globe },
+const allPropertyColumns = [
+  { key: "ndisNumber", label: "NDIS Number", icon: Hash, minWidth: 160 },
+  { key: "diagnosis", label: "Diagnosis", icon: Stethoscope, minWidth: 240 },
+  { key: "email", label: "Email", icon: Mail, minWidth: 200 },
+  { key: "phone", label: "Phone", icon: Phone, minWidth: 160 },
+  { key: "mobile", label: "Mobile", icon: Smartphone, minWidth: 160 },
+  { key: "dob", label: "Date of Birth", icon: CalendarDays, minWidth: 150 },
+  { key: "gender", label: "Gender", icon: User, minWidth: 120 },
+  { key: "pronouns", label: "Pronouns", icon: MessageSquare, minWidth: 120 },
+  { key: "ethnicity", label: "Ethnicity", icon: Globe, minWidth: 140 },
+  { key: "language", label: "Language", icon: Languages, minWidth: 140 },
+  { key: "preferredName", label: "Preferred Name", icon: Heart, minWidth: 150 },
+  { key: "medicareNumber", label: "Medicare Number", icon: Hash, minWidth: 170 },
+  { key: "centrelinkNumber", label: "Centrelink Number", icon: Hash, minWidth: 180 },
+  { key: "externalId", label: "External ID", icon: Hash, minWidth: 140 },
+  { key: "preferredContactMethod", label: "Contact Method", icon: MessageSquare, minWidth: 160 },
+  { key: "preferredSignMethod", label: "Sign Method", icon: PenLine, minWidth: 150 },
+  { key: "serviceCommencementDate", label: "Service Start", icon: CalendarDays, minWidth: 150 },
+  { key: "serviceExitDate", label: "Service Exit", icon: CalendarDays, minWidth: 150 },
+  { key: "contact-support-coordinator", label: "Support Coordinator", icon: Users, minWidth: 180 },
+  { key: "contact-general-practitioner", label: "General Practitioner", icon: Users, minWidth: 180 },
+  { key: "contact-pharmacy", label: "Pharmacy", icon: Users, minWidth: 150 },
+  { key: "contact-mental-health", label: "Mental Health", icon: Users, minWidth: 160 },
+  { key: "contact-physiotherapist", label: "Physiotherapist", icon: Users, minWidth: 170 },
+  { key: "contact-decision-maker-opg", label: "Decision Maker/OPG", icon: Users, minWidth: 190 },
+  { key: "contact-public-trustee", label: "Public Trustee", icon: Users, minWidth: 160 },
+  { key: "contact-next-of-kin", label: "Next of Kin", icon: Users, minWidth: 150 },
+  { key: "contact-consumables", label: "Consumables", icon: Users, minWidth: 160 },
+  { key: "contact-cas-provider", label: "CAS Provider", icon: Users, minWidth: 160 },
+  { key: "contact-sil-provider", label: "SIL Provider", icon: Users, minWidth: 160 },
 ]
 
-function Tag({ label }: { label: string }) {
-  return (
-    <span className="inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] px-[8px] text-[13px] font-medium text-[#262626]">
-      {label}
-    </span>
-  )
-}
+const defaultVisibleKeys = ["ndisNumber", "diagnosis", "email", "phone", "dob", "contact-support-coordinator"]
+
 
 function ClientIcon({ client, size = "sm" }: { client: Client; size?: "sm" | "lg" }) {
   const dims = size === "lg" ? "h-[40px] w-[40px]" : "h-[22px] w-[22px]"
@@ -338,7 +357,7 @@ function EditableField({
             }}
             onBlur={handleSave}
             onKeyDown={handleKeyDown}
-            className="w-full appearance-none rounded-lg border-2 border-[#a3c4f3] bg-white px-[10px] py-[7px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
+            className="w-full appearance-none rounded-lg border border-[#a3c4f3] bg-white px-[10px] py-[7px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
           >
             <option value="">—</option>
             {options.map((opt) => (
@@ -360,7 +379,7 @@ function EditableField({
           onBlur={handleSave}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className="w-full rounded-lg border-2 border-[#a3c4f3] bg-white px-[10px] py-[7px] pr-[32px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
+          className="w-full rounded-lg border border-[#a3c4f3] bg-white px-[10px] py-[7px] pr-[32px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
         />
         {draft && (
           <button
@@ -446,9 +465,9 @@ function ContactChip({ value, onChange, placeholder, variant = "grey" }: { value
   }
 
   const isWhite = variant === "white"
-  const chipBg = isWhite ? "bg-white" : "bg-[#f5f5f5]"
-  const chipHover = isWhite ? "hover:bg-[#fafafa]" : "hover:bg-[#efefef]"
-  const chipBorder = isWhite ? "border-[#e0e0e0]" : "border-[#dcdcdc]"
+  const chipBg = isWhite ? "bg-transparent" : "bg-[#f5f5f5]"
+  const chipHover = isWhite ? "hover:bg-[#f5f5f5]" : "hover:bg-[#efefef]"
+  const chipBorder = isWhite ? "border-[#dcdcdc]" : "border-[#dcdcdc]"
   const copyHoverBg = isWhite ? "hover:bg-[#f0f0f0]" : "hover:bg-[#e5e5e5]"
 
   if (isEditing) {
@@ -460,7 +479,7 @@ function ContactChip({ value, onChange, placeholder, variant = "grey" }: { value
         onBlur={handleSave}
         onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") handleCancel() }}
         placeholder={placeholder}
-        className="rounded border-2 border-[#a3c4f3] bg-white px-[10px] py-[4px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
+        className="rounded border border-[#a3c4f3] bg-white px-[10px] py-[4px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
       />
     )
   }
@@ -525,7 +544,7 @@ function DiagnosisChip({ value, onChange, placeholder }: { value: string; onChan
         onBlur={handleSave}
         onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") handleCancel() }}
         placeholder={placeholder}
-        className="rounded border-2 border-[#a3c4f3] bg-white px-[10px] py-[4px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
+        className="rounded border border-[#a3c4f3] bg-white px-[10px] py-[4px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
       />
     )
   }
@@ -534,7 +553,7 @@ function DiagnosisChip({ value, onChange, placeholder }: { value: string; onChan
     return (
       <span
         onClick={() => setIsEditing(true)}
-        className="inline-flex cursor-default items-center rounded border border-dashed border-[#d0d0d0] bg-white px-[10px] py-[4px] text-[13px] font-medium text-[#bbb] transition-colors hover:border-[#999] hover:text-[#999]"
+        className="inline-flex cursor-default items-center rounded border border-dashed border-[#d0d0d0] bg-transparent px-[10px] py-[4px] text-[13px] font-medium text-[#bbb] transition-colors hover:border-[#999] hover:text-[#999]"
         role="button"
         tabIndex={0}
         onKeyDown={(e) => { if (e.key === "Enter") setIsEditing(true) }}
@@ -547,7 +566,7 @@ function DiagnosisChip({ value, onChange, placeholder }: { value: string; onChan
   return (
     <span
       onClick={() => setIsEditing(true)}
-      className="inline-flex cursor-default items-center rounded border border-[#e0e0e0] bg-white px-[10px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#fafafa]"
+      className="inline-flex cursor-default items-center rounded border border-[#dcdcdc] bg-transparent px-[10px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === "Enter") setIsEditing(true) }}
@@ -680,7 +699,7 @@ function ActivityFeed({ activities }: { activities: ActivityItem[] }) {
                   )}
                 </div>
                 {activity.attachment && (
-                  <div className="mt-[8px] inline-flex items-center gap-[6px] rounded border border-[#e8e8e8] bg-white px-[10px] py-[6px] text-[13px] font-medium text-[#262626]">
+                  <div className="mt-[8px] inline-flex items-center gap-[6px] rounded border border-[#dcdcdc] bg-transparent px-[10px] py-[6px] text-[13px] font-medium text-[#262626]">
                     <FileText className="h-[14px] w-[14px] text-[#999]" strokeWidth={1.5} />
                     {activity.attachment}
                   </div>
@@ -714,7 +733,7 @@ function ClientProfile({
   }
 
   return (
-    <div className="shrink-0 p-[10px]">
+    <div className="h-full shrink-0 p-[10px]">
     <div className="flex h-full w-[625px] flex-col rounded-lg border border-[#dcdcdc] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)]">
       <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-[#f0f0f0] px-[16px]">
         <div className="flex min-w-0 items-center gap-[8px]">
@@ -750,10 +769,10 @@ function ClientProfile({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto overscroll-contain">
         <div className="flex items-center gap-[12px] px-[20px] pb-[20px] pt-[24px]">
           <ClientIcon client={client} size="lg" />
-          <h2 className="text-[20px] font-semibold text-[#262626]">
+          <h2 className="text-[18px] font-semibold text-[#262626]">
             {participantData.preferredName || participantData.firstName} {participantData.lastName}
           </h2>
         </div>
@@ -898,9 +917,124 @@ function ClientProfile({
   )
 }
 
+interface SavedView {
+  id: string
+  name: string
+  columnKeys: string[]
+  sortKey: string | null
+  sortDirection: "asc" | "desc"
+}
+
 export default function ClientsPage() {
+  const router = useRouter()
+  const { getContactsForClient } = useContacts()
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
+  const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(defaultVisibleKeys)
+  const [isDisplayOpen, setIsDisplayOpen] = useState(false)
+  const [columnMenuKey, setColumnMenuKey] = useState<string | null>(null)
+  const [columnMenuPos, setColumnMenuPos] = useState<{ top: number; left: number } | null>(null)
+  const [sortKey, setSortKey] = useState<string | null>(null)
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
+  const [savedViews, setSavedViews] = useState<SavedView[]>(() => {
+    if (typeof window === "undefined") return []
+    try { return JSON.parse(localStorage.getItem("client-views") || "[]") } catch { return [] }
+  })
+  const [activeViewId, setActiveViewId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null
+    return localStorage.getItem("client-active-view") || null
+  })
+  const [isCreateViewOpen, setIsCreateViewOpen] = useState(false)
+  const [newViewName, setNewViewName] = useState("")
+  const displayBtnRef = useRef<HTMLButtonElement>(null)
+  const viewNameInputRef = useRef<HTMLInputElement>(null)
+  const isInitialMount = useRef(true)
   const [participantOverrides, setParticipantOverrides] = useState<Record<string, Partial<ParticipantDetails>>>({})
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      if (activeViewId) {
+        const view = savedViews.find((v) => v.id === activeViewId)
+        if (view) {
+          setVisibleColumnKeys(view.columnKeys)
+          setSortKey(view.sortKey)
+          setSortDirection(view.sortDirection)
+        }
+      }
+      return
+    }
+    localStorage.setItem("client-views", JSON.stringify(savedViews))
+  }, [savedViews])
+
+  useEffect(() => {
+    if (isInitialMount.current) return
+    if (activeViewId) {
+      localStorage.setItem("client-active-view", activeViewId)
+    } else {
+      localStorage.removeItem("client-active-view")
+    }
+  }, [activeViewId])
+
+  useEffect(() => {
+    if (!activeViewId || isInitialMount.current) return
+    setSavedViews((prev) =>
+      prev.map((v) =>
+        v.id === activeViewId ? { ...v, columnKeys: visibleColumnKeys, sortKey, sortDirection } : v
+      )
+    )
+  }, [visibleColumnKeys, sortKey, sortDirection])
+
+  const visibleColumns = visibleColumnKeys.map((key) => allPropertyColumns.find((col) => col.key === key)).filter(Boolean) as typeof allPropertyColumns
+
+  const handleToggleColumn = (key: string) => {
+    setVisibleColumnKeys((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    )
+  }
+
+  const handleMoveColumn = (key: string, direction: "left" | "right") => {
+    setVisibleColumnKeys((prev) => {
+      const idx = prev.indexOf(key)
+      if (idx < 0) return prev
+      const newIdx = direction === "left" ? idx - 1 : idx + 1
+      if (newIdx < 0 || newIdx >= prev.length) return prev
+      const next = [...prev]
+      next[idx] = prev[newIdx]
+      next[newIdx] = prev[idx]
+      return next
+    })
+    setColumnMenuKey(null)
+    setColumnMenuPos(null)
+  }
+
+  const handleCreateView = () => {
+    if (!newViewName.trim()) return
+    const view: SavedView = {
+      id: Date.now().toString(),
+      name: newViewName.trim(),
+      columnKeys: [...visibleColumnKeys],
+      sortKey,
+      sortDirection,
+    }
+    setSavedViews((prev) => [...prev, view])
+    setActiveViewId(view.id)
+    setNewViewName("")
+    setIsCreateViewOpen(false)
+  }
+
+  const handleSelectView = (view: SavedView) => {
+    setActiveViewId(view.id)
+    setVisibleColumnKeys(view.columnKeys)
+    setSortKey(view.sortKey)
+    setSortDirection(view.sortDirection)
+  }
+
+  const handleSelectAllView = () => {
+    setActiveViewId(null)
+    setVisibleColumnKeys(defaultVisibleKeys)
+    setSortKey(null)
+    setSortDirection("asc")
+  }
 
   const getParticipantData = useCallback((client: Client): ParticipantDetails => {
     const overrides = participantOverrides[client.name] || {}
@@ -914,21 +1048,75 @@ export default function ClientsPage() {
     }))
   }, [])
 
+  const sortedClients = (() => {
+    if (!sortKey) return clients
+    return [...clients].sort((a, b) => {
+      const pA = getParticipantData(a)
+      const pB = getParticipantData(b)
+      let valA = ""
+      let valB = ""
+      switch (sortKey) {
+        case "name": valA = a.name; valB = b.name; break
+        case "ndisNumber": valA = pA.ndisNumber; valB = pB.ndisNumber; break
+        case "diagnosis": valA = pA.primaryDiagnosis; valB = pB.primaryDiagnosis; break
+        case "email": valA = pA.email; valB = pB.email; break
+        case "phone": valA = pA.phone; valB = pB.phone; break
+        case "mobile": valA = pA.mobile; valB = pB.mobile; break
+        case "dob": valA = pA.dateOfBirth; valB = pB.dateOfBirth; break
+        case "gender": valA = pA.gender; valB = pB.gender; break
+        case "pronouns": valA = pA.pronouns; valB = pB.pronouns; break
+        case "ethnicity": valA = pA.ethnicity; valB = pB.ethnicity; break
+        case "language": valA = pA.language; valB = pB.language; break
+        case "preferredName": valA = pA.preferredName; valB = pB.preferredName; break
+        case "medicareNumber": valA = pA.medicareNumber; valB = pB.medicareNumber; break
+        case "centrelinkNumber": valA = pA.centrelinkNumber; valB = pB.centrelinkNumber; break
+        case "externalId": valA = pA.externalId; valB = pB.externalId; break
+        case "preferredContactMethod": valA = pA.preferredContactMethod; valB = pB.preferredContactMethod; break
+        case "preferredSignMethod": valA = pA.preferredSignMethod; valB = pB.preferredSignMethod; break
+        case "serviceCommencementDate": valA = pA.serviceCommencementDate; valB = pB.serviceCommencementDate; break
+        case "serviceExitDate": valA = pA.serviceExitDate; valB = pB.serviceExitDate; break
+        default: {
+          if (sortKey.startsWith("contact-")) {
+            const relKey = sortKey.replace("contact-", "")
+            const cA = getContactsForClient(a.name).find((c) => c.relationship === relKey)
+            const cB = getContactsForClient(b.name).find((c) => c.relationship === relKey)
+            valA = cA?.name || ""; valB = cB?.name || ""
+          }
+          break
+        }
+      }
+      const cmp = valA.localeCompare(valB)
+      return sortDirection === "asc" ? cmp : -cmp
+    })
+  })()
+
   return (
     <div className="relative flex h-full">
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-[#f0f0f0] px-[16px]">
-          <div className="flex items-center gap-[12px]">
-            <div className="flex items-center gap-[6px]">
-              <UserRound className="h-[14px] w-[14px] text-[#262626]" strokeWidth={1.5} />
-              <span className="text-[13px] font-medium text-[#262626]">Clients</span>
-            </div>
-            <div className="h-[16px] w-px bg-[#e5e5e5]" />
-            <div className="flex items-center gap-[6px] rounded bg-[#f0f0f0] px-[6px] py-[3px] text-[14px] font-medium text-[#262626]">
-              <Table2 className="h-[14px] w-[14px] text-[#262626]" strokeWidth={1.75} />
-              <span>All</span>
-            </div>
+          <div className="flex items-center gap-[8px]">
             <button
+              onClick={handleSelectAllView}
+              className={`flex items-center gap-[6px] rounded-md border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === null ? "border-[#dcdcdc] bg-[#f5f5f5] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
+              tabIndex={0}
+            >
+              <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
+              <span>All</span>
+            </button>
+            {savedViews.length > 0 && <div className="h-[16px] w-px bg-[#dcdcdc]" />}
+            {savedViews.map((view) => (
+              <button
+                key={view.id}
+                onClick={() => handleSelectView(view)}
+                className={`flex items-center gap-[6px] rounded-md px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === view.id ? "bg-[#f5f5f5] text-[#262626]" : "text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
+                tabIndex={0}
+              >
+                <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
+                <span>{view.name}</span>
+              </button>
+            ))}
+            <button
+              onClick={() => { setIsCreateViewOpen(true); setTimeout(() => viewNameInputRef.current?.focus(), 50) }}
               className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#999] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
               aria-label="Add view"
               tabIndex={0}
@@ -938,25 +1126,25 @@ export default function ClientsPage() {
           </div>
           <div className="flex items-center gap-[8px]">
             <button
-              className="flex items-center gap-[5px] rounded px-[8px] py-[4px] text-[14px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+              className="flex items-center gap-[5px] rounded px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
               tabIndex={0}
             >
               <Download className="h-[13px] w-[13px]" strokeWidth={1.5} />
-              <span>Import CSV</span>
+              <span className="hidden sm:inline">Import CSV</span>
             </button>
             <button
-              className="flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[8px] py-[4px] text-[14px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+              className="flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
               tabIndex={0}
             >
               <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-              <span>Create client</span>
+              <span className="hidden sm:inline">Create client</span>
             </button>
           </div>
         </div>
 
-        <div className="flex h-[41px] shrink-0 items-center border-b border-[#f0f0f0] px-[16px]">
+        <div className="flex h-[41px] shrink-0 items-center border-b border-[#dcdcdc] px-[16px]">
           <button
-            className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[14px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+            className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
             tabIndex={0}
           >
             <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -964,84 +1152,291 @@ export default function ClientsPage() {
           </button>
           <div className="ml-auto flex items-center">
             <button
-              className="flex items-center gap-[5px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[14px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+              ref={displayBtnRef}
+              onClick={() => setIsDisplayOpen(!isDisplayOpen)}
+              className="flex items-center gap-[5px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
               tabIndex={0}
             >
               <SlidersHorizontal className="h-[13px] w-[13px]" strokeWidth={1.5} />
               <span>Display</span>
             </button>
+            {isDisplayOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsDisplayOpen(false)} />
+                <div
+                  className="fixed z-50 w-[420px] rounded-lg border border-[#dcdcdc] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+                  style={(() => {
+                    const rect = displayBtnRef.current?.getBoundingClientRect()
+                    if (!rect) return {}
+                    return { top: rect.bottom + 4, right: window.innerWidth - rect.right }
+                  })()}
+                >
+                  <div className="flex items-center justify-between border-b border-[#f0f0f0] px-[20px] py-[14px]">
+                    <div className="flex items-center gap-[8px] text-[13px] font-semibold text-[#262626]">
+                      <ArrowUpDown className="h-[14px] w-[14px] text-[#888]" strokeWidth={1.75} />
+                      <span>Sorting</span>
+                    </div>
+                    <div className="flex items-center gap-[6px]">
+                      <button className="flex items-center gap-[6px] rounded-md border border-[#dcdcdc] px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
+                        <span>Last interaction</span>
+                        <ChevronDown className="h-[12px] w-[12px] text-[#888]" strokeWidth={1.5} />
+                      </button>
+                      <button className="flex h-[32px] w-[32px] items-center justify-center rounded-md border border-[#dcdcdc] text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
+                        <ArrowDown className="h-[14px] w-[14px]" strokeWidth={1.75} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="px-[20px] pb-[16px] pt-[14px]">
+                    <div className="pb-[12px] text-[13px] font-medium text-[#888]">Display properties</div>
+                    <div className="flex flex-wrap gap-[8px]">
+                      {allPropertyColumns.map((col) => {
+                        const isActive = visibleColumnKeys.includes(col.key)
+                        return (
+                          <button
+                            key={col.key}
+                            onClick={() => handleToggleColumn(col.key)}
+                            className={`inline-flex items-center rounded-lg border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
+                            tabIndex={0}
+                          >
+                            {col.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-[20px] border-t border-[#f0f0f0] px-[20px] py-[12px]">
+                    <button
+                      onClick={() => setVisibleColumnKeys(defaultVisibleKeys)}
+                      className="text-[13px] font-medium text-[#bbb] transition-colors hover:text-[#262626]"
+                      tabIndex={0}
+                    >
+                      Reset
+                    </button>
+                    <button
+                      className="text-[13px] font-medium text-[#bbb] transition-colors hover:text-[#262626]"
+                      tabIndex={0}
+                    >
+                      Save default for everyone
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto">
-          <table className="min-w-[1070px] border-separate border-spacing-0 text-left">
+        <div className="flex-1 overflow-auto bg-[#fafafa]">
+          <table className="w-full min-w-[1070px] border-separate border-spacing-0 text-left">
             <thead>
               <tr>
-                {columns.map((col, i) => {
-                  const isFirst = i === 0
+                <th
+                  className="sticky left-0 top-0 z-30 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]"
+                  style={{ minWidth: 180 }}
+                >
+                  <div className="flex items-center gap-[6px]">
+                    <UserRound className="h-[13px] w-[13px] text-[#999]" strokeWidth={1.5} />
+                    <span>Participant</span>
+                  </div>
+                </th>
+                {visibleColumns.map((col, i) => {
                   const ColIcon = col.icon
+                  const isLast = i === visibleColumns.length - 1
+                  const isFirst = i === 0
+                  const isMenuOpen = columnMenuKey === col.key
                   return (
                     <th
                       key={col.key}
-                      className={`sticky top-0 h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888] ${isFirst ? "sticky left-0 z-30 border-r border-[#dcdcdc]" : `z-20 ${i < columns.length - 1 ? "border-r border-[#dcdcdc]" : ""}`}`}
-                      style={{ minWidth: col.key === "industry" ? 240 : col.key === "name" ? 180 : 130 }}
+                      className={`group/col sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888] ${isLast ? "" : "border-r"}`}
+                      style={{ minWidth: col.minWidth }}
                     >
                       <div className="flex items-center gap-[6px]">
                         <ColIcon className="h-[13px] w-[13px] text-[#999]" strokeWidth={1.5} />
                         <span>{col.label}</span>
-                        {col.sorted && <ArrowDown className="h-[12px] w-[12px] text-[#888]" strokeWidth={1.5} />}
+                        <button
+                          onClick={(e) => {
+                            if (isMenuOpen) { setColumnMenuKey(null); setColumnMenuPos(null); return }
+                            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                            const dropdownWidth = 200
+                            let left = rect.right - dropdownWidth
+                            if (left < 8) left = 8
+                            if (rect.right > window.innerWidth - 8) left = window.innerWidth - dropdownWidth - 8
+                            setColumnMenuPos({ top: rect.bottom + 4, left })
+                            setColumnMenuKey(col.key)
+                          }}
+                          className={`ml-auto flex h-[22px] w-[22px] items-center justify-center rounded transition-all ${isMenuOpen ? "bg-[#ebebeb] text-[#262626] opacity-100" : "text-[#999] opacity-0 hover:bg-[#ebebeb] hover:text-[#262626] group-hover/col:opacity-100"}`}
+                          tabIndex={0}
+                          aria-label={`Column options for ${col.label}`}
+                        >
+                          <ChevronDown className="h-[12px] w-[12px]" strokeWidth={2} />
+                        </button>
                       </div>
+                      {isMenuOpen && columnMenuPos && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => { setColumnMenuKey(null); setColumnMenuPos(null) }} />
+                          <div
+                            className="fixed z-50 w-[200px] overflow-hidden rounded-lg border border-[#dcdcdc] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+                            style={{ top: columnMenuPos.top, left: columnMenuPos.left }}
+                          >
+                            <button
+                              onClick={() => { setSortKey(col.key); setSortDirection("asc"); setColumnMenuKey(null); setColumnMenuPos(null) }}
+                              className="flex w-full items-center gap-[12px] px-[16px] py-[10px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                              tabIndex={0}
+                            >
+                              <ArrowUp className="h-[15px] w-[15px] text-[#888]" strokeWidth={1.75} />
+                              <span>Sort ascending</span>
+                            </button>
+                            <button
+                              onClick={() => { setSortKey(col.key); setSortDirection("desc"); setColumnMenuKey(null); setColumnMenuPos(null) }}
+                              className="flex w-full items-center gap-[12px] px-[16px] py-[10px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                              tabIndex={0}
+                            >
+                              <ArrowDown className="h-[15px] w-[15px] text-[#888]" strokeWidth={1.75} />
+                              <span>Sort descending</span>
+                            </button>
+                            <div className="my-[4px] border-t border-[#f0f0f0]" />
+                            <button
+                              onClick={() => handleMoveColumn(col.key, "left")}
+                              disabled={isFirst}
+                              className={`flex w-full items-center gap-[12px] px-[16px] py-[10px] text-[13px] font-medium transition-colors ${isFirst ? "text-[#bbb]" : "text-[#262626] hover:bg-[#f5f5f5]"}`}
+                              tabIndex={0}
+                            >
+                              <ArrowLeft className={`h-[15px] w-[15px] ${isFirst ? "text-[#ccc]" : "text-[#888]"}`} strokeWidth={1.75} />
+                              <span>Move left</span>
+                            </button>
+                            <button
+                              onClick={() => handleMoveColumn(col.key, "right")}
+                              disabled={isLast}
+                              className={`flex w-full items-center gap-[12px] px-[16px] py-[10px] text-[13px] font-medium transition-colors ${isLast ? "text-[#bbb]" : "text-[#262626] hover:bg-[#f5f5f5]"}`}
+                              tabIndex={0}
+                            >
+                              <ArrowRight className={`h-[15px] w-[15px] ${isLast ? "text-[#ccc]" : "text-[#888]"}`} strokeWidth={1.75} />
+                              <span>Move right</span>
+                            </button>
+                            <div className="my-[4px] border-t border-[#f0f0f0]" />
+                            <button
+                              onClick={() => { handleToggleColumn(col.key); setColumnMenuKey(null); setColumnMenuPos(null) }}
+                              className="flex w-full items-center gap-[12px] px-[16px] py-[10px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                              tabIndex={0}
+                            >
+                              <EyeOff className="h-[15px] w-[15px] text-[#888]" strokeWidth={1.75} />
+                              <span>Hide column</span>
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </th>
                   )
                 })}
               </tr>
             </thead>
             <tbody>
-              {clients.map((client) => {
+              {sortedClients.map((client) => {
                 const isSelected = selectedClient?.name === client.name
                 const rowBg = isSelected ? "bg-[#f5f5ff]" : "bg-[#fafafa]"
                 const rowHover = isSelected ? "" : "group-hover:bg-[#f5f5f5]"
+                const p = getParticipantData(client)
+                const clientContacts = getContactsForClient(client.name)
+                const cellClass = `h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] ${rowBg} ${rowHover}`
+
+                const renderCell = (key: string, isLast: boolean) => {
+                  const cls = isLast
+                    ? `h-[44px] whitespace-nowrap border-b px-[20px] ${rowBg} ${rowHover}`
+                    : cellClass
+                  const whiteChip = "inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] bg-transparent px-[8px] text-[12px] font-medium text-[#262626]"
+                  const greyChip = "inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] bg-[#f5f5f5] px-[8px] text-[12px] font-medium text-[#262626]"
+                  const dash = <span className="text-[#bbb]">—</span>
+                  const textCls = `${cls} text-[13px] font-medium text-[#262626]`
+
+                  switch (key) {
+                    case "ndisNumber":
+                      return <td key={key} className={cls}>{p.ndisNumber ? <span className={whiteChip}>{p.ndisNumber}</span> : dash}</td>
+                    case "diagnosis":
+                      return (
+                        <td key={key} className={cls}>
+                          <div className="flex items-center gap-[6px]">
+                            {p.primaryDiagnosis && <span className={whiteChip}>{p.primaryDiagnosis}</span>}
+                            {p.secondaryDiagnosis && <span className={whiteChip}>{p.secondaryDiagnosis}</span>}
+                            {!p.primaryDiagnosis && !p.secondaryDiagnosis && dash}
+                          </div>
+                        </td>
+                      )
+                    case "email":
+                      return <td key={key} className={textCls}>{p.email || dash}</td>
+                    case "phone":
+                      return <td key={key} className={textCls}>{p.phone || dash}</td>
+                    case "mobile":
+                      return <td key={key} className={cls}>{p.mobile ? <span className={greyChip}>{p.mobile}</span> : dash}</td>
+                    case "dob":
+                      return (
+                        <td key={key} className={textCls}>
+                          {p.dateOfBirth ? new Date(p.dateOfBirth + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }) : dash}
+                        </td>
+                      )
+                    case "gender":
+                      return <td key={key} className={textCls}>{p.gender || dash}</td>
+                    case "pronouns":
+                      return <td key={key} className={textCls}>{p.pronouns || dash}</td>
+                    case "ethnicity":
+                      return <td key={key} className={textCls}>{p.ethnicity || dash}</td>
+                    case "language":
+                      return <td key={key} className={textCls}>{p.language || dash}</td>
+                    case "preferredName":
+                      return <td key={key} className={textCls}>{p.preferredName || dash}</td>
+                    case "medicareNumber":
+                      return <td key={key} className={cls}>{p.medicareNumber ? <span className={whiteChip}>{p.medicareNumber}</span> : dash}</td>
+                    case "centrelinkNumber":
+                      return <td key={key} className={cls}>{p.centrelinkNumber ? <span className={whiteChip}>{p.centrelinkNumber}</span> : dash}</td>
+                    case "externalId":
+                      return <td key={key} className={cls}>{p.externalId ? <span className={whiteChip}>{p.externalId}</span> : dash}</td>
+                    case "preferredContactMethod":
+                      return <td key={key} className={textCls}>{p.preferredContactMethod || dash}</td>
+                    case "preferredSignMethod":
+                      return <td key={key} className={textCls}>{p.preferredSignMethod || dash}</td>
+                    case "serviceCommencementDate":
+                      return (
+                        <td key={key} className={textCls}>
+                          {p.serviceCommencementDate ? new Date(p.serviceCommencementDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }) : dash}
+                        </td>
+                      )
+                    case "serviceExitDate":
+                      return (
+                        <td key={key} className={textCls}>
+                          {p.serviceExitDate ? new Date(p.serviceExitDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }) : dash}
+                        </td>
+                      )
+                    default: {
+                      if (key.startsWith("contact-")) {
+                        const relKey = key.replace("contact-", "")
+                        const contact = clientContacts.find((c) => c.relationship === relKey)
+                        return <td key={key} className={cls}>{contact ? <span className={whiteChip}>{contact.name}</span> : dash}</td>
+                      }
+                      return <td key={key} className={textCls}>{dash}</td>
+                    }
+                  }
+                }
+
                 return (
-                  <tr
-                    key={client.name}
-                    className="group"
-                  >
-                    <td className={`sticky left-0 z-10 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] ${rowBg} ${rowHover}`}>
+                  <tr key={client.name} className="group">
+                    <td
+                      onClick={() => setSelectedClient(client)}
+                      className={`sticky left-0 z-10 h-[44px] cursor-pointer whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] ${rowBg} ${rowHover}`}
+                    >
                       <div className="flex items-center gap-[10px]">
                         <ClientIcon client={client} />
-                        <span className="text-[14px] font-medium text-[#262626]">{client.name}</span>
+                        <span className="text-[13px] font-medium text-[#262626]">{client.name}</span>
                         <button
-                          onClick={() => setSelectedClient(client)}
+                          onClick={(e) => { e.stopPropagation(); router.push(`/clients/${client.name.toLowerCase().replace(/\s+/g, "-")}`) }}
                           className="ml-auto flex h-[22px] w-[22px] items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 text-[#999] hover:bg-[#f0f0f0] hover:text-[#262626]"
-                          aria-label={`Open ${client.name} profile`}
+                          aria-label={`Open ${client.name} full profile`}
                           tabIndex={0}
                         >
                           <ArrowUpRight className="h-[13px] w-[13px]" strokeWidth={1.75} />
                         </button>
                       </div>
                     </td>
-                    <td className={`h-[44px] border-b border-r border-[#dcdcdc] px-[20px] ${rowBg} ${rowHover}`}>
-                      <div className="flex items-center gap-[6px]">
-                        {client.industry.map((tag) => (
-                          <Tag key={tag} label={tag} />
-                        ))}
-                      </div>
-                    </td>
-                    <td className={`h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] text-[14px] font-medium text-[#262626] ${rowBg} ${rowHover}`}>
-                      {client.lastInteraction}
-                    </td>
-                    <td className={`h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] text-[14px] font-medium text-[#262626] ${rowBg} ${rowHover}`}>
-                      {client.revenue}
-                    </td>
-                    <td className={`h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] text-[14px] font-medium text-[#262626] ${rowBg} ${rowHover}`}>
-                      {client.headcount}
-                    </td>
-                    <td className={`h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] text-[14px] font-medium text-[#262626] ${rowBg} ${rowHover}`}>
-                      {client.lastFunding}
-                    </td>
-                    <td className={`h-[44px] whitespace-nowrap border-b px-[20px] text-[14px] font-medium text-[#262626] ${rowBg} ${rowHover}`}>
-                      {client.website}
-                    </td>
+                    {visibleColumns.map((col, i) => renderCell(col.key, i === visibleColumns.length - 1))}
                   </tr>
                 )
               })}
@@ -1049,7 +1444,7 @@ export default function ClientsPage() {
           </table>
         </div>
 
-        <div className="shrink-0 border-t border-[#f0f0f0] px-[20px] py-[10px]">
+        <div className="shrink-0 border-t border-[#dcdcdc] px-[20px] py-[10px]">
           <span className="text-[12px] font-medium text-[#999]">
             {clients.length} clients
           </span>
@@ -1057,7 +1452,7 @@ export default function ClientsPage() {
       </div>
 
       {selectedClient && (
-        <div className="absolute right-0 top-0 z-40 h-full">
+        <div className="absolute right-0 top-0 z-40 h-full overflow-hidden">
           <ClientProfile
             client={selectedClient}
             participantData={getParticipantData(selectedClient)}
@@ -1065,6 +1460,53 @@ export default function ClientsPage() {
             onClose={() => setSelectedClient(null)}
           />
         </div>
+      )}
+
+      {isCreateViewOpen && (
+        <>
+          <div className="fixed inset-0 z-50 bg-black/20" onClick={() => { setIsCreateViewOpen(false); setNewViewName("") }} />
+          <div className="fixed left-1/2 top-1/2 z-50 w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[15px] font-semibold text-[#262626]">Create a view for account</h3>
+              <button
+                onClick={() => { setIsCreateViewOpen(false); setNewViewName("") }}
+                className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+                tabIndex={0}
+                aria-label="Close"
+              >
+                <X className="h-[16px] w-[16px]" strokeWidth={1.75} />
+              </button>
+            </div>
+            <div className="mt-[20px]">
+              <label className="text-[13px] font-medium text-[#888]">Name</label>
+              <input
+                ref={viewNameInputRef}
+                value={newViewName}
+                onChange={(e) => setNewViewName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleCreateView() }}
+                placeholder="Enter name here"
+                className="mt-[8px] w-full rounded-lg border border-[#dcdcdc] bg-[#fafafa] px-[12px] py-[10px] text-[13px] font-medium text-[#262626] outline-none transition-colors placeholder:text-[#bbb] focus:border-[#a3c4f3] focus:bg-white"
+              />
+            </div>
+            <div className="mt-[20px] flex items-center justify-end gap-[12px]">
+              <button
+                onClick={() => { setIsCreateViewOpen(false); setNewViewName("") }}
+                className="px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:text-[#888]"
+                tabIndex={0}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateView}
+                disabled={!newViewName.trim()}
+                className={`rounded-lg border px-[16px] py-[6px] text-[13px] font-medium transition-colors ${newViewName.trim() ? "border-[#262626] bg-[#262626] text-white hover:bg-[#333]" : "border-[#dcdcdc] text-[#bbb]"}`}
+                tabIndex={0}
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   )

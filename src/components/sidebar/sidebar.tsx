@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback, useRef, useEffect } from "react"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 import {
   Bell,
@@ -16,8 +16,11 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Wallet,
+  LogOut,
+  ChevronDown,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 
 interface NavItem {
   label: string
@@ -62,7 +65,8 @@ const navigation: NavSection[] = [
   },
 ]
 
-const MIN_WIDTH = 60
+const COLLAPSED_WIDTH = 60
+const MIN_WIDTH = 170
 const DEFAULT_WIDTH = 240
 const MAX_WIDTH = 360
 const COLLAPSE_THRESHOLD = 100
@@ -71,9 +75,43 @@ export function Sidebar() {
   const [width, setWidth] = useState(DEFAULT_WIDTH)
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const [userName, setUserName] = useState("")
+  const [userEmail, setUserEmail] = useState("")
   const sidebarRef = useRef<HTMLElement>(null)
+  const userMenuRef = useRef<HTMLDivElement>(null)
   const widthBeforeCollapse = useRef(DEFAULT_WIDTH)
   const pathname = usePathname()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return
+    const supabase = createClient()
+    if (!supabase) return
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setUserName(user.user_metadata?.full_name || "")
+        setUserEmail(user.email || "")
+      }
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!isUserMenuOpen) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node))
+        setIsUserMenuOpen(false)
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [isUserMenuOpen])
+
+  const handleLogout = async () => {
+    const supabase = createClient()
+    if (supabase) await supabase.auth.signOut()
+    router.push("/login")
+    router.refresh()
+  }
 
   const handleToggleCollapse = useCallback(() => {
     if (isCollapsed) {
@@ -82,7 +120,7 @@ export function Sidebar() {
     } else {
       widthBeforeCollapse.current = width
       setIsCollapsed(true)
-      setWidth(MIN_WIDTH)
+      setWidth(COLLAPSED_WIDTH)
     }
   }, [isCollapsed, width])
 
@@ -98,9 +136,9 @@ export function Sidebar() {
       const newWidth = e.clientX
       if (newWidth < COLLAPSE_THRESHOLD) {
         setIsCollapsed(true)
-        setWidth(MIN_WIDTH)
+        setWidth(COLLAPSED_WIDTH)
       } else {
-        const clampedWidth = Math.min(Math.max(newWidth, COLLAPSE_THRESHOLD), MAX_WIDTH)
+        const clampedWidth = Math.min(Math.max(newWidth, MIN_WIDTH), MAX_WIDTH)
         setIsCollapsed(false)
         setWidth(clampedWidth)
       }
@@ -135,7 +173,7 @@ export function Sidebar() {
         <Link
           href={item.href}
           className={cn(
-            "flex items-center gap-2 rounded px-2 py-[6px] text-[14px] font-medium transition-colors",
+            "flex items-center gap-2 rounded px-2 py-[6px] text-[13px] font-medium transition-colors",
             isActive
               ? "bg-sidebar-active text-sidebar-text"
               : "text-sidebar-text hover:bg-sidebar-hover",
@@ -224,24 +262,43 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Help button at bottom */}
-      <div className="px-3 pb-3 pt-2">
-        {!isCollapsed ? (
-          <button
-            className="flex h-6 w-6 items-center justify-center rounded-full border border-sidebar-border text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-sidebar-text"
-            aria-label="Help"
-            tabIndex={0}
-          >
-            <span className="text-[12px] font-medium">?</span>
-          </button>
-        ) : (
-          <button
-            className="mx-auto flex h-6 w-6 items-center justify-center rounded-full border border-sidebar-border text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-sidebar-text"
-            aria-label="Help"
-            tabIndex={0}
-          >
-            <span className="text-[12px] font-medium">?</span>
-          </button>
+      {/* User menu at bottom */}
+      <div className="relative border-t border-sidebar-border px-2 pb-3 pt-2" ref={userMenuRef}>
+        <button
+          onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+          className={cn(
+            "flex w-full items-center gap-2 rounded px-2 py-[6px] text-[13px] font-medium text-sidebar-text transition-colors hover:bg-sidebar-hover",
+            isCollapsed && "justify-center px-0"
+          )}
+          aria-label="User menu"
+          tabIndex={0}
+        >
+          <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md bg-[#e0e0e0] text-[10px] font-semibold text-[#555]">
+            {userName ? userName.charAt(0).toUpperCase() : userEmail ? userEmail.charAt(0).toUpperCase() : "U"}
+          </div>
+          {!isCollapsed && (
+            <>
+              <span className="truncate text-[12px]">{userName || userEmail || "Account"}</span>
+              <ChevronDown className="ml-auto h-[12px] w-[12px] shrink-0 text-sidebar-muted" strokeWidth={1.75} />
+            </>
+          )}
+        </button>
+
+        {isUserMenuOpen && (
+          <div className="absolute bottom-full left-2 right-2 mb-1 rounded-lg border border-[#e0e0e0] bg-white py-1 shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+            <div className="border-b border-[#f0f0f0] px-3 py-2">
+              <p className="truncate text-[12px] font-medium text-[#262626]">{userName || "User"}</p>
+              <p className="truncate text-[11px] text-[#888]">{userEmail}</p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex w-full items-center gap-2 px-3 py-[6px] text-[12px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+              tabIndex={0}
+            >
+              <LogOut className="h-[14px] w-[14px]" strokeWidth={1.75} />
+              Sign out
+            </button>
+          </div>
         )}
       </div>
 
@@ -257,7 +314,7 @@ export function Sidebar() {
         aria-label="Resize sidebar"
         tabIndex={0}
         onKeyDown={(e) => {
-          if (e.key === "ArrowLeft") setWidth((w) => Math.max(MIN_WIDTH, w - 10))
+          if (e.key === "ArrowLeft") setWidth((w) => Math.max(isCollapsed ? COLLAPSED_WIDTH : MIN_WIDTH, w - 10))
           if (e.key === "ArrowRight") setWidth((w) => Math.min(MAX_WIDTH, w + 10))
         }}
       />
