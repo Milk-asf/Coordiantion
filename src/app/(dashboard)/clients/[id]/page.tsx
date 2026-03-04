@@ -21,20 +21,11 @@ import {
   Plus,
   SquarePen,
   CheckSquare,
-  File,
   UserPlus,
-  Info,
   Globe,
-  Clock,
-  DollarSign,
   Users,
-  Building2,
-  Landmark,
   ArrowLeft,
   FolderOpen,
-  Wallet,
-  Target,
-  BarChart3,
   PanelRightOpen,
   PanelRightClose,
   ClipboardList,
@@ -278,7 +269,7 @@ interface ActivityItem {
   time: string
 }
 
-function getActivities(clientName: string): ActivityItem[] {
+function getActivities(_clientName: string): ActivityItem[] {
   return [
     { id: "1", icon: FileText, content: <><strong>Lightfield</strong> set About their business</>, time: "7m ago" },
     { id: "2", icon: UserPlus, content: <><strong>Lightfield</strong> set Name for the contact <strong>Sam Lee</strong> to Sam Lee</>, time: "7m ago" },
