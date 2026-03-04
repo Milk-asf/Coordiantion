@@ -964,8 +964,7 @@ export default function ClientsPage() {
       return
     }
     localStorage.setItem("client-views", JSON.stringify(savedViews))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [savedViews])
+  }, [savedViews, activeViewId])
 
   useEffect(() => {
     if (isInitialMount.current) return
@@ -983,8 +982,7 @@ export default function ClientsPage() {
         v.id === activeViewId ? { ...v, columnKeys: visibleColumnKeys, sortKey, sortDirection } : v
       )
     )
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visibleColumnKeys, sortKey, sortDirection])
+  }, [visibleColumnKeys, sortKey, sortDirection, activeViewId])
 
   const visibleColumns = visibleColumnKeys.map((key) => allPropertyColumns.find((col) => col.key === key)).filter(Boolean) as typeof allPropertyColumns
 
