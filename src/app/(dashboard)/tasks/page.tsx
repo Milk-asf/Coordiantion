@@ -19,26 +19,9 @@ import {
   Clock,
   DollarSign,
 } from "lucide-react"
-import { clientNames } from "@/lib/contacts-context"
-
-interface Attachment {
-  id: string
-  name: string
-  size: number
-}
-
-interface Task {
-  id: string
-  title: string
-  description: string
-  status: "todo" | "in-progress" | "done"
-  assignee: string
-  client: string
-  dueDate: string | null
-  attachments: Attachment[]
-  billable: boolean
-  timeSpent: number
-}
+import { useTasks } from "@/lib/hooks/use-tasks"
+import { useClients } from "@/lib/hooks/use-clients"
+import type { Task, Attachment } from "@/lib/types"
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -99,9 +82,8 @@ function groupDateOrder(group: string): number {
 const defaultNewTask = { title: "", description: "", status: "todo" as Task["status"], assignee: "Sam Lee", client: "", dueDate: "" }
 
 export default function TasksPage() {
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: "t1", title: "Schedule introductory call and prepare service overview", description: "", status: "in-progress", assignee: "Sam Lee", client: "Content-mobbin", dueDate: null, attachments: [], billable: false, timeSpent: 0 },
-  ])
+  const { tasks, addTask, updateTask: updateTaskDb, deleteTask: deleteTaskDb } = useTasks()
+  const { clientNames } = useClients()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [newTask, setNewTask] = useState({ ...defaultNewTask })
@@ -142,36 +124,31 @@ export default function TasksPage() {
     setNewAttachments((prev) => prev.filter((a) => a.id !== id))
   }
 
-  const handleCreateTask = () => {
+  const handleCreateTask = async () => {
     if (!newTask.title.trim()) return
-    setTasks((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        title: newTask.title,
-        description: newTask.description,
-        status: newTask.status,
-        assignee: newTask.assignee,
-        client: newTask.client,
-        dueDate: newTask.dueDate || null,
-        attachments: newAttachments,
-        billable: false,
-        timeSpent: 0,
-      },
-    ])
+    await addTask({
+      title: newTask.title,
+      description: newTask.description,
+      status: newTask.status,
+      assignee: newTask.assignee,
+      client: newTask.client,
+      dueDate: newTask.dueDate || null,
+      attachments: newAttachments,
+      billable: false,
+      timeSpent: 0,
+    })
     closeModal()
   }
 
   const handleToggleComplete = (id: string) => {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === id ? { ...t, status: t.status === "done" ? "todo" : "done" } : t
-      )
-    )
+    const task = tasks.find((t) => t.id === id)
+    if (!task) return
+    const newStatus = task.status === "done" ? "todo" : "done"
+    updateTaskDb(id, { status: newStatus })
   }
 
   const handleDeleteTask = (id: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== id))
+    deleteTaskDb(id)
     if (selectedTaskId === id) setSelectedTaskId(null)
   }
 
@@ -179,27 +156,27 @@ export default function TasksPage() {
 
   const handleUpdateTask = useCallback((field: keyof Task, value: string | Attachment[] | boolean | number) => {
     if (!selectedTaskId) return
-    setTasks((prev) => prev.map((t) => t.id === selectedTaskId ? { ...t, [field]: value } : t))
-  }, [selectedTaskId])
+    updateTaskDb(selectedTaskId, { [field]: value } as Partial<Task>)
+  }, [selectedTaskId, updateTaskDb])
 
   const handleDetailFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!selectedTaskId || !e.target.files) return
+    const task = tasks.find((t) => t.id === selectedTaskId)
+    if (!task) return
     const added: Attachment[] = Array.from(e.target.files).map((f) => ({
       id: crypto.randomUUID(),
       name: f.name,
       size: f.size,
     }))
-    setTasks((prev) => prev.map((t) =>
-      t.id === selectedTaskId ? { ...t, attachments: [...t.attachments, ...added] } : t
-    ))
+    updateTaskDb(selectedTaskId, { attachments: [...task.attachments, ...added] })
     e.target.value = ""
   }
 
   const handleDetailRemoveAttachment = (attachmentId: string) => {
     if (!selectedTaskId) return
-    setTasks((prev) => prev.map((t) =>
-      t.id === selectedTaskId ? { ...t, attachments: t.attachments.filter((a) => a.id !== attachmentId) } : t
-    ))
+    const task = tasks.find((t) => t.id === selectedTaskId)
+    if (!task) return
+    updateTaskDb(selectedTaskId, { attachments: task.attachments.filter((a) => a.id !== attachmentId) })
   }
 
   const closeDetail = () => {

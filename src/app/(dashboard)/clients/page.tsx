@@ -2,7 +2,9 @@
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { useContacts } from "@/lib/contacts-context"
+import { useContacts } from "@/lib/hooks/use-contacts"
+import { useClients } from "@/lib/hooks/use-clients"
+import type { Client, ParticipantDetails } from "@/lib/types"
 import {
   UserRound,
   ListFilter,
@@ -44,214 +46,7 @@ import {
   Info,
 } from "lucide-react"
 
-interface ParticipantDetails {
-  firstName: string
-  middleName: string
-  lastName: string
-  preferredName: string
-  dateOfBirth: string
-  gender: string
-  pronouns: string
-  ethnicity: string
-  language: string
-  primaryDiagnosis: string
-  secondaryDiagnosis: string
-  email: string
-  mobile: string
-  phone: string
-  preferredContactMethod: string
-  preferredSignMethod: string
-  ndisNumber: string
-  medicareNumber: string
-  centrelinkNumber: string
-  externalId: string
-  serviceCommencementDate: string
-  serviceExitDate: string
-}
 
-interface Client {
-  name: string
-  iconColor: string
-  iconText: string
-  iconShape: "square" | "circle"
-  industry: string[]
-  lastInteraction: string
-  revenue: string
-  headcount: string
-  lastFunding: string
-  website: string
-  owner: string
-  summary: string
-  about: string
-  participant: ParticipantDetails
-}
-
-const clients: Client[] = [
-  {
-    name: "Rappi",
-    iconColor: "#e87040",
-    iconText: "R",
-    iconShape: "square",
-    industry: ["E-commerce", "Food Delivery", "Financial Tech"],
-    lastInteraction: "6h ago",
-    revenue: "$1B to $10B",
-    headcount: "1001-5000",
-    lastFunding: "Series F",
-    website: "rappi",
-    owner: "Sam Lee",
-    summary:
-      "Rappi's team reached out to explore integration opportunities for their delivery logistics platform. Initial discovery call completed, follow-up demo scheduled for next week.",
-    about:
-      "Rappi is a Latin American super-app offering delivery, payments, and financial services across multiple countries, serving millions of users with on-demand commerce solutions.",
-    participant: {
-      firstName: "Rafael",
-      middleName: "Andres",
-      lastName: "Perez",
-      preferredName: "Rappi",
-      dateOfBirth: "1992-03-15",
-      gender: "Male",
-      pronouns: "He/Him",
-      ethnicity: "Hispanic",
-      language: "Spanish",
-      primaryDiagnosis: "Autism Spectrum Disorder",
-      secondaryDiagnosis: "ADHD",
-      email: "rafael.perez@email.com",
-      mobile: "0412 345 678",
-      phone: "02 9876 5432",
-      preferredContactMethod: "Call (Mobile)",
-      preferredSignMethod: "Electronically",
-      ndisNumber: "4312345678",
-      medicareNumber: "2345 67890 1",
-      centrelinkNumber: "123 456 789A",
-      externalId: "EXT-001",
-      serviceCommencementDate: "2024-01-15",
-      serviceExitDate: "",
-    },
-  },
-  {
-    name: "Content-mobbin",
-    iconColor: "#3b82f6",
-    iconText: "C",
-    iconShape: "circle",
-    industry: ["Workforce Management"],
-    lastInteraction: "17h ago",
-    revenue: "$50M to $100M",
-    headcount: "101-250",
-    lastFunding: "Undisclosed",
-    website: "mobbin",
-    owner: "Sam Lee",
-    summary:
-      "Robert from Content-mobbin emailed inbound to learn more about the documenting flows service and requested a short call; no further interactions or opportunities are recorded yet. Next step is to respond to Robert's email, share an overview of the service and collaboration process, and propose times for an introductory call.",
-    about:
-      "Content-mobbin provides a documenting flows service that helps organizations efficiently document multiple product flows, likely generating revenue by offering this as a paid, collaborative service for product teams.",
-    participant: {
-      firstName: "Robert",
-      middleName: "James",
-      lastName: "Chen",
-      preferredName: "Rob",
-      dateOfBirth: "1988-07-22",
-      gender: "Male",
-      pronouns: "He/Him",
-      ethnicity: "Chinese Australian",
-      language: "English",
-      primaryDiagnosis: "Cerebral Palsy",
-      secondaryDiagnosis: "",
-      email: "robert.chen@content-mobbin.com",
-      mobile: "0423 456 789",
-      phone: "",
-      preferredContactMethod: "Email",
-      preferredSignMethod: "Electronically",
-      ndisNumber: "4398765432",
-      medicareNumber: "3456 78901 2",
-      centrelinkNumber: "234 567 890B",
-      externalId: "EXT-002",
-      serviceCommencementDate: "2023-09-01",
-      serviceExitDate: "",
-    },
-  },
-  {
-    name: "Lovi",
-    iconColor: "#6b7280",
-    iconText: "L",
-    iconShape: "square",
-    industry: ["Artificial Intelligence", "Health Technology"],
-    lastInteraction: "5d ago",
-    revenue: "Less than $1M",
-    headcount: "11-50",
-    lastFunding: "Series B",
-    website: "lovi-care",
-    owner: "Sam Lee",
-    summary:
-      "Lovi is exploring AI-driven health monitoring solutions. Early-stage conversations about potential partnership for patient engagement tools.",
-    about:
-      "Lovi is a health technology startup leveraging artificial intelligence to provide personalized care recommendations and remote patient monitoring solutions.",
-    participant: {
-      firstName: "Olivia",
-      middleName: "",
-      lastName: "Nguyen",
-      preferredName: "Lovi",
-      dateOfBirth: "1995-11-08",
-      gender: "Female",
-      pronouns: "She/Her",
-      ethnicity: "Vietnamese Australian",
-      language: "English",
-      primaryDiagnosis: "Intellectual Disability",
-      secondaryDiagnosis: "Anxiety Disorder",
-      email: "olivia.nguyen@email.com",
-      mobile: "0434 567 890",
-      phone: "03 8765 4321",
-      preferredContactMethod: "SMS",
-      preferredSignMethod: "In Person",
-      ndisNumber: "4356789012",
-      medicareNumber: "4567 89012 3",
-      centrelinkNumber: "345 678 901C",
-      externalId: "EXT-003",
-      serviceCommencementDate: "2024-06-10",
-      serviceExitDate: "",
-    },
-  },
-  {
-    name: "Anthropic",
-    iconColor: "#1a1a1a",
-    iconText: "A",
-    iconShape: "square",
-    industry: ["Software"],
-    lastInteraction: "4w ago",
-    revenue: "$1B to $10B",
-    headcount: "1001-5000",
-    lastFunding: "Series F",
-    website: "anthropic",
-    owner: "Sam Lee",
-    summary:
-      "Initial outreach sent to Anthropic's partnerships team regarding potential collaboration on enterprise AI tooling. Awaiting response.",
-    about:
-      "Anthropic is an AI safety company building reliable, interpretable, and steerable AI systems, known for developing the Claude family of AI assistants.",
-    participant: {
-      firstName: "Anthony",
-      middleName: "Paul",
-      lastName: "Roberts",
-      preferredName: "Ant",
-      dateOfBirth: "1980-02-28",
-      gender: "Male",
-      pronouns: "He/Him",
-      ethnicity: "Caucasian",
-      language: "English",
-      primaryDiagnosis: "Spinal Cord Injury",
-      secondaryDiagnosis: "Depression",
-      email: "anthony.roberts@email.com",
-      mobile: "0445 678 901",
-      phone: "02 7654 3210",
-      preferredContactMethod: "Call (Phone)",
-      preferredSignMethod: "In Person",
-      ndisNumber: "4345678901",
-      medicareNumber: "5678 90123 4",
-      centrelinkNumber: "456 789 012D",
-      externalId: "EXT-004",
-      serviceCommencementDate: "2022-03-20",
-      serviceExitDate: "",
-    },
-  },
-]
 
 const allPropertyColumns = [
   { key: "ndisNumber", label: "NDIS Number", icon: Hash, minWidth: 160 },
@@ -729,7 +524,7 @@ function ClientProfile({
   const router = useRouter()
 
   const handleExpand = () => {
-    router.push(`/clients/${client.name.toLowerCase().replace(/\s+/g, "-")}`)
+    router.push(`/clients/${client.id}`)
   }
 
   return (
@@ -927,6 +722,7 @@ interface SavedView {
 
 export default function ClientsPage() {
   const router = useRouter()
+  const { clients, updateClient } = useClients()
   const { getContactsForClient } = useContacts()
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(defaultVisibleKeys)
@@ -948,7 +744,6 @@ export default function ClientsPage() {
   const displayBtnRef = useRef<HTMLButtonElement>(null)
   const viewNameInputRef = useRef<HTMLInputElement>(null)
   const isInitialMount = useRef(true)
-  const [participantOverrides, setParticipantOverrides] = useState<Record<string, Partial<ParticipantDetails>>>({})
 
   useEffect(() => {
     if (isInitialMount.current) {
@@ -1037,16 +832,16 @@ export default function ClientsPage() {
   }
 
   const getParticipantData = useCallback((client: Client): ParticipantDetails => {
-    const overrides = participantOverrides[client.name] || {}
-    return { ...client.participant, ...overrides }
-  }, [participantOverrides])
-
-  const handleUpdateField = useCallback((clientName: string, field: keyof ParticipantDetails, value: string) => {
-    setParticipantOverrides((prev) => ({
-      ...prev,
-      [clientName]: { ...prev[clientName], [field]: value },
-    }))
+    return client.participant
   }, [])
+
+  const handleUpdateField = useCallback((clientId: string, field: keyof ParticipantDetails, value: string) => {
+    const client = clients.find((c) => c.id === clientId)
+    if (!client) return
+    updateClient(clientId, {
+      participant: { ...client.participant, [field]: value },
+    })
+  }, [clients, updateClient])
 
   const sortedClients = (() => {
     if (!sortKey) return clients
@@ -1333,7 +1128,7 @@ export default function ClientsPage() {
             </thead>
             <tbody>
               {sortedClients.map((client) => {
-                const isSelected = selectedClient?.name === client.name
+                const isSelected = selectedClient?.id === client.id
                 const rowBg = isSelected ? "bg-[#f5f5ff]" : "bg-[#fafafa]"
                 const rowHover = isSelected ? "" : "group-hover:bg-[#f5f5f5]"
                 const p = getParticipantData(client)
@@ -1418,7 +1213,7 @@ export default function ClientsPage() {
                 }
 
                 return (
-                  <tr key={client.name} className="group">
+                  <tr key={client.id} className="group">
                     <td
                       onClick={() => setSelectedClient(client)}
                       className={`sticky left-0 z-10 h-[44px] cursor-pointer whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] ${rowBg} ${rowHover}`}
@@ -1427,7 +1222,7 @@ export default function ClientsPage() {
                         <ClientIcon client={client} />
                         <span className="text-[13px] font-medium text-[#262626]">{client.name}</span>
                         <button
-                          onClick={(e) => { e.stopPropagation(); router.push(`/clients/${client.name.toLowerCase().replace(/\s+/g, "-")}`) }}
+                          onClick={(e) => { e.stopPropagation(); router.push(`/clients/${client.id}`) }}
                           className="ml-auto flex h-[22px] w-[22px] items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 text-[#999] hover:bg-[#f0f0f0] hover:text-[#262626]"
                           aria-label={`Open ${client.name} full profile`}
                           tabIndex={0}
@@ -1456,7 +1251,7 @@ export default function ClientsPage() {
           <ClientProfile
             client={selectedClient}
             participantData={getParticipantData(selectedClient)}
-            onUpdateField={(field, value) => handleUpdateField(selectedClient.name, field, value)}
+            onUpdateField={(field, value) => handleUpdateField(selectedClient.id, field, value)}
             onClose={() => setSelectedClient(null)}
           />
         </div>

@@ -16,7 +16,9 @@ import {
   X,
   UserPlus,
 } from "lucide-react"
-import { useContacts, relationshipConfig, clientNames } from "@/lib/contacts-context"
+import { useContacts } from "@/lib/hooks/use-contacts"
+import { useClients } from "@/lib/hooks/use-clients"
+import { relationshipConfig } from "@/lib/types"
 
 const columns = [
   { key: "name", label: "Name", icon: UserRound },
@@ -28,17 +30,18 @@ const columns = [
 
 export default function ContactsPage() {
   const { contacts, addContact } = useContacts()
+  const { clientNames } = useClients()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isRelationshipOpen, setIsRelationshipOpen] = useState(false)
   const [isClientOpen, setIsClientOpen] = useState(false)
-  const [newContact, setNewContact] = useState({ name: "", clientName: "", relationship: "", email: "", phone: "" })
+  const [newContact, setNewContact] = useState({ name: "", clientName: "", clientId: null as string | null, relationship: "", email: "", phone: "" })
   const relationshipRef = useRef<HTMLButtonElement>(null)
   const clientRef = useRef<HTMLButtonElement>(null)
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!newContact.name) return
-    addContact(newContact)
-    setNewContact({ name: "", clientName: "", relationship: "", email: "", phone: "" })
+    await addContact({ ...newContact, clientId: newContact.clientId })
+    setNewContact({ name: "", clientName: "", clientId: null, relationship: "", email: "", phone: "" })
     setIsModalOpen(false)
     setIsRelationshipOpen(false)
     setIsClientOpen(false)

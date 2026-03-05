@@ -25,7 +25,7 @@ export default function SignUpPage() {
     }
 
     const supabase = createClient()!
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -37,6 +37,18 @@ export default function SignUpPage() {
       setError(error.message)
       setIsLoading(false)
       return
+    }
+
+    if (data.user) {
+      const { error: wsError } = await supabase.rpc("create_workspace_for_user", {
+        workspace_name: `${fullName}'s Workspace`,
+        owner_id: data.user.id,
+      })
+      if (wsError) {
+        setError("Account created but workspace setup failed. Please contact support.")
+        setIsLoading(false)
+        return
+      }
     }
 
     router.push("/clients")

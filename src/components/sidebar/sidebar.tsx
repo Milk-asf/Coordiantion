@@ -18,9 +18,12 @@ import {
   Wallet,
   LogOut,
   ChevronDown,
+  Settings,
+  Plus,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
+import { useWorkspace } from "@/lib/workspace-context"
 
 interface NavItem {
   label: string
@@ -76,13 +79,18 @@ export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(false)
+  const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false)
+  const [newWorkspaceName, setNewWorkspaceName] = useState("")
   const [userName, setUserName] = useState("")
   const [userEmail, setUserEmail] = useState("")
   const sidebarRef = useRef<HTMLElement>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
+  const workspaceMenuRef = useRef<HTMLDivElement>(null)
   const widthBeforeCollapse = useRef(DEFAULT_WIDTH)
   const pathname = usePathname()
   const router = useRouter()
+  const { workspaces, activeWorkspace, switchWorkspace, createWorkspace } = useWorkspace()
 
   useEffect(() => {
     if (!isSupabaseConfigured()) return
@@ -105,6 +113,27 @@ export function Sidebar() {
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [isUserMenuOpen])
+
+  useEffect(() => {
+    if (!isWorkspaceMenuOpen) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (workspaceMenuRef.current && !workspaceMenuRef.current.contains(e.target as Node)) {
+        setIsWorkspaceMenuOpen(false)
+        setIsCreatingWorkspace(false)
+        setNewWorkspaceName("")
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [isWorkspaceMenuOpen])
+
+  const handleCreateWorkspace = async () => {
+    if (!newWorkspaceName.trim()) return
+    await createWorkspace(newWorkspaceName.trim())
+    setNewWorkspaceName("")
+    setIsCreatingWorkspace(false)
+    setIsWorkspaceMenuOpen(false)
+  }
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -207,17 +236,21 @@ export function Sidebar() {
         !isDragging && "transition-[width] duration-200"
       )}
     >
-      {/* User + collapse */}
-      <div className="flex items-center justify-between px-3 pb-2 pt-3">
+      {/* Workspace switcher + collapse */}
+      <div className="flex items-center justify-between px-3 pb-2 pt-3" ref={workspaceMenuRef}>
         {!isCollapsed && (
-          <div className="flex items-center gap-2 overflow-hidden">
+          <button
+            onClick={() => setIsWorkspaceMenuOpen(!isWorkspaceMenuOpen)}
+            className="flex items-center gap-2 overflow-hidden rounded px-1 py-0.5 transition-colors hover:bg-sidebar-hover"
+          >
             <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-600 text-[8px] font-medium text-white">
-              C
+              {activeWorkspace?.name?.[0]?.toUpperCase() || "W"}
             </div>
             <span className="truncate text-[13px] font-medium text-sidebar-text">
-              Coordination
+              {activeWorkspace?.name || "Workspace"}
             </span>
-          </div>
+            <ChevronDown className="h-[12px] w-[12px] shrink-0 text-sidebar-muted" strokeWidth={1.75} />
+          </button>
         )}
         <button
           onClick={handleToggleCollapse}
@@ -234,6 +267,53 @@ export function Sidebar() {
             <ChevronsLeft className="h-[14px] w-[14px]" strokeWidth={1.75} />
           )}
         </button>
+
+        {isWorkspaceMenuOpen && !isCollapsed && (
+          <div className="absolute left-2 top-[48px] z-50 w-[220px] rounded-lg border border-[#e0e0e0] bg-white py-1 shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+            <p className="px-3 py-[6px] text-[11px] font-medium text-[#888]">Workspaces</p>
+            {workspaces.map((ws) => (
+              <button
+                key={ws.id}
+                onClick={() => { switchWorkspace(ws.id); setIsWorkspaceMenuOpen(false) }}
+                className={cn(
+                  "flex w-full items-center gap-2 px-3 py-[6px] text-[12px] font-medium transition-colors hover:bg-[#f5f5f5]",
+                  ws.id === activeWorkspace?.id ? "bg-[#f5f5f5] text-[#262626]" : "text-[#555]"
+                )}
+              >
+                <div className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-green-600 text-[7px] font-medium text-white">
+                  {ws.name[0]?.toUpperCase() || "W"}
+                </div>
+                <span className="truncate">{ws.name}</span>
+              </button>
+            ))}
+            <div className="my-1 border-t border-[#f0f0f0]" />
+            {isCreatingWorkspace ? (
+              <div className="px-3 py-[6px]">
+                <input
+                  type="text"
+                  value={newWorkspaceName}
+                  onChange={(e) => setNewWorkspaceName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleCreateWorkspace(); if (e.key === "Escape") { setIsCreatingWorkspace(false); setNewWorkspaceName("") } }}
+                  placeholder="Workspace name"
+                  className="h-[30px] w-full rounded border border-[#dcdcdc] px-[8px] text-[12px] font-medium text-[#262626] placeholder-[#bbb] outline-none focus:border-[#a3c4f3]"
+                  autoFocus
+                />
+                <div className="mt-[6px] flex justify-end gap-[6px]">
+                  <button onClick={() => { setIsCreatingWorkspace(false); setNewWorkspaceName("") }} className="rounded px-[8px] py-[3px] text-[11px] font-medium text-[#888] hover:text-[#262626]">Cancel</button>
+                  <button onClick={handleCreateWorkspace} disabled={!newWorkspaceName.trim()} className="rounded bg-[#262626] px-[8px] py-[3px] text-[11px] font-medium text-white hover:bg-[#3d3d3d] disabled:opacity-50">Create</button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsCreatingWorkspace(true)}
+                className="flex w-full items-center gap-2 px-3 py-[6px] text-[12px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+              >
+                <Plus className="h-[14px] w-[14px]" strokeWidth={1.75} />
+                Create workspace
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
 
@@ -290,6 +370,15 @@ export function Sidebar() {
               <p className="truncate text-[12px] font-medium text-[#262626]">{userName || "User"}</p>
               <p className="truncate text-[11px] text-[#888]">{userEmail}</p>
             </div>
+            <Link
+              href="/settings"
+              onClick={() => setIsUserMenuOpen(false)}
+              className="flex w-full items-center gap-2 px-3 py-[6px] text-[12px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+              tabIndex={0}
+            >
+              <Settings className="h-[14px] w-[14px]" strokeWidth={1.75} />
+              Settings
+            </Link>
             <button
               onClick={handleLogout}
               className="flex w-full items-center gap-2 px-3 py-[6px] text-[12px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"

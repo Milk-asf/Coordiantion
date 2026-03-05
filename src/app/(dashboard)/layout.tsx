@@ -1,5 +1,7 @@
+"use client"
+
 import { Sidebar } from "@/components/sidebar/sidebar"
-import { ContactsProvider } from "@/lib/contacts-context"
+import { WorkspaceProvider } from "@/lib/workspace-context"
 
 export default function DashboardLayout({
   children,
@@ -7,13 +9,13 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    <ContactsProvider>
+    <WorkspaceProvider>
       <div className="flex h-screen overflow-hidden">
         <Sidebar />
         <main className="h-full flex-1 overflow-y-auto bg-[#fafafa]">
           {children}
         </main>
       </div>
-    </ContactsProvider>
+    </WorkspaceProvider>
   )
 }

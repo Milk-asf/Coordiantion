@@ -2,7 +2,10 @@
 
 import { useState, useRef, useCallback, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { useContacts, relationshipConfig } from "@/lib/contacts-context"
+import { useContacts } from "@/lib/hooks/use-contacts"
+import { useClients } from "@/lib/hooks/use-clients"
+import { relationshipConfig } from "@/lib/types"
+import type { Client, ParticipantDetails } from "@/lib/types"
 import {
   UserRound,
   FileText,
@@ -35,48 +38,6 @@ import {
   Check,
 } from "lucide-react"
 
-interface ParticipantDetails {
-  firstName: string
-  middleName: string
-  lastName: string
-  preferredName: string
-  dateOfBirth: string
-  gender: string
-  pronouns: string
-  ethnicity: string
-  language: string
-  primaryDiagnosis: string
-  secondaryDiagnosis: string
-  email: string
-  mobile: string
-  phone: string
-  preferredContactMethod: string
-  preferredSignMethod: string
-  ndisNumber: string
-  medicareNumber: string
-  centrelinkNumber: string
-  externalId: string
-  serviceCommencementDate: string
-  serviceExitDate: string
-}
-
-interface Client {
-  name: string
-  iconColor: string
-  iconText: string
-  iconShape: "square" | "circle"
-  industry: string[]
-  lastInteraction: string
-  revenue: string
-  headcount: string
-  lastFunding: string
-  website: string
-  owner: string
-  summary: string
-  about: string
-  participant: ParticipantDetails
-}
-
 interface ProfileContact {
   id: string
   firstName: string
@@ -85,173 +46,6 @@ interface ProfileContact {
   relationship: string
 }
 
-
-const clients: Client[] = [
-  {
-    name: "Rappi",
-    iconColor: "#e87040",
-    iconText: "R",
-    iconShape: "square",
-    industry: ["E-commerce", "Food Delivery", "Financial Tech"],
-    lastInteraction: "6h ago",
-    revenue: "$1B to $10B",
-    headcount: "1001-5000",
-    lastFunding: "Series F",
-    website: "rappi",
-    owner: "Sam Lee",
-    summary:
-      "Rappi's team reached out to explore integration opportunities for their delivery logistics platform. Initial discovery call completed, follow-up demo scheduled for next week.",
-    about:
-      "Rappi is a Latin American super-app offering delivery, payments, and financial services across multiple countries, serving millions of users with on-demand commerce solutions.",
-    participant: {
-      firstName: "Rafael",
-      middleName: "Andres",
-      lastName: "Perez",
-      preferredName: "Rappi",
-      dateOfBirth: "1992-03-15",
-      gender: "Male",
-      pronouns: "He/Him",
-      ethnicity: "Hispanic",
-      language: "Spanish",
-      primaryDiagnosis: "Autism Spectrum Disorder",
-      secondaryDiagnosis: "ADHD",
-      email: "rafael.perez@email.com",
-      mobile: "0412 345 678",
-      phone: "02 9876 5432",
-      preferredContactMethod: "Call (Mobile)",
-      preferredSignMethod: "Electronically",
-      ndisNumber: "4312345678",
-      medicareNumber: "2345 67890 1",
-      centrelinkNumber: "123 456 789A",
-      externalId: "EXT-001",
-      serviceCommencementDate: "2024-01-15",
-      serviceExitDate: "",
-    },
-  },
-  {
-    name: "Content-mobbin",
-    iconColor: "#3b82f6",
-    iconText: "C",
-    iconShape: "circle",
-    industry: ["Workforce Management"],
-    lastInteraction: "17h ago",
-    revenue: "$50M to $100M",
-    headcount: "101-250",
-    lastFunding: "Undisclosed",
-    website: "mobbin",
-    owner: "Sam Lee",
-    summary:
-      "Robert from Content-mobbin emailed inbound to learn more about the documenting flows service and requested a short call; no further interactions or opportunities are recorded yet. Next step is to respond to Robert's email, share an overview of the service and collaboration process, and propose times for an introductory call.",
-    about:
-      "Content-mobbin provides a documenting flows service that helps organizations efficiently document multiple product flows, likely generating revenue by offering this as a paid, collaborative service for product teams.",
-    participant: {
-      firstName: "Robert",
-      middleName: "James",
-      lastName: "Chen",
-      preferredName: "Rob",
-      dateOfBirth: "1988-07-22",
-      gender: "Male",
-      pronouns: "He/Him",
-      ethnicity: "Chinese Australian",
-      language: "English",
-      primaryDiagnosis: "Cerebral Palsy",
-      secondaryDiagnosis: "",
-      email: "robert.chen@content-mobbin.com",
-      mobile: "0423 456 789",
-      phone: "",
-      preferredContactMethod: "Email",
-      preferredSignMethod: "Electronically",
-      ndisNumber: "4398765432",
-      medicareNumber: "3456 78901 2",
-      centrelinkNumber: "234 567 890B",
-      externalId: "EXT-002",
-      serviceCommencementDate: "2023-09-01",
-      serviceExitDate: "",
-    },
-  },
-  {
-    name: "Lovi",
-    iconColor: "#6b7280",
-    iconText: "L",
-    iconShape: "square",
-    industry: ["Artificial Intelligence", "Health Technology"],
-    lastInteraction: "5d ago",
-    revenue: "Less than $1M",
-    headcount: "11-50",
-    lastFunding: "Series B",
-    website: "lovi-care",
-    owner: "Sam Lee",
-    summary:
-      "Lovi is exploring AI-driven health monitoring solutions. Early-stage conversations about potential partnership for patient engagement tools.",
-    about:
-      "Lovi is a health technology startup leveraging artificial intelligence to provide personalized care recommendations and remote patient monitoring solutions.",
-    participant: {
-      firstName: "Olivia",
-      middleName: "",
-      lastName: "Nguyen",
-      preferredName: "Lovi",
-      dateOfBirth: "1995-11-08",
-      gender: "Female",
-      pronouns: "She/Her",
-      ethnicity: "Vietnamese Australian",
-      language: "English",
-      primaryDiagnosis: "Intellectual Disability",
-      secondaryDiagnosis: "Anxiety Disorder",
-      email: "olivia.nguyen@email.com",
-      mobile: "0434 567 890",
-      phone: "03 8765 4321",
-      preferredContactMethod: "SMS",
-      preferredSignMethod: "In Person",
-      ndisNumber: "4356789012",
-      medicareNumber: "4567 89012 3",
-      centrelinkNumber: "345 678 901C",
-      externalId: "EXT-003",
-      serviceCommencementDate: "2024-06-10",
-      serviceExitDate: "",
-    },
-  },
-  {
-    name: "Anthropic",
-    iconColor: "#1a1a1a",
-    iconText: "A",
-    iconShape: "square",
-    industry: ["Software"],
-    lastInteraction: "4w ago",
-    revenue: "$1B to $10B",
-    headcount: "1001-5000",
-    lastFunding: "Series F",
-    website: "anthropic",
-    owner: "Sam Lee",
-    summary:
-      "Initial outreach sent to Anthropic's partnerships team regarding potential collaboration on enterprise AI tooling. Awaiting response.",
-    about:
-      "Anthropic is an AI safety company building reliable, interpretable, and steerable AI systems, known for developing the Claude family of AI assistants.",
-    participant: {
-      firstName: "Anthony",
-      middleName: "Paul",
-      lastName: "Roberts",
-      preferredName: "Ant",
-      dateOfBirth: "1980-02-28",
-      gender: "Male",
-      pronouns: "He/Him",
-      ethnicity: "Caucasian",
-      language: "English",
-      primaryDiagnosis: "Spinal Cord Injury",
-      secondaryDiagnosis: "Depression",
-      email: "anthony.roberts@email.com",
-      mobile: "0445 678 901",
-      phone: "02 7654 3210",
-      preferredContactMethod: "Call (Phone)",
-      preferredSignMethod: "In Person",
-      ndisNumber: "4345678901",
-      medicareNumber: "5678 90123 4",
-      centrelinkNumber: "456 789 012D",
-      externalId: "EXT-004",
-      serviceCommencementDate: "2022-03-20",
-      serviceExitDate: "",
-    },
-  },
-]
 
 const tabs = [
   { key: "overview", label: "Overview", icon: FileText },
@@ -552,6 +346,7 @@ export default function ParticipantProfilePage() {
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false)
   const [isSidebarVisible, setIsSidebarVisible] = useState(true)
   const [sidebarWidth, setSidebarWidth] = useState(404)
+  const { clients, updateClient } = useClients()
   const { addContact, getContactsForClient } = useContacts()
   const [isAddContactOpen, setIsAddContactOpen] = useState(false)
   const [newContact, setNewContact] = useState({ firstName: "", email: "", phone: "", relationship: "" })
@@ -559,7 +354,6 @@ export default function ParticipantProfilePage() {
   const [visibleTabCount, setVisibleTabCount] = useState(tabs.length)
   const [isTabOverflowOpen, setIsTabOverflowOpen] = useState(false)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [participantOverrides, setParticipantOverrides] = useState<Partial<ParticipantDetails>>({})
   const tabWidthsRef = useRef<number[]>([])
   const overflowBtnRef = useRef<HTMLButtonElement>(null)
   const createBtnRef = useRef<HTMLButtonElement>(null)
@@ -637,8 +431,8 @@ export default function ParticipantProfilePage() {
     return () => window.removeEventListener("resize", handleResize)
   }, [isSidebarVisible, sidebarWidth])
 
-  const clientId = params.id as string
-  const client = clients.find((c) => c.name.toLowerCase().replace(/\s+/g, "-") === clientId)
+  const id = params.id as string
+  const client = clients.find((c) => c.id === id) || null
 
   if (!client) {
     return (
@@ -653,11 +447,11 @@ export default function ParticipantProfilePage() {
     )
   }
 
-  const p = { ...client.participant, ...participantOverrides }
+  const p = client.participant
   const activities = getActivities(client.name)
 
   const handleUpdateField = (field: keyof ParticipantDetails, value: string) => {
-    setParticipantOverrides((prev) => ({ ...prev, [field]: value }))
+    updateClient(client.id, { participant: { ...client.participant, [field]: value } })
   }
 
   const clientContacts = getContactsForClient(client.name)
@@ -668,7 +462,7 @@ export default function ParticipantProfilePage() {
 
   const handleCreateContact = () => {
     if (!newContact.firstName) return
-    addContact({ name: newContact.firstName, clientName: client.name, relationship: newContact.relationship, email: newContact.email, phone: newContact.phone })
+    addContact({ name: newContact.firstName, clientId: client.id, clientName: client.name, relationship: newContact.relationship, email: newContact.email, phone: newContact.phone })
     setNewContact({ firstName: "", email: "", phone: "", relationship: "" })
     setIsAddContactOpen(false)
     setIsRelationshipOpen(false)
