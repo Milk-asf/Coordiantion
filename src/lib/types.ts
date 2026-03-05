@@ -100,6 +100,48 @@ export interface WorkspaceMember {
   name?: string
 }
 
+export interface StaffDetails {
+  firstName: string
+  lastName: string
+  preferredName: string
+  dateOfBirth: string
+  gender: string
+  pronouns: string
+  email: string
+  mobile: string
+  phone: string
+  role: string
+  department: string
+  employmentType: string
+  startDate: string
+  endDate: string
+  qualifications: string
+  certifications: string
+  emergencyContactName: string
+  emergencyContactPhone: string
+  notes: string
+}
+
+export const emptyStaffDetails: StaffDetails = {
+  firstName: "", lastName: "", preferredName: "",
+  dateOfBirth: "", gender: "", pronouns: "",
+  email: "", mobile: "", phone: "",
+  role: "", department: "", employmentType: "",
+  startDate: "", endDate: "",
+  qualifications: "", certifications: "",
+  emergencyContactName: "", emergencyContactPhone: "",
+  notes: "",
+}
+
+export interface StaffMember {
+  id: string
+  name: string
+  iconText: string
+  details: StaffDetails
+  status: "active" | "invited" | "inactive"
+  invitedEmail: string
+}
+
 export const relationshipConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {
   "support-coordinator": { label: "Support Coordinator", bg: "bg-transparent", text: "text-[#262626]", border: "border-[#dcdcdc]" },
   "general-practitioner": { label: "General Practitioner", bg: "bg-transparent", text: "text-[#262626]", border: "border-[#dcdcdc]" },

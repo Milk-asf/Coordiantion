@@ -909,6 +909,8 @@ export default function ClientsPage() {
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-[#f0f0f0] px-[16px]">
           <div className="flex items-center gap-[8px]">
+            <span className="text-[13px] font-medium text-[#262626]">Clients</span>
+            <div className="h-[16px] w-px bg-[#e5e5e5]" />
             <button
               onClick={handleSelectAllView}
               className={`flex items-center gap-[6px] rounded-md border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === null ? "border-[#dcdcdc] bg-[#f5f5f5] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}

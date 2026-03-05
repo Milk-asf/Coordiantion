@@ -15,7 +15,6 @@ import {
   StickyNote,
   ChevronsLeft,
   ChevronsRight,
-  Wallet,
   LogOut,
   ChevronDown,
   Settings,
@@ -63,7 +62,6 @@ const navigation: NavSection[] = [
     items: [
       { label: "Documents", href: "/documents", icon: FileText },
       { label: "Notes", href: "/notes", icon: StickyNote },
-      { label: "Budgets", href: "/budgets", icon: Wallet },
     ],
   },
 ]

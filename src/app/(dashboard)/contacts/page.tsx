@@ -52,10 +52,7 @@ export default function ContactsPage() {
       {/* Header */}
       <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-[#f0f0f0] px-[16px]">
         <div className="flex items-center gap-[12px]">
-          <div className="flex items-center gap-[6px]">
-            <Handshake className="h-[14px] w-[14px] text-[#262626]" strokeWidth={1.5} />
-            <span className="text-[13px] font-medium text-[#262626]">Contacts</span>
-          </div>
+          <span className="text-[13px] font-medium text-[#262626]">Contacts</span>
           <div className="h-[16px] w-px bg-[#e5e5e5]" />
           <div className="flex items-center gap-[6px] rounded bg-[#f0f0f0] px-[6px] py-[3px] text-[13px] font-medium text-[#262626]">
             <Table2 className="h-[14px] w-[14px] text-[#262626]" strokeWidth={1.75} />
