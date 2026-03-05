@@ -237,24 +237,6 @@ export default function TasksPage() {
         </div>
       </div>
 
-      {tasks.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-[8px]">
-          <SquareCheck className="h-[28px] w-[28px] text-[#ccc]" strokeWidth={1.25} />
-          <p className="text-[13px] font-medium text-[#888]">No tasks yet</p>
-          <p className="max-w-[260px] text-center text-[13px] font-medium text-[#bbb]">
-            Create tasks to track work across your clients and team
-          </p>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="mt-[4px] flex items-center gap-[5px] rounded bg-[#262626] px-[14px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-[#3d3d3d]"
-            tabIndex={0}
-          >
-            <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-            <span>Create task</span>
-          </button>
-        </div>
-      ) : (
-        <>
           {/* Filter bar */}
           <div className="flex h-[41px] shrink-0 items-center gap-[8px] border-b border-[#dcdcdc] px-[16px]">
             <button
@@ -434,8 +416,6 @@ export default function TasksPage() {
               {taskCount} {taskCount === 1 ? "task" : "tasks"}
             </span>
           </div>
-        </>
-      )}
 
       {/* Create task modal */}
       {isModalOpen && (

@@ -2,6 +2,8 @@
 
 import { Sidebar } from "@/components/sidebar/sidebar"
 import { WorkspaceProvider } from "@/lib/workspace-context"
+import { ClientsProvider } from "@/lib/clients-context"
+import { ContactsProvider } from "@/lib/contacts-context"
 
 export default function DashboardLayout({
   children,
@@ -10,12 +12,16 @@ export default function DashboardLayout({
 }) {
   return (
     <WorkspaceProvider>
-      <div className="flex h-screen overflow-hidden">
-        <Sidebar />
-        <main className="h-full flex-1 overflow-y-auto bg-[#fafafa]">
-          {children}
-        </main>
-      </div>
+      <ClientsProvider>
+        <ContactsProvider>
+          <div className="flex h-screen overflow-hidden">
+            <Sidebar />
+            <main className="h-full flex-1 overflow-y-auto bg-[#fafafa]">
+              {children}
+            </main>
+          </div>
+        </ContactsProvider>
+      </ClientsProvider>
     </WorkspaceProvider>
   )
 }

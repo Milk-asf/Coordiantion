@@ -88,21 +88,6 @@ export default function ContactsPage() {
         </div>
       </div>
 
-      {contacts.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-[8px]">
-          <Handshake className="h-[28px] w-[28px] text-[#ccc]" strokeWidth={1.25} />
-          <p className="text-[13px] font-medium text-[#888]">No contacts yet</p>
-          <p className="text-[13px] font-medium text-[#bbb]">Add contacts to keep track of stakeholders</p>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="mt-[4px] rounded-md bg-[#262626] px-[14px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-[#333]"
-            tabIndex={0}
-          >
-            Create contact
-          </button>
-        </div>
-      ) : (
-        <>
           {/* Filter bar */}
           <div className="flex h-[41px] shrink-0 items-center border-b border-[#dcdcdc] px-[16px]">
             <button
@@ -184,8 +169,6 @@ export default function ContactsPage() {
               {contacts.length} {contacts.length === 1 ? "contact" : "contacts"}
             </span>
           </div>
-        </>
-      )}
 
       {/* Create contact modal */}
       {isModalOpen && (

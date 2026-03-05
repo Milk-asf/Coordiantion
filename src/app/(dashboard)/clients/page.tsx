@@ -722,7 +722,7 @@ interface SavedView {
 
 export default function ClientsPage() {
   const router = useRouter()
-  const { clients, updateClient } = useClients()
+  const { clients, addClient, updateClient } = useClients()
   const { getContactsForClient } = useContacts()
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(defaultVisibleKeys)
@@ -741,6 +741,8 @@ export default function ClientsPage() {
   })
   const [isCreateViewOpen, setIsCreateViewOpen] = useState(false)
   const [newViewName, setNewViewName] = useState("")
+  const [isCreateClientOpen, setIsCreateClientOpen] = useState(false)
+  const [newClientName, setNewClientName] = useState("")
   const displayBtnRef = useRef<HTMLButtonElement>(null)
   const viewNameInputRef = useRef<HTMLInputElement>(null)
   const isInitialMount = useRef(true)
@@ -843,6 +845,23 @@ export default function ClientsPage() {
     })
   }, [clients, updateClient])
 
+  const handleCreateClient = async () => {
+    const name = newClientName.trim()
+    if (!name) return
+    const names = name.split(/\s+/)
+    const firstName = names[0] || ""
+    const lastName = names.length > 1 ? names[names.length - 1] : ""
+
+    await addClient({
+      name,
+      iconText: name[0]?.toUpperCase() || "?",
+      participant: { firstName, lastName },
+    })
+
+    setNewClientName("")
+    setIsCreateClientOpen(false)
+  }
+
   const sortedClients = (() => {
     if (!sortKey) return clients
     return [...clients].sort((a, b) => {
@@ -928,6 +947,7 @@ export default function ClientsPage() {
               <span className="hidden sm:inline">Import CSV</span>
             </button>
             <button
+              onClick={() => setIsCreateClientOpen(true)}
               className="flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
               tabIndex={0}
             >
@@ -937,6 +957,7 @@ export default function ClientsPage() {
           </div>
         </div>
 
+        
         <div className="flex h-[41px] shrink-0 items-center border-b border-[#dcdcdc] px-[16px]">
           <button
             className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
@@ -1302,6 +1323,54 @@ export default function ClientsPage() {
             </div>
           </div>
         </>
+      )}
+
+      {isCreateClientOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/20" onClick={() => { setIsCreateClientOpen(false); setNewClientName("") }} />
+          <div className="relative z-10 w-[440px] rounded-lg bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+            <div className="flex items-center justify-between px-[24px] pt-[20px]">
+              <div className="flex items-center gap-[8px]">
+                <FileText className="h-[16px] w-[16px] text-[#555]" strokeWidth={1.5} />
+                <h2 className="text-[15px] font-semibold text-[#262626]">Create client</h2>
+              </div>
+              <button
+                onClick={() => { setIsCreateClientOpen(false); setNewClientName("") }}
+                className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+                tabIndex={0}
+                aria-label="Close"
+              >
+                <X className="h-[16px] w-[16px]" strokeWidth={1.5} />
+              </button>
+            </div>
+
+            <div className="px-[24px] pb-[20px] pt-[16px]">
+              <div className="mb-[16px]">
+                <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Name</label>
+                <input
+                  type="text"
+                  placeholder="Client name"
+                  value={newClientName}
+                  onChange={(e) => setNewClientName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleCreateClient() }}
+                  className="w-full border-b border-[#e0e0e0] pb-[8px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3]"
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={handleCreateClient}
+                  disabled={!newClientName.trim()}
+                  className={`text-[13px] font-medium transition-colors ${newClientName.trim() ? "text-[#262626] hover:text-[#555]" : "text-[#bbb]"}`}
+                  tabIndex={0}
+                >
+                  Create
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

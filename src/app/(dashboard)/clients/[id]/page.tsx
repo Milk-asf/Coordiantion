@@ -346,7 +346,7 @@ export default function ParticipantProfilePage() {
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false)
   const [isSidebarVisible, setIsSidebarVisible] = useState(true)
   const [sidebarWidth, setSidebarWidth] = useState(404)
-  const { clients, updateClient } = useClients()
+  const { clients, isLoading, updateClient } = useClients()
   const { addContact, getContactsForClient } = useContacts()
   const [isAddContactOpen, setIsAddContactOpen] = useState(false)
   const [newContact, setNewContact] = useState({ firstName: "", email: "", phone: "", relationship: "" })
@@ -433,6 +433,14 @@ export default function ParticipantProfilePage() {
 
   const id = params.id as string
   const client = clients.find((c) => c.id === id) || null
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="text-[13px] font-medium text-[#888]">Loading...</p>
+      </div>
+    )
+  }
 
   if (!client) {
     return (
