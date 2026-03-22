@@ -18,10 +18,11 @@ import {
 } from "lucide-react"
 import { useContacts } from "@/lib/hooks/use-contacts"
 import { useClients } from "@/lib/hooks/use-clients"
+import { useFieldConfig } from "@/lib/hooks/use-field-config"
 import { relationshipConfig } from "@/lib/types"
 
-const columns = [
-  { key: "name", label: "Name", icon: UserRound },
+const allColumns = [
+  { key: "name", label: "Name", icon: UserRound, isSystem: true },
   { key: "client", label: "Client", icon: Building2, sorted: true },
   { key: "relationship", label: "Relationship", icon: Handshake },
   { key: "email", label: "Email", icon: Mail },
@@ -31,6 +32,9 @@ const columns = [
 export default function ContactsPage() {
   const { contacts, addContact } = useContacts()
   const { clientNames } = useClients()
+  const { contactDisabled } = useFieldConfig()
+
+  const columns = allColumns.filter((col) => col.isSystem || !contactDisabled.has(col.key))
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isRelationshipOpen, setIsRelationshipOpen] = useState(false)
   const [isClientOpen, setIsClientOpen] = useState(false)
@@ -123,36 +127,38 @@ export default function ContactsPage() {
                 {contacts.map((contact) => {
                 const rel = relationshipConfig[contact.relationship]
                 const initials = contact.name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase()
+                const dash = <span className="text-[#bbb]">—</span>
+
+                const renderCell = (key: string, isLast: boolean) => {
+                  const cls = `h-[44px] whitespace-nowrap border-b ${isLast ? "" : "border-r"} border-[#dcdcdc] bg-[#fafafa] px-[20px] group-hover:bg-[#f5f5f5]`
+                  const textCls = `${cls} text-[13px] font-medium text-[#262626]`
+
+                  switch (key) {
+                    case "name":
+                      return (
+                        <td key={key} className={textCls}>
+                          <div className="flex items-center gap-[10px]">
+                            <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[4px] bg-[#d4d4d4] text-[9px] font-semibold text-[#555]">{initials}</div>
+                            {contact.name}
+                          </div>
+                        </td>
+                      )
+                    case "client":
+                      return <td key={key} className={cls}>{contact.clientName ? <span className="inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] px-[8px] text-[13px] font-medium text-[#262626]">{contact.clientName}</span> : dash}</td>
+                    case "relationship":
+                      return <td key={key} className={cls}>{rel ? <span className="inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] px-[8px] text-[13px] font-medium text-[#262626]">{rel.label}</span> : <span className="text-[13px] font-medium text-[#bbb]">—</span>}</td>
+                    case "email":
+                      return <td key={key} className={textCls}>{contact.email || dash}</td>
+                    case "phone":
+                      return <td key={key} className={textCls}>{contact.phone || dash}</td>
+                    default:
+                      return <td key={key} className={textCls}>{dash}</td>
+                  }
+                }
+
                 return (
                   <tr key={contact.id} className="group transition-colors hover:bg-[#f5f5f5]">
-                    <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626] group-hover:bg-[#f5f5f5]">
-                      <div className="flex items-center gap-[10px]">
-                        <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[4px] bg-[#d4d4d4] text-[9px] font-semibold text-[#555]">
-                          {initials}
-                        </div>
-                        {contact.name}
-                      </div>
-                    </td>
-                    <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] group-hover:bg-[#f5f5f5]">
-                      {contact.clientName ? (
-                        <span className="inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] px-[8px] text-[13px] font-medium text-[#262626]">
-                          {contact.clientName}
-                        </span>
-                      ) : <span className="text-[#bbb]">—</span>}
-                    </td>
-                    <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] group-hover:bg-[#f5f5f5]">
-                      {rel ? (
-                        <span className="inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] px-[8px] text-[13px] font-medium text-[#262626]">{rel.label}</span>
-                      ) : (
-                        <span className="text-[13px] font-medium text-[#bbb]">—</span>
-                      )}
-                    </td>
-                    <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626] group-hover:bg-[#f5f5f5]">
-                      {contact.email || <span className="text-[#bbb]">—</span>}
-                    </td>
-                    <td className="h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626] group-hover:bg-[#f5f5f5]">
-                      {contact.phone || <span className="text-[#bbb]">—</span>}
-                    </td>
+                    {columns.map((col, i) => renderCell(col.key, i === columns.length - 1))}
                   </tr>
                 )
               })}

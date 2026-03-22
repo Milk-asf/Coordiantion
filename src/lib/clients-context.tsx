@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
 import { emptyParticipant } from "@/lib/types"
+import { dummyClients } from "@/lib/dummy-data"
 import type { Client, ParticipantDetails } from "@/lib/types"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -53,11 +54,12 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
 
   const fetchClients = useCallback(async () => {
     if (!activeWorkspace || !isSupabaseConfigured()) {
+      setClients(dummyClients)
       setIsLoading(false)
       return
     }
     const supabase = createClient()
-    if (!supabase) { setIsLoading(false); return }
+    if (!supabase) { setClients(dummyClients); setIsLoading(false); return }
 
     setIsLoading(true)
     const { data } = await supabase
@@ -66,7 +68,8 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
       .eq("workspace_id", activeWorkspace.id)
       .order("created_at", { ascending: true })
 
-    setClients((data || []).map(dbToClient))
+    const fetched = (data || []).map(dbToClient)
+    setClients(fetched.length > 0 ? fetched : dummyClients)
     setIsLoading(false)
   }, [activeWorkspace])
 

@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useContacts } from "@/lib/hooks/use-contacts"
 import { useClients } from "@/lib/hooks/use-clients"
+import { useFieldConfig } from "@/lib/hooks/use-field-config"
 import type { Client, ParticipantDetails } from "@/lib/types"
 import {
   UserRound,
@@ -724,6 +725,12 @@ export default function ClientsPage() {
   const router = useRouter()
   const { clients, addClient, updateClient } = useClients()
   const { getContactsForClient } = useContacts()
+  const { participantDisabled } = useFieldConfig()
+
+  const availablePropertyColumns = useMemo(
+    () => allPropertyColumns.filter((col) => !participantDisabled.has(col.key)),
+    [participantDisabled]
+  )
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(defaultVisibleKeys)
   const [isDisplayOpen, setIsDisplayOpen] = useState(false)
@@ -743,6 +750,8 @@ export default function ClientsPage() {
   const [newViewName, setNewViewName] = useState("")
   const [isCreateClientOpen, setIsCreateClientOpen] = useState(false)
   const [newClientName, setNewClientName] = useState("")
+  const [viewContextMenu, setViewContextMenu] = useState<{ viewId: string; x: number; y: number } | null>(null)
+  const [deleteViewConfirm, setDeleteViewConfirm] = useState<SavedView | null>(null)
   const displayBtnRef = useRef<HTMLButtonElement>(null)
   const viewNameInputRef = useRef<HTMLInputElement>(null)
   const isInitialMount = useRef(true)
@@ -781,7 +790,10 @@ export default function ClientsPage() {
     )
   }, [visibleColumnKeys, sortKey, sortDirection, activeViewId])
 
-  const visibleColumns = visibleColumnKeys.map((key) => allPropertyColumns.find((col) => col.key === key)).filter(Boolean) as typeof allPropertyColumns
+  const visibleColumns = visibleColumnKeys
+    .filter((key) => !participantDisabled.has(key))
+    .map((key) => allPropertyColumns.find((col) => col.key === key))
+    .filter(Boolean) as typeof allPropertyColumns
 
   const handleToggleColumn = (key: string) => {
     setVisibleColumnKeys((prev) =>
@@ -831,6 +843,17 @@ export default function ClientsPage() {
     setVisibleColumnKeys(defaultVisibleKeys)
     setSortKey(null)
     setSortDirection("asc")
+  }
+
+  const handleDeleteView = (viewId: string) => {
+    setSavedViews((prev) => prev.filter((v) => v.id !== viewId))
+    if (activeViewId === viewId) {
+      setActiveViewId(null)
+      setVisibleColumnKeys(defaultVisibleKeys)
+      setSortKey(null)
+      setSortDirection("asc")
+    }
+    setDeleteViewConfirm(null)
   }
 
   const getParticipantData = useCallback((client: Client): ParticipantDetails => {
@@ -924,6 +947,10 @@ export default function ClientsPage() {
               <button
                 key={view.id}
                 onClick={() => handleSelectView(view)}
+                onContextMenu={(e) => {
+                  e.preventDefault()
+                  setViewContextMenu({ viewId: view.id, x: e.clientX, y: e.clientY })
+                }}
                 className={`flex items-center gap-[6px] rounded-md px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === view.id ? "bg-[#f5f5f5] text-[#262626]" : "text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
                 tabIndex={0}
               >
@@ -1008,7 +1035,7 @@ export default function ClientsPage() {
                   <div className="px-[20px] pb-[16px] pt-[14px]">
                     <div className="pb-[12px] text-[13px] font-medium text-[#888]">Display properties</div>
                     <div className="flex flex-wrap gap-[8px]">
-                      {allPropertyColumns.map((col) => {
+                      {availablePropertyColumns.map((col) => {
                         const isActive = visibleColumnKeys.includes(col.key)
                         return (
                           <button
@@ -1370,6 +1397,57 @@ export default function ClientsPage() {
                   Create
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewContextMenu && (
+        <>
+          <div className="fixed inset-0 z-50" onClick={() => setViewContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setViewContextMenu(null) }} />
+          <div
+            className="fixed z-50 w-[160px] overflow-hidden rounded-lg border border-[#dcdcdc] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+            style={{ top: viewContextMenu.y, left: viewContextMenu.x }}
+          >
+            <button
+              onClick={() => {
+                const view = savedViews.find((v) => v.id === viewContextMenu.viewId)
+                if (view) setDeleteViewConfirm(view)
+                setViewContextMenu(null)
+              }}
+              className="flex w-full items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-red-500 transition-colors hover:bg-red-50"
+              tabIndex={0}
+            >
+              <X className="h-[14px] w-[14px]" strokeWidth={1.5} />
+              Delete view
+            </button>
+          </div>
+        </>
+      )}
+
+      {deleteViewConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/20" onClick={() => setDeleteViewConfirm(null)} />
+          <div className="relative z-10 w-[400px] rounded-lg bg-white p-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+            <h3 className="text-[15px] font-semibold text-[#262626]">Delete view</h3>
+            <p className="mt-[8px] text-[13px] font-medium text-[#888]">
+              Are you sure you want to delete <span className="text-[#262626]">&ldquo;{deleteViewConfirm.name}&rdquo;</span>? This action cannot be undone.
+            </p>
+            <div className="mt-[20px] flex items-center justify-end gap-[12px]">
+              <button
+                onClick={() => setDeleteViewConfirm(null)}
+                className="px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:text-[#888]"
+                tabIndex={0}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteView(deleteViewConfirm.id)}
+                className="rounded-lg bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
+                tabIndex={0}
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>

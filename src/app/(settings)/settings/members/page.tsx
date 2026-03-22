@@ -9,19 +9,18 @@ import type { WorkspaceMember } from "@/lib/types"
 type Role = WorkspaceMember["role"]
 
 const roleConfig: Record<Role, { label: string; description: string; color: string }> = {
-  owner: { label: "Owner", description: "Full access. Can manage billing and delete workspace.", color: "bg-purple-50 text-purple-600" },
+  "super-admin": { label: "Super Admin", description: "Full access. Can manage billing, members, and delete workspace.", color: "bg-purple-50 text-purple-600" },
   admin: { label: "Admin", description: "Can manage members, settings, and all data.", color: "bg-blue-50 text-blue-600" },
-  member: { label: "Member", description: "Can view and edit clients, tasks, and contacts.", color: "bg-green-50 text-green-600" },
-  viewer: { label: "Viewer", description: "Read-only access to workspace data.", color: "bg-gray-100 text-[#888]" },
+  "support-worker": { label: "Support Worker", description: "Can view and edit clients, tasks, and contacts.", color: "bg-green-50 text-green-600" },
 }
 
-const allRoles: Role[] = ["owner", "admin", "member", "viewer"]
+const allRoles: Role[] = ["super-admin", "admin", "support-worker"]
 
 export default function MembersSettingsPage() {
   const { members, inviteMember, updateMemberRole, removeMember } = useMembers()
   const [isInviteOpen, setIsInviteOpen] = useState(false)
   const [inviteEmail, setInviteEmail] = useState("")
-  const [inviteRole, setInviteRole] = useState<Role>("member")
+  const [inviteRole, setInviteRole] = useState<Role>("support-worker")
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false)
   const [memberMenuId, setMemberMenuId] = useState<string | null>(null)
   const [roleChangeId, setRoleChangeId] = useState<string | null>(null)
@@ -30,7 +29,7 @@ export default function MembersSettingsPage() {
     if (!inviteEmail || !inviteEmail.includes("@")) return
     await inviteMember(inviteEmail, inviteRole)
     setInviteEmail("")
-    setInviteRole("member")
+    setInviteRole("support-worker")
     setIsInviteOpen(false)
   }
 
@@ -104,7 +103,7 @@ export default function MembersSettingsPage() {
                 </button>
                 {isRoleDropdownOpen && (
                   <div className="absolute left-0 right-0 top-full z-10 mt-[4px] rounded-[6px] border border-sidebar-border bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-                    {allRoles.filter((r) => r !== "owner").map((role) => (
+                    {allRoles.filter((r) => r !== "super-admin").map((role) => (
                       <button
                         key={role}
                         onClick={() => { setInviteRole(role); setIsRoleDropdownOpen(false) }}
@@ -182,16 +181,16 @@ export default function MembersSettingsPage() {
                         className={cn(
                           "rounded-[4px] px-[8px] py-[3px] text-[11px] font-medium transition-colors",
                           roleConfig[member.role].color,
-                          member.role !== "owner" && "cursor-pointer hover:opacity-80"
+                          member.role !== "super-admin" && "cursor-pointer hover:opacity-80"
                         )}
-                        disabled={member.role === "owner"}
+                        disabled={member.role === "super-admin"}
                       >
                         {roleConfig[member.role].label}
                       </button>
 
-                      {roleChangeId === member.id && member.role !== "owner" && (
+                      {roleChangeId === member.id && member.role !== "super-admin" && (
                         <div className="absolute left-0 top-full z-10 mt-[4px] w-[200px] rounded-[6px] border border-sidebar-border bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-                          {allRoles.filter((r) => r !== "owner").map((role) => (
+                          {allRoles.filter((r) => r !== "super-admin").map((role) => (
                             <button
                               key={role}
                               onClick={() => handleChangeRole(member.id, role)}
@@ -209,7 +208,7 @@ export default function MembersSettingsPage() {
                     </div>
                   </td>
                   <td className="py-[12px] text-right">
-                    {member.role !== "owner" && (
+                    {member.role !== "super-admin" && (
                       <div className="relative inline-block">
                         <button
                           onClick={() => setMemberMenuId(memberMenuId === member.id ? null : member.id)}

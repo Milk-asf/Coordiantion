@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
+import { dummyContacts } from "@/lib/dummy-data"
 import type { Contact } from "@/lib/types"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -37,11 +38,12 @@ export function ContactsProvider({ children }: { children: ReactNode }) {
 
   const fetchContacts = useCallback(async () => {
     if (!activeWorkspace || !isSupabaseConfigured()) {
+      setContacts(dummyContacts)
       setIsLoading(false)
       return
     }
     const supabase = createClient()
-    if (!supabase) { setIsLoading(false); return }
+    if (!supabase) { setContacts(dummyContacts); setIsLoading(false); return }
 
     setIsLoading(true)
     const { data } = await supabase
@@ -50,7 +52,8 @@ export function ContactsProvider({ children }: { children: ReactNode }) {
       .eq("workspace_id", activeWorkspace.id)
       .order("created_at", { ascending: true })
 
-    setContacts((data || []).map(dbToContact))
+    const fetched = (data || []).map(dbToContact)
+    setContacts(fetched.length > 0 ? fetched : dummyContacts)
     setIsLoading(false)
   }, [activeWorkspace])
 

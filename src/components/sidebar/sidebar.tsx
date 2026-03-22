@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 import {
   Bell,
-  Mail,
+
   SquareCheck,
   Calendar,
   Copy,
@@ -46,7 +46,6 @@ const navigation: NavSection[] = [
     items: [
       { label: "Tasks", href: "/tasks", icon: SquareCheck },
       { label: "Calendar", href: "/calendar", icon: Calendar },
-      { label: "Email", href: "/email", icon: Mail },
     ],
   },
   {

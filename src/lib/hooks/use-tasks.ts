@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
+import { dummyTasks } from "@/lib/dummy-data"
 import type { Task, Attachment } from "@/lib/types"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -17,7 +18,7 @@ function dbToTask(row: any): Task {
     clientId: row.client_id || null,
     dueDate: row.due_date || null,
     attachments: row.attachments || [],
-    billable: row.billable || false,
+    chargeType: row.charge_type || "",
     timeSpent: row.time_spent || 0,
   }
 }
@@ -29,12 +30,12 @@ export function useTasks() {
 
   const fetchTasks = useCallback(async () => {
     if (!activeWorkspace || !isSupabaseConfigured()) {
-      setTasks([])
+      setTasks(dummyTasks)
       setIsLoading(false)
       return
     }
     const supabase = createClient()
-    if (!supabase) { setIsLoading(false); return }
+    if (!supabase) { setTasks(dummyTasks); setIsLoading(false); return }
 
     setIsLoading(true)
     const { data } = await supabase
@@ -43,7 +44,8 @@ export function useTasks() {
       .eq("workspace_id", activeWorkspace.id)
       .order("created_at", { ascending: true })
 
-    setTasks((data || []).map(dbToTask))
+    const fetched = (data || []).map(dbToTask)
+    setTasks(fetched.length > 0 ? fetched : dummyTasks)
     setIsLoading(false)
   }, [activeWorkspace])
 
@@ -58,7 +60,7 @@ export function useTasks() {
     clientId?: string | null
     dueDate?: string | null
     attachments?: Attachment[]
-    billable?: boolean
+    chargeType?: string
     timeSpent?: number
   }) => {
     if (!activeWorkspace || !isSupabaseConfigured()) return null
@@ -77,7 +79,7 @@ export function useTasks() {
         client_id: input.clientId || null,
         due_date: input.dueDate || null,
         attachments: input.attachments || [],
-        billable: input.billable || false,
+        charge_type: input.chargeType || "",
         time_spent: input.timeSpent || 0,
       })
       .select()
@@ -103,7 +105,7 @@ export function useTasks() {
     if (updates.clientId !== undefined) dbUpdates.client_id = updates.clientId
     if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate || null
     if (updates.attachments !== undefined) dbUpdates.attachments = updates.attachments
-    if (updates.billable !== undefined) dbUpdates.billable = updates.billable
+    if (updates.chargeType !== undefined) dbUpdates.charge_type = updates.chargeType
     if (updates.timeSpent !== undefined) dbUpdates.time_spent = updates.timeSpent
 
     await supabase.from("tasks").update(dbUpdates).eq("id", id)

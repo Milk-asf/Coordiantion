@@ -71,7 +71,7 @@ export interface Task {
   clientId: string | null
   dueDate: string | null
   attachments: Attachment[]
-  billable: boolean
+  chargeType: string
   timeSpent: number
 }
 
@@ -92,7 +92,7 @@ export interface WorkspaceMember {
   id: string
   workspace_id: string
   user_id: string | null
-  role: "owner" | "admin" | "member" | "viewer"
+  role: "super-admin" | "admin" | "support-worker"
   status: "active" | "pending" | "invited"
   invited_email: string | null
   created_at: string

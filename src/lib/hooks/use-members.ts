@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
+import { dummyMembers } from "@/lib/dummy-data"
 import type { WorkspaceMember } from "@/lib/types"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -25,7 +26,7 @@ export function useMembers() {
 
   const fetchMembers = useCallback(async () => {
     if (!activeWorkspace || !isSupabaseConfigured()) {
-      setMembers([])
+      setMembers(dummyMembers)
       setIsLoading(false)
       return
     }
@@ -64,7 +65,7 @@ export function useMembers() {
 
   useEffect(() => { fetchMembers() }, [fetchMembers])
 
-  const inviteMember = useCallback(async (email: string, role: WorkspaceMember["role"] = "member") => {
+  const inviteMember = useCallback(async (email: string, role: WorkspaceMember["role"] = "support-worker") => {
     if (!activeWorkspace || !isSupabaseConfigured()) return null
     const supabase = createClient()
     if (!supabase) return null

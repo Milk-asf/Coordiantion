@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useStaff } from "@/lib/hooks/use-staff"
+import { useFieldConfig } from "@/lib/hooks/use-field-config"
 import type { StaffMember, StaffDetails } from "@/lib/types"
 import {
   Users,
@@ -314,6 +315,12 @@ interface SavedView {
 export default function StaffPage() {
   const router = useRouter()
   const { staff, addStaff, updateStaff } = useStaff()
+  const { staffDisabled } = useFieldConfig()
+
+  const availablePropertyColumns = useMemo(
+    () => allPropertyColumns.filter((col) => !staffDisabled.has(col.key)),
+    [staffDisabled]
+  )
   const [selectedMember, setSelectedMember] = useState<StaffMember | null>(null)
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(defaultVisibleKeys)
   const [isDisplayOpen, setIsDisplayOpen] = useState(false)
@@ -336,6 +343,8 @@ export default function StaffPage() {
   const [isInviteOpen, setIsInviteOpen] = useState(false)
   const [inviteEmail, setInviteEmail] = useState("")
   const [inviteName, setInviteName] = useState("")
+  const [viewContextMenu, setViewContextMenu] = useState<{ viewId: string; x: number; y: number } | null>(null)
+  const [deleteViewConfirm, setDeleteViewConfirm] = useState<SavedView | null>(null)
   const displayBtnRef = useRef<HTMLButtonElement>(null)
   const viewNameInputRef = useRef<HTMLInputElement>(null)
   const isInitialMount = useRef(true)
@@ -363,7 +372,10 @@ export default function StaffPage() {
     setSavedViews((prev) => prev.map((v) => v.id === activeViewId ? { ...v, columnKeys: visibleColumnKeys, sortKey, sortDirection } : v))
   }, [visibleColumnKeys, sortKey, sortDirection, activeViewId])
 
-  const visibleColumns = visibleColumnKeys.map((key) => allPropertyColumns.find((col) => col.key === key)).filter(Boolean) as typeof allPropertyColumns
+  const visibleColumns = visibleColumnKeys
+    .filter((key) => !staffDisabled.has(key))
+    .map((key) => allPropertyColumns.find((col) => col.key === key))
+    .filter(Boolean) as typeof allPropertyColumns
 
   const handleToggleColumn = (key: string) => setVisibleColumnKeys((prev) => prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key])
 
@@ -387,6 +399,17 @@ export default function StaffPage() {
 
   const handleSelectView = (view: SavedView) => { setActiveViewId(view.id); setVisibleColumnKeys(view.columnKeys); setSortKey(view.sortKey); setSortDirection(view.sortDirection) }
   const handleSelectAllView = () => { setActiveViewId(null); setVisibleColumnKeys(defaultVisibleKeys); setSortKey(null); setSortDirection("asc") }
+
+  const handleDeleteView = (viewId: string) => {
+    setSavedViews((prev) => prev.filter((v) => v.id !== viewId))
+    if (activeViewId === viewId) {
+      setActiveViewId(null)
+      setVisibleColumnKeys(defaultVisibleKeys)
+      setSortKey(null)
+      setSortDirection("asc")
+    }
+    setDeleteViewConfirm(null)
+  }
 
   const handleUpdateField = useCallback((memberId: string, field: keyof StaffDetails, value: string) => {
     const member = staff.find((s) => s.id === memberId)
@@ -452,7 +475,13 @@ export default function StaffPage() {
             </button>
             {savedViews.length > 0 && <div className="h-[16px] w-px bg-[#dcdcdc]" />}
             {savedViews.map((view) => (
-              <button key={view.id} onClick={() => handleSelectView(view)} className={`flex items-center gap-[6px] rounded-md px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === view.id ? "bg-[#f5f5f5] text-[#262626]" : "text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`} tabIndex={0}>
+              <button
+                key={view.id}
+                onClick={() => handleSelectView(view)}
+                onContextMenu={(e) => { e.preventDefault(); setViewContextMenu({ viewId: view.id, x: e.clientX, y: e.clientY }) }}
+                className={`flex items-center gap-[6px] rounded-md px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === view.id ? "bg-[#f5f5f5] text-[#262626]" : "text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
+                tabIndex={0}
+              >
                 <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
                 <span>{view.name}</span>
               </button>
@@ -496,7 +525,7 @@ export default function StaffPage() {
                   <div className="px-[20px] pb-[16px] pt-[14px]">
                     <div className="pb-[12px] text-[13px] font-medium text-[#888]">Display properties</div>
                     <div className="flex flex-wrap gap-[8px]">
-                      {allPropertyColumns.map((col) => {
+                      {availablePropertyColumns.map((col) => {
                         const isActive = visibleColumnKeys.includes(col.key)
                         return (
                           <button key={col.key} onClick={() => handleToggleColumn(col.key)} className={`inline-flex items-center rounded-lg border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`} tabIndex={0}>
@@ -704,6 +733,57 @@ export default function StaffPage() {
               <div className="flex justify-end">
                 <button onClick={handleInviteStaff} disabled={!inviteEmail.trim() || !inviteEmail.includes("@")} className={`rounded-md px-[16px] py-[7px] text-[13px] font-medium transition-colors ${inviteEmail.trim() && inviteEmail.includes("@") ? "bg-[#262626] text-white hover:bg-[#333]" : "bg-[#e0e0e0] text-[#bbb]"}`} tabIndex={0}>Send invite</button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewContextMenu && (
+        <>
+          <div className="fixed inset-0 z-50" onClick={() => setViewContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setViewContextMenu(null) }} />
+          <div
+            className="fixed z-50 w-[160px] overflow-hidden rounded-lg border border-[#dcdcdc] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+            style={{ top: viewContextMenu.y, left: viewContextMenu.x }}
+          >
+            <button
+              onClick={() => {
+                const view = savedViews.find((v) => v.id === viewContextMenu.viewId)
+                if (view) setDeleteViewConfirm(view)
+                setViewContextMenu(null)
+              }}
+              className="flex w-full items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-red-500 transition-colors hover:bg-red-50"
+              tabIndex={0}
+            >
+              <X className="h-[14px] w-[14px]" strokeWidth={1.5} />
+              Delete view
+            </button>
+          </div>
+        </>
+      )}
+
+      {deleteViewConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/20" onClick={() => setDeleteViewConfirm(null)} />
+          <div className="relative z-10 w-[400px] rounded-lg bg-white p-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+            <h3 className="text-[15px] font-semibold text-[#262626]">Delete view</h3>
+            <p className="mt-[8px] text-[13px] font-medium text-[#888]">
+              Are you sure you want to delete <span className="text-[#262626]">&ldquo;{deleteViewConfirm.name}&rdquo;</span>? This action cannot be undone.
+            </p>
+            <div className="mt-[20px] flex items-center justify-end gap-[12px]">
+              <button
+                onClick={() => setDeleteViewConfirm(null)}
+                className="px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:text-[#888]"
+                tabIndex={0}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteView(deleteViewConfirm.id)}
+                className="rounded-lg bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
+                tabIndex={0}
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>

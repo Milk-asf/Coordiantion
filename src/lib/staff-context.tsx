@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
 import { emptyStaffDetails } from "@/lib/types"
+import { dummyStaff } from "@/lib/dummy-data"
 import type { StaffMember, StaffDetails } from "@/lib/types"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -43,11 +44,12 @@ export function StaffProvider({ children }: { children: ReactNode }) {
 
   const fetchStaff = useCallback(async () => {
     if (!activeWorkspace || !isSupabaseConfigured()) {
+      setStaff(dummyStaff)
       setIsLoading(false)
       return
     }
     const supabase = createClient()
-    if (!supabase) { setIsLoading(false); return }
+    if (!supabase) { setStaff(dummyStaff); setIsLoading(false); return }
 
     setIsLoading(true)
     const { data } = await supabase
@@ -56,7 +58,8 @@ export function StaffProvider({ children }: { children: ReactNode }) {
       .eq("workspace_id", activeWorkspace.id)
       .order("created_at", { ascending: true })
 
-    setStaff((data || []).map(dbToStaff))
+    const fetched = (data || []).map(dbToStaff)
+    setStaff(fetched.length > 0 ? fetched : dummyStaff)
     setIsLoading(false)
   }, [activeWorkspace])
 

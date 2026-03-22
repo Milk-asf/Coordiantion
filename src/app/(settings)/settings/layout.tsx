@@ -5,17 +5,14 @@ import Link from "next/link"
 import {
   ArrowLeft,
   Settings,
-  Mail,
   Bell,
-  Mic,
   Building2,
   Users,
-  Video,
   BookOpen,
   Database,
-  GitBranch,
   Upload,
   CreditCard,
+  Tag,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -35,9 +32,7 @@ const settingsNav: SettingsNavSection[] = [
     title: "Account",
     items: [
       { label: "Settings", href: "/settings/profile", icon: Settings },
-      { label: "Mail and Calendar", href: "/settings/mail-and-calendar", icon: Mail },
       { label: "Notifications", href: "/settings/notifications", icon: Bell },
-      { label: "Recording", href: "/settings/recording", icon: Mic },
     ],
   },
   {
@@ -45,10 +40,9 @@ const settingsNav: SettingsNavSection[] = [
     items: [
       { label: "General", href: "/settings/general", icon: Building2 },
       { label: "Members", href: "/settings/members", icon: Users },
-      { label: "Meetings", href: "/settings/meetings", icon: Video },
       { label: "Knowledge", href: "/settings/knowledge", icon: BookOpen },
       { label: "Data model", href: "/settings/data-model", icon: Database },
-      { label: "Opportunity stages", href: "/settings/opportunity-stages", icon: GitBranch },
+      { label: "Charges", href: "/settings/charges", icon: Tag },
       { label: "Import history", href: "/settings/import-history", icon: Upload },
       { label: "Billing", href: "/settings/billing", icon: CreditCard },
     ],
@@ -112,7 +106,10 @@ export default function SettingsLayout({
       </aside>
 
       <div className="flex-1 overflow-y-auto pt-[28px]">
-        <div className="mx-auto w-full max-w-[560px] pb-[80px]">
+        <div className={cn(
+          "mx-auto w-full pb-[80px]",
+          pathname === "/settings/data-model" || pathname === "/settings/charges" ? "max-w-[800px]" : "max-w-[560px]"
+        )}>
           {children}
         </div>
       </div>
