@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
-import { dummyTasks } from "@/lib/dummy-data"
 import type { Task, Attachment } from "@/lib/types"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -20,6 +19,8 @@ function dbToTask(row: any): Task {
     attachments: row.attachments || [],
     chargeType: row.charge_type || "",
     timeSpent: row.time_spent || 0,
+    returned: row.returned || false,
+    returnComment: row.return_comment || "",
   }
 }
 
@@ -30,22 +31,29 @@ export function useTasks() {
 
   const fetchTasks = useCallback(async () => {
     if (!activeWorkspace || !isSupabaseConfigured()) {
-      setTasks(dummyTasks)
+      setTasks([])
       setIsLoading(false)
       return
     }
     const supabase = createClient()
-    if (!supabase) { setTasks(dummyTasks); setIsLoading(false); return }
+    if (!supabase) { setTasks([]); setIsLoading(false); return }
 
     setIsLoading(true)
-    const { data } = await supabase
-      .from("tasks")
-      .select("*")
-      .eq("workspace_id", activeWorkspace.id)
-      .order("created_at", { ascending: true })
+    try {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("workspace_id", activeWorkspace.id)
+        .order("created_at", { ascending: true })
 
-    const fetched = (data || []).map(dbToTask)
-    setTasks(fetched.length > 0 ? fetched : dummyTasks)
+      if (error || !data) {
+        setTasks([])
+      } else {
+        setTasks(data.map(dbToTask))
+      }
+    } catch {
+      setTasks([])
+    }
     setIsLoading(false)
   }, [activeWorkspace])
 
@@ -92,6 +100,8 @@ export function useTasks() {
   }, [activeWorkspace])
 
   const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
+    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, ...updates } : t))
+
     if (!isSupabaseConfigured()) return
     const supabase = createClient()
     if (!supabase) return
@@ -107,9 +117,10 @@ export function useTasks() {
     if (updates.attachments !== undefined) dbUpdates.attachments = updates.attachments
     if (updates.chargeType !== undefined) dbUpdates.charge_type = updates.chargeType
     if (updates.timeSpent !== undefined) dbUpdates.time_spent = updates.timeSpent
+    if (updates.returned !== undefined) dbUpdates.returned = updates.returned
+    if (updates.returnComment !== undefined) dbUpdates.return_comment = updates.returnComment
 
     await supabase.from("tasks").update(dbUpdates).eq("id", id)
-    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, ...updates } : t))
   }, [])
 
   const deleteTask = useCallback(async (id: string) => {

@@ -73,6 +73,8 @@ export interface Task {
   attachments: Attachment[]
   chargeType: string
   timeSpent: number
+  returned: boolean
+  returnComment: string
 }
 
 export interface Attachment {

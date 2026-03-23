@@ -3,7 +3,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
-import { dummyContacts } from "@/lib/dummy-data"
 import type { Contact } from "@/lib/types"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -38,22 +37,29 @@ export function ContactsProvider({ children }: { children: ReactNode }) {
 
   const fetchContacts = useCallback(async () => {
     if (!activeWorkspace || !isSupabaseConfigured()) {
-      setContacts(dummyContacts)
+      setContacts([])
       setIsLoading(false)
       return
     }
     const supabase = createClient()
-    if (!supabase) { setContacts(dummyContacts); setIsLoading(false); return }
+    if (!supabase) { setContacts([]); setIsLoading(false); return }
 
     setIsLoading(true)
-    const { data } = await supabase
-      .from("contacts")
-      .select("*")
-      .eq("workspace_id", activeWorkspace.id)
-      .order("created_at", { ascending: true })
+    try {
+      const { data, error } = await supabase
+        .from("contacts")
+        .select("*")
+        .eq("workspace_id", activeWorkspace.id)
+        .order("created_at", { ascending: true })
 
-    const fetched = (data || []).map(dbToContact)
-    setContacts(fetched.length > 0 ? fetched : dummyContacts)
+      if (error || !data) {
+        setContacts([])
+      } else {
+        setContacts(data.map(dbToContact))
+      }
+    } catch {
+      setContacts([])
+    }
     setIsLoading(false)
   }, [activeWorkspace])
 
@@ -69,34 +75,30 @@ export function ContactsProvider({ children }: { children: ReactNode }) {
       phone: input.phone,
     }
 
-    if (activeWorkspace && isSupabaseConfigured()) {
-      const supabase = createClient()
-      if (supabase) {
-        const { data, error } = await supabase
-          .from("contacts")
-          .insert({
-            workspace_id: activeWorkspace.id,
-            client_id: base.clientId,
-            client_name: base.clientName,
-            name: base.name,
-            relationship: base.relationship,
-            email: base.email,
-            phone: base.phone,
-          })
-          .select()
-          .single()
+    if (!activeWorkspace || !isSupabaseConfigured()) return null
+    const supabase = createClient()
+    if (!supabase) return null
 
-        if (!error && data) {
-          const newContact = dbToContact(data)
-          setContacts((prev) => [...prev, newContact])
-          return newContact
-        }
-      }
+    const { data, error } = await supabase
+      .from("contacts")
+      .insert({
+        workspace_id: activeWorkspace.id,
+        client_id: base.clientId,
+        client_name: base.clientName,
+        name: base.name,
+        relationship: base.relationship,
+        email: base.email,
+        phone: base.phone,
+      })
+      .select()
+      .single()
+
+    if (!error && data) {
+      const newContact = dbToContact(data)
+      setContacts((prev) => [...prev, newContact])
+      return newContact
     }
-
-    const localContact: Contact = { id: crypto.randomUUID(), ...base }
-    setContacts((prev) => [...prev, localContact])
-    return localContact
+    return null
   }, [activeWorkspace])
 
   const updateContact = useCallback(async (id: string, updates: Partial<Contact>) => {

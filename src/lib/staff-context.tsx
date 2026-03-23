@@ -4,7 +4,6 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
 import { emptyStaffDetails } from "@/lib/types"
-import { dummyStaff } from "@/lib/dummy-data"
 import type { StaffMember, StaffDetails } from "@/lib/types"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -44,22 +43,29 @@ export function StaffProvider({ children }: { children: ReactNode }) {
 
   const fetchStaff = useCallback(async () => {
     if (!activeWorkspace || !isSupabaseConfigured()) {
-      setStaff(dummyStaff)
+      setStaff([])
       setIsLoading(false)
       return
     }
     const supabase = createClient()
-    if (!supabase) { setStaff(dummyStaff); setIsLoading(false); return }
+    if (!supabase) { setStaff([]); setIsLoading(false); return }
 
     setIsLoading(true)
-    const { data } = await supabase
-      .from("staff")
-      .select("*")
-      .eq("workspace_id", activeWorkspace.id)
-      .order("created_at", { ascending: true })
+    try {
+      const { data, error } = await supabase
+        .from("staff")
+        .select("*")
+        .eq("workspace_id", activeWorkspace.id)
+        .order("created_at", { ascending: true })
 
-    const fetched = (data || []).map(dbToStaff)
-    setStaff(fetched.length > 0 ? fetched : dummyStaff)
+      if (error || !data) {
+        setStaff([])
+      } else {
+        setStaff(data.map(dbToStaff))
+      }
+    } catch {
+      setStaff([])
+    }
     setIsLoading(false)
   }, [activeWorkspace])
 
@@ -81,33 +87,29 @@ export function StaffProvider({ children }: { children: ReactNode }) {
       invitedEmail: input.invitedEmail || "",
     }
 
-    if (activeWorkspace && isSupabaseConfigured()) {
-      const supabase = createClient()
-      if (supabase) {
-        const { data, error } = await supabase
-          .from("staff")
-          .insert({
-            workspace_id: activeWorkspace.id,
-            name: input.name,
-            icon_text: base.iconText,
-            details,
-            status: base.status,
-            invited_email: base.invitedEmail,
-          })
-          .select()
-          .single()
+    if (!activeWorkspace || !isSupabaseConfigured()) return null
+    const supabase = createClient()
+    if (!supabase) return null
 
-        if (!error && data) {
-          const newStaff = dbToStaff(data)
-          setStaff((prev) => [...prev, newStaff])
-          return newStaff
-        }
-      }
+    const { data, error } = await supabase
+      .from("staff")
+      .insert({
+        workspace_id: activeWorkspace.id,
+        name: input.name,
+        icon_text: base.iconText,
+        details,
+        status: base.status,
+        invited_email: base.invitedEmail,
+      })
+      .select()
+      .single()
+
+    if (!error && data) {
+      const newStaff = dbToStaff(data)
+      setStaff((prev) => [...prev, newStaff])
+      return newStaff
     }
-
-    const localStaff: StaffMember = { id: crypto.randomUUID(), ...base }
-    setStaff((prev) => [...prev, localStaff])
-    return localStaff
+    return null
   }, [activeWorkspace])
 
   const updateStaff = useCallback(async (id: string, updates: Partial<StaffMember>) => {

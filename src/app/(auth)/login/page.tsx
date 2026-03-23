@@ -23,17 +23,23 @@ export default function LoginPage() {
       return
     }
 
-    const supabase = createClient()!
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    try {
+      const supabase = createClient()!
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
 
-    if (error) {
-      setError(error.message)
+      if (error) {
+        setError(error.message)
+        setIsLoading(false)
+        return
+      }
+
+      router.push("/tasks")
+      router.refresh()
+    } catch {
+      setError("Something went wrong. Please try again.")
+    } finally {
       setIsLoading(false)
-      return
     }
-
-    router.push("/clients")
-    router.refresh()
   }
 
   return (

@@ -8,7 +8,14 @@ function isConfigured() {
 }
 
 export async function updateSession(request: NextRequest) {
-  if (!isConfigured()) return NextResponse.next({ request })
+  const isAuthPage = request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/signup"
+
+  if (!isConfigured()) {
+    if (isAuthPage) return NextResponse.next({ request })
+    const url = request.nextUrl.clone()
+    url.pathname = "/login"
+    return NextResponse.redirect(url)
+  }
 
   let supabaseResponse = NextResponse.next({ request })
 
@@ -33,20 +40,29 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-  const isAuthPage = request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/signup"
-
-  if (!user && !isAuthPage) {
-    const url = request.nextUrl.clone()
-    url.pathname = "/login"
-    return NextResponse.redirect(url)
+  if (userError || !user) {
+    if (!isAuthPage) {
+      const url = request.nextUrl.clone()
+      url.pathname = "/login"
+      const redirectResponse = NextResponse.redirect(url)
+      supabaseResponse.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie.name, cookie.value)
+      })
+      return redirectResponse
+    }
+    return supabaseResponse
   }
 
-  if (user && isAuthPage) {
+  if (isAuthPage || request.nextUrl.pathname === "/") {
     const url = request.nextUrl.clone()
-    url.pathname = "/clients"
-    return NextResponse.redirect(url)
+    url.pathname = "/tasks"
+    const redirectResponse = NextResponse.redirect(url)
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value)
+    })
+    return redirectResponse
   }
 
   return supabaseResponse

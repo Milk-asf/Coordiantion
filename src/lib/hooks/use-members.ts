@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
-import { dummyMembers } from "@/lib/dummy-data"
 import type { WorkspaceMember } from "@/lib/types"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -26,7 +25,7 @@ export function useMembers() {
 
   const fetchMembers = useCallback(async () => {
     if (!activeWorkspace || !isSupabaseConfigured()) {
-      setMembers(dummyMembers)
+      setMembers([])
       setIsLoading(false)
       return
     }
@@ -34,31 +33,28 @@ export function useMembers() {
     if (!supabase) { setIsLoading(false); return }
 
     setIsLoading(true)
-    const { data } = await supabase
-      .from("workspace_members")
-      .select("*")
-      .eq("workspace_id", activeWorkspace.id)
-      .order("created_at", { ascending: true })
+    try {
+      const { data, error } = await supabase
+        .from("workspace_members")
+        .select("*")
+        .eq("workspace_id", activeWorkspace.id)
+        .order("created_at", { ascending: true })
 
-    if (data) {
-      const enriched = await Promise.all(
-        data.map(async (row) => {
+      if (error || !data) {
+        setMembers([])
+      } else {
+        const enriched = data.map((row) => {
           const member = dbToMember(row)
-          if (member.user_id) {
-            const { data: { user } } = await supabase.auth.admin?.getUserById?.(member.user_id) || { data: { user: null } }
-            if (user) {
-              member.name = user.user_metadata?.full_name || user.email || ""
-              member.email = user.email || ""
-            }
-          }
           if (!member.name && member.invited_email) {
             member.name = member.invited_email
             member.email = member.invited_email
           }
           return member
         })
-      )
-      setMembers(enriched)
+        setMembers(enriched)
+      }
+    } catch {
+      setMembers([])
     }
     setIsLoading(false)
   }, [activeWorkspace])

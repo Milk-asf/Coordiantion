@@ -2,81 +2,51 @@
 
 import { useState, useRef, useCallback, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { useContacts } from "@/lib/hooks/use-contacts"
+import { useStaff } from "@/lib/staff-context"
 import { useClients } from "@/lib/hooks/use-clients"
-import { relationshipConfig } from "@/lib/types"
-import type { Client, ParticipantDetails } from "@/lib/types"
+import type { StaffMember, StaffDetails } from "@/lib/types"
 import {
-  UserRound,
-  FileText,
   User,
+  FileText,
   Mail,
   Phone,
   Smartphone,
   MessageSquare,
-  PenLine,
-  Hash,
   CalendarDays,
   Heart,
-  Languages,
-  Stethoscope,
   ChevronDown,
   Plus,
   SquarePen,
   CheckSquare,
-  UserPlus,
-  Globe,
-  Users,
   ArrowLeft,
   FolderOpen,
   PanelRightOpen,
   PanelRightClose,
-  ListFilter,
+  Briefcase,
+  GraduationCap,
+  ShieldCheck,
+  UserPlus,
+  Users,
   X,
   Copy,
   Check,
 } from "lucide-react"
 
-interface ProfileContact {
-  id: string
-  firstName: string
-  email: string
-  phone: string
-  relationship: string
-}
-
-
 const tabs = [
   { key: "overview", label: "Overview", icon: FileText },
-  { key: "contacts", label: "Contacts", icon: Users },
+  { key: "clients", label: "Clients", icon: Users },
   { key: "tasks", label: "Tasks", icon: CheckSquare },
   { key: "notes", label: "Notes", icon: SquarePen },
   { key: "files", label: "Files", icon: FolderOpen },
 ]
 
-interface ActivityItem {
-  id: string
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
-  content: React.ReactNode
-  time: string
-}
-
-function getActivities(_clientName: string): ActivityItem[] {
-  return [
-    { id: "1", icon: FileText, content: <><strong>Lightfield</strong> set About their business</>, time: "7m ago" },
-    { id: "2", icon: UserPlus, content: <><strong>Lightfield</strong> set Name for the contact <strong>Sam Lee</strong> to Sam Lee</>, time: "7m ago" },
-    { id: "3", icon: FileText, content: <><strong>Lightfield</strong> updated 9 fields</>, time: "7m ago" },
-    { id: "4", icon: UserPlus, content: <><strong>Lightfield</strong> created the contact <strong>Sam Lee</strong></>, time: "7m ago" },
-  ]
-}
-
-function ClientIcon({ client, size = "md" }: { client: Client; size?: "sm" | "md" | "lg" | "xl" }) {
+function StaffIcon({ member, size = "md" }: { member: StaffMember; size?: "sm" | "md" | "lg" | "xl" }) {
   const dims = size === "xl" ? "h-[48px] w-[48px]" : size === "lg" ? "h-[36px] w-[36px]" : size === "md" ? "h-[28px] w-[28px]" : "h-[20px] w-[20px]"
   const textSize = size === "xl" ? "text-[18px]" : size === "lg" ? "text-[15px]" : size === "md" ? "text-[12px]" : "text-[10px]"
   const radius = size === "xl" ? "rounded-lg" : "rounded-[4px]"
   return (
-    <div className={`${dims} ${radius} flex items-center justify-center bg-[#d4d4d4] ${textSize} font-semibold text-[#555]`}>
-      {client.iconText}
+    <div className={`${dims} ${radius} flex items-center justify-center bg-blue-100 ${textSize} font-semibold text-blue-600`}>
+      {member.iconText}
     </div>
   )
 }
@@ -202,7 +172,7 @@ function SidebarContactChip({ value, onChange, placeholder, variant = "grey" }: 
   const handleCancel = () => { setIsEditing(false); setDraft(value) }
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation()
-    navigator.clipboard.writeText(value).catch(() => {})
+    navigator.clipboard.writeText(value)
     setIsCopied(true)
     setTimeout(() => setIsCopied(false), 1500)
   }
@@ -210,7 +180,7 @@ function SidebarContactChip({ value, onChange, placeholder, variant = "grey" }: 
   const isWhite = variant === "white"
   const chipBg = isWhite ? "bg-transparent" : "bg-[#f5f5f5]"
   const chipHover = isWhite ? "hover:bg-[#f5f5f5]" : "hover:bg-[#efefef]"
-  const chipBorder = isWhite ? "border-[#dcdcdc]" : "border-[#dcdcdc]"
+  const chipBorder = "border-[#dcdcdc]"
   const copyHoverBg = isWhite ? "hover:bg-[#f0f0f0]" : "hover:bg-[#e5e5e5]"
 
   if (isEditing) {
@@ -266,60 +236,6 @@ function SidebarContactChip({ value, onChange, placeholder, variant = "grey" }: 
   )
 }
 
-function SidebarDiagnosisChip({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [draft, setDraft] = useState(value)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => { setDraft(value) }, [value])
-  useEffect(() => { if (isEditing) inputRef.current?.focus() }, [isEditing])
-
-  const handleSave = () => { setIsEditing(false); onChange(draft) }
-  const handleCancel = () => { setIsEditing(false); setDraft(value) }
-
-  if (isEditing) {
-    return (
-      <input
-        ref={inputRef}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={handleSave}
-        onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") handleCancel() }}
-        placeholder={placeholder}
-        className="rounded border border-[#a3c4f3] bg-white px-[8px] py-[3px] text-[12px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
-      />
-    )
-  }
-
-  if (!value) {
-    return (
-      <span
-        onClick={() => setIsEditing(true)}
-        className="inline-flex cursor-default items-center rounded border border-dashed border-[#d0d0d0] bg-transparent px-[8px] py-[2px] text-[12px] font-medium text-[#bbb] transition-colors hover:border-[#999] hover:text-[#999]"
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === "Enter") setIsEditing(true) }}
-        aria-label={`Click to add ${placeholder}`}
-      >
-        + {placeholder}
-      </span>
-    )
-  }
-
-  return (
-    <span
-      onClick={() => setIsEditing(true)}
-      className="inline-flex cursor-default items-center rounded border border-[#dcdcdc] bg-transparent px-[8px] py-[2px] text-[12px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === "Enter") setIsEditing(true) }}
-      aria-label={`Click to edit ${placeholder}`}
-    >
-      {value}
-    </span>
-  )
-}
-
 function SidebarSection({ title, emptyText, actionLabel }: { title: string; emptyText: string; actionLabel?: string }) {
   return (
     <div className="border-t border-[#f0f0f0] px-[24px] py-[16px]">
@@ -336,25 +252,36 @@ function SidebarSection({ title, emptyText, actionLabel }: { title: string; empt
   )
 }
 
-export default function ParticipantProfilePage() {
+interface ActivityItem {
+  id: string
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
+  content: React.ReactNode
+  time: string
+}
+
+function getActivities(staffName: string): ActivityItem[] {
+  return [
+    { id: "1", icon: UserPlus, content: <><strong>{staffName}</strong> was assigned a new client</>, time: "2d ago" },
+    { id: "2", icon: FileText, content: <><strong>{staffName}</strong> submitted a progress note</>, time: "3d ago" },
+    { id: "3", icon: CheckSquare, content: <><strong>{staffName}</strong> completed 3 tasks</>, time: "5d ago" },
+  ]
+}
+
+export default function StaffProfilePage() {
   const params = useParams()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState("overview")
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false)
   const [isSidebarVisible, setIsSidebarVisible] = useState(true)
   const [sidebarWidth, setSidebarWidth] = useState(404)
-  const { clients, isLoading, updateClient } = useClients()
-  const { addContact, getContactsForClient } = useContacts()
-  const [isAddContactOpen, setIsAddContactOpen] = useState(false)
-  const [newContact, setNewContact] = useState({ firstName: "", email: "", phone: "", relationship: "" })
-  const [isRelationshipOpen, setIsRelationshipOpen] = useState(false)
+  const { staff, isLoading, updateStaff } = useStaff()
+  const { clients } = useClients()
   const [visibleTabCount, setVisibleTabCount] = useState(tabs.length)
   const [isTabOverflowOpen, setIsTabOverflowOpen] = useState(false)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const tabWidthsRef = useRef<number[]>([])
   const overflowBtnRef = useRef<HTMLButtonElement>(null)
   const createBtnRef = useRef<HTMLButtonElement>(null)
-  const relationshipRef = useRef<HTMLButtonElement>(null)
   const tabsContainerRef = useRef<HTMLDivElement>(null)
   const headerRef = useRef<HTMLDivElement>(null)
   const isResizing = useRef(false)
@@ -401,10 +328,7 @@ export default function ParticipantProfilePage() {
       const overflowBtnWidth = 36
       const widths = tabWidthsRef.current
 
-      if (widths.length === 0) {
-        setVisibleTabCount(tabs.length)
-        return
-      }
+      if (widths.length === 0) { setVisibleTabCount(tabs.length); return }
 
       const totalAllTabs = widths.reduce((sum, w) => sum + w, 0)
       if (totalAllTabs <= availableWidth) {
@@ -429,7 +353,7 @@ export default function ParticipantProfilePage() {
   }, [isSidebarVisible, sidebarWidth])
 
   const id = params.id as string
-  const client = clients.find((c) => c.id === id) || null
+  const member = staff.find((s) => s.id === id) || null
 
   if (isLoading) {
     return (
@@ -439,57 +363,45 @@ export default function ParticipantProfilePage() {
     )
   }
 
-  if (!client) {
+  if (!member) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <p className="text-[13px] font-medium text-[#888]">Participant not found</p>
-          <button onClick={() => router.push("/clients")} className="mt-[8px] text-[13px] font-medium text-[#555] underline transition-colors hover:text-[#262626]" tabIndex={0}>
-            Back to clients
+          <p className="text-[13px] font-medium text-[#888]">Staff member not found</p>
+          <button onClick={() => router.push("/staff")} className="mt-[8px] text-[13px] font-medium text-[#555] underline transition-colors hover:text-[#262626]" tabIndex={0}>
+            Back to staff
           </button>
         </div>
       </div>
     )
   }
 
-  const p = client.participant
-  const activities = getActivities(client.name)
+  const d = member.details
+  const activities = getActivities(member.name)
+  const assignedClients = clients.filter((c) => c.owner === member.name)
 
-  const handleUpdateField = (field: keyof ParticipantDetails, value: string) => {
-    updateClient(client.id, { participant: { ...client.participant, [field]: value } })
-  }
-
-  const clientContacts = getContactsForClient(client.name)
-  const allContacts: ProfileContact[] = [
-    { id: "owner", firstName: client.owner, email: p.email, phone: p.phone || p.mobile, relationship: "support-coordinator" },
-    ...clientContacts.map((c) => ({ id: c.id, firstName: c.name, email: c.email, phone: c.phone, relationship: c.relationship })),
-  ]
-
-  const handleCreateContact = async () => {
-    if (!newContact.firstName) return
-    await addContact({ name: newContact.firstName, clientId: client.id, clientName: client.name, relationship: newContact.relationship, email: newContact.email, phone: newContact.phone })
-    setNewContact({ firstName: "", email: "", phone: "", relationship: "" })
-    setIsAddContactOpen(false)
-    setIsRelationshipOpen(false)
+  const handleUpdateField = (field: keyof StaffDetails, value: string) => {
+    updateStaff(member.id, { details: { ...member.details, [field]: value } })
   }
 
   return (
     <div className="flex h-full">
-      {/* Left: header + content */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Top bar: back, name, create, sidebar toggle */}
         <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-[#f0f0f0] bg-white px-[16px]">
           <div className="flex items-center gap-[10px]">
             <button
-              onClick={() => router.push("/clients")}
+              onClick={() => router.push("/staff")}
               className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
               tabIndex={0}
-              aria-label="Back to clients"
+              aria-label="Back to staff"
             >
               <ArrowLeft className="h-[16px] w-[16px]" strokeWidth={1.75} />
             </button>
-            <ClientIcon client={client} size="md" />
-            <span className="max-w-[240px] truncate text-[15px] font-semibold text-[#262626]">{client.name}</span>
+            <StaffIcon member={member} size="md" />
+            <span className="max-w-[240px] truncate text-[15px] font-semibold text-[#262626]">{member.name}</span>
+            <span className={`rounded-full px-[8px] py-[1px] text-[11px] font-medium ${member.status === "active" ? "bg-green-50 text-green-600" : member.status === "invited" ? "bg-amber-50 text-amber-600" : "bg-gray-100 text-gray-500"}`}>
+              {member.status}
+            </span>
           </div>
           <div className="flex items-center gap-[6px]">
             <button
@@ -512,30 +424,13 @@ export default function ParticipantProfilePage() {
                     return { top: rect.bottom + 4, right: window.innerWidth - rect.right }
                   })()}
                 >
-                  <button
-                    onClick={() => { setIsCreateOpen(false) }}
-                    className="flex w-full items-center gap-[10px] px-[14px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                    tabIndex={0}
-                  >
+                  <button onClick={() => setIsCreateOpen(false)} className="flex w-full items-center gap-[10px] px-[14px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
                     <FileText className="h-[16px] w-[16px] text-[#888]" strokeWidth={1.5} />
                     <span>Note</span>
                   </button>
-                  <button
-                    onClick={() => { setIsCreateOpen(false) }}
-                    className="flex w-full items-center gap-[10px] px-[14px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                    tabIndex={0}
-                  >
+                  <button onClick={() => setIsCreateOpen(false)} className="flex w-full items-center gap-[10px] px-[14px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
                     <CheckSquare className="h-[16px] w-[16px] text-[#888]" strokeWidth={1.5} />
                     <span>Task</span>
-                  </button>
-                  <div className="my-[4px] border-t border-[#f0f0f0]" />
-                  <button
-                    onClick={() => { setIsCreateOpen(false); setIsAddContactOpen(true) }}
-                    className="flex w-full items-center gap-[10px] px-[14px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                    tabIndex={0}
-                  >
-                    <UserRound className="h-[16px] w-[16px] text-[#888]" strokeWidth={1.5} />
-                    <span>Contact</span>
                   </button>
                 </div>
               </>
@@ -545,7 +440,7 @@ export default function ParticipantProfilePage() {
                 onClick={() => setIsSidebarVisible(true)}
                 className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#262626] transition-colors hover:bg-[#f5f5f5]"
                 tabIndex={0}
-                aria-label="Show account details"
+                aria-label="Show staff details"
               >
                 <PanelRightOpen className="h-[18px] w-[18px]" strokeWidth={1.75} />
               </button>
@@ -553,9 +448,8 @@ export default function ParticipantProfilePage() {
           </div>
         </div>
 
-        {/* Tabs bar */}
+        {/* Tabs */}
         <div ref={headerRef} className="flex h-[48px] shrink-0 items-center overflow-hidden border-b border-[#f0f0f0] bg-white px-[24px]">
-          {/* Hidden measurer for tab widths */}
           <div data-tab-measurer className="pointer-events-none invisible absolute flex items-center gap-[2px]" aria-hidden="true">
             {tabs.map((tab) => {
               const TabIcon = tab.icon
@@ -631,62 +525,54 @@ export default function ParticipantProfilePage() {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
-          {activeTab === "contacts" ? (
+          {activeTab === "clients" ? (
             <div className="relative flex h-full flex-col">
-              {/* Toolbar */}
               <div className="flex h-[41px] shrink-0 items-center justify-between border-b border-[#dcdcdc] px-[16px]">
-                <button
-                  className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                  tabIndex={0}
-                >
-                  <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
-                  <span>Filter</span>
-                </button>
-                <button
-                  onClick={() => setIsAddContactOpen(true)}
-                  className="flex items-center gap-[5px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                  tabIndex={0}
-                >
-                  <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-                  <span>Add contact</span>
-                </button>
+                <span className="text-[12px] font-medium text-[#999]">{assignedClients.length} {assignedClients.length === 1 ? "client" : "clients"} assigned</span>
               </div>
 
-              {/* Table */}
               <div className="flex-1 overflow-auto">
                 <table className="w-full border-separate border-spacing-0 text-left">
                   <thead>
                     <tr>
-                      <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Contact name</th>
-                      <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Relationship</th>
-                      <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Email</th>
-                      <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Phone number</th>
+                      <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Client name</th>
+                      <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">NDIS Number</th>
+                      <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Primary Diagnosis</th>
+                      <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Email</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {allContacts.map((contact) => {
-                      const rel = relationshipConfig[contact.relationship]
-                      const fullName = contact.firstName
-                      const initials = fullName.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase()
+                    {assignedClients.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="bg-white px-[20px] py-[32px] text-center text-[13px] font-medium text-[#bbb]">
+                          No clients assigned
+                        </td>
+                      </tr>
+                    ) : assignedClients.map((client) => {
+                      const initials = client.iconText
                       return (
-                        <tr key={contact.id} className="transition-colors hover:bg-[#f5f5f5]">
+                        <tr
+                          key={client.id}
+                          className="cursor-pointer transition-colors hover:bg-[#f5f5f5]"
+                          onClick={() => router.push(`/clients/${client.id}`)}
+                        >
                           <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626]">
                             <div className="flex items-center gap-[8px]">
                               <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[4px] bg-[#d4d4d4] text-[9px] font-semibold text-[#555]">
                                 {initials}
                               </div>
-                              {fullName}
+                              {client.name}
                             </div>
                           </td>
                           <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626]">
-                            {rel ? (
-                              <span className="inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] px-[8px] text-[13px] font-medium text-[#262626]">{rel.label}</span>
-                            ) : (
-                              <span className="text-[#bbb]">—</span>
-                            )}
+                            {client.participant.ndisNumber || <span className="text-[#bbb]">—</span>}
                           </td>
-                          <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626]">{contact.email || <span className="text-[#bbb]">—</span>}</td>
-                          <td className="h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626]">{contact.phone || <span className="text-[#bbb]">—</span>}</td>
+                          <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626]">
+                            {client.participant.primaryDiagnosis || <span className="text-[#bbb]">—</span>}
+                          </td>
+                          <td className="h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626]">
+                            {client.participant.email || <span className="text-[#bbb]">—</span>}
+                          </td>
                         </tr>
                       )
                     })}
@@ -694,141 +580,9 @@ export default function ParticipantProfilePage() {
                 </table>
               </div>
 
-              {/* Footer */}
               <div className="shrink-0 border-t border-[#dcdcdc] px-[20px] py-[10px]">
-                <span className="text-[12px] font-medium text-[#999]">{allContacts.length} {allContacts.length === 1 ? "contact" : "contacts"}</span>
+                <span className="text-[12px] font-medium text-[#999]">{assignedClients.length} {assignedClients.length === 1 ? "client" : "clients"}</span>
               </div>
-
-              {/* Create contact modal */}
-              {isAddContactOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
-                  <div className="absolute inset-0 bg-black/20" onClick={() => { setIsAddContactOpen(false); setIsRelationshipOpen(false); setNewContact({ firstName: "", email: "", phone: "", relationship: "" }) }} />
-                  <div className="relative z-10 w-[440px] rounded-lg bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
-                    {/* Modal header */}
-                    <div className="flex items-center justify-between px-[24px] pt-[20px]">
-                      <div className="flex items-center gap-[8px]">
-                        <UserPlus className="h-[16px] w-[16px] text-[#555]" strokeWidth={1.5} />
-                        <h2 className="text-[15px] font-semibold text-[#262626]">Create contact</h2>
-                      </div>
-                      <button
-                        onClick={() => { setIsAddContactOpen(false); setIsRelationshipOpen(false); setNewContact({ firstName: "", email: "", phone: "", relationship: "" }) }}
-                        className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
-                        tabIndex={0}
-                        aria-label="Close"
-                      >
-                        <X className="h-[16px] w-[16px]" strokeWidth={1.5} />
-                      </button>
-                    </div>
-
-                    {/* Modal body */}
-                    <div className="px-[24px] pb-[20px] pt-[16px]">
-                      {/* Account */}
-                      <div className="mb-[14px]">
-                        <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Account</label>
-                        <div className="flex h-[36px] items-center rounded-md border border-[#e0e0e0] bg-[#fafafa] px-[10px]">
-                          <div className="flex items-center gap-[6px]">
-                            <ClientIcon client={client} size="sm" />
-                            <span className="text-[13px] font-medium text-[#262626]">{client.name}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Name */}
-                      <div className="mb-[14px]">
-                        <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Name *</label>
-                        <input
-                          type="text"
-                          placeholder="Full name"
-                          value={newContact.firstName}
-                          onChange={(e) => setNewContact({ ...newContact, firstName: e.target.value })}
-                          className="h-[36px] w-full rounded-md border border-[#e0e0e0] px-[10px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3]"
-                        />
-                      </div>
-
-                      {/* Email */}
-                      <div className="mb-[14px]">
-                        <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Email</label>
-                        <input
-                          type="email"
-                          placeholder="name@company.com"
-                          value={newContact.email}
-                          onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
-                          className="h-[36px] w-full rounded-md border border-[#e0e0e0] px-[10px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3]"
-                        />
-                      </div>
-
-                      {/* Phone */}
-                      <div className="mb-[14px]">
-                        <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Phone</label>
-                        <input
-                          type="tel"
-                          placeholder="Phone number"
-                          value={newContact.phone}
-                          onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
-                          className="h-[36px] w-full rounded-md border border-[#e0e0e0] px-[10px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3]"
-                        />
-                      </div>
-
-                      {/* Relationship */}
-                      <div className="mb-[20px]">
-                        <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Relationship</label>
-                        <button
-                          ref={relationshipRef}
-                          type="button"
-                          onClick={() => setIsRelationshipOpen(!isRelationshipOpen)}
-                          className="flex h-[36px] w-full items-center justify-between rounded-md border border-[#e0e0e0] bg-white px-[10px] text-[13px] font-medium outline-none transition-colors focus:border-[#a3c4f3]"
-                          tabIndex={0}
-                        >
-                          {newContact.relationship ? (
-                            (() => {
-                              const rel = relationshipConfig[newContact.relationship]
-                              return <span className="inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] px-[8px] text-[13px] font-medium text-[#262626]">{rel.label}</span>
-                            })()
-                          ) : (
-                            <span className="text-[#bbb]">Select relationship</span>
-                          )}
-                          <ChevronDown className={`h-[14px] w-[14px] text-[#888] transition-transform ${isRelationshipOpen ? "rotate-180" : ""}`} strokeWidth={1.5} />
-                        </button>
-                      </div>
-
-                      {/* Create button */}
-                      <div className="flex justify-end">
-                        <button
-                          onClick={handleCreateContact}
-                          className="rounded-md bg-[#262626] px-[16px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-[#333]"
-                          tabIndex={0}
-                        >
-                          Create
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  {isRelationshipOpen && relationshipRef.current && (() => {
-                    const rect = relationshipRef.current.getBoundingClientRect()
-                    return (
-                      <div
-                        className="fixed z-[60] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-                        style={{ top: rect.bottom + 4, left: rect.left, width: rect.width, maxHeight: Math.min(240, window.innerHeight - rect.bottom - 20) }}
-                      >
-                        {Object.entries(relationshipConfig).map(([key, config]) => (
-                          <button
-                            key={key}
-                            type="button"
-                            onClick={() => {
-                              setNewContact({ ...newContact, relationship: key })
-                              setIsRelationshipOpen(false)
-                            }}
-                            className={`flex w-full items-center gap-[10px] px-[12px] py-[10px] text-left transition-colors hover:bg-[#f5f5f5] ${newContact.relationship === key ? "bg-[#f5f5f5]" : ""}`}
-                            tabIndex={0}
-                          >
-                            <span className="inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] px-[8px] text-[13px] font-medium text-[#262626]">{config.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )
-                  })()}
-                </div>
-              )}
             </div>
           ) : activeTab !== "overview" ? (
             <div className="flex h-full items-center justify-center">
@@ -836,40 +590,49 @@ export default function ParticipantProfilePage() {
             </div>
           ) : (
           <div className="mx-auto max-w-[720px] px-[40px] py-[32px]">
-            {/* Participant name header */}
             <div className="flex items-center gap-[14px] pb-[28px]">
-              <ClientIcon client={client} size="xl" />
-              <h1 className="text-[24px] font-semibold text-[#262626]">{client.name}</h1>
+              <StaffIcon member={member} size="xl" />
+              <div>
+                <h1 className="text-[24px] font-semibold text-[#262626]">{member.name}</h1>
+                <p className="text-[13px] font-medium text-[#888]">{d.role || "No role assigned"}</p>
+              </div>
             </div>
 
-            {/* Account summary */}
-            <div className="mb-[24px]">
-              <h3 className="mb-[8px] text-[13px] font-medium text-[#888]">Account summary</h3>
-              <p className="text-[13px] font-medium leading-[22px] text-[#262626]">{client.summary}</p>
-            </div>
-
-            {/* About their business */}
-            <div className="mb-[24px]">
-              <h3 className="mb-[8px] text-[13px] font-medium text-[#888]">About their business</h3>
-              <p className="text-[13px] font-medium leading-[22px] text-[#262626]">{client.about}</p>
-            </div>
-
-            {/* Upcoming meetings */}
+            {/* Assigned clients */}
             <div className="mb-[24px]">
               <div className="flex items-center justify-between">
-                <h3 className="text-[13px] font-medium text-[#888]">Upcoming meetings</h3>
-                <button className="text-[12px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>See all</button>
+                <h3 className="text-[13px] font-medium text-[#888]">Assigned clients</h3>
+                <button onClick={() => setActiveTab("clients")} className="text-[12px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>See all</button>
               </div>
-              <p className="mt-[8px] text-[13px] font-medium text-[#bbb]">No upcoming meetings</p>
-            </div>
-
-            {/* Open tasks */}
-            <div className="mb-[24px]">
-              <div className="flex items-center justify-between">
-                <h3 className="text-[13px] font-medium text-[#888]">Open tasks</h3>
-                <button className="text-[12px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>See all</button>
-              </div>
-              <p className="mt-[8px] text-[13px] font-medium text-[#bbb]">No open tasks</p>
+              {assignedClients.length === 0 ? (
+                <p className="mt-[8px] text-[13px] font-medium text-[#bbb]">No clients assigned</p>
+              ) : (
+                <div className="mt-[8px] flex flex-col gap-[4px]">
+                  {assignedClients.slice(0, 5).map((client) => (
+                    <div
+                      key={client.id}
+                      className="flex cursor-pointer items-center gap-[8px] rounded-md px-[8px] py-[6px] transition-colors hover:bg-[#f5f5f5]"
+                      onClick={() => router.push(`/clients/${client.id}`)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === "Enter") router.push(`/clients/${client.id}`) }}
+                    >
+                      <div className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-[4px] bg-[#d4d4d4] text-[9px] font-semibold text-[#555]">
+                        {client.iconText}
+                      </div>
+                      <span className="text-[13px] font-medium text-[#262626]">{client.name}</span>
+                      {client.participant.ndisNumber && (
+                        <span className="text-[12px] text-[#bbb]">· {client.participant.ndisNumber}</span>
+                      )}
+                    </div>
+                  ))}
+                  {assignedClients.length > 5 && (
+                    <button onClick={() => setActiveTab("clients")} className="mt-[2px] text-left text-[12px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+                      +{assignedClients.length - 5} more
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Activity */}
@@ -913,7 +676,7 @@ export default function ParticipantProfilePage() {
           />
           <div className="shrink-0 overflow-y-auto bg-white" style={{ width: sidebarWidth }}>
           <div className="flex items-center justify-between px-[24px] pb-[4px] pt-[20px]">
-            <h2 className="text-[13px] font-semibold text-[#262626]">Account details</h2>
+            <h2 className="text-[13px] font-semibold text-[#262626]">Staff details</h2>
             <button
               onClick={() => setIsSidebarVisible(false)}
               className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
@@ -927,25 +690,16 @@ export default function ParticipantProfilePage() {
           <div className="border-b border-[#f0f0f0] px-[24px] pb-[12px]">
             <h3 className="mb-[2px] ml-[22px] mt-[10px] text-[11px] font-medium tracking-wide text-[#888]">Personal Information</h3>
             <SidebarDetailRow icon={User} label="First Name">
-              <SidebarEditableField value={p.firstName} onChange={(v) => handleUpdateField("firstName", v)} placeholder="First name" />
-            </SidebarDetailRow>
-            <SidebarDetailRow icon={User} label="Middle Name">
-              <SidebarEditableField value={p.middleName} onChange={(v) => handleUpdateField("middleName", v)} placeholder="Middle name" />
+              <SidebarEditableField value={d.firstName} onChange={(v) => handleUpdateField("firstName", v)} placeholder="First name" />
             </SidebarDetailRow>
             <SidebarDetailRow icon={User} label="Last Name">
-              <SidebarEditableField value={p.lastName} onChange={(v) => handleUpdateField("lastName", v)} placeholder="Last name" />
+              <SidebarEditableField value={d.lastName} onChange={(v) => handleUpdateField("lastName", v)} placeholder="Last name" />
             </SidebarDetailRow>
             <SidebarDetailRow icon={Heart} label="Preferred">
-              <SidebarEditableField value={p.preferredName} onChange={(v) => handleUpdateField("preferredName", v)} placeholder="Preferred name" />
+              <SidebarEditableField value={d.preferredName} onChange={(v) => handleUpdateField("preferredName", v)} placeholder="Preferred name" />
             </SidebarDetailRow>
             <SidebarDetailRow icon={CalendarDays} label="Date of Birth">
-              <SidebarEditableField value={p.dateOfBirth} onChange={(v) => handleUpdateField("dateOfBirth", v)} type="date" placeholder="Date of birth" />
-            </SidebarDetailRow>
-            <SidebarDetailRow icon={Stethoscope} label="Primary Dx">
-              <SidebarDiagnosisChip value={p.primaryDiagnosis} onChange={(v) => handleUpdateField("primaryDiagnosis", v)} placeholder="Add diagnosis" />
-            </SidebarDetailRow>
-            <SidebarDetailRow icon={Stethoscope} label="Secondary Dx">
-              <SidebarDiagnosisChip value={p.secondaryDiagnosis} onChange={(v) => handleUpdateField("secondaryDiagnosis", v)} placeholder="Add diagnosis" />
+              <SidebarEditableField value={d.dateOfBirth} onChange={(v) => handleUpdateField("dateOfBirth", v)} type="date" placeholder="Date of birth" />
             </SidebarDetailRow>
 
             {!isSidebarExpanded && (
@@ -962,55 +716,54 @@ export default function ParticipantProfilePage() {
             {isSidebarExpanded && (
               <>
                 <SidebarDetailRow icon={User} label="Gender">
-                  <SidebarEditableField value={p.gender} onChange={(v) => handleUpdateField("gender", v)} type="select" options={["Male", "Female", "Non-binary", "Other", "Prefer not to say"]} />
+                  <SidebarEditableField value={d.gender} onChange={(v) => handleUpdateField("gender", v)} type="select" options={["Male", "Female", "Non-binary", "Other", "Prefer not to say"]} />
                 </SidebarDetailRow>
                 <SidebarDetailRow icon={MessageSquare} label="Pronouns">
-                  <SidebarEditableField value={p.pronouns} onChange={(v) => handleUpdateField("pronouns", v)} type="select" options={["He/Him", "She/Her", "They/Them", "Other"]} />
-                </SidebarDetailRow>
-                <SidebarDetailRow icon={Globe} label="Ethnicity">
-                  <SidebarEditableField value={p.ethnicity} onChange={(v) => handleUpdateField("ethnicity", v)} placeholder="Ethnicity" />
-                </SidebarDetailRow>
-                <SidebarDetailRow icon={Languages} label="Language">
-                  <SidebarEditableField value={p.language} onChange={(v) => handleUpdateField("language", v)} placeholder="Language" />
+                  <SidebarEditableField value={d.pronouns} onChange={(v) => handleUpdateField("pronouns", v)} type="select" options={["He/Him", "She/Her", "They/Them", "Other"]} />
                 </SidebarDetailRow>
 
                 <h3 className="mb-[2px] ml-[22px] mt-[10px] text-[11px] font-medium tracking-wide text-[#888]">Contact Information</h3>
                 <SidebarDetailRow icon={Mail} label="Email">
-                  <SidebarContactChip value={p.email} onChange={(v) => handleUpdateField("email", v)} placeholder="Email address" />
+                  <SidebarContactChip value={d.email} onChange={(v) => handleUpdateField("email", v)} placeholder="Email address" />
                 </SidebarDetailRow>
                 <SidebarDetailRow icon={Smartphone} label="Mobile">
-                  <SidebarContactChip value={p.mobile} onChange={(v) => handleUpdateField("mobile", v)} placeholder="Mobile number" />
+                  <SidebarContactChip value={d.mobile} onChange={(v) => handleUpdateField("mobile", v)} placeholder="Mobile number" />
                 </SidebarDetailRow>
                 <SidebarDetailRow icon={Phone} label="Phone">
-                  <SidebarContactChip value={p.phone} onChange={(v) => handleUpdateField("phone", v)} placeholder="Phone number" />
-                </SidebarDetailRow>
-                <SidebarDetailRow icon={MessageSquare} label="Contact">
-                  <SidebarEditableField value={p.preferredContactMethod} onChange={(v) => handleUpdateField("preferredContactMethod", v)} type="select" options={["SMS", "Email", "Call (Mobile)", "Call (Phone)"]} />
-                </SidebarDetailRow>
-                <SidebarDetailRow icon={PenLine} label="Sign Method">
-                  <SidebarEditableField value={p.preferredSignMethod} onChange={(v) => handleUpdateField("preferredSignMethod", v)} type="select" options={["In Person", "Electronically"]} />
+                  <SidebarContactChip value={d.phone} onChange={(v) => handleUpdateField("phone", v)} placeholder="Phone number" />
                 </SidebarDetailRow>
 
-                <h3 className="mb-[2px] ml-[22px] mt-[10px] text-[11px] font-medium tracking-wide text-[#888]">Reference Numbers</h3>
-                <SidebarDetailRow icon={Hash} label="NDIS">
-                  <SidebarContactChip value={p.ndisNumber} onChange={(v) => handleUpdateField("ndisNumber", v)} placeholder="NDIS number" variant="white" />
+                <h3 className="mb-[2px] ml-[22px] mt-[10px] text-[11px] font-medium tracking-wide text-[#888]">Employment</h3>
+                <SidebarDetailRow icon={Briefcase} label="Role">
+                  <SidebarEditableField value={d.role} onChange={(v) => handleUpdateField("role", v)} placeholder="Job role" />
                 </SidebarDetailRow>
-                <SidebarDetailRow icon={Hash} label="Medicare">
-                  <SidebarContactChip value={p.medicareNumber} onChange={(v) => handleUpdateField("medicareNumber", v)} placeholder="Medicare number" variant="white" />
+                <SidebarDetailRow icon={Briefcase} label="Department">
+                  <SidebarEditableField value={d.department} onChange={(v) => handleUpdateField("department", v)} placeholder="Department" />
                 </SidebarDetailRow>
-                <SidebarDetailRow icon={Hash} label="Centrelink">
-                  <SidebarContactChip value={p.centrelinkNumber} onChange={(v) => handleUpdateField("centrelinkNumber", v)} placeholder="Centrelink number" variant="white" />
+                <SidebarDetailRow icon={Briefcase} label="Type">
+                  <SidebarEditableField value={d.employmentType} onChange={(v) => handleUpdateField("employmentType", v)} type="select" options={["Full-time", "Part-time", "Casual", "Contract"]} />
                 </SidebarDetailRow>
-                <SidebarDetailRow icon={Hash} label="External ID">
-                  <SidebarContactChip value={p.externalId} onChange={(v) => handleUpdateField("externalId", v)} placeholder="External ID" variant="white" />
+                <SidebarDetailRow icon={CalendarDays} label="Start Date">
+                  <SidebarEditableField value={d.startDate} onChange={(v) => handleUpdateField("startDate", v)} type="date" placeholder="Start date" />
+                </SidebarDetailRow>
+                <SidebarDetailRow icon={CalendarDays} label="End Date">
+                  <SidebarEditableField value={d.endDate} onChange={(v) => handleUpdateField("endDate", v)} type="date" placeholder="End date" />
                 </SidebarDetailRow>
 
-                <h3 className="mb-[2px] ml-[22px] mt-[10px] text-[11px] font-medium tracking-wide text-[#888]">Other Details</h3>
-                <SidebarDetailRow icon={CalendarDays} label="Service Start">
-                  <SidebarEditableField value={p.serviceCommencementDate} onChange={(v) => handleUpdateField("serviceCommencementDate", v)} type="date" placeholder="Start date" />
+                <h3 className="mb-[2px] ml-[22px] mt-[10px] text-[11px] font-medium tracking-wide text-[#888]">Qualifications</h3>
+                <SidebarDetailRow icon={GraduationCap} label="Qualifications">
+                  <SidebarEditableField value={d.qualifications} onChange={(v) => handleUpdateField("qualifications", v)} placeholder="Qualifications" />
                 </SidebarDetailRow>
-                <SidebarDetailRow icon={CalendarDays} label="Service Exit">
-                  <SidebarEditableField value={p.serviceExitDate} onChange={(v) => handleUpdateField("serviceExitDate", v)} type="date" placeholder="Exit date" />
+                <SidebarDetailRow icon={ShieldCheck} label="Certifications">
+                  <SidebarEditableField value={d.certifications} onChange={(v) => handleUpdateField("certifications", v)} placeholder="Certifications" />
+                </SidebarDetailRow>
+
+                <h3 className="mb-[2px] ml-[22px] mt-[10px] text-[11px] font-medium tracking-wide text-[#888]">Emergency Contact</h3>
+                <SidebarDetailRow icon={User} label="Name">
+                  <SidebarEditableField value={d.emergencyContactName} onChange={(v) => handleUpdateField("emergencyContactName", v)} placeholder="Emergency contact" />
+                </SidebarDetailRow>
+                <SidebarDetailRow icon={Phone} label="Phone">
+                  <SidebarContactChip value={d.emergencyContactPhone} onChange={(v) => handleUpdateField("emergencyContactPhone", v)} placeholder="Phone number" />
                 </SidebarDetailRow>
 
                 <button
@@ -1025,7 +778,6 @@ export default function ParticipantProfilePage() {
             )}
           </div>
 
-          <SidebarSection title="Upcoming reminders" emptyText="No upcoming reminders" actionLabel="See all" />
           <SidebarSection title="Tasks" emptyText="No tasks" actionLabel="See all" />
           <SidebarSection title="Notes" emptyText="No notes" actionLabel="See all" />
           </div>

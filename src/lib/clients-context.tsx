@@ -4,7 +4,6 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
 import { emptyParticipant } from "@/lib/types"
-import { dummyClients } from "@/lib/dummy-data"
 import type { Client, ParticipantDetails } from "@/lib/types"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -54,22 +53,29 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
 
   const fetchClients = useCallback(async () => {
     if (!activeWorkspace || !isSupabaseConfigured()) {
-      setClients(dummyClients)
+      setClients([])
       setIsLoading(false)
       return
     }
     const supabase = createClient()
-    if (!supabase) { setClients(dummyClients); setIsLoading(false); return }
+    if (!supabase) { setClients([]); setIsLoading(false); return }
 
     setIsLoading(true)
-    const { data } = await supabase
-      .from("clients")
-      .select("*")
-      .eq("workspace_id", activeWorkspace.id)
-      .order("created_at", { ascending: true })
+    try {
+      const { data, error } = await supabase
+        .from("clients")
+        .select("*")
+        .eq("workspace_id", activeWorkspace.id)
+        .order("created_at", { ascending: true })
 
-    const fetched = (data || []).map(dbToClient)
-    setClients(fetched.length > 0 ? fetched : dummyClients)
+      if (error || !data) {
+        setClients([])
+      } else {
+        setClients(data.map(dbToClient))
+      }
+    } catch {
+      setClients([])
+    }
     setIsLoading(false)
   }, [activeWorkspace])
 
@@ -101,34 +107,30 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
       about: "",
     }
 
-    if (activeWorkspace && isSupabaseConfigured()) {
-      const supabase = createClient()
-      if (supabase) {
-        const { data, error } = await supabase
-          .from("clients")
-          .insert({
-            workspace_id: activeWorkspace.id,
-            name: input.name,
-            icon_color: base.iconColor,
-            icon_text: base.iconText,
-            icon_shape: base.iconShape,
-            participant,
-            industry: base.industry,
-          })
-          .select()
-          .single()
+    if (!activeWorkspace || !isSupabaseConfigured()) return null
+    const supabase = createClient()
+    if (!supabase) return null
 
-        if (!error && data) {
-          const newClient = dbToClient(data)
-          setClients((prev) => [...prev, newClient])
-          return newClient
-        }
-      }
+    const { data, error } = await supabase
+      .from("clients")
+      .insert({
+        workspace_id: activeWorkspace.id,
+        name: input.name,
+        icon_color: base.iconColor,
+        icon_text: base.iconText,
+        icon_shape: base.iconShape,
+        participant,
+        industry: base.industry,
+      })
+      .select()
+      .single()
+
+    if (!error && data) {
+      const newClient = dbToClient(data)
+      setClients((prev) => [...prev, newClient])
+      return newClient
     }
-
-    const localClient: Client = { id: crypto.randomUUID(), ...base }
-    setClients((prev) => [...prev, localClient])
-    return localClient
+    return null
   }, [activeWorkspace])
 
   const updateClient = useCallback(async (id: string, updates: Partial<Client>) => {
