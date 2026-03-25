@@ -12,6 +12,7 @@ export default function SignUpPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
+  const [successMessage, setSuccessMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -41,13 +42,13 @@ export default function SignUpPage() {
         return
       }
 
-      if (!data.user || !data.session) {
-        setError("Check your email to confirm your account before signing in.")
+      if (!data.user) {
+        setError("Something went wrong creating your account. Please try again.")
         setIsLoading(false)
         return
       }
 
-      const { data: wsId, error: wsError } = await supabase.rpc("create_workspace_for_user", {
+      const { error: wsError } = await supabase.rpc("create_workspace_for_user", {
         workspace_name: orgName || `${fullName}'s Workspace`,
         owner_id: data.user.id,
       })
@@ -57,19 +58,10 @@ export default function SignUpPage() {
         return
       }
 
-      if (wsId) {
-        const { error: memberError } = await supabase.from("workspace_members").upsert({
-          workspace_id: wsId,
-          user_id: data.user.id,
-          role: "super-admin",
-          status: "active",
-        }, { onConflict: "workspace_id,user_id" })
-
-        if (memberError) {
-          setError("Account created but role assignment failed. Please contact support.")
-          setIsLoading(false)
-          return
-        }
+      if (!data.session) {
+        setSuccessMessage("Check your email to confirm your account, then sign in.")
+        setIsLoading(false)
+        return
       }
 
       router.push("/tasks")
@@ -146,6 +138,12 @@ export default function SignUpPage() {
             <p className="rounded-lg bg-red-50 px-[12px] py-[8px] text-[13px] font-medium text-red-600">
               {error}
             </p>
+          )}
+
+          {successMessage && (
+            <div className="rounded-lg bg-green-50 px-[12px] py-[8px] text-[13px] font-medium text-green-700">
+              {successMessage}
+            </div>
           )}
 
           <button

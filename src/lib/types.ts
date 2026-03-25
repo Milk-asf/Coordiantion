@@ -144,6 +144,18 @@ export interface StaffMember {
   invitedEmail: string
 }
 
+export interface Document {
+  id: string
+  workspaceId: string
+  name: string
+  size: number
+  mimeType: string
+  storagePath: string
+  folder: string
+  uploadedBy: string | null
+  createdAt: string
+}
+
 export const relationshipConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {
   "support-coordinator": { label: "Support Coordinator", bg: "bg-transparent", text: "text-[#262626]", border: "border-[#dcdcdc]" },
   "general-practitioner": { label: "General Practitioner", bg: "bg-transparent", text: "text-[#262626]", border: "border-[#dcdcdc]" },

@@ -24,16 +24,47 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const supabase = createClient()
     if (!supabase) { setIsLoading(false); return }
 
-    supabase.from("workspaces").select("*").then(({ data }) => {
+    const init = async () => {
+      const { data } = await supabase.from("workspaces").select("*")
+
       if (data && data.length > 0) {
         setWorkspaces(data)
         const savedId = typeof window !== "undefined" ? localStorage.getItem("active-workspace") : null
         const active = data.find((w) => w.id === savedId) || data[0]
         setActiveWorkspace(active)
         if (typeof window !== "undefined") localStorage.setItem("active-workspace", active.id)
+        setIsLoading(false)
+        return
+      }
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setIsLoading(false); return }
+
+      const fullName = user.user_metadata?.full_name || user.email?.split("@")[0] || "My"
+      const { data: wsId } = await supabase.rpc("create_workspace_for_user", {
+        workspace_name: `${fullName}'s Workspace`,
+        owner_id: user.id,
+      })
+
+      if (wsId) {
+        await supabase.from("workspace_members").upsert({
+          workspace_id: wsId,
+          user_id: user.id,
+          role: "super-admin",
+          status: "active",
+        }, { onConflict: "workspace_id,user_id" })
+
+        const { data: ws } = await supabase.from("workspaces").select("*").eq("id", wsId).single()
+        if (ws) {
+          setWorkspaces([ws])
+          setActiveWorkspace(ws)
+          if (typeof window !== "undefined") localStorage.setItem("active-workspace", ws.id)
+        }
       }
       setIsLoading(false)
-    })
+    }
+
+    init().catch(() => setIsLoading(false))
   }, [])
 
   const switchWorkspace = useCallback((id: string) => {

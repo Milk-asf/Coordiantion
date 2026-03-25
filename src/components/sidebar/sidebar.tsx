@@ -12,7 +12,6 @@ import {
   Handshake,
   User,
   FileText,
-  StickyNote,
   ChevronsLeft,
   ChevronsRight,
   LogOut,
@@ -46,6 +45,7 @@ const navigation: NavSection[] = [
     items: [
       { label: "Tasks", href: "/tasks", icon: SquareCheck },
       { label: "Calendar", href: "/calendar", icon: Calendar },
+      { label: "Documents", href: "/documents", icon: FileText },
     ],
   },
   {
@@ -54,13 +54,6 @@ const navigation: NavSection[] = [
       { label: "Clients", href: "/clients", icon: Copy },
       { label: "Contacts", href: "/contacts", icon: Handshake },
       { label: "Staff", href: "/staff", icon: User },
-    ],
-  },
-  {
-    title: "Resources",
-    items: [
-      { label: "Documents", href: "/documents", icon: FileText },
-      { label: "Notes", href: "/notes", icon: StickyNote },
     ],
   },
 ]
