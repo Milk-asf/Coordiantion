@@ -54,6 +54,39 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           status: "active",
         }, { onConflict: "workspace_id,user_id" })
 
+        await supabase.from("clients").insert({
+          workspace_id: wsId,
+          name: "Jane Cooper",
+          icon_text: "JC",
+          icon_color: "#6b7280",
+          icon_shape: "square",
+          participant: {
+            firstName: "Jane",
+            middleName: "",
+            lastName: "Cooper",
+            preferredName: "",
+            dateOfBirth: "1990-04-15",
+            gender: "Female",
+            pronouns: "She/Her",
+            ethnicity: "",
+            language: "English",
+            primaryDiagnosis: "Cerebral Palsy",
+            secondaryDiagnosis: "",
+            email: "jane.cooper@example.com",
+            mobile: "0412 345 678",
+            phone: "",
+            preferredContactMethod: "Email",
+            preferredSignMethod: "Electronically",
+            ndisNumber: "430 012 345",
+            medicareNumber: "",
+            centrelinkNumber: "",
+            externalId: "",
+            serviceCommencementDate: "2024-01-10",
+            serviceExitDate: "",
+          },
+          industry: [],
+        })
+
         const { data: ws } = await supabase.from("workspaces").select("*").eq("id", wsId).single()
         if (ws) {
           setWorkspaces([ws])
