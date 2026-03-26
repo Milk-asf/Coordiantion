@@ -340,10 +340,12 @@ export default function TasksPage() {
   const [isQuickChargeOpen, setIsQuickChargeOpen] = useState(false)
   const [quickClientIdx, setQuickClientIdx] = useState(-1)
   const [quickChargeIdx, setQuickChargeIdx] = useState(-1)
+  const [quickClientSearch, setQuickClientSearch] = useState("")
+  const [quickChargeSearch, setQuickChargeSearch] = useState("")
   const quickInputRef = useRef<HTMLInputElement>(null)
   const quickTimeRef = useRef<HTMLInputElement>(null)
-  const quickClientBtnRef = useRef<HTMLButtonElement>(null)
-  const quickChargeBtnRef = useRef<HTMLButtonElement>(null)
+  const quickClientInputRef = useRef<HTMLInputElement>(null)
+  const quickChargeInputRef = useRef<HTMLInputElement>(null)
   const quickClientListRef = useRef<HTMLDivElement>(null)
   const quickChargeListRef = useRef<HTMLDivElement>(null)
 
@@ -374,6 +376,8 @@ export default function TasksPage() {
     setIsQuickChargeOpen(false)
     setQuickClientIdx(-1)
     setQuickChargeIdx(-1)
+    setQuickClientSearch("")
+    setQuickChargeSearch("")
     setQuickActiveField("title")
   }
 
@@ -634,7 +638,7 @@ export default function TasksPage() {
                     onChange={(e) => setQuickTitle(e.target.value)}
                     onFocus={() => setQuickActiveField("title")}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" && quickTitle.trim()) { e.preventDefault(); setQuickActiveField("participant"); quickClientBtnRef.current?.focus(); setIsQuickClientOpen(true) }
+                      if (e.key === "Enter" && quickTitle.trim()) { e.preventDefault(); setQuickActiveField("participant"); quickClientInputRef.current?.focus() }
                       if (e.key === "Escape") resetQuickAdd()
                     }}
                     placeholder="Task name..."
@@ -645,128 +649,184 @@ export default function TasksPage() {
 
                 <div className="flex flex-wrap items-center gap-[6px] px-[16px] pb-[12px] pt-[12px]">
                   <div className="relative">
-                    <button
-                      ref={quickClientBtnRef}
-                      type="button"
-                      onClick={() => { setQuickActiveField("participant"); setIsQuickClientOpen(!isQuickClientOpen); setQuickClientIdx(-1) }}
-                      onFocus={() => setQuickActiveField("participant")}
-                      onKeyDown={(e) => {
-                        if (isQuickClientOpen) {
-                          const totalItems = clientNames.length + 1
-                          if (e.key === "ArrowDown") { e.preventDefault(); setQuickClientIdx((prev) => (prev + 1) % totalItems) }
-                          else if (e.key === "ArrowUp") { e.preventDefault(); setQuickClientIdx((prev) => (prev - 1 + totalItems) % totalItems) }
-                          else if (e.key === "Enter") {
-                            e.preventDefault()
-                            const selected = quickClientIdx === 0 ? "" : clientNames[quickClientIdx - 1] ?? ""
-                            setQuickClient(selected)
-                            setIsQuickClientOpen(false)
-                            setQuickClientIdx(-1)
-                            setQuickActiveField("charge")
-                            setTimeout(() => quickChargeBtnRef.current?.focus(), 50)
-                          }
-                        } else {
-                          if (e.key === "Enter") { e.preventDefault(); setIsQuickClientOpen(true); setQuickClientIdx(0) }
-                          if (e.key === "Tab" && !e.shiftKey) { e.preventDefault(); setQuickActiveField("charge"); quickChargeBtnRef.current?.focus() }
-                        }
-                        if (e.key === "Escape") {
-                          if (isQuickClientOpen) { e.stopPropagation(); setIsQuickClientOpen(false); setQuickClientIdx(-1) }
-                          else resetQuickAdd()
-                        }
-                      }}
-                      className={`flex items-center gap-[5px] rounded border px-[8px] py-[4px] text-[12px] font-medium transition-colors hover:bg-[#f5f5f5] ${quickActiveField === "participant" ? "border-blue-400" : "border-[#e0e0e0]"} ${quickClient ? "text-[#262626]" : "text-[#888]"}`}
-                      tabIndex={0}
-                    >
-                      <Building2 className="h-[12px] w-[12px] text-[#888]" strokeWidth={1.5} />
-                      {quickClient || "Client"}
-                    </button>
-                    {isQuickClientOpen && (
-                      <>
-                        <div className="fixed inset-0 z-[59]" onClick={() => { setIsQuickClientOpen(false); setQuickClientIdx(-1) }} />
-                        <div ref={quickClientListRef} className="absolute left-0 top-full z-[60] mt-[4px] max-h-[200px] w-[220px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                    {(() => {
+                      const filteredClients = quickClientSearch
+                        ? clientNames.filter((n) => n.toLowerCase().includes(quickClientSearch.toLowerCase()))
+                        : clientNames
+                      const selectClient = (name: string) => {
+                        setQuickClient(name)
+                        setIsQuickClientOpen(false)
+                        setQuickClientIdx(-1)
+                        setQuickClientSearch("")
+                        setQuickActiveField("charge")
+                        setTimeout(() => quickChargeInputRef.current?.focus(), 50)
+                      }
+                      return (
+                        <>
                           <div
-                            onClick={() => { setQuickClient(""); setIsQuickClientOpen(false); setQuickClientIdx(-1); setQuickActiveField("charge"); setTimeout(() => quickChargeBtnRef.current?.focus(), 50) }}
-                            className={`flex w-full cursor-pointer items-center px-[12px] py-[7px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] ${quickClientIdx === 0 ? "bg-blue-50 text-blue-600" : ""}`}
-                            role="option"
-                            aria-selected={quickClientIdx === 0}
+                            className={`flex items-center gap-[5px] rounded border px-[8px] py-[3px] transition-colors ${quickActiveField === "participant" ? "border-blue-400" : "border-[#e0e0e0]"}`}
                           >
-                            None
+                            <Building2 className="h-[12px] w-[12px] shrink-0 text-[#888]" strokeWidth={1.5} />
+                            <input
+                              ref={quickClientInputRef}
+                              type="text"
+                              value={isQuickClientOpen ? quickClientSearch : quickClient}
+                              onChange={(e) => { setQuickClientSearch(e.target.value); if (!isQuickClientOpen) setIsQuickClientOpen(true); setQuickClientIdx(0) }}
+                              onFocus={() => { setQuickActiveField("participant"); setIsQuickClientOpen(true); setQuickClientSearch(""); setQuickClientIdx(0) }}
+                              onKeyDown={(e) => {
+                                if (isQuickClientOpen) {
+                                  const totalItems = filteredClients.length
+                                  if (e.key === "ArrowDown") { e.preventDefault(); setQuickClientIdx((p) => (p + 1) % Math.max(totalItems, 1)) }
+                                  else if (e.key === "ArrowUp") { e.preventDefault(); setQuickClientIdx((p) => (p - 1 + Math.max(totalItems, 1)) % Math.max(totalItems, 1)) }
+                                  else if (e.key === "Enter") {
+                                    e.preventDefault()
+                                    if (filteredClients.length > 0) {
+                                      const idx = quickClientIdx >= 0 && quickClientIdx < filteredClients.length ? quickClientIdx : 0
+                                      selectClient(filteredClients[idx])
+                                    } else {
+                                      selectClient("")
+                                    }
+                                  } else if (e.key === "Tab" && !e.shiftKey) {
+                                    e.preventDefault()
+                                    if (filteredClients.length > 0) {
+                                      const idx = quickClientIdx >= 0 && quickClientIdx < filteredClients.length ? quickClientIdx : 0
+                                      selectClient(filteredClients[idx])
+                                    } else {
+                                      setIsQuickClientOpen(false); setQuickClientSearch("")
+                                      setQuickActiveField("charge"); setTimeout(() => quickChargeInputRef.current?.focus(), 50)
+                                    }
+                                  }
+                                } else {
+                                  if (e.key === "Tab" && !e.shiftKey) { e.preventDefault(); setQuickActiveField("charge"); quickChargeInputRef.current?.focus() }
+                                }
+                                if (e.key === "Escape") {
+                                  if (isQuickClientOpen) { e.stopPropagation(); setIsQuickClientOpen(false); setQuickClientSearch(""); setQuickClientIdx(-1) }
+                                  else resetQuickAdd()
+                                }
+                              }}
+                              placeholder="Client"
+                              className="w-[80px] bg-transparent text-[12px] font-medium text-[#262626] placeholder-[#888] outline-none"
+                            />
                           </div>
-                          {clientNames.map((name, i) => {
-                            const initials = name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-                            const isHighlighted = quickClientIdx === i + 1
-                            return (
-                              <div
-                                key={name}
-                                onClick={() => { setQuickClient(name); setIsQuickClientOpen(false); setQuickClientIdx(-1); setQuickActiveField("charge"); setTimeout(() => quickChargeBtnRef.current?.focus(), 50) }}
-                                className={`flex w-full cursor-pointer items-center gap-[8px] px-[12px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${isHighlighted ? "bg-blue-50" : ""}`}
-                                role="option"
-                                aria-selected={isHighlighted}
-                              >
-                                <div className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-[#d4d4d4] text-[8px] font-semibold text-[#555]">
-                                  {initials}
-                                </div>
-                                {name}
+                          {isQuickClientOpen && (
+                            <>
+                              <div className="fixed inset-0 z-[59]" onClick={() => { setIsQuickClientOpen(false); setQuickClientIdx(-1); setQuickClientSearch("") }} />
+                              <div ref={quickClientListRef} className="absolute left-0 top-full z-[60] mt-[4px] max-h-[200px] w-[220px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                                {filteredClients.length === 0 ? (
+                                  <div className="px-[12px] py-[7px] text-[12px] font-medium text-[#888]">No matches</div>
+                                ) : (
+                                  filteredClients.map((name, i) => {
+                                    const initials = name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+                                    const isHighlighted = quickClientIdx === i
+                                    return (
+                                      <div
+                                        key={name}
+                                        onClick={() => selectClient(name)}
+                                        className={`flex w-full cursor-pointer items-center gap-[8px] px-[12px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${isHighlighted ? "bg-blue-50" : ""}`}
+                                        role="option"
+                                        aria-selected={isHighlighted}
+                                      >
+                                        <div className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-[#d4d4d4] text-[8px] font-semibold text-[#555]">
+                                          {initials}
+                                        </div>
+                                        {name}
+                                      </div>
+                                    )
+                                  })
+                                )}
                               </div>
-                            )
-                          })}
-                        </div>
-                      </>
-                    )}
+                            </>
+                          )}
+                        </>
+                      )
+                    })()}
                   </div>
 
                   <div className="relative">
-                    <button
-                      ref={quickChargeBtnRef}
-                      type="button"
-                      onClick={() => { setQuickActiveField("charge"); setIsQuickChargeOpen(!isQuickChargeOpen); setQuickChargeIdx(-1) }}
-                      onFocus={() => setQuickActiveField("charge")}
-                      onKeyDown={(e) => {
-                        if (isQuickChargeOpen) {
-                          const total = chargeTypes.length
-                          if (e.key === "ArrowDown") { e.preventDefault(); setQuickChargeIdx((p) => (p + 1) % total) }
-                          else if (e.key === "ArrowUp") { e.preventDefault(); setQuickChargeIdx((p) => (p - 1 + total) % total) }
-                          else if (e.key === "Enter") {
-                            e.preventDefault()
-                            const selected = quickChargeIdx >= 0 ? chargeTypes[quickChargeIdx].value : ""
-                            setQuickCharge(selected)
-                            setIsQuickChargeOpen(false)
-                            setQuickChargeIdx(-1)
-                            setQuickActiveField("time")
-                            setTimeout(() => quickTimeRef.current?.focus(), 50)
-                          }
-                        } else {
-                          if (e.key === "Enter") { e.preventDefault(); setIsQuickChargeOpen(true); setQuickChargeIdx(0) }
-                          if (e.key === "Tab" && !e.shiftKey) { e.preventDefault(); setQuickActiveField("time"); quickTimeRef.current?.focus() }
-                        }
-                        if (e.key === "Escape") {
-                          if (isQuickChargeOpen) { e.stopPropagation(); setIsQuickChargeOpen(false); setQuickChargeIdx(-1) }
-                          else resetQuickAdd()
-                        }
-                      }}
-                      className={`flex items-center gap-[5px] rounded border px-[8px] py-[4px] text-[12px] font-medium transition-colors hover:bg-[#f5f5f5] ${quickActiveField === "charge" ? "border-blue-400" : "border-[#e0e0e0]"} ${quickCharge ? "text-[#262626]" : "text-[#888]"}`}
-                      tabIndex={0}
-                    >
-                      <Tag className="h-[12px] w-[12px] text-[#888]" strokeWidth={1.5} />
-                      {quickCharge ? chargeLabel(quickCharge) : "Charge"}
-                    </button>
-                    {isQuickChargeOpen && (
-                      <>
-                        <div className="fixed inset-0 z-[59]" onClick={() => { setIsQuickChargeOpen(false); setQuickChargeIdx(-1) }} />
-                        <div ref={quickChargeListRef} className="absolute left-0 top-full z-[60] mt-[4px] max-h-[220px] w-[200px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-                          {chargeTypes.map((ct, i) => (
-                            <div
-                              key={ct.value}
-                              onClick={() => { setQuickCharge(ct.value); setIsQuickChargeOpen(false); setQuickChargeIdx(-1); setQuickActiveField("time"); setTimeout(() => quickTimeRef.current?.focus(), 50) }}
-                              className={`flex w-full cursor-pointer items-center px-[12px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${quickChargeIdx === i ? "bg-blue-50" : ""} ${ct.value ? "text-[#262626]" : "text-[#888]"}`}
-                              role="option"
-                              aria-selected={quickChargeIdx === i}
-                            >
-                              {ct.label}
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    )}
+                    {(() => {
+                      const filteredCharges = quickChargeSearch
+                        ? chargeTypes.filter((ct) => ct.label.toLowerCase().includes(quickChargeSearch.toLowerCase()) || ct.value.toLowerCase().includes(quickChargeSearch.toLowerCase()))
+                        : chargeTypes
+                      const selectCharge = (value: string) => {
+                        setQuickCharge(value)
+                        setIsQuickChargeOpen(false)
+                        setQuickChargeIdx(-1)
+                        setQuickChargeSearch("")
+                        setQuickActiveField("time")
+                        setTimeout(() => quickTimeRef.current?.focus(), 50)
+                      }
+                      return (
+                        <>
+                          <div
+                            className={`flex items-center gap-[5px] rounded border px-[8px] py-[3px] transition-colors ${quickActiveField === "charge" ? "border-blue-400" : "border-[#e0e0e0]"}`}
+                          >
+                            <Tag className="h-[12px] w-[12px] shrink-0 text-[#888]" strokeWidth={1.5} />
+                            <input
+                              ref={quickChargeInputRef}
+                              type="text"
+                              value={isQuickChargeOpen ? quickChargeSearch : (quickCharge ? chargeLabel(quickCharge) : "")}
+                              onChange={(e) => { setQuickChargeSearch(e.target.value); if (!isQuickChargeOpen) setIsQuickChargeOpen(true); setQuickChargeIdx(0) }}
+                              onFocus={() => { setQuickActiveField("charge"); setIsQuickChargeOpen(true); setQuickChargeSearch(""); setQuickChargeIdx(0) }}
+                              onKeyDown={(e) => {
+                                if (isQuickChargeOpen) {
+                                  const total = filteredCharges.length
+                                  if (e.key === "ArrowDown") { e.preventDefault(); setQuickChargeIdx((p) => (p + 1) % Math.max(total, 1)) }
+                                  else if (e.key === "ArrowUp") { e.preventDefault(); setQuickChargeIdx((p) => (p - 1 + Math.max(total, 1)) % Math.max(total, 1)) }
+                                  else if (e.key === "Enter") {
+                                    e.preventDefault()
+                                    if (filteredCharges.length > 0) {
+                                      const idx = quickChargeIdx >= 0 && quickChargeIdx < filteredCharges.length ? quickChargeIdx : 0
+                                      selectCharge(filteredCharges[idx].value)
+                                    } else {
+                                      selectCharge("")
+                                    }
+                                  } else if (e.key === "Tab" && !e.shiftKey) {
+                                    e.preventDefault()
+                                    if (filteredCharges.length > 0) {
+                                      const idx = quickChargeIdx >= 0 && quickChargeIdx < filteredCharges.length ? quickChargeIdx : 0
+                                      selectCharge(filteredCharges[idx].value)
+                                    } else {
+                                      setIsQuickChargeOpen(false); setQuickChargeSearch("")
+                                      setQuickActiveField("time"); setTimeout(() => quickTimeRef.current?.focus(), 50)
+                                    }
+                                  }
+                                } else {
+                                  if (e.key === "Tab" && !e.shiftKey) { e.preventDefault(); setQuickActiveField("time"); quickTimeRef.current?.focus() }
+                                }
+                                if (e.key === "Escape") {
+                                  if (isQuickChargeOpen) { e.stopPropagation(); setIsQuickChargeOpen(false); setQuickChargeSearch(""); setQuickChargeIdx(-1) }
+                                  else resetQuickAdd()
+                                }
+                              }}
+                              placeholder="Charge"
+                              className="w-[80px] bg-transparent text-[12px] font-medium text-[#262626] placeholder-[#888] outline-none"
+                            />
+                          </div>
+                          {isQuickChargeOpen && (
+                            <>
+                              <div className="fixed inset-0 z-[59]" onClick={() => { setIsQuickChargeOpen(false); setQuickChargeIdx(-1); setQuickChargeSearch("") }} />
+                              <div ref={quickChargeListRef} className="absolute left-0 top-full z-[60] mt-[4px] max-h-[220px] w-[200px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                                {filteredCharges.length === 0 ? (
+                                  <div className="px-[12px] py-[7px] text-[12px] font-medium text-[#888]">No matches</div>
+                                ) : (
+                                  filteredCharges.map((ct, i) => (
+                                    <div
+                                      key={ct.value || "__none__"}
+                                      onClick={() => selectCharge(ct.value)}
+                                      className={`flex w-full cursor-pointer items-center px-[12px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${quickChargeIdx === i ? "bg-blue-50" : ""} ${ct.value ? "text-[#262626]" : "text-[#888]"}`}
+                                      role="option"
+                                      aria-selected={quickChargeIdx === i}
+                                    >
+                                      {ct.label}
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </>
+                      )
+                    })()}
                   </div>
 
                   <div className="flex items-center gap-[5px] rounded border border-[#e0e0e0] px-[8px] py-[4px]">

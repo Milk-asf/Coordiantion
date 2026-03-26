@@ -545,13 +545,13 @@ export default function StaffPage() {
         </div>
 
         <div className="flex-1 overflow-auto bg-[#fafafa]">
-          <table className="w-full min-w-[1070px] border-separate border-spacing-0 text-left">
+          <table className="w-full border-separate border-spacing-0 text-left" style={{ tableLayout: "fixed", minWidth: (visibleColumns.length + 1) * 200 }}>
             <thead>
               <tr>
-                <th className="sticky left-0 top-0 z-30 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]" style={{ minWidth: 180 }}>
+                <th className="sticky left-0 top-0 z-30 h-[44px] overflow-hidden whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">
                   <div className="flex items-center gap-[6px]">
-                    <Users className="h-[13px] w-[13px] text-[#999]" strokeWidth={1.5} />
-                    <span>Staff member</span>
+                    <Users className="h-[13px] w-[13px] shrink-0 text-[#999]" strokeWidth={1.5} />
+                    <span className="truncate">Staff member</span>
                   </div>
                 </th>
                 {visibleColumns.map((col, i) => {
@@ -560,10 +560,10 @@ export default function StaffPage() {
                   const isFirst = i === 0
                   const isMenuOpen = columnMenuKey === col.key
                   return (
-                    <th key={col.key} className={`group/col sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888] ${isLast ? "" : "border-r"}`} style={{ minWidth: col.minWidth }}>
+                    <th key={col.key} className={`group/col sticky top-0 z-20 h-[44px] overflow-hidden whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888] ${isLast ? "" : "border-r"}`}>
                       <div className="flex items-center gap-[6px]">
-                        <ColIcon className="h-[13px] w-[13px] text-[#999]" strokeWidth={1.5} />
-                        <span>{col.label}</span>
+                        <ColIcon className="h-[13px] w-[13px] shrink-0 text-[#999]" strokeWidth={1.5} />
+                        <span className="truncate">{col.label}</span>
                         <button onClick={(e) => {
                           if (isMenuOpen) { setColumnMenuKey(null); setColumnMenuPos(null); return }
                           const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
@@ -573,7 +573,7 @@ export default function StaffPage() {
                           if (rect.right > window.innerWidth - 8) left = window.innerWidth - dropdownWidth - 8
                           setColumnMenuPos({ top: rect.bottom + 4, left })
                           setColumnMenuKey(col.key)
-                        }} className={`ml-auto flex h-[22px] w-[22px] items-center justify-center rounded transition-all ${isMenuOpen ? "bg-[#ebebeb] text-[#262626] opacity-100" : "text-[#999] opacity-0 hover:bg-[#ebebeb] hover:text-[#262626] group-hover/col:opacity-100"}`} tabIndex={0} aria-label={`Column options for ${col.label}`}>
+                        }} className={`ml-auto flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded transition-all ${isMenuOpen ? "bg-[#ebebeb] text-[#262626] opacity-100" : "text-[#999] opacity-0 hover:bg-[#ebebeb] hover:text-[#262626] group-hover/col:opacity-100"}`} tabIndex={0} aria-label={`Column options for ${col.label}`}>
                           <ChevronDown className="h-[12px] w-[12px]" strokeWidth={2} />
                         </button>
                       </div>
@@ -602,13 +602,13 @@ export default function StaffPage() {
                 const rowBg = isSelected ? "bg-[#f5f5ff]" : "bg-[#fafafa]"
                 const rowHover = isSelected ? "" : "group-hover:bg-[#f5f5f5]"
                 const d = member.details
-                const cellClass = `h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] ${rowBg} ${rowHover}`
+                const cellClass = `h-[44px] overflow-hidden whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] ${rowBg} ${rowHover}`
                 const dash = <span className="text-[#bbb]">—</span>
                 const textCls = `${cellClass} text-[13px] font-medium text-[#262626]`
                 const whiteChip = "inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] bg-transparent px-[8px] text-[12px] font-medium text-[#262626]"
 
                 const renderCell = (key: string, isLast: boolean) => {
-                  const cls = isLast ? `h-[44px] whitespace-nowrap border-b px-[20px] ${rowBg} ${rowHover}` : cellClass
+                  const cls = isLast ? `h-[44px] overflow-hidden whitespace-nowrap border-b px-[20px] ${rowBg} ${rowHover}` : cellClass
                   const tCls = `${cls} text-[13px] font-medium text-[#262626]`
                   switch (key) {
                     case "email": return <td key={key} className={tCls}>{d.email || dash}</td>
@@ -637,10 +637,10 @@ export default function StaffPage() {
 
                 return (
                   <tr key={member.id} className="group">
-                    <td onClick={() => setSelectedMember(member)} className={`sticky left-0 z-10 h-[44px] cursor-pointer whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] ${rowBg} ${rowHover}`}>
+                    <td onClick={() => setSelectedMember(member)} className={`sticky left-0 z-10 h-[44px] cursor-pointer overflow-hidden whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] ${rowBg} ${rowHover}`}>
                       <div className="flex items-center gap-[10px]">
                         <StaffIcon member={member} />
-                        <span className="text-[13px] font-medium text-[#262626]">{member.name}</span>
+                        <span className="truncate text-[13px] font-medium text-[#262626]">{member.name}</span>
                         {member.status === "invited" && <span className="rounded border border-amber-200 bg-amber-50 px-[5px] py-[1px] text-[10px] font-medium text-amber-600">Invited</span>}
                         <button onClick={(e) => { e.stopPropagation(); router.push(`/staff/${member.id}`) }} className="ml-auto flex h-[22px] w-[22px] items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 text-[#999] hover:bg-[#f0f0f0] hover:text-[#262626]" aria-label={`Open ${member.name} profile`} tabIndex={0}>
                           <ArrowUpRight className="h-[13px] w-[13px]" strokeWidth={1.75} />

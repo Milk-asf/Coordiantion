@@ -102,7 +102,7 @@ export default function ContactsPage() {
 
           {/* Table */}
           <div className="flex-1 overflow-auto bg-[#fafafa]">
-            <table className="w-full min-w-[900px] border-separate border-spacing-0 text-left">
+            <table className="w-full border-separate border-spacing-0 text-left" style={{ tableLayout: "fixed", minWidth: columns.length * 200 }}>
               <thead>
                 <tr>
                   {columns.map((col, i) => {
@@ -110,13 +110,12 @@ export default function ContactsPage() {
                     return (
                       <th
                         key={col.key}
-                        className={`sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888] ${i < columns.length - 1 ? "border-r border-[#dcdcdc]" : ""}`}
-                        style={{ minWidth: col.key === "name" ? 180 : col.key === "email" ? 200 : 150 }}
+                        className={`sticky top-0 z-20 h-[44px] overflow-hidden whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888] ${i < columns.length - 1 ? "border-r border-[#dcdcdc]" : ""}`}
                       >
                         <div className="flex items-center gap-[6px]">
-                          <ColIcon className="h-[13px] w-[13px] text-[#999]" strokeWidth={1.5} />
-                          <span>{col.label}</span>
-                          {"sorted" in col && col.sorted && <ArrowDown className="h-[12px] w-[12px] text-[#888]" strokeWidth={1.5} />}
+                          <ColIcon className="h-[13px] w-[13px] shrink-0 text-[#999]" strokeWidth={1.5} />
+                          <span className="truncate">{col.label}</span>
+                          {"sorted" in col && col.sorted && <ArrowDown className="h-[12px] w-[12px] shrink-0 text-[#888]" strokeWidth={1.5} />}
                         </div>
                       </th>
                     )
@@ -130,7 +129,7 @@ export default function ContactsPage() {
                 const dash = <span className="text-[#bbb]">—</span>
 
                 const renderCell = (key: string, isLast: boolean) => {
-                  const cls = `h-[44px] whitespace-nowrap border-b ${isLast ? "" : "border-r"} border-[#dcdcdc] bg-[#fafafa] px-[20px] group-hover:bg-[#f5f5f5]`
+                  const cls = `h-[44px] overflow-hidden whitespace-nowrap border-b ${isLast ? "" : "border-r"} border-[#dcdcdc] bg-[#fafafa] px-[20px] group-hover:bg-[#f5f5f5]`
                   const textCls = `${cls} text-[13px] font-medium text-[#262626]`
 
                   switch (key) {
@@ -139,7 +138,7 @@ export default function ContactsPage() {
                         <td key={key} className={textCls}>
                           <div className="flex items-center gap-[10px]">
                             <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[4px] bg-[#d4d4d4] text-[9px] font-semibold text-[#555]">{initials}</div>
-                            {contact.name}
+                            <span className="truncate">{contact.name}</span>
                           </div>
                         </td>
                       )

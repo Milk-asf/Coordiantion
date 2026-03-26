@@ -1073,16 +1073,15 @@ export default function ClientsPage() {
         </div>
 
         <div className="flex-1 overflow-auto bg-[#fafafa]">
-          <table className="w-full min-w-[1070px] border-separate border-spacing-0 text-left">
+          <table className="w-full border-separate border-spacing-0 text-left" style={{ tableLayout: "fixed", minWidth: (visibleColumns.length + 1) * 200 }}>
             <thead>
               <tr>
                 <th
-                  className="sticky left-0 top-0 z-30 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]"
-                  style={{ minWidth: 180 }}
+                  className="sticky left-0 top-0 z-30 h-[44px] overflow-hidden whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]"
                 >
                   <div className="flex items-center gap-[6px]">
-                    <UserRound className="h-[13px] w-[13px] text-[#999]" strokeWidth={1.5} />
-                    <span>Participant</span>
+                    <UserRound className="h-[13px] w-[13px] shrink-0 text-[#999]" strokeWidth={1.5} />
+                    <span className="truncate">Participant</span>
                   </div>
                 </th>
                 {visibleColumns.map((col, i) => {
@@ -1093,12 +1092,11 @@ export default function ClientsPage() {
                   return (
                     <th
                       key={col.key}
-                      className={`group/col sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888] ${isLast ? "" : "border-r"}`}
-                      style={{ minWidth: col.minWidth }}
+                      className={`group/col sticky top-0 z-20 h-[44px] overflow-hidden whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888] ${isLast ? "" : "border-r"}`}
                     >
                       <div className="flex items-center gap-[6px]">
-                        <ColIcon className="h-[13px] w-[13px] text-[#999]" strokeWidth={1.5} />
-                        <span>{col.label}</span>
+                        <ColIcon className="h-[13px] w-[13px] shrink-0 text-[#999]" strokeWidth={1.5} />
+                        <span className="truncate">{col.label}</span>
                         <button
                           onClick={(e) => {
                             if (isMenuOpen) { setColumnMenuKey(null); setColumnMenuPos(null); return }
@@ -1110,7 +1108,7 @@ export default function ClientsPage() {
                             setColumnMenuPos({ top: rect.bottom + 4, left })
                             setColumnMenuKey(col.key)
                           }}
-                          className={`ml-auto flex h-[22px] w-[22px] items-center justify-center rounded transition-all ${isMenuOpen ? "bg-[#ebebeb] text-[#262626] opacity-100" : "text-[#999] opacity-0 hover:bg-[#ebebeb] hover:text-[#262626] group-hover/col:opacity-100"}`}
+                          className={`ml-auto flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded transition-all ${isMenuOpen ? "bg-[#ebebeb] text-[#262626] opacity-100" : "text-[#999] opacity-0 hover:bg-[#ebebeb] hover:text-[#262626] group-hover/col:opacity-100"}`}
                           tabIndex={0}
                           aria-label={`Column options for ${col.label}`}
                         >
@@ -1183,11 +1181,11 @@ export default function ClientsPage() {
                 const rowHover = isSelected ? "" : "group-hover:bg-[#f5f5f5]"
                 const p = getParticipantData(client)
                 const clientContacts = getContactsForClient(client.name)
-                const cellClass = `h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] ${rowBg} ${rowHover}`
+                const cellClass = `h-[44px] overflow-hidden whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] ${rowBg} ${rowHover}`
 
                 const renderCell = (key: string, isLast: boolean) => {
                   const cls = isLast
-                    ? `h-[44px] whitespace-nowrap border-b px-[20px] ${rowBg} ${rowHover}`
+                    ? `h-[44px] overflow-hidden whitespace-nowrap border-b px-[20px] ${rowBg} ${rowHover}`
                     : cellClass
                   const whiteChip = "inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] bg-transparent px-[8px] text-[12px] font-medium text-[#262626]"
                   const greyChip = "inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] bg-[#f5f5f5] px-[8px] text-[12px] font-medium text-[#262626]"
@@ -1266,11 +1264,11 @@ export default function ClientsPage() {
                   <tr key={client.id} className="group">
                     <td
                       onClick={() => setSelectedClient(client)}
-                      className={`sticky left-0 z-10 h-[44px] cursor-pointer whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] ${rowBg} ${rowHover}`}
+                      className={`sticky left-0 z-10 h-[44px] cursor-pointer overflow-hidden whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] ${rowBg} ${rowHover}`}
                     >
                       <div className="flex items-center gap-[10px]">
                         <ClientIcon client={client} />
-                        <span className="text-[13px] font-medium text-[#262626]">{client.name}</span>
+                        <span className="truncate text-[13px] font-medium text-[#262626]">{client.name}</span>
                         <button
                           onClick={(e) => { e.stopPropagation(); router.push(`/clients/${client.id}`) }}
                           className="ml-auto flex h-[22px] w-[22px] items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 text-[#999] hover:bg-[#f0f0f0] hover:text-[#262626]"
