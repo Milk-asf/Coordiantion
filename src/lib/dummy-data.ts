@@ -15,6 +15,7 @@ export const dummyClients: Client[] = [
   {
     id: clientIds.sarah,
     name: "Sarah Thompson",
+    displayName: "Sarah Thompson",
     iconColor: "#6366f1",
     iconText: "ST",
     iconShape: "circle",
@@ -56,6 +57,7 @@ export const dummyClients: Client[] = [
   {
     id: clientIds.james,
     name: "James Wilson",
+    displayName: "James Wilson",
     iconColor: "#f59e0b",
     iconText: "JW",
     iconShape: "circle",
@@ -97,6 +99,7 @@ export const dummyClients: Client[] = [
   {
     id: clientIds.mei,
     name: "Mei Chen",
+    displayName: "Mei Chen",
     iconColor: "#10b981",
     iconText: "MC",
     iconShape: "circle",
@@ -138,6 +141,7 @@ export const dummyClients: Client[] = [
   {
     id: clientIds.liam,
     name: "Liam O'Brien",
+    displayName: "Liam O'Brien",
     iconColor: "#ef4444",
     iconText: "LO",
     iconShape: "circle",
@@ -179,6 +183,7 @@ export const dummyClients: Client[] = [
   {
     id: clientIds.priya,
     name: "Priya Sharma",
+    displayName: "Priya Sharma",
     iconColor: "#8b5cf6",
     iconText: "PS",
     iconShape: "circle",
@@ -220,6 +225,7 @@ export const dummyClients: Client[] = [
   {
     id: clientIds.ben,
     name: "Ben Nguyen",
+    displayName: "Ben Nguyen",
     iconColor: "#0ea5e9",
     iconText: "BN",
     iconShape: "circle",
@@ -261,6 +267,7 @@ export const dummyClients: Client[] = [
   {
     id: clientIds.olivia,
     name: "Olivia Martin",
+    displayName: "Olivia Martin",
     iconColor: "#ec4899",
     iconText: "OM",
     iconShape: "circle",
@@ -302,6 +309,7 @@ export const dummyClients: Client[] = [
   {
     id: clientIds.daniel,
     name: "Daniel Cooper",
+    displayName: "Daniel Cooper",
     iconColor: "#f97316",
     iconText: "DC",
     iconShape: "circle",

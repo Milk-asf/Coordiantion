@@ -7,10 +7,8 @@ import {
   Plus,
   ListFilter,
   X,
-  MoreHorizontal,
   SlidersHorizontal,
   CheckSquare,
-  Circle,
   CalendarDays,
   Building2,
   Paperclip,
@@ -21,8 +19,6 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  ArrowUpDown,
-  ArrowDown,
   User,
   RotateCcw,
 } from "lucide-react"
@@ -61,8 +57,6 @@ const taskColumnDefs = [
 
 const defaultTaskVisibleKeys = ["date", "participant", "title", "assignee", "charge", "time", "checkbox"]
 
-const toggleableTaskColumns = taskColumnDefs.filter((c) => !("alwaysVisible" in c && c.alwaysVisible))
-
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
@@ -95,8 +89,6 @@ const statusConfig: Record<string, { label: string; color: string; bg: string }>
   "in-progress": { label: "In progress", color: "#f59e0b", bg: "bg-amber-50" },
   "done": { label: "Done", color: "#22c55e", bg: "bg-green-50" },
 }
-
-const statusKeys = Object.keys(statusConfig) as Array<keyof typeof statusConfig>
 
 function formatTaskDate(dateStr: string | null): string {
   if (!dateStr) return ""
@@ -264,7 +256,7 @@ export default function TasksPage() {
   const { clientNames } = useClients()
   const { enabledCharges, allCharges } = useCharges()
   const { staffNames } = useStaff()
-  const { canAssignTasks, canReturnTasks, role } = usePermissions()
+  const { canAssignTasks, role } = usePermissions()
   const [currentUserName, setCurrentUserName] = useState("Sam Lee")
   useEffect(() => {
     if (!isSupabaseConfigured()) return
@@ -484,11 +476,6 @@ export default function TasksPage() {
   )
   const taskGridTemplate = visibleTaskColumns.map((c) => c.width).join(" ")
 
-  const handleToggleTaskColumn = (key: string) => {
-    setVisibleTaskColumnKeys((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
-    )
-  }
 
   const toggleDisplayItem = (list: string[], setList: (v: string[]) => void, value: string) => {
     setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value])
@@ -560,11 +547,9 @@ export default function TasksPage() {
   }
 
   const [quickAssignee, setQuickAssignee] = useState("")
-  const [isQuickAssigneeOpen, setIsQuickAssigneeOpen] = useState(false)
-  const [quickAssigneeSearch, setQuickAssigneeSearch] = useState("")
-  const [quickAssigneeIdx, setQuickAssigneeIdx] = useState(-1)
-  const quickAssigneeInputRef = useRef<HTMLInputElement>(null)
-  const quickAssigneeListRef = useRef<HTMLDivElement>(null)
+  const [, setIsQuickAssigneeOpen] = useState(false)
+  const [, setQuickAssigneeSearch] = useState("")
+  const [, setQuickAssigneeIdx] = useState(-1)
 
   const handleQuickFinish = async () => {
     const title = quickTitle.trim()
@@ -699,8 +684,6 @@ export default function TasksPage() {
     })
 
   const taskCount = filtered.length
-  const todayCount = filtered.filter((t) => t.dueDate && formatTaskDate(t.dueDate) === "Today").length
-  const todayDateLabel = new Date().toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" })
 
   const [showThisWeek, setShowThisWeek] = useState(true)
   const [showPrevious, setShowPrevious] = useState(false)
@@ -1543,7 +1526,6 @@ export default function TasksPage() {
                 }).sort((a, b) => (a.dueDate || "").localeCompare(b.dueDate || ""))
 
                 const noDateTasks = filtered.filter((t) => !t.dueDate)
-                const weekTaskCount = weekTasks.length + noDateTasks.length
 
                 const dayBuckets: Record<string, Task[]> = {}
                 for (let i = 0; i < 7; i++) {

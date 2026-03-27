@@ -61,7 +61,7 @@ interface ActivityItem {
   time: string
 }
 
-function getActivities(_clientName: string): ActivityItem[] {
+function getActivities(_clientName?: string): ActivityItem[] {
   return [
     { id: "1", icon: FileText, content: <><strong>Lightfield</strong> set About their business</>, time: "7m ago" },
     { id: "2", icon: UserPlus, content: <><strong>Lightfield</strong> set Name for the contact <strong>Sam Lee</strong> to Sam Lee</>, time: "7m ago" },
@@ -343,7 +343,7 @@ export default function ParticipantProfilePage() {
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false)
   const [isSidebarVisible, setIsSidebarVisible] = useState(true)
   const [sidebarWidth, setSidebarWidth] = useState(404)
-  const { clients, isLoading, updateClient, updateParticipantField } = useClients()
+  const { clients, isLoading, updateParticipantField } = useClients()
   const { addContact, getContactsForClient } = useContacts()
   const [isAddContactOpen, setIsAddContactOpen] = useState(false)
   const [newContact, setNewContact] = useState({ firstName: "", email: "", phone: "", relationship: "" })

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo } from "react"
-import { ndisCharges, type NdisChargeItem } from "@/lib/ndis-charges"
+import { ndisCharges } from "@/lib/ndis-charges"
 
 const STORAGE_KEY = "coordination:enabled-charges"
 

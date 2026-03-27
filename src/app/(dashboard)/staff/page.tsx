@@ -11,12 +11,10 @@ import {
   Users,
   ListFilter,
   Plus,
-  Download,
   SlidersHorizontal,
   ArrowUpRight,
   Table2,
   X,
-  Ellipsis,
   Expand,
   FileText,
   User,
@@ -40,7 +38,6 @@ import {
   Award,
   Shield,
   UserPlus,
-  Hash,
   MessageSquare,
 } from "lucide-react"
 
@@ -342,7 +339,7 @@ export default function StaffPage() {
   const [inviteEmail, setInviteEmail] = useState("")
   const [inviteName, setInviteName] = useState("")
   const [inviteRole, setInviteRole] = useState<WorkspaceMember["role"]>("coordinator")
-  const [isInviteRoleOpen, setIsInviteRoleOpen] = useState(false)
+  const [, setIsInviteRoleOpen] = useState(false)
   const [viewContextMenu, setViewContextMenu] = useState<{ viewId: string; x: number; y: number } | null>(null)
   const [deleteViewConfirm, setDeleteViewConfirm] = useState<SavedView | null>(null)
   const displayBtnRef = useRef<HTMLButtonElement>(null)
@@ -614,7 +611,6 @@ export default function StaffPage() {
                 const d = member.details
                 const cellClass = `h-[44px] overflow-hidden whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] ${rowBg} ${rowHover}`
                 const dash = <span className="text-[#bbb]">—</span>
-                const textCls = `${cellClass} text-[13px] font-medium text-[#262626]`
                 const whiteChip = "inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] bg-transparent px-[8px] text-[12px] font-medium text-[#262626]"
 
                 const renderCell = (key: string, isLast: boolean) => {

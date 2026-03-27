@@ -94,6 +94,7 @@ export default function DocumentsPage() {
     e.preventDefault()
     setIsDragOver(false)
     handleFileSelect(e.dataTransfer.files)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentFolder])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -158,10 +159,6 @@ export default function DocumentsPage() {
   ))
 
   const allFolders = [...new Set([...folders, ...subfolders])]
-  const displayFolders = currentFolder
-    ? allFolders.filter((f) => f.startsWith(currentFolder + "/") || subfolders.includes(f))
-    : allFolders.filter((f) => !f.includes("/"))
-
   const breadcrumbs = currentFolder ? currentFolder.split("/") : []
 
   return (
