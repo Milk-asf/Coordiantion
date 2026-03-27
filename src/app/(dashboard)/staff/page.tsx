@@ -4,7 +4,9 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useStaff } from "@/lib/hooks/use-staff"
 import { useFieldConfig } from "@/lib/hooks/use-field-config"
-import type { StaffMember, StaffDetails } from "@/lib/types"
+import { useMembers } from "@/lib/hooks/use-members"
+import { usePermissions } from "@/lib/hooks/use-permissions"
+import type { StaffMember, StaffDetails, WorkspaceMember } from "@/lib/types"
 import {
   Users,
   ListFilter,
@@ -316,6 +318,8 @@ export default function StaffPage() {
   const router = useRouter()
   const { staff, addStaff, updateStaff } = useStaff()
   const { staffDisabled } = useFieldConfig()
+  const { inviteMember } = useMembers()
+  const { canManageStaff } = usePermissions()
 
   const availablePropertyColumns = useMemo(
     () => allPropertyColumns.filter((col) => !staffDisabled.has(col.key)),
@@ -328,14 +332,8 @@ export default function StaffPage() {
   const [columnMenuPos, setColumnMenuPos] = useState<{ top: number; left: number } | null>(null)
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
-  const [savedViews, setSavedViews] = useState<SavedView[]>(() => {
-    if (typeof window === "undefined") return []
-    try { return JSON.parse(localStorage.getItem("staff-views") || "[]") } catch { return [] }
-  })
-  const [activeViewId, setActiveViewId] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null
-    return localStorage.getItem("staff-active-view") || null
-  })
+  const [savedViews, setSavedViews] = useState<SavedView[]>([])
+  const [activeViewId, setActiveViewId] = useState<string | null>(null)
   const [isCreateViewOpen, setIsCreateViewOpen] = useState(false)
   const [newViewName, setNewViewName] = useState("")
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -343,6 +341,8 @@ export default function StaffPage() {
   const [isInviteOpen, setIsInviteOpen] = useState(false)
   const [inviteEmail, setInviteEmail] = useState("")
   const [inviteName, setInviteName] = useState("")
+  const [inviteRole, setInviteRole] = useState<WorkspaceMember["role"]>("coordinator")
+  const [isInviteRoleOpen, setIsInviteRoleOpen] = useState(false)
   const [viewContextMenu, setViewContextMenu] = useState<{ viewId: string; x: number; y: number } | null>(null)
   const [deleteViewConfirm, setDeleteViewConfirm] = useState<SavedView | null>(null)
   const displayBtnRef = useRef<HTMLButtonElement>(null)
@@ -350,16 +350,23 @@ export default function StaffPage() {
   const isInitialMount = useRef(true)
 
   useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false
-      if (activeViewId) {
-        const view = savedViews.find((v) => v.id === activeViewId)
+    try {
+      const stored = JSON.parse(localStorage.getItem("staff-views") || "[]") as SavedView[]
+      setSavedViews(stored)
+      const storedActiveId = localStorage.getItem("staff-active-view") || null
+      setActiveViewId(storedActiveId)
+      if (storedActiveId) {
+        const view = stored.find((v) => v.id === storedActiveId)
         if (view) { setVisibleColumnKeys(view.columnKeys); setSortKey(view.sortKey); setSortDirection(view.sortDirection) }
       }
-      return
-    }
+    } catch {}
+    isInitialMount.current = false
+  }, [])
+
+  useEffect(() => {
+    if (isInitialMount.current) return
     localStorage.setItem("staff-views", JSON.stringify(savedViews))
-  }, [savedViews, activeViewId])
+  }, [savedViews])
 
   useEffect(() => {
     if (isInitialMount.current) return
@@ -430,7 +437,8 @@ export default function StaffPage() {
     const name = inviteName.trim() || email.split("@")[0]
     if (!email || !email.includes("@")) return
     await addStaff({ name, iconText: name[0]?.toUpperCase() || "?", status: "invited", invitedEmail: email, details: { email } })
-    setInviteEmail(""); setInviteName(""); setIsInviteOpen(false)
+    await inviteMember(email, inviteRole)
+    setInviteEmail(""); setInviteName(""); setInviteRole("coordinator"); setIsInviteRoleOpen(false); setIsInviteOpen(false)
   }
 
   const sortedStaff = (() => {
@@ -469,7 +477,7 @@ export default function StaffPage() {
           <div className="flex items-center gap-[8px]">
             <span className="text-[13px] font-medium text-[#262626]">Staff</span>
             <div className="h-[16px] w-px bg-[#e5e5e5]" />
-            <button onClick={handleSelectAllView} className={`flex items-center gap-[6px] rounded-md border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === null ? "border-[#dcdcdc] bg-[#f5f5f5] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`} tabIndex={0}>
+            <button onClick={handleSelectAllView} className={`flex items-center gap-[6px] rounded-lg border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === null ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`} tabIndex={0}>
               <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
               <span>All</span>
             </button>
@@ -479,7 +487,7 @@ export default function StaffPage() {
                 key={view.id}
                 onClick={() => handleSelectView(view)}
                 onContextMenu={(e) => { e.preventDefault(); setViewContextMenu({ viewId: view.id, x: e.clientX, y: e.clientY }) }}
-                className={`flex items-center gap-[6px] rounded-md px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === view.id ? "bg-[#f5f5f5] text-[#262626]" : "text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
+                className={`flex items-center gap-[6px] rounded-lg border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === view.id ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
                 tabIndex={0}
               >
                 <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -490,16 +498,18 @@ export default function StaffPage() {
               <Plus className="h-[14px] w-[14px]" strokeWidth={1.5} />
             </button>
           </div>
-          <div className="flex items-center gap-[8px]">
-            <button onClick={() => setIsInviteOpen(true)} className="flex items-center gap-[5px] rounded px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
-              <UserPlus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-              <span className="hidden sm:inline">Invite</span>
-            </button>
-            <button onClick={() => setIsCreateOpen(true)} className="flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
-              <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-              <span className="hidden sm:inline">Add staff</span>
-            </button>
-          </div>
+          {canManageStaff && (
+            <div className="flex items-center gap-[8px]">
+              <button onClick={() => setIsInviteOpen(true)} className="flex items-center gap-[5px] rounded px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
+                <UserPlus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+                <span className="hidden sm:inline">Invite</span>
+              </button>
+              <button onClick={() => setIsCreateOpen(true)} className="flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
+                <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+                <span className="hidden sm:inline">Add staff</span>
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="flex h-[41px] shrink-0 items-center border-b border-[#dcdcdc] px-[16px]">
@@ -712,23 +722,46 @@ export default function StaffPage() {
 
       {isInviteOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/20" onClick={() => { setIsInviteOpen(false); setInviteEmail(""); setInviteName("") }} />
+          <div className="absolute inset-0 bg-black/20" onClick={() => { setIsInviteOpen(false); setInviteEmail(""); setInviteName(""); setInviteRole("coordinator"); setIsInviteRoleOpen(false) }} />
           <div className="relative z-10 w-[440px] rounded-lg bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
             <div className="flex items-center justify-between px-[24px] pt-[20px]">
               <div className="flex items-center gap-[8px]">
                 <UserPlus className="h-[16px] w-[16px] text-[#555]" strokeWidth={1.5} />
                 <h2 className="text-[15px] font-semibold text-[#262626]">Invite staff member</h2>
               </div>
-              <button onClick={() => { setIsInviteOpen(false); setInviteEmail(""); setInviteName("") }} className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0} aria-label="Close"><X className="h-[16px] w-[16px]" strokeWidth={1.5} /></button>
+              <button onClick={() => { setIsInviteOpen(false); setInviteEmail(""); setInviteName(""); setInviteRole("coordinator"); setIsInviteRoleOpen(false) }} className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0} aria-label="Close"><X className="h-[16px] w-[16px]" strokeWidth={1.5} /></button>
             </div>
             <div className="px-[24px] pb-[20px] pt-[16px]">
               <div className="mb-[14px]">
                 <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Email *</label>
                 <input type="email" placeholder="name@company.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} className="h-[36px] w-full rounded-md border border-[#e0e0e0] px-[10px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3]" autoFocus />
               </div>
-              <div className="mb-[16px]">
+              <div className="mb-[14px]">
                 <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Name (optional)</label>
                 <input type="text" placeholder="Full name" value={inviteName} onChange={(e) => setInviteName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleInviteStaff() }} className="h-[36px] w-full rounded-md border border-[#e0e0e0] px-[10px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3]" />
+              </div>
+              <div className="mb-[16px]">
+                <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Permission</label>
+                <div className="relative">
+                  <div className="flex gap-[8px]">
+                    {(["admin", "coordinator"] as const).map((role) => {
+                      const label = role === "admin" ? "Team Leader" : "Coordinator"
+                      const desc = role === "admin" ? "Access all clients, tasks & documents" : "Access assigned clients & own tasks"
+                      const isActive = inviteRole === role
+                      return (
+                        <button
+                          key={role}
+                          onClick={() => setInviteRole(role)}
+                          className={`flex flex-1 flex-col items-start rounded-lg border px-[12px] py-[10px] text-left transition-colors ${isActive ? "border-[#262626] bg-[#fafafa]" : "border-[#e0e0e0] hover:border-[#ccc] hover:bg-[#fafafa]"}`}
+                          tabIndex={0}
+                        >
+                          <span className={`text-[13px] font-medium ${isActive ? "text-[#262626]" : "text-[#555]"}`}>{label}</span>
+                          <span className="mt-[2px] text-[11px] text-[#999]">{desc}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
               </div>
               <div className="flex justify-end">
                 <button onClick={handleInviteStaff} disabled={!inviteEmail.trim() || !inviteEmail.includes("@")} className={`rounded-md px-[16px] py-[7px] text-[13px] font-medium transition-colors ${inviteEmail.trim() && inviteEmail.includes("@") ? "bg-[#262626] text-white hover:bg-[#333]" : "bg-[#e0e0e0] text-[#bbb]"}`} tabIndex={0}>Send invite</button>

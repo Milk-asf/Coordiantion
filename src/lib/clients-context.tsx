@@ -7,14 +7,34 @@ import { emptyParticipant } from "@/lib/types"
 import type { Client, ParticipantDetails } from "@/lib/types"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+function deriveDisplayName(participant: ParticipantDetails, fallbackName: string): string {
+  const first = participant.firstName?.trim()
+  const last = participant.lastName?.trim()
+  if (first && last) return `${first} ${last}`
+  if (first) return first
+  return fallbackName || ""
+}
+
+function deriveInitials(participant: ParticipantDetails, fallbackName: string): string {
+  const first = participant.firstName?.trim()
+  const last = participant.lastName?.trim()
+  if (first && last) return `${first[0]}${last[0]}`.toUpperCase()
+  if (first) return first[0].toUpperCase()
+  const parts = fallbackName.split(" ").filter(Boolean)
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+  return fallbackName?.[0]?.toUpperCase() || "?"
+}
+
 function dbToClient(row: any): Client {
+  const participant = { ...emptyParticipant, ...(row.participant || {}) }
   return {
     id: row.id,
     name: row.name,
+    displayName: deriveDisplayName(participant, row.name),
     iconColor: row.icon_color || "#6b7280",
-    iconText: row.icon_text || row.name?.[0]?.toUpperCase() || "?",
+    iconText: deriveInitials(participant, row.name),
     iconShape: row.icon_shape || "square",
-    participant: { ...emptyParticipant, ...(row.participant || {}) },
+    participant,
     industry: row.industry || [],
     lastInteraction: row.last_interaction || "",
     revenue: row.revenue || "",
@@ -22,6 +42,7 @@ function dbToClient(row: any): Client {
     lastFunding: row.last_funding || "",
     website: row.website || "",
     owner: row.owner || "",
+    assignedTo: row.assigned_to || null,
     summary: row.summary || "",
     about: row.about || "",
   }
@@ -40,6 +61,7 @@ interface ClientsContextValue {
     industry?: string[]
   }) => Promise<Client | null>
   updateClient: (id: string, updates: Partial<Client>) => Promise<void>
+  updateParticipantField: (id: string, field: keyof ParticipantDetails, value: string) => Promise<void>
   deleteClient: (id: string) => Promise<void>
   refetch: () => Promise<void>
 }
@@ -103,6 +125,7 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
       lastFunding: "",
       website: "",
       owner: "",
+      assignedTo: null,
       summary: "",
       about: "",
     }
@@ -140,7 +163,7 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
     const supabase = createClient()
     if (!supabase) return
 
-    const dbUpdates: Record<string, any> = { updated_at: new Date().toISOString() }
+    const dbUpdates: Record<string, any> = {}
     if (updates.name !== undefined) dbUpdates.name = updates.name
     if (updates.iconColor !== undefined) dbUpdates.icon_color = updates.iconColor
     if (updates.iconText !== undefined) dbUpdates.icon_text = updates.iconText
@@ -148,14 +171,46 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
     if (updates.participant !== undefined) dbUpdates.participant = updates.participant
     if (updates.industry !== undefined) dbUpdates.industry = updates.industry
     if (updates.owner !== undefined) dbUpdates.owner = updates.owner
+    if (updates.assignedTo !== undefined) dbUpdates.assigned_to = updates.assignedTo
     if (updates.summary !== undefined) dbUpdates.summary = updates.summary
     if (updates.about !== undefined) dbUpdates.about = updates.about
     if (updates.revenue !== undefined) dbUpdates.revenue = updates.revenue
     if (updates.headcount !== undefined) dbUpdates.headcount = updates.headcount
     if (updates.website !== undefined) dbUpdates.website = updates.website
 
-    await supabase.from("clients").update(dbUpdates).eq("id", id)
-  }, [])
+    if (Object.keys(dbUpdates).length === 0) return
+
+    const { error } = await supabase.from("clients").update(dbUpdates).eq("id", id)
+    if (error) {
+      console.error("Failed to update client:", error.message)
+      fetchClients()
+    }
+  }, [fetchClients])
+
+  const updateParticipantField = useCallback(async (id: string, field: keyof ParticipantDetails, value: string) => {
+    let mergedParticipant: ParticipantDetails | null = null
+
+    setClients((prev) => prev.map((c) => {
+      if (c.id !== id) return c
+      mergedParticipant = { ...c.participant, [field]: value }
+      return {
+        ...c,
+        participant: mergedParticipant,
+        displayName: deriveDisplayName(mergedParticipant, c.name),
+        iconText: deriveInitials(mergedParticipant, c.name),
+      }
+    }))
+
+    if (!mergedParticipant || !isSupabaseConfigured()) return
+    const supabase = createClient()
+    if (!supabase) return
+
+    const { error } = await supabase.from("clients").update({ participant: mergedParticipant }).eq("id", id)
+    if (error) {
+      console.error("Failed to update participant field:", error.message)
+      fetchClients()
+    }
+  }, [fetchClients])
 
   const deleteClient = useCallback(async (id: string) => {
     setClients((prev) => prev.filter((c) => c.id !== id))
@@ -169,7 +224,7 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
   const clientNames = clients.map((c) => c.name)
 
   return (
-    <ClientsContext.Provider value={{ clients, clientNames, isLoading, addClient, updateClient, deleteClient, refetch: fetchClients }}>
+    <ClientsContext.Provider value={{ clients, clientNames, isLoading, addClient, updateClient, updateParticipantField, deleteClient, refetch: fetchClients }}>
       {children}
     </ClientsContext.Provider>
   )

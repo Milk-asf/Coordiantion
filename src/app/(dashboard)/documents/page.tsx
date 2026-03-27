@@ -19,6 +19,7 @@ import {
   Pencil,
 } from "lucide-react"
 import { useDocuments } from "@/lib/hooks/use-documents"
+import { usePermissions } from "@/lib/hooks/use-permissions"
 import type { Document } from "@/lib/types"
 
 function formatFileSize(bytes: number): string {
@@ -53,6 +54,7 @@ function getFileColor(mimeType: string): string {
 
 export default function DocumentsPage() {
   const { documents, folders, isLoading, uploadDocument, deleteDocument, renameDocument, getDownloadUrl } = useDocuments()
+  const { canManageDocuments } = usePermissions()
   const [currentFolder, setCurrentFolder] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [isUploading, setIsUploading] = useState(false)
@@ -191,31 +193,35 @@ export default function DocumentsPage() {
               </button>
             )}
           </div>
-          <button
-            onClick={() => setIsNewFolderOpen(true)}
-            className="flex h-[32px] items-center gap-[6px] rounded-md border border-[#e0e0e0] bg-white px-[10px] text-[12px] font-medium text-[#555] transition-colors hover:bg-[#f5f5f5]"
-            tabIndex={0}
-            aria-label="New folder"
-          >
-            <FolderPlus className="h-[14px] w-[14px]" strokeWidth={1.75} />
-            <span>New folder</span>
-          </button>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex h-[32px] items-center gap-[6px] rounded-md bg-[#262626] px-[12px] text-[12px] font-medium text-white transition-colors hover:bg-[#3d3d3d]"
-            tabIndex={0}
-            aria-label="Upload files"
-          >
-            <Upload className="h-[14px] w-[14px]" strokeWidth={1.75} />
-            <span>Upload</span>
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            className="hidden"
-            onChange={(e) => { handleFileSelect(e.target.files); e.target.value = "" }}
-          />
+          {canManageDocuments && (
+            <>
+              <button
+                onClick={() => setIsNewFolderOpen(true)}
+                className="flex h-[32px] items-center gap-[6px] rounded-md border border-[#e0e0e0] bg-white px-[10px] text-[12px] font-medium text-[#555] transition-colors hover:bg-[#f5f5f5]"
+                tabIndex={0}
+                aria-label="New folder"
+              >
+                <FolderPlus className="h-[14px] w-[14px]" strokeWidth={1.75} />
+                <span>New folder</span>
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex h-[32px] items-center gap-[6px] rounded-md bg-[#262626] px-[12px] text-[12px] font-medium text-white transition-colors hover:bg-[#3d3d3d]"
+                tabIndex={0}
+                aria-label="Upload files"
+              >
+                <Upload className="h-[14px] w-[14px]" strokeWidth={1.75} />
+                <span>Upload</span>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(e) => { handleFileSelect(e.target.files); e.target.value = "" }}
+              />
+            </>
+          )}
         </div>
       </div>
 
@@ -403,15 +409,19 @@ export default function DocumentsPage() {
             <Pencil className="h-[14px] w-[14px] text-[#888]" strokeWidth={1.75} />
             Rename
           </button>
-          <div className="my-[4px] border-t border-[#f0f0f0]" />
-          <button
-            onClick={() => handleDelete(contextMenu.doc)}
-            className="flex w-full items-center gap-[8px] px-[12px] py-[7px] text-[12px] font-medium text-red-600 transition-colors hover:bg-red-50"
-            tabIndex={0}
-          >
-            <Trash2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
-            Delete
-          </button>
+          {canManageDocuments && (
+            <>
+              <div className="my-[4px] border-t border-[#f0f0f0]" />
+              <button
+                onClick={() => handleDelete(contextMenu.doc)}
+                className="flex w-full items-center gap-[8px] px-[12px] py-[7px] text-[12px] font-medium text-red-600 transition-colors hover:bg-red-50"
+                tabIndex={0}
+              >
+                <Trash2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
+                Delete
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

@@ -14,6 +14,7 @@ function dbToMember(row: any): WorkspaceMember {
     role: row.role,
     status: row.status,
     invited_email: row.invited_email,
+    team: row.team || null,
     created_at: row.created_at,
   }
 }
@@ -35,7 +36,7 @@ export function useMembers() {
     setIsLoading(true)
     try {
       const { data, error } = await supabase
-        .from("workspace_members")
+        .from("workspace_members_with_profile")
         .select("*")
         .eq("workspace_id", activeWorkspace.id)
         .order("created_at", { ascending: true })
@@ -43,12 +44,10 @@ export function useMembers() {
       if (error || !data) {
         setMembers([])
       } else {
-        const enriched = data.map((row) => {
+        const enriched = data.map((row: any) => {
           const member = dbToMember(row)
-          if (!member.name && member.invited_email) {
-            member.name = member.invited_email
-            member.email = member.invited_email
-          }
+          member.name = row.user_full_name || member.invited_email || member.name || ""
+          member.email = row.user_email || member.invited_email || member.email || ""
           return member
         })
         setMembers(enriched)
@@ -61,7 +60,7 @@ export function useMembers() {
 
   useEffect(() => { fetchMembers() }, [fetchMembers])
 
-  const inviteMember = useCallback(async (email: string, role: WorkspaceMember["role"] = "support-worker") => {
+  const inviteMember = useCallback(async (email: string, role: WorkspaceMember["role"] = "coordinator") => {
     if (!activeWorkspace || !isSupabaseConfigured()) return null
     const supabase = createClient()
     if (!supabase) return null

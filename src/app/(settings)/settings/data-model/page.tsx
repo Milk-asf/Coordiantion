@@ -141,7 +141,7 @@ export default function DataModelSettingsPage() {
       <div className="mb-[28px]">
         <h1 className="text-[22px] font-semibold text-[#1a1a1a]">Data model</h1>
         <p className="mt-[4px] text-[14px] text-sidebar-muted">
-          Manage field definitions for your workspace.
+          Manage field definitions for your account.
         </p>
       </div>
 

@@ -36,6 +36,7 @@ export const emptyParticipant: ParticipantDetails = {
 export interface Client {
   id: string
   name: string
+  displayName: string
   iconColor: string
   iconText: string
   iconShape: "square" | "circle"
@@ -47,6 +48,7 @@ export interface Client {
   lastFunding: string
   website: string
   owner: string
+  assignedTo: string | null
   summary: string
   about: string
 }
@@ -94,9 +96,10 @@ export interface WorkspaceMember {
   id: string
   workspace_id: string
   user_id: string | null
-  role: "super-admin" | "admin" | "support-worker"
+  role: "super-admin" | "admin" | "coordinator"
   status: "active" | "pending" | "invited"
   invited_email: string | null
+  team: string | null
   created_at: string
   email?: string
   name?: string

@@ -343,7 +343,7 @@ export default function ParticipantProfilePage() {
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false)
   const [isSidebarVisible, setIsSidebarVisible] = useState(true)
   const [sidebarWidth, setSidebarWidth] = useState(404)
-  const { clients, isLoading, updateClient } = useClients()
+  const { clients, isLoading, updateClient, updateParticipantField } = useClients()
   const { addContact, getContactsForClient } = useContacts()
   const [isAddContactOpen, setIsAddContactOpen] = useState(false)
   const [newContact, setNewContact] = useState({ firstName: "", email: "", phone: "", relationship: "" })
@@ -456,7 +456,7 @@ export default function ParticipantProfilePage() {
   const activities = getActivities(client.name)
 
   const handleUpdateField = (field: keyof ParticipantDetails, value: string) => {
-    updateClient(client.id, { participant: { ...client.participant, [field]: value } })
+    updateParticipantField(client.id, field, value)
   }
 
   const clientContacts = getContactsForClient(client.name)
@@ -489,7 +489,7 @@ export default function ParticipantProfilePage() {
               <ArrowLeft className="h-[16px] w-[16px]" strokeWidth={1.75} />
             </button>
             <ClientIcon client={client} size="md" />
-            <span className="max-w-[240px] truncate text-[15px] font-semibold text-[#262626]">{client.name}</span>
+            <span className="max-w-[240px] truncate text-[15px] font-semibold text-[#262626]">{client.displayName}</span>
           </div>
           <div className="flex items-center gap-[6px]">
             <button
@@ -728,7 +728,7 @@ export default function ParticipantProfilePage() {
                         <div className="flex h-[36px] items-center rounded-md border border-[#e0e0e0] bg-[#fafafa] px-[10px]">
                           <div className="flex items-center gap-[6px]">
                             <ClientIcon client={client} size="sm" />
-                            <span className="text-[13px] font-medium text-[#262626]">{client.name}</span>
+                            <span className="text-[13px] font-medium text-[#262626]">{client.displayName}</span>
                           </div>
                         </div>
                       </div>
@@ -839,7 +839,7 @@ export default function ParticipantProfilePage() {
             {/* Participant name header */}
             <div className="flex items-center gap-[14px] pb-[28px]">
               <ClientIcon client={client} size="xl" />
-              <h1 className="text-[24px] font-semibold text-[#262626]">{client.name}</h1>
+              <h1 className="text-[24px] font-semibold text-[#262626]">{client.displayName}</h1>
             </div>
 
             {/* Account summary */}

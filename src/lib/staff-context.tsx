@@ -119,15 +119,21 @@ export function StaffProvider({ children }: { children: ReactNode }) {
     const supabase = createClient()
     if (!supabase) return
 
-    const dbUpdates: Record<string, any> = { updated_at: new Date().toISOString() }
+    const dbUpdates: Record<string, any> = {}
     if (updates.name !== undefined) dbUpdates.name = updates.name
     if (updates.iconText !== undefined) dbUpdates.icon_text = updates.iconText
     if (updates.details !== undefined) dbUpdates.details = updates.details
     if (updates.status !== undefined) dbUpdates.status = updates.status
     if (updates.invitedEmail !== undefined) dbUpdates.invited_email = updates.invitedEmail
 
-    await supabase.from("staff").update(dbUpdates).eq("id", id)
-  }, [])
+    if (Object.keys(dbUpdates).length === 0) return
+
+    const { error } = await supabase.from("staff").update(dbUpdates).eq("id", id)
+    if (error) {
+      console.error("Failed to update staff:", error.message)
+      fetchStaff()
+    }
+  }, [fetchStaff])
 
   const deleteStaff = useCallback(async (id: string) => {
     setStaff((prev) => prev.filter((s) => s.id !== id))

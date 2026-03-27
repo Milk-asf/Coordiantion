@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import {
@@ -15,11 +16,13 @@ import {
   Tag,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { usePermissions } from "@/lib/hooks/use-permissions"
 
 interface SettingsNavItem {
   label: string
   href: string
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
+  requiredPermission?: "canManageWorkspaceSettings" | "canManageMembers" | "canAccessBilling"
 }
 
 interface SettingsNavSection {
@@ -36,15 +39,15 @@ const settingsNav: SettingsNavSection[] = [
     ],
   },
   {
-    title: "Workspace",
+    title: "Organisation",
     items: [
-      { label: "General", href: "/settings/general", icon: Building2 },
-      { label: "Members", href: "/settings/members", icon: Users },
-      { label: "Knowledge", href: "/settings/knowledge", icon: BookOpen },
-      { label: "Data model", href: "/settings/data-model", icon: Database },
-      { label: "Charges", href: "/settings/charges", icon: Tag },
-      { label: "Import history", href: "/settings/import-history", icon: Upload },
-      { label: "Billing", href: "/settings/billing", icon: CreditCard },
+      { label: "General", href: "/settings/general", icon: Building2, requiredPermission: "canManageWorkspaceSettings" },
+      { label: "Members", href: "/settings/members", icon: Users, requiredPermission: "canManageMembers" },
+      { label: "Knowledge", href: "/settings/knowledge", icon: BookOpen, requiredPermission: "canManageWorkspaceSettings" },
+      { label: "Data model", href: "/settings/data-model", icon: Database, requiredPermission: "canManageWorkspaceSettings" },
+      { label: "Charges", href: "/settings/charges", icon: Tag, requiredPermission: "canManageWorkspaceSettings" },
+      { label: "Import history", href: "/settings/import-history", icon: Upload, requiredPermission: "canManageWorkspaceSettings" },
+      { label: "Billing", href: "/settings/billing", icon: CreditCard, requiredPermission: "canAccessBilling" },
     ],
   },
 ]
@@ -55,6 +58,20 @@ export default function SettingsLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+  const permissions = usePermissions()
+
+  const filteredNav = useMemo(() => {
+    if (permissions.isLoading) return settingsNav
+    return settingsNav
+      .map((section) => ({
+        ...section,
+        items: section.items.filter((item) => {
+          if (!item.requiredPermission) return true
+          return permissions[item.requiredPermission]
+        }),
+      }))
+      .filter((section) => section.items.length > 0)
+  }, [permissions])
 
   return (
     <div className="flex h-full w-full">
@@ -71,7 +88,7 @@ export default function SettingsLayout({
         </div>
 
         <nav className="flex-1 overflow-y-auto px-2" role="navigation" aria-label="Settings navigation">
-          {settingsNav.map((section) => (
+          {filteredNav.map((section) => (
             <div key={section.title} className="mt-4">
               <p className="mb-1 px-2 text-[11px] font-medium tracking-wide text-sidebar-muted">
                 {section.title}

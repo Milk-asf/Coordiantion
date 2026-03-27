@@ -561,7 +561,7 @@ export default function StaffProfilePage() {
                               <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[4px] bg-[#d4d4d4] text-[9px] font-semibold text-[#555]">
                                 {initials}
                               </div>
-                              {client.name}
+                              {client.displayName}
                             </div>
                           </td>
                           <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626]">
@@ -620,7 +620,7 @@ export default function StaffProfilePage() {
                       <div className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-[4px] bg-[#d4d4d4] text-[9px] font-semibold text-[#555]">
                         {client.iconText}
                       </div>
-                      <span className="text-[13px] font-medium text-[#262626]">{client.name}</span>
+                      <span className="text-[13px] font-medium text-[#262626]">{client.displayName}</span>
                       {client.participant.ndisNumber && (
                         <span className="text-[12px] text-[#bbb]">· {client.participant.ndisNumber}</span>
                       )}

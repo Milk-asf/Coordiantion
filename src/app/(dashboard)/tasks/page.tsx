@@ -29,8 +29,25 @@ import {
 import { useTasks } from "@/lib/hooks/use-tasks"
 import { useClients } from "@/lib/hooks/use-clients"
 import { useCharges } from "@/lib/hooks/use-charges"
+import { useStaff } from "@/lib/hooks/use-staff"
+import { usePermissions } from "@/lib/hooks/use-permissions"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import type { Task, Attachment } from "@/lib/types"
+
+interface TaskSavedView {
+  id: string
+  name: string
+  viewMode: "list" | "week"
+  visibleColumnKeys: string[]
+  displayParticipants: string[]
+  displayAssignees: string[]
+  displayCharges: string[]
+  statusFilter: string[]
+  dateFilter: string[]
+  participantFilter: string[]
+  assigneeFilter: string[]
+  chargeFilter: string[]
+}
 
 const taskColumnDefs = [
   { key: "date", label: "Date", icon: CalendarDays, width: "90px" },
@@ -243,9 +260,11 @@ function getTodayStr(): string {
 }
 
 export default function TasksPage() {
-  const { tasks, addTask, updateTask: updateTaskDb, deleteTask: deleteTaskDb } = useTasks()
+  const { tasks: allTasks, addTask, updateTask: updateTaskDb, deleteTask: deleteTaskDb } = useTasks()
   const { clientNames } = useClients()
   const { enabledCharges, allCharges } = useCharges()
+  const { staffNames } = useStaff()
+  const { canAssignTasks, canReturnTasks, role } = usePermissions()
   const [currentUserName, setCurrentUserName] = useState("Sam Lee")
   useEffect(() => {
     if (!isSupabaseConfigured()) return
@@ -255,6 +274,10 @@ export default function TasksPage() {
       if (user?.user_metadata?.full_name) setCurrentUserName(user.user_metadata.full_name)
     }).catch(() => {})
   }, [])
+
+  const tasks = role === "coordinator"
+    ? allTasks.filter((t) => t.assignee === currentUserName)
+    : allTasks
   const chargeTypes = [
     { value: "", label: "No charge" },
     ...enabledCharges.map((c) => ({ value: c.itemNumber, label: c.shortName })),
@@ -300,6 +323,157 @@ export default function TasksPage() {
   const [displayParticipants, setDisplayParticipants] = useState<string[]>([])
   const [displayAssignees, setDisplayAssignees] = useState<string[]>([])
   const [displayCharges, setDisplayCharges] = useState<string[]>([])
+
+  const [viewMode, setViewMode] = useState<"list" | "week">("list")
+  const [weekOffset, setWeekOffset] = useState(0)
+
+  const [taskSavedViews, setTaskSavedViews] = useState<TaskSavedView[]>([])
+  const [activeTaskViewId, setActiveTaskViewId] = useState<string | null>(null)
+  const [isCreateTaskViewOpen, setIsCreateTaskViewOpen] = useState(false)
+  const [newTaskViewName, setNewTaskViewName] = useState("")
+  const [taskViewContextMenu, setTaskViewContextMenu] = useState<{ viewId: string; x: number; y: number } | null>(null)
+  const [deleteTaskViewConfirm, setDeleteTaskViewConfirm] = useState<TaskSavedView | null>(null)
+  const taskViewNameInputRef = useRef<HTMLInputElement>(null)
+  const isTaskViewInitialMount = useRef(true)
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("task-views") || "[]") as TaskSavedView[]
+      setTaskSavedViews(stored)
+      const storedActiveId = localStorage.getItem("task-active-view") || null
+      setActiveTaskViewId(storedActiveId)
+      if (storedActiveId) {
+        const view = stored.find((v) => v.id === storedActiveId)
+        if (view) {
+          setViewMode(view.viewMode)
+          setVisibleTaskColumnKeys(view.visibleColumnKeys)
+          setDisplayParticipants(view.displayParticipants)
+          setDisplayAssignees(view.displayAssignees)
+          setDisplayCharges(view.displayCharges)
+          setStatusFilter(view.statusFilter)
+          setDateFilter(view.dateFilter)
+          setParticipantFilter(view.participantFilter)
+          setAssigneeFilter(view.assigneeFilter)
+          setChargeFilter(view.chargeFilter)
+        }
+      }
+    } catch {}
+    isTaskViewInitialMount.current = false
+  }, [])
+
+  useEffect(() => {
+    if (isTaskViewInitialMount.current) return
+    localStorage.setItem("task-views", JSON.stringify(taskSavedViews))
+  }, [taskSavedViews])
+
+  useEffect(() => {
+    if (isTaskViewInitialMount.current) return
+    if (activeTaskViewId) {
+      localStorage.setItem("task-active-view", activeTaskViewId)
+    } else {
+      localStorage.removeItem("task-active-view")
+    }
+  }, [activeTaskViewId])
+
+  useEffect(() => {
+    if (!activeTaskViewId || isTaskViewInitialMount.current) return
+    setTaskSavedViews((prev) =>
+      prev.map((v) =>
+        v.id === activeTaskViewId
+          ? { ...v, viewMode, visibleColumnKeys: visibleTaskColumnKeys, displayParticipants, displayAssignees, displayCharges, statusFilter, dateFilter, participantFilter, assigneeFilter, chargeFilter }
+          : v
+      )
+    )
+  }, [viewMode, visibleTaskColumnKeys, displayParticipants, displayAssignees, displayCharges, statusFilter, dateFilter, participantFilter, assigneeFilter, chargeFilter, activeTaskViewId])
+
+  const handleCreateTaskView = () => {
+    if (!newTaskViewName.trim()) return
+    const view: TaskSavedView = {
+      id: Date.now().toString(),
+      name: newTaskViewName.trim(),
+      viewMode,
+      visibleColumnKeys: [...visibleTaskColumnKeys],
+      displayParticipants: [...displayParticipants],
+      displayAssignees: [...displayAssignees],
+      displayCharges: [...displayCharges],
+      statusFilter: [...statusFilter],
+      dateFilter: [...dateFilter],
+      participantFilter: [...participantFilter],
+      assigneeFilter: [...assigneeFilter],
+      chargeFilter: [...chargeFilter],
+    }
+    setTaskSavedViews((prev) => [...prev, view])
+    setActiveTaskViewId(view.id)
+    setNewTaskViewName("")
+    setIsCreateTaskViewOpen(false)
+  }
+
+  const handleSelectTaskView = (view: TaskSavedView) => {
+    setActiveTaskViewId(view.id)
+    setViewMode(view.viewMode)
+    setVisibleTaskColumnKeys(view.visibleColumnKeys)
+    setDisplayParticipants(view.displayParticipants)
+    setDisplayAssignees(view.displayAssignees)
+    setDisplayCharges(view.displayCharges)
+    setStatusFilter(view.statusFilter)
+    setDateFilter(view.dateFilter)
+    setParticipantFilter(view.participantFilter)
+    setAssigneeFilter(view.assigneeFilter)
+    setChargeFilter(view.chargeFilter)
+    setWeekOffset(0)
+  }
+
+  const handleSelectAllTaskView = () => {
+    setActiveTaskViewId(null)
+    setViewMode("list")
+    setVisibleTaskColumnKeys(defaultTaskVisibleKeys)
+    setDisplayParticipants([])
+    setDisplayAssignees([])
+    setDisplayCharges([])
+    setStatusFilter([])
+    setDateFilter([])
+    setParticipantFilter([])
+    setAssigneeFilter([])
+    setChargeFilter([])
+    setWeekOffset(0)
+  }
+
+  const handleDeleteTaskView = (viewId: string) => {
+    setTaskSavedViews((prev) => prev.filter((v) => v.id !== viewId))
+    if (activeTaskViewId === viewId) handleSelectAllTaskView()
+    setDeleteTaskViewConfirm(null)
+  }
+
+  const getWeekRange = (offset: number) => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const dayOfWeek = today.getDay()
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+    const weekStart = new Date(today)
+    weekStart.setDate(today.getDate() + mondayOffset + offset * 7)
+    const weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekStart.getDate() + 6)
+    return { weekStart, weekEnd }
+  }
+
+  const { weekStart, weekEnd } = getWeekRange(weekOffset)
+
+  const formatWeekDate = (d: Date) =>
+    d.toLocaleDateString("en-AU", { day: "numeric", month: "short" })
+
+  const formatWeekLabel = () => {
+    const s = formatWeekDate(weekStart)
+    const e = formatWeekDate(weekEnd)
+    const yearS = weekStart.getFullYear()
+    const yearE = weekEnd.getFullYear()
+    if (yearS !== yearE) return `${s} ${yearS} – ${e} ${yearE}`
+    return `${s} – ${e}, ${yearE}`
+  }
+
+  const toDateStr = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+
+  const weekDayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
   const uniqueParticipants = Array.from(new Set(tasks.map((t) => t.client).filter(Boolean))).sort()
   const uniqueAssignees = Array.from(new Set(tasks.map((t) => t.assignee).filter(Boolean))).sort()
@@ -371,24 +545,36 @@ export default function TasksPage() {
     setQuickDueDate(getTodayStr())
     setQuickTime("")
     setQuickCharge("")
+    setQuickAssignee("")
     setIsQuickAdding(false)
     setIsQuickClientOpen(false)
     setIsQuickChargeOpen(false)
+    setIsQuickAssigneeOpen(false)
     setQuickClientIdx(-1)
     setQuickChargeIdx(-1)
+    setQuickAssigneeIdx(-1)
+    setQuickAssigneeSearch("")
     setQuickClientSearch("")
     setQuickChargeSearch("")
     setQuickActiveField("title")
   }
 
+  const [quickAssignee, setQuickAssignee] = useState("")
+  const [isQuickAssigneeOpen, setIsQuickAssigneeOpen] = useState(false)
+  const [quickAssigneeSearch, setQuickAssigneeSearch] = useState("")
+  const [quickAssigneeIdx, setQuickAssigneeIdx] = useState(-1)
+  const quickAssigneeInputRef = useRef<HTMLInputElement>(null)
+  const quickAssigneeListRef = useRef<HTMLDivElement>(null)
+
   const handleQuickFinish = async () => {
     const title = quickTitle.trim()
     if (!title) return
+    const assignee = canAssignTasks ? (quickAssignee || currentUserName) : currentUserName
     await addTask({
       title,
       description: "",
       status: "todo",
-      assignee: currentUserName,
+      assignee,
       client: quickClient,
       dueDate: quickDueDate || null,
       attachments: [],
@@ -400,10 +586,14 @@ export default function TasksPage() {
     setQuickDueDate(getTodayStr())
     setQuickTime("")
     setQuickCharge("")
+    setQuickAssignee("")
     setIsQuickClientOpen(false)
     setIsQuickChargeOpen(false)
+    setIsQuickAssigneeOpen(false)
     setQuickClientIdx(-1)
     setQuickChargeIdx(-1)
+    setQuickAssigneeIdx(-1)
+    setQuickAssigneeSearch("")
     setQuickActiveField("title")
     setTimeout(() => quickInputRef.current?.focus(), 0)
   }
@@ -592,22 +782,37 @@ export default function TasksPage() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Header */}
+      {/* View tabs */}
       <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-[#f0f0f0] px-[16px]">
-        <div className="flex items-center gap-[12px]">
-          <div className="flex items-baseline gap-[6px]">
-            <span className="text-[14px] font-semibold text-[#262626]">Today</span>
-            <span className="text-[12px] font-medium text-[#999]">{todayDateLabel}</span>
-            {todayCount > 0 && (
-              <span className="ml-[2px] rounded-full bg-blue-50 px-[6px] py-[1px] text-[11px] font-semibold text-blue-500">{todayCount}</span>
-            )}
-          </div>
+        <div className="flex items-center gap-[8px]">
+          <span className="text-[13px] font-medium text-[#262626]">Tasks</span>
           <div className="h-[16px] w-px bg-[#e5e5e5]" />
-          <div className="flex items-center gap-[6px] rounded bg-[#f0f0f0] px-[6px] py-[3px] text-[13px] font-medium text-[#262626]">
-            <Table2 className="h-[14px] w-[14px] text-[#262626]" strokeWidth={1.75} />
-            <span>All</span>
-          </div>
           <button
+            onClick={handleSelectAllTaskView}
+            className={`flex items-center gap-[6px] rounded-lg border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeTaskViewId === null ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
+            tabIndex={0}
+          >
+            <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
+            <span>All</span>
+          </button>
+          {taskSavedViews.length > 0 && <div className="h-[16px] w-px bg-[#dcdcdc]" />}
+          {taskSavedViews.map((view) => (
+            <button
+              key={view.id}
+              onClick={() => handleSelectTaskView(view)}
+              onContextMenu={(e) => {
+                e.preventDefault()
+                setTaskViewContextMenu({ viewId: view.id, x: e.clientX, y: e.clientY })
+              }}
+              className={`flex items-center gap-[6px] rounded-lg border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeTaskViewId === view.id ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
+              tabIndex={0}
+            >
+              <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
+              <span>{view.name}</span>
+            </button>
+          ))}
+          <button
+            onClick={() => { setIsCreateTaskViewOpen(true); setTimeout(() => taskViewNameInputRef.current?.focus(), 50) }}
             className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#999] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
             aria-label="Add view"
             tabIndex={0}
@@ -615,16 +820,46 @@ export default function TasksPage() {
             <Plus className="h-[14px] w-[14px]" strokeWidth={1.5} />
           </button>
         </div>
-        <div className="relative flex items-center gap-[8px]">
-          <button
-            ref={createBtnRef}
-            onClick={() => { if (isQuickAdding) { resetQuickAdd() } else { setIsQuickAdding(true); setQuickActiveField("title"); setTimeout(() => quickInputRef.current?.focus(), 0) } }}
-            className={`flex items-center gap-[5px] rounded border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${isQuickAdding ? "border-blue-400 bg-blue-50 text-blue-600" : "border-[#dcdcdc] bg-white text-[#262626] hover:bg-[#f5f5f5]"}`}
-            tabIndex={0}
-          >
-            <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-            <span className="hidden sm:inline">Create task</span>
-          </button>
+        <div className="flex items-center gap-[8px]">
+          {viewMode === "week" && (
+            <div className="flex items-center gap-[6px]">
+              <button
+                onClick={() => setWeekOffset((p) => p - 1)}
+                className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+                tabIndex={0}
+                aria-label="Previous week"
+              >
+                <ChevronLeft className="h-[14px] w-[14px]" strokeWidth={1.75} />
+              </button>
+              <span className="min-w-[160px] text-center text-[13px] font-semibold text-[#262626]">{formatWeekLabel()}</span>
+              <button
+                onClick={() => setWeekOffset((p) => p + 1)}
+                className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+                tabIndex={0}
+                aria-label="Next week"
+              >
+                <ChevronRight className="h-[14px] w-[14px]" strokeWidth={1.75} />
+              </button>
+              <button
+                onClick={() => setWeekOffset(0)}
+                disabled={weekOffset === 0}
+                className={`flex items-center gap-[5px] rounded border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${weekOffset === 0 ? "border-[#e8e8e8] bg-white text-[#ccc] cursor-default" : "border-[#dcdcdc] bg-white text-[#262626] hover:bg-[#f5f5f5]"}`}
+                tabIndex={0}
+              >
+                This week
+              </button>
+            </div>
+          )}
+          <div className="relative">
+            <button
+              ref={createBtnRef}
+              onClick={() => { if (isQuickAdding) { resetQuickAdd() } else { setIsQuickAdding(true); setQuickActiveField("title"); setTimeout(() => quickInputRef.current?.focus(), 0) } }}
+              className={`flex items-center gap-[5px] rounded border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${isQuickAdding ? "border-blue-400 bg-blue-50 text-blue-600" : "border-[#dcdcdc] bg-white text-[#262626] hover:bg-[#f5f5f5]"}`}
+              tabIndex={0}
+            >
+              <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+              <span className="hidden sm:inline">Create task</span>
+            </button>
 
           {isQuickAdding && (
             <>
@@ -857,6 +1092,7 @@ export default function TasksPage() {
               </div>
             </>
           )}
+          </div>
         </div>
       </div>
 
@@ -990,6 +1226,27 @@ export default function TasksPage() {
                   })()}
                 >
                   <div className="max-h-[520px] overflow-y-auto">
+                    <div className="px-[20px] pb-[16px] pt-[16px]">
+                      <div className="flex gap-[10px]">
+                        {([
+                          { key: "list" as const, label: "List", Icon: Table2 },
+                          { key: "week" as const, label: "Week", Icon: CalendarDays },
+                        ]).map(({ key, label, Icon }) => {
+                          const isActive = viewMode === key
+                          return (
+                            <button
+                              key={key}
+                              onClick={() => { setViewMode(key); if (key === "list") setWeekOffset(0) }}
+                              className={`flex flex-1 flex-col items-center justify-center gap-[6px] rounded-xl border py-[14px] transition-colors ${isActive ? "border-[#d0d0d0] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]" : "border-transparent bg-[#fafafa] hover:bg-[#f0f0f0]"}`}
+                              tabIndex={0}
+                            >
+                              <Icon className={`h-[20px] w-[20px] ${isActive ? "text-[#262626]" : "text-[#999]"}`} strokeWidth={1.5} />
+                              <span className={`text-[13px] font-medium ${isActive ? "text-[#262626]" : "text-[#999]"}`}>{label}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
                     {uniqueParticipants.length > 0 && (
                       <div className="px-[20px] pb-[16px] pt-[14px]">
                         <div className="pb-[12px] text-[13px] font-medium text-[#888]">Clients</div>
@@ -1210,75 +1467,157 @@ export default function TasksPage() {
               })}
             </div>
 
-            {/* This week section */}
-            <button
-              type="button"
-              onClick={() => setShowThisWeek(!showThisWeek)}
-              className="flex w-full items-center gap-[4px] border-b border-[#e8e8e8] bg-[#fafafa] px-[12px] py-[6px] text-left"
-              tabIndex={0}
-            >
-              <ChevronDown className={`h-[12px] w-[12px] text-[#888] transition-transform ${showThisWeek ? "" : "-rotate-90"}`} strokeWidth={2} />
-              <span className="text-[13px] font-semibold text-[#262626]">Uncompleted</span>
-            </button>
-
-            {showThisWeek && (
+            {viewMode === "list" ? (
               <>
-                {thisWeekTasks.slice(0, uncompletedVisible).map(renderTaskRow)}
-                {thisWeekTasks.length > uncompletedVisible && (
-                  <button
-                    type="button"
-                    onClick={() => setUncompletedVisible((prev) => prev + pageSize)}
-                    className="flex w-full items-center justify-center gap-[6px] border-b border-[#f0f0f0] py-[10px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#fafafa] hover:text-[#262626]"
-                    tabIndex={0}
-                  >
-                    Show more ({thisWeekTasks.length - uncompletedVisible} remaining)
-                  </button>
-                )}
-              </>
-            )}
-
-            {/* Previous section */}
-            {previousTasks.length > 0 && (
-              <>
+                {/* This week section */}
                 <button
                   type="button"
-                  onClick={() => setShowPrevious(!showPrevious)}
+                  onClick={() => setShowThisWeek(!showThisWeek)}
                   className="flex w-full items-center gap-[4px] border-b border-[#e8e8e8] bg-[#fafafa] px-[12px] py-[6px] text-left"
                   tabIndex={0}
                 >
-                  <ChevronDown className={`h-[12px] w-[12px] text-[#888] transition-transform ${showPrevious ? "" : "-rotate-90"}`} strokeWidth={2} />
-                  <span className="text-[13px] font-semibold text-[#999]">Completed</span>
-                  <span className="ml-[2px] text-[12px] font-medium text-[#ccc]">({previousTasks.length})</span>
-                  {previousTasks.filter((t) => t.returned).length > 0 && (
-                    <span className="ml-[6px] inline-flex items-center gap-[4px] rounded-full bg-red-100 px-[8px] py-[1px] text-[11px] font-semibold text-red-600">
-                      <RotateCcw className="h-[10px] w-[10px]" strokeWidth={2} />
-                      {previousTasks.filter((t) => t.returned).length} returned
-                    </span>
-                  )}
+                  <ChevronDown className={`h-[12px] w-[12px] text-[#888] transition-transform ${showThisWeek ? "" : "-rotate-90"}`} strokeWidth={2} />
+                  <span className="text-[13px] font-semibold text-[#262626]">Uncompleted</span>
                 </button>
-                {showPrevious && (
+
+                {showThisWeek && (
                   <>
-                    {previousTasks.slice(0, completedVisible).map(renderTaskRow)}
-                    {previousTasks.length > completedVisible && (
+                    {thisWeekTasks.slice(0, uncompletedVisible).map(renderTaskRow)}
+                    {thisWeekTasks.length > uncompletedVisible && (
                       <button
                         type="button"
-                        onClick={() => setCompletedVisible((prev) => prev + pageSize)}
+                        onClick={() => setUncompletedVisible((prev) => prev + pageSize)}
                         className="flex w-full items-center justify-center gap-[6px] border-b border-[#f0f0f0] py-[10px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#fafafa] hover:text-[#262626]"
                         tabIndex={0}
                       >
-                        Show more ({previousTasks.length - completedVisible} remaining)
+                        Show more ({thisWeekTasks.length - uncompletedVisible} remaining)
                       </button>
                     )}
                   </>
                 )}
+
+                {/* Previous section */}
+                {previousTasks.length > 0 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setShowPrevious(!showPrevious)}
+                      className="flex w-full items-center gap-[4px] border-b border-[#e8e8e8] bg-[#fafafa] px-[12px] py-[6px] text-left"
+                      tabIndex={0}
+                    >
+                      <ChevronDown className={`h-[12px] w-[12px] text-[#888] transition-transform ${showPrevious ? "" : "-rotate-90"}`} strokeWidth={2} />
+                      <span className="text-[13px] font-semibold text-[#999]">Completed</span>
+                      <span className="ml-[2px] text-[12px] font-medium text-[#ccc]">({previousTasks.length})</span>
+                      {previousTasks.filter((t) => t.returned).length > 0 && (
+                        <span className="ml-[6px] inline-flex items-center gap-[4px] rounded-full bg-red-100 px-[8px] py-[1px] text-[11px] font-semibold text-red-600">
+                          <RotateCcw className="h-[10px] w-[10px]" strokeWidth={2} />
+                          {previousTasks.filter((t) => t.returned).length} returned
+                        </span>
+                      )}
+                    </button>
+                    {showPrevious && (
+                      <>
+                        {previousTasks.slice(0, completedVisible).map(renderTaskRow)}
+                        {previousTasks.length > completedVisible && (
+                          <button
+                            type="button"
+                            onClick={() => setCompletedVisible((prev) => prev + pageSize)}
+                            className="flex w-full items-center justify-center gap-[6px] border-b border-[#f0f0f0] py-[10px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#fafafa] hover:text-[#262626]"
+                            tabIndex={0}
+                          >
+                            Show more ({previousTasks.length - completedVisible} remaining)
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </>
+                )}
               </>
+            ) : (
+              /* Week view — tasks grouped by day */
+              (() => {
+                const weekTasks = filtered.filter((t) => {
+                  if (!t.dueDate) return false
+                  const d = new Date(t.dueDate + "T00:00:00")
+                  return d >= weekStart && d <= weekEnd
+                }).sort((a, b) => (a.dueDate || "").localeCompare(b.dueDate || ""))
+
+                const noDateTasks = filtered.filter((t) => !t.dueDate)
+                const weekTaskCount = weekTasks.length + noDateTasks.length
+
+                const dayBuckets: Record<string, Task[]> = {}
+                for (let i = 0; i < 7; i++) {
+                  const d = new Date(weekStart)
+                  d.setDate(weekStart.getDate() + i)
+                  dayBuckets[toDateStr(d)] = []
+                }
+                weekTasks.forEach((t) => { if (t.dueDate && dayBuckets[t.dueDate]) dayBuckets[t.dueDate].push(t) })
+
+                const todayStr = toDateStr(new Date())
+
+                return (
+                  <>
+                    {Object.entries(dayBuckets).map(([dateStr, dayTasks], idx) => {
+                      const d = new Date(dateStr + "T00:00:00")
+                      const dayLabel = weekDayNames[idx]
+                      const dateLabel = d.toLocaleDateString("en-AU", { day: "numeric", month: "short" })
+                      const isToday = dateStr === todayStr
+                      const completed = dayTasks.filter((t) => t.status === "done" && !t.returned).length
+
+                      return (
+                        <div key={dateStr}>
+                          <div className={`flex items-center gap-[8px] border-b border-[#e8e8e8] px-[12px] py-[6px] ${isToday ? "bg-blue-50/60" : "bg-[#fafafa]"}`}>
+                            <span className={`text-[13px] font-semibold ${isToday ? "text-blue-600" : "text-[#262626]"}`}>
+                              {dayLabel}
+                            </span>
+                            <span className={`text-[12px] font-medium ${isToday ? "text-blue-400" : "text-[#999]"}`}>
+                              {dateLabel}
+                            </span>
+                            {dayTasks.length > 0 && (
+                              <span className="text-[11px] font-medium text-[#bbb]">
+                                {dayTasks.length} {dayTasks.length === 1 ? "task" : "tasks"}
+                                {completed > 0 && ` · ${completed} done`}
+                              </span>
+                            )}
+                          </div>
+                          {dayTasks.length > 0 && dayTasks.map(renderTaskRow)}
+                        </div>
+                      )
+                    })}
+                    {noDateTasks.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-[8px] border-b border-[#e8e8e8] bg-[#fafafa] px-[12px] py-[6px]">
+                          <span className="text-[13px] font-semibold text-[#999]">No date</span>
+                          <span className="text-[11px] font-medium text-[#bbb]">
+                            {noDateTasks.length} {noDateTasks.length === 1 ? "task" : "tasks"}
+                          </span>
+                        </div>
+                        {noDateTasks.map(renderTaskRow)}
+                      </div>
+                    )}
+                  </>
+                )
+              })()
             )}
           </div>
 
           {/* Footer */}
           <div className="shrink-0 border-t border-[#dcdcdc] px-[20px] py-[10px]">
             <span className="text-[12px] font-medium text-[#999]">
-              {taskCount} {taskCount === 1 ? "task" : "tasks"}
+              {viewMode === "week"
+                ? (() => {
+                    const weekTasks = filtered.filter((t) => {
+                      if (!t.dueDate) return false
+                      const d = new Date(t.dueDate + "T00:00:00")
+                      return d >= weekStart && d <= weekEnd
+                    })
+                    const noDate = filtered.filter((t) => !t.dueDate)
+                    const total = weekTasks.length + noDate.length
+                    const done = weekTasks.filter((t) => t.status === "done" && !t.returned).length
+                    return `${total} ${total === 1 ? "task" : "tasks"} this week${done > 0 ? ` · ${done} completed` : ""}`
+                  })()
+                : `${taskCount} ${taskCount === 1 ? "task" : "tasks"}`
+              }
             </span>
           </div>
 
@@ -1446,16 +1785,68 @@ export default function TasksPage() {
 
                     <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
                       <span className="text-[13px] font-medium text-[#8d8d8d]">Assignee</span>
-                      <div className="flex min-w-0 items-center gap-[8px] px-[8px] py-[6px]">
-                        {assigneeInitials ? (
-                          <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md bg-[#f0f0f0] text-[9px] font-bold text-[#555]">
-                            {assigneeInitials}
+                      {canAssignTasks ? (
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setActiveDropdown(activeDropdown === "detail-assignee" ? null : "detail-assignee")}
+                            className="flex min-w-0 items-center gap-[8px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
+                            tabIndex={0}
+                          >
+                            {assigneeInitials ? (
+                              <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md bg-[#f0f0f0] text-[9px] font-bold text-[#555]">
+                                {assigneeInitials}
+                              </span>
+                            ) : null}
+                            <span className={`truncate text-[13px] font-medium ${selectedTask.assignee ? "text-[#262626]" : "text-[#b0b0b0]"}`}>
+                              {selectedTask.assignee || "Empty"}
+                            </span>
+                          </button>
+                          {activeDropdown === "detail-assignee" && (
+                            <>
+                              <div className="fixed inset-0 z-[59]" onClick={() => setActiveDropdown(null)} />
+                              <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[200px] min-w-[180px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                                <div
+                                  onClick={() => { handleUpdateTask("assignee", ""); setActiveDropdown(null) }}
+                                  className="flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5]"
+                                  role="option"
+                                  aria-selected={!selectedTask.assignee}
+                                >
+                                  None
+                                </div>
+                                {staffNames.map((name) => {
+                                  const initials = name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+                                  return (
+                                    <div
+                                      key={name}
+                                      onClick={() => { handleUpdateTask("assignee", name); setActiveDropdown(null) }}
+                                      className={`flex w-full cursor-pointer items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${selectedTask.assignee === name ? "bg-[#f5f5f5]" : ""}`}
+                                      role="option"
+                                      aria-selected={selectedTask.assignee === name}
+                                    >
+                                      <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[4px] bg-[#d4d4d4] text-[9px] font-semibold text-[#555]">
+                                        {initials}
+                                      </div>
+                                      {name}
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex min-w-0 items-center gap-[8px] px-[8px] py-[6px]">
+                          {assigneeInitials ? (
+                            <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md bg-[#f0f0f0] text-[9px] font-bold text-[#555]">
+                              {assigneeInitials}
+                            </span>
+                          ) : null}
+                          <span className={`truncate text-[13px] font-medium ${selectedTask.assignee ? "text-[#262626]" : "text-[#b0b0b0]"}`}>
+                            {selectedTask.assignee || "Empty"}
                           </span>
-                        ) : null}
-                        <span className={`truncate text-[13px] font-medium ${selectedTask.assignee ? "text-[#262626]" : "text-[#b0b0b0]"}`}>
-                          {selectedTask.assignee || "Empty"}
-                        </span>
-                      </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
@@ -1595,6 +1986,104 @@ export default function TasksPage() {
           </>
         )
       })()}
+
+      {isCreateTaskViewOpen && (
+        <>
+          <div className="fixed inset-0 z-50 bg-black/20" onClick={() => { setIsCreateTaskViewOpen(false); setNewTaskViewName("") }} />
+          <div className="fixed left-1/2 top-1/2 z-50 w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[15px] font-semibold text-[#262626]">Create a view for tasks</h3>
+              <button
+                onClick={() => { setIsCreateTaskViewOpen(false); setNewTaskViewName("") }}
+                className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+                tabIndex={0}
+                aria-label="Close"
+              >
+                <X className="h-[16px] w-[16px]" strokeWidth={1.75} />
+              </button>
+            </div>
+            <div className="mt-[20px]">
+              <label className="text-[13px] font-medium text-[#888]">Name</label>
+              <input
+                ref={taskViewNameInputRef}
+                value={newTaskViewName}
+                onChange={(e) => setNewTaskViewName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleCreateTaskView() }}
+                placeholder="Enter name here"
+                className="mt-[8px] w-full rounded-lg border border-[#dcdcdc] bg-[#fafafa] px-[12px] py-[10px] text-[13px] font-medium text-[#262626] outline-none transition-colors placeholder:text-[#bbb] focus:border-[#a3c4f3] focus:bg-white"
+              />
+            </div>
+            <div className="mt-[20px] flex items-center justify-end gap-[12px]">
+              <button
+                onClick={() => { setIsCreateTaskViewOpen(false); setNewTaskViewName("") }}
+                className="px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:text-[#888]"
+                tabIndex={0}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateTaskView}
+                disabled={!newTaskViewName.trim()}
+                className={`rounded-lg border px-[16px] py-[6px] text-[13px] font-medium transition-colors ${newTaskViewName.trim() ? "border-[#262626] bg-[#262626] text-white hover:bg-[#333]" : "border-[#dcdcdc] text-[#bbb]"}`}
+                tabIndex={0}
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {taskViewContextMenu && (
+        <>
+          <div className="fixed inset-0 z-50" onClick={() => setTaskViewContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setTaskViewContextMenu(null) }} />
+          <div
+            className="fixed z-50 w-[160px] overflow-hidden rounded-lg border border-[#dcdcdc] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+            style={{ top: taskViewContextMenu.y, left: taskViewContextMenu.x }}
+          >
+            <button
+              onClick={() => {
+                const view = taskSavedViews.find((v) => v.id === taskViewContextMenu.viewId)
+                if (view) setDeleteTaskViewConfirm(view)
+                setTaskViewContextMenu(null)
+              }}
+              className="flex w-full items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-red-500 transition-colors hover:bg-red-50"
+              tabIndex={0}
+            >
+              <X className="h-[14px] w-[14px]" strokeWidth={1.5} />
+              Delete view
+            </button>
+          </div>
+        </>
+      )}
+
+      {deleteTaskViewConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/20" onClick={() => setDeleteTaskViewConfirm(null)} />
+          <div className="relative z-10 w-[400px] rounded-lg bg-white p-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+            <h3 className="text-[15px] font-semibold text-[#262626]">Delete view</h3>
+            <p className="mt-[8px] text-[13px] font-medium text-[#888]">
+              Are you sure you want to delete <span className="text-[#262626]">&ldquo;{deleteTaskViewConfirm.name}&rdquo;</span>? This action cannot be undone.
+            </p>
+            <div className="mt-[20px] flex items-center justify-end gap-[12px]">
+              <button
+                onClick={() => setDeleteTaskViewConfirm(null)}
+                className="px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:text-[#888]"
+                tabIndex={0}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteTaskView(deleteTaskViewConfirm.id)}
+                className="rounded-lg bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
+                tabIndex={0}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

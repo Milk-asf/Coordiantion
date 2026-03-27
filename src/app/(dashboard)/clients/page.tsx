@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation"
 import { useContacts } from "@/lib/hooks/use-contacts"
 import { useClients } from "@/lib/hooks/use-clients"
 import { useFieldConfig } from "@/lib/hooks/use-field-config"
+import { useStaff } from "@/lib/hooks/use-staff"
+import { usePermissions } from "@/lib/hooks/use-permissions"
 import type { Client, ParticipantDetails } from "@/lib/types"
 import {
   UserRound,
@@ -515,13 +517,20 @@ function ClientProfile({
   participantData,
   onUpdateField,
   onClose,
+  staffNames,
+  canAssignClients,
+  onAssign,
 }: {
   client: Client
   participantData: ParticipantDetails
   onUpdateField: (field: keyof ParticipantDetails, value: string) => void
   onClose: () => void
+  staffNames: string[]
+  canAssignClients: boolean
+  onAssign: (coordinatorName: string) => void
 }) {
   const [isPersonalExpanded, setIsPersonalExpanded] = useState(false)
+  const [isAssignOpen, setIsAssignOpen] = useState(false)
   const router = useRouter()
 
   const handleExpand = () => {
@@ -535,7 +544,7 @@ function ClientProfile({
         <div className="flex min-w-0 items-center gap-[8px]">
           <ClientIcon client={client} />
           <span className="truncate text-[13px] font-medium text-[#262626]">
-            {client.name}
+            {client.displayName}
           </span>
         </div>
         <div className="flex items-center gap-[4px]">
@@ -569,8 +578,60 @@ function ClientProfile({
         <div className="flex items-center gap-[12px] px-[20px] pb-[20px] pt-[24px]">
           <ClientIcon client={client} size="lg" />
           <h2 className="text-[18px] font-semibold text-[#262626]">
-            {participantData.preferredName || participantData.firstName} {participantData.lastName}
+            {client.displayName}
           </h2>
+        </div>
+
+        {/* Assignment */}
+        <div className="border-b border-[#f0f0f0] px-[20px] pb-[12px]">
+          <DetailRow icon={User} label="Assigned to">
+            {canAssignClients ? (
+              <div className="relative">
+                <span
+                  onClick={() => setIsAssignOpen(!isAssignOpen)}
+                  className="block -ml-[9px] cursor-default rounded-lg px-[10px] py-[7px] transition-colors hover:bg-[#f5f5f5]"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter") setIsAssignOpen(!isAssignOpen) }}
+                >
+                  {client.owner || <span className="text-[#bbb]">Unassigned</span>}
+                </span>
+                {isAssignOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsAssignOpen(false)} />
+                    <div className="absolute left-0 top-full z-50 mt-[2px] max-h-[200px] min-w-[180px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                      <div
+                        onClick={() => { onAssign(""); setIsAssignOpen(false) }}
+                        className="flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5]"
+                        role="option"
+                        aria-selected={!client.owner}
+                      >
+                        Unassigned
+                      </div>
+                      {staffNames.map((name) => (
+                        <div
+                          key={name}
+                          onClick={() => { onAssign(name); setIsAssignOpen(false) }}
+                          className={`flex w-full cursor-pointer items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${client.owner === name ? "bg-[#f5f5f5]" : ""}`}
+                          role="option"
+                          aria-selected={client.owner === name}
+                        >
+                          <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[4px] bg-[#d4d4d4] text-[9px] font-semibold text-[#555]">
+                            {name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
+                          </div>
+                          {name}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <span className="block -ml-[9px] px-[10px] py-[7px] text-[13px] font-medium text-[#262626]">
+                {client.owner || <span className="text-[#bbb]">Unassigned</span>}
+              </span>
+            )}
+          </DetailRow>
         </div>
 
         {/* Participant Details */}
@@ -723,9 +784,11 @@ interface SavedView {
 
 export default function ClientsPage() {
   const router = useRouter()
-  const { clients, addClient, updateClient } = useClients()
+  const { clients, addClient, updateClient, updateParticipantField } = useClients()
   const { getContactsForClient } = useContacts()
   const { participantDisabled } = useFieldConfig()
+  const { staffNames } = useStaff()
+  const { canManageClients, canAssignClients } = usePermissions()
 
   const availablePropertyColumns = useMemo(
     () => allPropertyColumns.filter((col) => !participantDisabled.has(col.key)),
@@ -738,14 +801,8 @@ export default function ClientsPage() {
   const [columnMenuPos, setColumnMenuPos] = useState<{ top: number; left: number } | null>(null)
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
-  const [savedViews, setSavedViews] = useState<SavedView[]>(() => {
-    if (typeof window === "undefined") return []
-    try { return JSON.parse(localStorage.getItem("client-views") || "[]") } catch { return [] }
-  })
-  const [activeViewId, setActiveViewId] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null
-    return localStorage.getItem("client-active-view") || null
-  })
+  const [savedViews, setSavedViews] = useState<SavedView[]>([])
+  const [activeViewId, setActiveViewId] = useState<string | null>(null)
   const [isCreateViewOpen, setIsCreateViewOpen] = useState(false)
   const [newViewName, setNewViewName] = useState("")
   const [isCreateClientOpen, setIsCreateClientOpen] = useState(false)
@@ -757,20 +814,27 @@ export default function ClientsPage() {
   const isInitialMount = useRef(true)
 
   useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false
-      if (activeViewId) {
-        const view = savedViews.find((v) => v.id === activeViewId)
+    try {
+      const stored = JSON.parse(localStorage.getItem("client-views") || "[]") as SavedView[]
+      setSavedViews(stored)
+      const storedActiveId = localStorage.getItem("client-active-view") || null
+      setActiveViewId(storedActiveId)
+      if (storedActiveId) {
+        const view = stored.find((v) => v.id === storedActiveId)
         if (view) {
           setVisibleColumnKeys(view.columnKeys)
           setSortKey(view.sortKey)
           setSortDirection(view.sortDirection)
         }
       }
-      return
-    }
+    } catch {}
+    isInitialMount.current = false
+  }, [])
+
+  useEffect(() => {
+    if (isInitialMount.current) return
     localStorage.setItem("client-views", JSON.stringify(savedViews))
-  }, [savedViews, activeViewId])
+  }, [savedViews])
 
   useEffect(() => {
     if (isInitialMount.current) return
@@ -861,12 +925,8 @@ export default function ClientsPage() {
   }, [])
 
   const handleUpdateField = useCallback((clientId: string, field: keyof ParticipantDetails, value: string) => {
-    const client = clients.find((c) => c.id === clientId)
-    if (!client) return
-    updateClient(clientId, {
-      participant: { ...client.participant, [field]: value },
-    })
-  }, [clients, updateClient])
+    updateParticipantField(clientId, field, value)
+  }, [updateParticipantField])
 
   const handleCreateClient = async () => {
     const name = newClientName.trim()
@@ -936,7 +996,7 @@ export default function ClientsPage() {
             <div className="h-[16px] w-px bg-[#e5e5e5]" />
             <button
               onClick={handleSelectAllView}
-              className={`flex items-center gap-[6px] rounded-md border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === null ? "border-[#dcdcdc] bg-[#f5f5f5] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
+              className={`flex items-center gap-[6px] rounded-lg border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === null ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
               tabIndex={0}
             >
               <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -951,7 +1011,7 @@ export default function ClientsPage() {
                   e.preventDefault()
                   setViewContextMenu({ viewId: view.id, x: e.clientX, y: e.clientY })
                 }}
-                className={`flex items-center gap-[6px] rounded-md px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === view.id ? "bg-[#f5f5f5] text-[#262626]" : "text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
+                className={`flex items-center gap-[6px] rounded-lg border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === view.id ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
                 tabIndex={0}
               >
                 <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -967,23 +1027,25 @@ export default function ClientsPage() {
               <Plus className="h-[14px] w-[14px]" strokeWidth={1.5} />
             </button>
           </div>
-          <div className="flex items-center gap-[8px]">
-            <button
-              className="flex items-center gap-[5px] rounded px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-              tabIndex={0}
-            >
-              <Download className="h-[13px] w-[13px]" strokeWidth={1.5} />
-              <span className="hidden sm:inline">Import CSV</span>
-            </button>
-            <button
-              onClick={() => setIsCreateClientOpen(true)}
-              className="flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-              tabIndex={0}
-            >
-              <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-              <span className="hidden sm:inline">Create client</span>
-            </button>
-          </div>
+          {canManageClients && (
+            <div className="flex items-center gap-[8px]">
+              <button
+                className="flex items-center gap-[5px] rounded px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                tabIndex={0}
+              >
+                <Download className="h-[13px] w-[13px]" strokeWidth={1.5} />
+                <span className="hidden sm:inline">Import CSV</span>
+              </button>
+              <button
+                onClick={() => setIsCreateClientOpen(true)}
+                className="flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                tabIndex={0}
+              >
+                <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+                <span className="hidden sm:inline">Create client</span>
+              </button>
+            </div>
+          )}
         </div>
 
         
@@ -1268,11 +1330,11 @@ export default function ClientsPage() {
                     >
                       <div className="flex items-center gap-[10px]">
                         <ClientIcon client={client} />
-                        <span className="truncate text-[13px] font-medium text-[#262626]">{client.name}</span>
+                        <span className="truncate text-[13px] font-medium text-[#262626]">{client.displayName}</span>
                         <button
                           onClick={(e) => { e.stopPropagation(); router.push(`/clients/${client.id}`) }}
                           className="ml-auto flex h-[22px] w-[22px] items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 text-[#999] hover:bg-[#f0f0f0] hover:text-[#262626]"
-                          aria-label={`Open ${client.name} full profile`}
+                          aria-label={`Open ${client.displayName} full profile`}
                           tabIndex={0}
                         >
                           <ArrowUpRight className="h-[13px] w-[13px]" strokeWidth={1.75} />
@@ -1301,6 +1363,9 @@ export default function ClientsPage() {
             participantData={getParticipantData(selectedClient)}
             onUpdateField={(field, value) => handleUpdateField(selectedClient.id, field, value)}
             onClose={() => setSelectedClient(null)}
+            staffNames={staffNames}
+            canAssignClients={canAssignClients}
+            onAssign={(name) => updateClient(selectedClient.id, { owner: name })}
           />
         </div>
       )}
