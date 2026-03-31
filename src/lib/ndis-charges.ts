@@ -12,7 +12,7 @@ export const ndisCharges: NdisChargeItem[] = [
   {
     itemNumber: "07_001_0106_8_3",
     name: "Support Coordination Level 1: Support Connection",
-    shortName: "Support Connection",
+    shortName: "SC-L1",
     registrationGroup: "Assistance In Coordinating Or Managing Life Stages, Transitions And Supports",
     unit: "hour",
     price: 80.06,
@@ -21,7 +21,7 @@ export const ndisCharges: NdisChargeItem[] = [
   {
     itemNumber: "07_002_0106_8_3",
     name: "Support Coordination Level 2: Coordination of Supports",
-    shortName: "Coordination of Supports",
+    shortName: "SC-L2",
     registrationGroup: "Assistance In Coordinating Or Managing Life Stages, Transitions And Supports",
     unit: "hour",
     price: 100.14,
@@ -30,7 +30,7 @@ export const ndisCharges: NdisChargeItem[] = [
   {
     itemNumber: "07_004_0132_8_3",
     name: "Support Coordination Level 3: Specialist Support Coordination",
-    shortName: "Specialist SC",
+    shortName: "SC-L3",
     registrationGroup: "Support Coordination",
     unit: "hour",
     price: 190.54,
@@ -133,3 +133,13 @@ export const chargeCategories: Record<NdisChargeItem["category"], string> = {
   "psychosocial-recovery": "Psychosocial Recovery Coaching",
   "travel": "Travel & Transport",
 }
+
+export const serviceChargeTypes = [
+  { value: "direct-service", label: "Direct Service" },
+  { value: "cancellation", label: "Cancellation" },
+  { value: "ndia-required-report", label: "NDIA Required Report" },
+  { value: "provider-travel", label: "Provider Travel" },
+  { value: "non-face-to-face", label: "Non-Face-to-Face Services" },
+] as const
+
+export type ServiceChargeType = (typeof serviceChargeTypes)[number]["value"]

@@ -17,6 +17,7 @@ import {
   PenLine,
   Hash,
   CalendarDays,
+  Clock,
   Heart,
   Languages,
   Stethoscope,
@@ -1011,6 +1012,9 @@ export default function ParticipantProfilePage() {
                 </SidebarDetailRow>
                 <SidebarDetailRow icon={CalendarDays} label="Service Exit">
                   <SidebarEditableField value={p.serviceExitDate} onChange={(v) => handleUpdateField("serviceExitDate", v)} type="date" placeholder="Exit date" />
+                </SidebarDetailRow>
+                <SidebarDetailRow icon={Clock} label="Check-in">
+                  <SidebarEditableField value={p.checkInPeriod} onChange={(v) => handleUpdateField("checkInPeriod", v)} type="select" options={["Weekly", "Fortnightly", "Monthly", "Quarterly", "As needed"]} />
                 </SidebarDetailRow>
 
                 <button

@@ -60,9 +60,8 @@ export default function SettingsLayout({
   const pathname = usePathname()
   const permissions = usePermissions()
 
-  const filteredNav = useMemo(() => {
-    if (permissions.isLoading) return settingsNav
-    return settingsNav
+  const filteredNav = useMemo(() =>
+    settingsNav
       .map((section) => ({
         ...section,
         items: section.items.filter((item) => {
@@ -70,8 +69,9 @@ export default function SettingsLayout({
           return permissions[item.requiredPermission]
         }),
       }))
-      .filter((section) => section.items.length > 0)
-  }, [permissions])
+      .filter((section) => section.items.length > 0),
+    [permissions]
+  )
 
   return (
     <div className="flex h-full w-full">

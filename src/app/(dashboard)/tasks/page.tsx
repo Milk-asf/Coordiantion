@@ -11,7 +11,6 @@ import {
   CheckSquare,
   CalendarDays,
   Building2,
-  Paperclip,
   FileText,
   Trash2,
   Clock,
@@ -20,7 +19,12 @@ import {
   ChevronLeft,
   ChevronRight,
   User,
-  RotateCcw,
+  Bold,
+  Italic,
+  Underline,
+  List,
+  Strikethrough,
+  Type,
 } from "lucide-react"
 import { useTasks } from "@/lib/hooks/use-tasks"
 import { useClients } from "@/lib/hooks/use-clients"
@@ -28,6 +32,7 @@ import { useCharges } from "@/lib/hooks/use-charges"
 import { useStaff } from "@/lib/hooks/use-staff"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
+import { serviceChargeTypes } from "@/lib/ndis-charges"
 import type { Task, Attachment } from "@/lib/types"
 
 interface TaskSavedView {
@@ -57,12 +62,6 @@ const taskColumnDefs = [
 
 const defaultTaskVisibleKeys = ["date", "participant", "title", "assignee", "charge", "time", "checkbox"]
 
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
 function formatTime(minutes: number): string {
   if (minutes === 0) return "0m"
   const h = Math.floor(minutes / 60)
@@ -82,26 +81,6 @@ function parseTimeInput(val: string): number {
     if (!isNaN(num)) return num
   }
   return hours * 60 + mins
-}
-
-const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
-  "todo": { label: "To do", color: "#bbb", bg: "bg-[#f0f0f0]" },
-  "in-progress": { label: "In progress", color: "#f59e0b", bg: "bg-amber-50" },
-  "done": { label: "Done", color: "#22c55e", bg: "bg-green-50" },
-}
-
-function formatTaskDate(dateStr: string | null): string {
-  if (!dateStr) return ""
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const d = new Date(dateStr + "T00:00:00")
-  d.setHours(0, 0, 0, 0)
-  const diff = d.getTime() - today.getTime()
-  const dayMs = 86400000
-  if (diff === 0) return "Today"
-  if (diff === dayMs) return "Tomorrow"
-  if (diff === -dayMs) return "Yesterday"
-  return d.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" })
 }
 
 function formatRowDate(dateStr: string | null): string {
@@ -285,20 +264,29 @@ export default function TasksPage() {
     const match = allCharges.find((c) => c.itemNumber === val)
     if (!match) return val
     const s = match.shortName
-    if (s.includes("Level 1") || s === "Support Connection") return "SC-L1"
-    if (s.includes("Level 2") || s === "Coordination of Supports") return "SC-L2"
-    if (s.includes("Level 3") || s === "Specialist SC") return "SC-L3"
+    if (s.startsWith("SC-L")) return s
     if (s.includes("PRC")) return "PRC"
     if (s.includes("Travel")) return "Travel"
     if (s.includes("Transport")) return "Trans"
     return s.slice(0, 6)
   }
+
+  const secondaryChargeLabel = (val: string) => {
+    if (!val) return ""
+    const svc = serviceChargeTypes.find((s) => s.value === val)
+    if (svc) return svc.label
+    const ndis = allCharges.find((c) => c.itemNumber === val)
+    if (ndis) return ndis.shortName
+    return val
+  }
+
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
   const createBtnRef = useRef<HTMLButtonElement>(null)
 
   const detailClientRef = useRef<HTMLButtonElement>(null)
   const detailChargeRef = useRef<HTMLButtonElement>(null)
+  const detailSecondaryChargeRef = useRef<HTMLButtonElement>(null)
   const detailFileInputRef = useRef<HTMLInputElement>(null)
   const [statusFilter, setStatusFilter] = useState<string[]>([])
   const [dateFilter, setDateFilter] = useState<string[]>([])
@@ -512,6 +500,60 @@ export default function TasksPage() {
 
   const [detailClientIdx, setDetailClientIdx] = useState(-1)
 
+  const descriptionRef = useRef<HTMLDivElement>(null)
+  const [formatToolbar, setFormatToolbar] = useState<{ x: number; y: number } | null>(null)
+  const [descFormats, setDescFormats] = useState<Record<string, boolean>>({})
+  const [currentBlock, setCurrentBlock] = useState("")
+  const [isTextSizeOpen, setIsTextSizeOpen] = useState(false)
+
+  const refreshDescFormats = useCallback(() => {
+    setDescFormats({
+      bold: document.queryCommandState("bold"),
+      italic: document.queryCommandState("italic"),
+      underline: document.queryCommandState("underline"),
+      strikeThrough: document.queryCommandState("strikeThrough"),
+      insertUnorderedList: document.queryCommandState("insertUnorderedList"),
+    })
+    setCurrentBlock(document.queryCommandValue("formatBlock") || "")
+  }, [])
+
+  const handleDescFormat = useCallback((cmd: string) => {
+    document.execCommand(cmd, false)
+    descriptionRef.current?.focus()
+    setTimeout(refreshDescFormats, 0)
+  }, [refreshDescFormats])
+
+  const handleTextSize = useCallback((tag: string) => {
+    if (tag === "p") {
+      document.execCommand("formatBlock", false, "p")
+    } else {
+      const current = document.queryCommandValue("formatBlock")
+      if (current === tag) {
+        document.execCommand("formatBlock", false, "p")
+      } else {
+        document.execCommand("formatBlock", false, tag)
+      }
+    }
+    descriptionRef.current?.focus()
+    setIsTextSizeOpen(false)
+    setTimeout(refreshDescFormats, 0)
+  }, [refreshDescFormats])
+
+  const handleDescContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    refreshDescFormats()
+    setFormatToolbar({ x: e.clientX, y: e.clientY })
+  }, [refreshDescFormats])
+
+  const prevSelectedTaskIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (selectedTaskId && selectedTaskId !== prevSelectedTaskIdRef.current && descriptionRef.current) {
+      const task = tasks.find((t) => t.id === selectedTaskId)
+      if (task) descriptionRef.current.innerHTML = task.description || ""
+    }
+    prevSelectedTaskIdRef.current = selectedTaskId
+  }, [selectedTaskId, tasks])
+
   useEffect(() => {
     if (quickClientIdx >= 0 && quickClientListRef.current) {
       const items = quickClientListRef.current.children
@@ -588,12 +630,7 @@ export default function TasksPage() {
     const task = tasks.find((t) => t.id === id)
     if (!task) return
     const newStatus = task.status === "done" ? "todo" : "done"
-    const updates: Partial<Task> = { status: newStatus }
-    if (newStatus === "done" && task.returned) {
-      updates.returned = false
-      updates.returnComment = ""
-    }
-    updateTaskDb(id, updates)
+    updateTaskDb(id, { status: newStatus })
   }
 
   const handleDeleteTask = (id: string) => {
@@ -621,7 +658,7 @@ export default function TasksPage() {
     e.target.value = ""
   }
 
-  const handleDetailRemoveAttachment = (attachmentId: string) => {
+  const _handleDetailRemoveAttachment = (attachmentId: string) => {
     if (!selectedTaskId) return
     const task = tasks.find((t) => t.id === selectedTaskId)
     if (!task) return
@@ -631,6 +668,8 @@ export default function TasksPage() {
   const closeDetail = () => {
     setSelectedTaskId(null)
     setActiveDropdown(null)
+    setFormatToolbar(null)
+    setIsTextSizeOpen(false)
   }
 
   const filtered = tasks.filter((t) => {
@@ -666,16 +705,14 @@ export default function TasksPage() {
     return true
   })
 
-  const thisWeekTasks = filtered.filter((t) => t.status !== "done" || t.returned)
+  const thisWeekTasks = filtered.filter((t) => t.status !== "done")
     .sort((a, b) => {
-      if (a.returned && !b.returned) return -1
-      if (!a.returned && b.returned) return 1
       if (!a.dueDate && !b.dueDate) return 0
       if (!a.dueDate) return 1
       if (!b.dueDate) return -1
       return a.dueDate.localeCompare(b.dueDate)
     })
-  const previousTasks = filtered.filter((t) => t.status === "done" && !t.returned)
+  const previousTasks = filtered.filter((t) => t.status === "done")
     .sort((a, b) => {
       if (!a.dueDate && !b.dueDate) return 0
       if (!a.dueDate) return 1
@@ -702,7 +739,7 @@ export default function TasksPage() {
     return (
       <div
         key={task.id}
-        className={`group grid cursor-pointer items-center border-b px-[24px] transition-colors ${task.returned ? "border-red-200 bg-red-100 hover:bg-red-200/70" : "border-[#f0f0f0] hover:bg-[#fafafa]"}`}
+        className="group grid cursor-pointer items-center border-b border-[#f0f0f0] px-[24px] transition-colors hover:bg-[#fafafa]"
         style={{ gridTemplateColumns: taskGridTemplate }}
         onClick={() => setSelectedTaskId(task.id)}
         role="button"
@@ -722,7 +759,7 @@ export default function TasksPage() {
           </div>
         )}
         <div className="truncate py-[12px] pl-[8px]">
-          <span className={`text-[13px] ${task.status === "done" && !task.returned ? "text-[#bbb] line-through" : "text-[#262626]"}`}>
+          <span className={`text-[13px] ${task.status === "done" ? "text-[#bbb] line-through" : "text-[#262626]"}`}>
             {task.title}
           </span>
         </div>
@@ -749,14 +786,14 @@ export default function TasksPage() {
           <button
             onClick={(e) => { e.stopPropagation(); handleToggleComplete(task.id) }}
             className={`flex h-[18px] w-[18px] items-center justify-center rounded border-[1.5px] transition-colors ${
-              task.status === "done" && !task.returned
+              task.status === "done"
                 ? "border-blue-500 bg-blue-500 text-white"
                 : "border-[#ccc] hover:border-[#999]"
             }`}
             tabIndex={0}
-            aria-label={task.status === "done" && !task.returned ? "Mark as incomplete" : "Mark as complete"}
+            aria-label={task.status === "done" ? "Mark as incomplete" : "Mark as complete"}
           >
-            {task.status === "done" && !task.returned && <span className="text-[9px]">✓</span>}
+            {task.status === "done" && <span className="text-[9px]">✓</span>}
           </button>
         </div>
       </div>
@@ -1491,12 +1528,6 @@ export default function TasksPage() {
                       <ChevronDown className={`h-[12px] w-[12px] text-[#888] transition-transform ${showPrevious ? "" : "-rotate-90"}`} strokeWidth={2} />
                       <span className="text-[13px] font-semibold text-[#999]">Completed</span>
                       <span className="ml-[2px] text-[12px] font-medium text-[#ccc]">({previousTasks.length})</span>
-                      {previousTasks.filter((t) => t.returned).length > 0 && (
-                        <span className="ml-[6px] inline-flex items-center gap-[4px] rounded-full bg-red-100 px-[8px] py-[1px] text-[11px] font-semibold text-red-600">
-                          <RotateCcw className="h-[10px] w-[10px]" strokeWidth={2} />
-                          {previousTasks.filter((t) => t.returned).length} returned
-                        </span>
-                      )}
                     </button>
                     {showPrevious && (
                       <>
@@ -1544,7 +1575,7 @@ export default function TasksPage() {
                       const dayLabel = weekDayNames[idx]
                       const dateLabel = d.toLocaleDateString("en-AU", { day: "numeric", month: "short" })
                       const isToday = dateStr === todayStr
-                      const completed = dayTasks.filter((t) => t.status === "done" && !t.returned).length
+                      const completed = dayTasks.filter((t) => t.status === "done").length
 
                       return (
                         <div key={dateStr}>
@@ -1595,7 +1626,7 @@ export default function TasksPage() {
                     })
                     const noDate = filtered.filter((t) => !t.dueDate)
                     const total = weekTasks.length + noDate.length
-                    const done = weekTasks.filter((t) => t.status === "done" && !t.returned).length
+                    const done = weekTasks.filter((t) => t.status === "done").length
                     return `${total} ${total === 1 ? "task" : "tasks"} this week${done > 0 ? ` · ${done} completed` : ""}`
                   })()
                 : `${taskCount} ${taskCount === 1 ? "task" : "tasks"}`
@@ -1640,62 +1671,20 @@ export default function TasksPage() {
                     />
                   </div>
 
-                  <textarea
-                    placeholder="Type '/' for commands or just start typing a description"
-                    value={selectedTask.description}
-                    onChange={(e) => handleUpdateTask("description", e.target.value)}
-                    className="mt-[14px] min-h-0 flex-1 resize-none text-[14px] leading-[1.6] text-[#4b4b4b] placeholder-[#b5b5b5] outline-none"
+                  <div
+                    ref={descriptionRef}
+                    contentEditable
+                    suppressContentEditableWarning
+                    data-placeholder="Start typing a description..."
+                    onInput={() => {
+                      if (descriptionRef.current) handleUpdateTask("description", descriptionRef.current.innerHTML)
+                    }}
+                    onContextMenu={handleDescContextMenu}
+                    dangerouslySetInnerHTML={!descriptionRef.current ? { __html: selectedTask.description } : undefined}
+                    className="mt-[14px] min-h-[80px] flex-1 overflow-y-auto text-[14px] leading-[1.6] text-[#4b4b4b] outline-none [&:empty]:before:pointer-events-none [&:empty]:before:text-[#b5b5b5] [&:empty]:before:content-[attr(data-placeholder)] [&_ul]:list-disc [&_ul]:pl-[20px] [&_ol]:list-decimal [&_ol]:pl-[20px] [&_li]:my-[2px] [&_h1]:text-[22px] [&_h1]:font-bold [&_h1]:leading-[1.3] [&_h1]:my-[4px] [&_h2]:text-[18px] [&_h2]:font-semibold [&_h2]:leading-[1.4] [&_h2]:my-[3px] [&_h3]:text-[15px] [&_h3]:font-medium [&_h3]:leading-[1.5] [&_h3]:my-[2px]"
                   />
 
-                  {selectedTask.returned && selectedTask.returnComment && (
-                    <div className="mt-[14px] rounded-[10px] border border-red-200 bg-red-50 px-[14px] py-[12px]">
-                      <div className="flex items-center gap-[6px] text-[12px] font-semibold text-red-600">
-                        <RotateCcw className="h-[12px] w-[12px]" strokeWidth={2} />
-                        <span>Returned by team leader</span>
-                      </div>
-                      <p className="mt-[6px] text-[13px] leading-[1.5] text-red-800">{selectedTask.returnComment}</p>
-                    </div>
-                  )}
-
-                  {selectedTask.attachments.length > 0 && (
-                    <div className="mt-[12px] flex flex-col gap-[8px]">
-                      {selectedTask.attachments.map((att) => (
-                        <div
-                          key={att.id}
-                          className="flex items-center gap-[8px] rounded-md border border-[#ededed] bg-[#fafafa] px-[10px] py-[8px]"
-                        >
-                          <FileText className="h-[14px] w-[14px] shrink-0 text-[#888]" strokeWidth={1.5} />
-                          <span className="flex-1 truncate text-[12px] font-medium text-[#262626]">{att.name}</span>
-                          <span className="shrink-0 text-[11px] font-medium text-[#999]">{formatFileSize(att.size)}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleDetailRemoveAttachment(att.id)}
-                            className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded text-[#bbb] transition-colors hover:bg-[#ebebeb] hover:text-[#262626]"
-                            tabIndex={0}
-                            aria-label={`Remove ${att.name}`}
-                          >
-                            <X className="h-[12px] w-[12px]" strokeWidth={1.5} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="mt-[16px] flex items-center border-t border-[#f1f1f1] pt-[14px]">
-                    <button
-                      type="button"
-                      onClick={() => detailFileInputRef.current?.click()}
-                      className="inline-flex items-center gap-[6px] text-[12px] font-medium text-[#8b8b8b] transition-colors hover:text-[#262626]"
-                      tabIndex={0}
-                    >
-                      <Paperclip className="h-[13px] w-[13px]" strokeWidth={1.5} />
-                      <span>
-                        {selectedTask.attachments.length > 0
-                          ? `${selectedTask.attachments.length} file${selectedTask.attachments.length > 1 ? "s" : ""}`
-                          : "Add attachment"}
-                      </span>
-                    </button>
-
+                  <div className="mt-[16px] flex items-center gap-[8px] border-t border-[#f1f1f1] pt-[14px]">
                     <button
                       type="button"
                       onClick={closeDetail}
@@ -1871,10 +1860,38 @@ export default function TasksPage() {
                         className="flex min-w-0 items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
                         tabIndex={0}
                       >
-                        <Tag className="h-[13px] w-[13px] shrink-0 text-[#888]" strokeWidth={1.5} />
-                        <span className={`truncate text-[13px] font-medium ${selectedTask.chargeType ? "text-[#262626]" : "text-[#b0b0b0]"}`}>
-                          {selectedTask.chargeType ? chargeLabel(selectedTask.chargeType) : "Empty"}
-                        </span>
+                        {selectedTask.chargeType ? (
+                          <span className="truncate rounded-md bg-[#f0f0f0] px-[8px] py-[3px] text-[12px] font-semibold text-[#555]">
+                            {chargeLabel(selectedTask.chargeType)}
+                          </span>
+                        ) : (
+                          <>
+                            <Tag className="h-[13px] w-[13px] shrink-0 text-[#888]" strokeWidth={1.5} />
+                            <span className="text-[13px] font-medium text-[#b0b0b0]">Empty</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
+                      <span className="text-[13px] font-medium text-[#8d8d8d]">Secondary</span>
+                      <button
+                        ref={detailSecondaryChargeRef}
+                        type="button"
+                        onClick={() => setActiveDropdown(activeDropdown === "detail-secondary-charge" ? null : "detail-secondary-charge")}
+                        className="flex min-w-0 items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
+                        tabIndex={0}
+                      >
+                        {selectedTask.secondaryChargeType ? (
+                          <span className="truncate rounded-md bg-[#f0f0f0] px-[8px] py-[3px] text-[12px] font-semibold text-[#555]">
+                            {secondaryChargeLabel(selectedTask.secondaryChargeType)}
+                          </span>
+                        ) : (
+                          <>
+                            <Tag className="h-[13px] w-[13px] shrink-0 text-[#888]" strokeWidth={1.5} />
+                            <span className="text-[13px] font-medium text-[#b0b0b0]">Empty</span>
+                          </>
+                        )}
                       </button>
                     </div>
 
@@ -1965,9 +1982,129 @@ export default function TasksPage() {
               </div>
             )
           })()}
+
+          {/* Secondary charge dropdown */}
+          {activeDropdown === "detail-secondary-charge" && selectedTask && detailSecondaryChargeRef.current && (() => {
+            const rect = detailSecondaryChargeRef.current.getBoundingClientRect()
+            return (
+              <div
+                className="fixed z-[60] max-h-[260px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+                style={{ top: rect.bottom + 6, left: rect.left, minWidth: Math.max(rect.width, 220) }}
+              >
+                <div
+                  onClick={() => { handleUpdateTask("secondaryChargeType", ""); setActiveDropdown(null) }}
+                  className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] ${!selectedTask.secondaryChargeType ? "bg-[#f5f5f5]" : ""}`}
+                  role="option"
+                  aria-selected={!selectedTask.secondaryChargeType}
+                >
+                  No charge
+                </div>
+                <div className="my-[2px] border-t border-[#f0f0f0]" />
+                <div className="px-[12px] py-[4px] text-[10px] font-semibold uppercase tracking-[0.05em] text-[#aaa]">Service type</div>
+                {serviceChargeTypes.map((sct) => (
+                  <div
+                    key={sct.value}
+                    onClick={() => { handleUpdateTask("secondaryChargeType", sct.value); setActiveDropdown(null) }}
+                    className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${selectedTask.secondaryChargeType === sct.value ? "bg-[#f5f5f5]" : ""}`}
+                    role="option"
+                    aria-selected={selectedTask.secondaryChargeType === sct.value}
+                  >
+                    {sct.label}
+                  </div>
+                ))}
+                {enabledCharges.length > 0 && (
+                  <>
+                    <div className="my-[2px] border-t border-[#f0f0f0]" />
+                    <div className="px-[12px] py-[4px] text-[10px] font-semibold uppercase tracking-[0.05em] text-[#aaa]">NDIS line item</div>
+                    {enabledCharges.map((c) => (
+                      <div
+                        key={c.itemNumber}
+                        onClick={() => { handleUpdateTask("secondaryChargeType", c.itemNumber); setActiveDropdown(null) }}
+                        className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${selectedTask.secondaryChargeType === c.itemNumber ? "bg-[#f5f5f5]" : ""}`}
+                        role="option"
+                        aria-selected={selectedTask.secondaryChargeType === c.itemNumber}
+                      >
+                        {c.shortName}
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+            )
+          })()}
           </>
         )
       })()}
+
+      {formatToolbar && (
+        <>
+          <div className="fixed inset-0 z-[80]" onClick={() => { setFormatToolbar(null); setIsTextSizeOpen(false) }} onContextMenu={(e) => { e.preventDefault(); setFormatToolbar(null); setIsTextSizeOpen(false) }} />
+          <div
+            className="fixed z-[80] flex items-center gap-[2px] rounded-lg border border-[#e0e0e0] bg-white px-[6px] py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.12)]"
+            style={{ top: formatToolbar.y - 44, left: formatToolbar.x - 100 }}
+          >
+            <div className="relative">
+              <button
+                onMouseDown={(e) => { e.preventDefault(); setIsTextSizeOpen(!isTextSizeOpen) }}
+                className={`flex h-[28px] items-center gap-[3px] rounded-md px-[6px] transition-colors ${isTextSizeOpen || currentBlock === "h1" || currentBlock === "h2" || currentBlock === "h3" ? "bg-[#e8e8e8] text-[#262626]" : "text-[#666] hover:bg-[#f0f0f0] hover:text-[#262626]"}`}
+                tabIndex={0}
+                aria-label="Text size"
+                title="Text size"
+              >
+                <Type className="h-[14px] w-[14px]" strokeWidth={2} />
+                <ChevronDown className="h-[10px] w-[10px]" strokeWidth={2} />
+              </button>
+              {isTextSizeOpen && (
+                <div className="absolute left-0 top-full z-[90] mt-[4px] w-[140px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
+                  {([
+                    { tag: "h1", label: "Heading", className: "text-[16px] font-bold" },
+                    { tag: "h2", label: "Subheading", className: "text-[14px] font-semibold" },
+                    { tag: "h3", label: "Small", className: "text-[13px] font-medium" },
+                    { tag: "p", label: "Normal", className: "text-[13px] font-normal" },
+                  ] as const).map(({ tag, label, className }) => (
+                    <button
+                      key={tag}
+                      onMouseDown={(e) => { e.preventDefault(); handleTextSize(tag) }}
+                      className={`flex w-full items-center px-[12px] py-[6px] transition-colors hover:bg-[#f5f5f5] ${currentBlock === tag ? "bg-[#f0f0f0]" : ""}`}
+                      tabIndex={0}
+                    >
+                      <span className={`text-[#262626] ${className}`}>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="mx-[2px] h-[16px] w-px bg-[#e8e8e8]" />
+            {([
+              { cmd: "bold", Icon: Bold, label: "Bold" },
+              { cmd: "italic", Icon: Italic, label: "Italic" },
+              { cmd: "underline", Icon: Underline, label: "Underline" },
+              { cmd: "strikeThrough", Icon: Strikethrough, label: "Strikethrough" },
+            ] as const).map(({ cmd, Icon, label }) => (
+              <button
+                key={cmd}
+                onMouseDown={(e) => { e.preventDefault(); handleDescFormat(cmd) }}
+                className={`flex h-[28px] w-[28px] items-center justify-center rounded-md transition-colors ${descFormats[cmd] ? "bg-[#e8e8e8] text-[#262626]" : "text-[#666] hover:bg-[#f0f0f0] hover:text-[#262626]"}`}
+                tabIndex={0}
+                aria-label={label}
+                title={label}
+              >
+                <Icon className="h-[14px] w-[14px]" strokeWidth={2} />
+              </button>
+            ))}
+            <div className="mx-[2px] h-[16px] w-px bg-[#e8e8e8]" />
+            <button
+              onMouseDown={(e) => { e.preventDefault(); handleDescFormat("insertUnorderedList") }}
+              className={`flex h-[28px] w-[28px] items-center justify-center rounded-md transition-colors ${descFormats.insertUnorderedList ? "bg-[#e8e8e8] text-[#262626]" : "text-[#666] hover:bg-[#f0f0f0] hover:text-[#262626]"}`}
+              tabIndex={0}
+              aria-label="Bullet list"
+              title="Bullet list"
+            >
+              <List className="h-[14px] w-[14px]" strokeWidth={2} />
+            </button>
+          </div>
+        </>
+      )}
 
       {isCreateTaskViewOpen && (
         <>

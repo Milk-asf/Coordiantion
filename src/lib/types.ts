@@ -21,6 +21,7 @@ export interface ParticipantDetails {
   externalId: string
   serviceCommencementDate: string
   serviceExitDate: string
+  checkInPeriod: string
 }
 
 export const emptyParticipant: ParticipantDetails = {
@@ -31,6 +32,7 @@ export const emptyParticipant: ParticipantDetails = {
   preferredContactMethod: "", preferredSignMethod: "",
   ndisNumber: "", medicareNumber: "", centrelinkNumber: "", externalId: "",
   serviceCommencementDate: "", serviceExitDate: "",
+  checkInPeriod: "",
 }
 
 export interface Client {
@@ -75,8 +77,8 @@ export interface Task {
   attachments: Attachment[]
   chargeType: string
   timeSpent: number
-  returned: boolean
-  returnComment: string
+  secondaryChargeType: string
+  secondaryTimeSpent: number
 }
 
 export interface Attachment {
@@ -157,6 +159,39 @@ export interface Document {
   folder: string
   uploadedBy: string | null
   createdAt: string
+}
+
+export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue"
+
+export interface InvoiceLineItem {
+  id: string
+  description: string
+  chargeItemNumber: string
+  chargeName: string
+  quantity: number
+  unit: "hour" | "each"
+  rate: number
+  amount: number
+  taskId?: string
+  clientId?: string
+}
+
+export interface Invoice {
+  id: string
+  invoiceNumber: string
+  clientName: string
+  clientId: string | null
+  status: InvoiceStatus
+  issueDate: string
+  dueDate: string
+  lineItems: InvoiceLineItem[]
+  subtotal: number
+  gst: number
+  total: number
+  notes: string
+  createdBy: string
+  createdAt: string
+  paidAt?: string
 }
 
 export const relationshipConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {

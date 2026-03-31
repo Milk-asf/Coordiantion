@@ -19,8 +19,8 @@ function dbToTask(row: any): Task {
     attachments: row.attachments || [],
     chargeType: row.charge_type || "",
     timeSpent: row.time_spent || 0,
-    returned: row.returned || false,
-    returnComment: row.return_comment || "",
+    secondaryChargeType: row.secondary_charge_type || "",
+    secondaryTimeSpent: row.secondary_time_spent || 0,
   }
 }
 
@@ -70,6 +70,8 @@ export function useTasks() {
     attachments?: Attachment[]
     chargeType?: string
     timeSpent?: number
+    secondaryChargeType?: string
+    secondaryTimeSpent?: number
   }) => {
     if (!activeWorkspace || !isSupabaseConfigured()) return null
     const supabase = createClient()
@@ -89,6 +91,8 @@ export function useTasks() {
         attachments: input.attachments || [],
         charge_type: input.chargeType || "",
         time_spent: input.timeSpent || 0,
+        secondary_charge_type: input.secondaryChargeType || "",
+        secondary_time_spent: input.secondaryTimeSpent || 0,
       })
       .select()
       .single()
@@ -117,8 +121,8 @@ export function useTasks() {
     if (updates.attachments !== undefined) dbUpdates.attachments = updates.attachments
     if (updates.chargeType !== undefined) dbUpdates.charge_type = updates.chargeType
     if (updates.timeSpent !== undefined) dbUpdates.time_spent = updates.timeSpent
-    if (updates.returned !== undefined) dbUpdates.returned = updates.returned
-    if (updates.returnComment !== undefined) dbUpdates.return_comment = updates.returnComment
+    if (updates.secondaryChargeType !== undefined) dbUpdates.secondary_charge_type = updates.secondaryChargeType
+    if (updates.secondaryTimeSpent !== undefined) dbUpdates.secondary_time_spent = updates.secondaryTimeSpent
 
     await supabase.from("tasks").update(dbUpdates).eq("id", id)
   }, [])

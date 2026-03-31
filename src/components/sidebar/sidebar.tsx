@@ -11,6 +11,8 @@ import {
   Handshake,
   User,
   FileText,
+  Receipt,
+  Layers,
   ChevronsLeft,
   ChevronsRight,
   LogOut,
@@ -48,6 +50,13 @@ const navigation: NavSection[] = [
     ],
   },
   {
+    title: "Finance",
+    items: [
+      { label: "Invoicing", href: "/invoicing", icon: Receipt },
+      { label: "Batches", href: "/batches", icon: Layers },
+    ],
+  },
+  {
     title: "People",
     items: [
       { label: "Clients", href: "/clients", icon: Copy },
@@ -76,7 +85,7 @@ export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { activeWorkspace } = useWorkspace()
-  const { canViewStaff, isLoading: permissionsLoading } = usePermissions()
+  const { canViewStaff } = usePermissions()
 
   useEffect(() => {
     if (!isSupabaseConfigured()) return
@@ -238,7 +247,7 @@ export function Sidebar() {
 
         {navigation.map((section) => {
           const items = section.items.filter((item) => {
-            if (item.label === "Staff" && !permissionsLoading && !canViewStaff) return false
+            if (item.label === "Staff" && !canViewStaff) return false
             return true
           })
           if (items.length === 0) return null

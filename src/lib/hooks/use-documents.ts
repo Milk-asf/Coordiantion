@@ -20,10 +20,35 @@ function dbToDocument(row: any): Document {
   }
 }
 
+function getStorageKey(workspaceId: string) {
+  return `doc-files-${workspaceId}`
+}
+
+function loadFiles(workspaceId: string): string[] {
+  if (typeof window === "undefined") return []
+  try {
+    const raw = localStorage.getItem(getStorageKey(workspaceId))
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+function saveFiles(workspaceId: string, files: string[]) {
+  if (typeof window === "undefined") return
+  localStorage.setItem(getStorageKey(workspaceId), JSON.stringify(files))
+}
+
 export function useDocuments() {
   const { activeWorkspace } = useWorkspace()
   const [documents, setDocuments] = useState<Document[]>([])
+  const [createdFiles, setCreatedFiles] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    if (!activeWorkspace) return
+    setCreatedFiles(loadFiles(activeWorkspace.id))
+  }, [activeWorkspace])
 
   const fetchDocuments = useCallback(async () => {
     if (!activeWorkspace || !isSupabaseConfigured()) {
@@ -54,6 +79,42 @@ export function useDocuments() {
   }, [activeWorkspace])
 
   useEffect(() => { fetchDocuments() }, [fetchDocuments])
+
+  const createFile = useCallback((name: string, parentPath: string = "") => {
+    if (!activeWorkspace) return
+    const fullPath = parentPath ? `${parentPath}/${name}` : name
+    setCreatedFiles((prev) => {
+      if (prev.includes(fullPath)) return prev
+      const next = [...prev, fullPath]
+      saveFiles(activeWorkspace.id, next)
+      return next
+    })
+  }, [activeWorkspace])
+
+  const deleteFile = useCallback((filePath: string) => {
+    if (!activeWorkspace) return
+    setCreatedFiles((prev) => {
+      const next = prev.filter((f) => f !== filePath && !f.startsWith(filePath + "/"))
+      saveFiles(activeWorkspace.id, next)
+      return next
+    })
+  }, [activeWorkspace])
+
+  const renameFile = useCallback((oldPath: string, newName: string) => {
+    if (!activeWorkspace) return
+    const parts = oldPath.split("/")
+    parts[parts.length - 1] = newName
+    const newPath = parts.join("/")
+    setCreatedFiles((prev) => {
+      const next = prev.map((f) => {
+        if (f === oldPath) return newPath
+        if (f.startsWith(oldPath + "/")) return newPath + f.slice(oldPath.length)
+        return f
+      })
+      saveFiles(activeWorkspace.id, next)
+      return next
+    })
+  }, [activeWorkspace])
 
   const uploadDocument = useCallback(async (file: File, folder: string = "") => {
     if (!activeWorkspace || !isSupabaseConfigured()) return null
@@ -122,7 +183,20 @@ export function useDocuments() {
     return data.signedUrl
   }, [])
 
-  const folders = Array.from(new Set(documents.map((d) => d.folder).filter(Boolean)))
+  const implicitFolders = Array.from(new Set(documents.map((d) => d.folder).filter(Boolean)))
+  const allFiles = Array.from(new Set([...createdFiles, ...implicitFolders]))
 
-  return { documents, folders, isLoading, uploadDocument, deleteDocument, renameDocument, getDownloadUrl, refetch: fetchDocuments }
+  return {
+    documents,
+    files: allFiles,
+    isLoading,
+    createFile,
+    deleteFile,
+    renameFile,
+    uploadDocument,
+    deleteDocument,
+    renameDocument,
+    getDownloadUrl,
+    refetch: fetchDocuments,
+  }
 }

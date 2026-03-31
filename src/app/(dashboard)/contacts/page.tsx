@@ -39,6 +39,7 @@ interface SavedView {
   columnKeys: string[]
   sortKey: string | null
   sortDirection: "asc" | "desc"
+  displayRelationships: string[]
 }
 
 export default function ContactsPage() {
@@ -62,6 +63,7 @@ export default function ContactsPage() {
   const [isDisplayOpen, setIsDisplayOpen] = useState(false)
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
+  const [displayRelationships, setDisplayRelationships] = useState<string[]>([])
 
   const [savedViews, setSavedViews] = useState<SavedView[]>([])
   const [activeViewId, setActiveViewId] = useState<string | null>(null)
@@ -86,6 +88,7 @@ export default function ContactsPage() {
           setVisibleColumnKeys(view.columnKeys)
           setSortKey(view.sortKey)
           setSortDirection(view.sortDirection)
+          setDisplayRelationships(view.displayRelationships || [])
         }
       }
     } catch {}
@@ -110,10 +113,10 @@ export default function ContactsPage() {
     if (!activeViewId || isInitialMount.current) return
     setSavedViews((prev) =>
       prev.map((v) =>
-        v.id === activeViewId ? { ...v, columnKeys: visibleColumnKeys, sortKey, sortDirection } : v
+        v.id === activeViewId ? { ...v, columnKeys: visibleColumnKeys, sortKey, sortDirection, displayRelationships } : v
       )
     )
-  }, [visibleColumnKeys, sortKey, sortDirection, activeViewId])
+  }, [visibleColumnKeys, sortKey, sortDirection, displayRelationships, activeViewId])
 
   const visibleColumns = visibleColumnKeys
     .filter((key) => key === "name" || !contactDisabled.has(key))
@@ -126,6 +129,17 @@ export default function ContactsPage() {
     )
   }, [])
 
+  const handleToggleRelationship = useCallback((key: string) => {
+    setDisplayRelationships((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    )
+  }, [])
+
+  const filteredContacts = useMemo(() => {
+    if (displayRelationships.length === 0) return contacts
+    return contacts.filter((c) => displayRelationships.includes(c.relationship))
+  }, [contacts, displayRelationships])
+
   const handleCreateView = () => {
     if (!newViewName.trim()) return
     const view: SavedView = {
@@ -134,6 +148,7 @@ export default function ContactsPage() {
       columnKeys: [...visibleColumnKeys],
       sortKey,
       sortDirection,
+      displayRelationships: [...displayRelationships],
     }
     setSavedViews((prev) => [...prev, view])
     setActiveViewId(view.id)
@@ -146,6 +161,7 @@ export default function ContactsPage() {
     setVisibleColumnKeys(view.columnKeys)
     setSortKey(view.sortKey)
     setSortDirection(view.sortDirection)
+    setDisplayRelationships(view.displayRelationships || [])
   }
 
   const handleSelectAllView = () => {
@@ -153,6 +169,7 @@ export default function ContactsPage() {
     setVisibleColumnKeys(defaultVisibleKeys)
     setSortKey(null)
     setSortDirection("asc")
+    setDisplayRelationships([])
   }
 
   const handleDeleteView = (viewId: string) => {
@@ -162,6 +179,7 @@ export default function ContactsPage() {
       setVisibleColumnKeys(defaultVisibleKeys)
       setSortKey(null)
       setSortDirection("asc")
+      setDisplayRelationships([])
     }
     setDeleteViewConfirm(null)
   }
@@ -299,9 +317,28 @@ export default function ContactsPage() {
                   </div>
                 </div>
 
+                <div className="border-t border-[#f0f0f0] px-[20px] pb-[16px] pt-[14px]">
+                  <div className="pb-[12px] text-[13px] font-medium text-[#888]">Relationships</div>
+                  <div className="flex flex-wrap gap-[8px]">
+                    {Object.entries(relationshipConfig).map(([key, config]) => {
+                      const isActive = displayRelationships.includes(key)
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => handleToggleRelationship(key)}
+                          className={`inline-flex items-center rounded-lg border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
+                          tabIndex={0}
+                        >
+                          {config.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-[20px] border-t border-[#f0f0f0] px-[20px] py-[12px]">
                   <button
-                    onClick={() => setVisibleColumnKeys(defaultVisibleKeys)}
+                    onClick={() => { setVisibleColumnKeys(defaultVisibleKeys); setDisplayRelationships([]) }}
                     className="text-[13px] font-medium text-[#bbb] transition-colors hover:text-[#262626]"
                     tabIndex={0}
                   >
@@ -342,7 +379,7 @@ export default function ContactsPage() {
             </tr>
           </thead>
           <tbody>
-            {contacts.map((contact) => {
+            {filteredContacts.map((contact) => {
               const rel = relationshipConfig[contact.relationship]
               const initials = contact.name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase()
               const dash = <span className="text-[#bbb]">—</span>
@@ -387,7 +424,7 @@ export default function ContactsPage() {
       {/* Footer */}
       <div className="shrink-0 border-t border-[#dcdcdc] px-[20px] py-[10px]">
         <span className="text-[12px] font-medium text-[#999]">
-          {contacts.length} {contacts.length === 1 ? "contact" : "contacts"}
+          {filteredContacts.length} {filteredContacts.length === 1 ? "contact" : "contacts"}
         </span>
       </div>
 

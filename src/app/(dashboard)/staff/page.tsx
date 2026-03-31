@@ -4,9 +4,8 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useStaff } from "@/lib/hooks/use-staff"
 import { useFieldConfig } from "@/lib/hooks/use-field-config"
-import { useMembers } from "@/lib/hooks/use-members"
 import { usePermissions } from "@/lib/hooks/use-permissions"
-import type { StaffMember, StaffDetails, WorkspaceMember } from "@/lib/types"
+import type { StaffMember, StaffDetails } from "@/lib/types"
 import {
   Users,
   ListFilter,
@@ -16,7 +15,6 @@ import {
   Table2,
   X,
   Expand,
-  FileText,
   User,
   Mail,
   Phone,
@@ -37,7 +35,6 @@ import {
   Clock,
   Award,
   Shield,
-  UserPlus,
   MessageSquare,
 } from "lucide-react"
 
@@ -313,9 +310,8 @@ interface SavedView {
 
 export default function StaffPage() {
   const router = useRouter()
-  const { staff, addStaff, updateStaff } = useStaff()
+  const { staff, updateStaff } = useStaff()
   const { staffDisabled } = useFieldConfig()
-  const { inviteMember } = useMembers()
   const { canManageStaff } = usePermissions()
 
   const availablePropertyColumns = useMemo(
@@ -333,13 +329,6 @@ export default function StaffPage() {
   const [activeViewId, setActiveViewId] = useState<string | null>(null)
   const [isCreateViewOpen, setIsCreateViewOpen] = useState(false)
   const [newViewName, setNewViewName] = useState("")
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [newStaffName, setNewStaffName] = useState("")
-  const [isInviteOpen, setIsInviteOpen] = useState(false)
-  const [inviteEmail, setInviteEmail] = useState("")
-  const [inviteName, setInviteName] = useState("")
-  const [inviteRole, setInviteRole] = useState<WorkspaceMember["role"]>("coordinator")
-  const [, setIsInviteRoleOpen] = useState(false)
   const [viewContextMenu, setViewContextMenu] = useState<{ viewId: string; x: number; y: number } | null>(null)
   const [deleteViewConfirm, setDeleteViewConfirm] = useState<SavedView | null>(null)
   const displayBtnRef = useRef<HTMLButtonElement>(null)
@@ -421,23 +410,6 @@ export default function StaffPage() {
     updateStaff(memberId, { details: { ...member.details, [field]: value } })
   }, [staff, updateStaff])
 
-  const handleCreateStaff = async () => {
-    const name = newStaffName.trim()
-    if (!name) return
-    const names = name.split(/\s+/)
-    await addStaff({ name, iconText: name[0]?.toUpperCase() || "?", details: { firstName: names[0] || "", lastName: names.length > 1 ? names[names.length - 1] : "" } })
-    setNewStaffName(""); setIsCreateOpen(false)
-  }
-
-  const handleInviteStaff = async () => {
-    const email = inviteEmail.trim()
-    const name = inviteName.trim() || email.split("@")[0]
-    if (!email || !email.includes("@")) return
-    await addStaff({ name, iconText: name[0]?.toUpperCase() || "?", status: "invited", invitedEmail: email, details: { email } })
-    await inviteMember(email, inviteRole)
-    setInviteEmail(""); setInviteName(""); setInviteRole("coordinator"); setIsInviteRoleOpen(false); setIsInviteOpen(false)
-  }
-
   const sortedStaff = (() => {
     if (!sortKey) return staff
     return [...staff].sort((a, b) => {
@@ -496,16 +468,10 @@ export default function StaffPage() {
             </button>
           </div>
           {canManageStaff && (
-            <div className="flex items-center gap-[8px]">
-              <button onClick={() => setIsInviteOpen(true)} className="flex items-center gap-[5px] rounded px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
-                <UserPlus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-                <span className="hidden sm:inline">Invite</span>
-              </button>
-              <button onClick={() => setIsCreateOpen(true)} className="flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
-                <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-                <span className="hidden sm:inline">Add staff</span>
-              </button>
-            </div>
+            <button onClick={() => router.push("/settings/members")} className="flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
+              <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+              <span className="hidden sm:inline">Add staff</span>
+            </button>
           )}
         </div>
 
@@ -690,81 +656,6 @@ export default function StaffPage() {
             </div>
           </div>
         </>
-      )}
-
-      {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/20" onClick={() => { setIsCreateOpen(false); setNewStaffName("") }} />
-          <div className="relative z-10 w-[440px] rounded-lg bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
-            <div className="flex items-center justify-between px-[24px] pt-[20px]">
-              <div className="flex items-center gap-[8px]">
-                <FileText className="h-[16px] w-[16px] text-[#555]" strokeWidth={1.5} />
-                <h2 className="text-[15px] font-semibold text-[#262626]">Add staff member</h2>
-              </div>
-              <button onClick={() => { setIsCreateOpen(false); setNewStaffName("") }} className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0} aria-label="Close"><X className="h-[16px] w-[16px]" strokeWidth={1.5} /></button>
-            </div>
-            <div className="px-[24px] pb-[20px] pt-[16px]">
-              <div className="mb-[16px]">
-                <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Name</label>
-                <input type="text" placeholder="Staff member name" value={newStaffName} onChange={(e) => setNewStaffName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleCreateStaff() }} className="w-full border-b border-[#e0e0e0] pb-[8px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3]" autoFocus />
-              </div>
-              <div className="flex justify-end">
-                <button onClick={handleCreateStaff} disabled={!newStaffName.trim()} className={`text-[13px] font-medium transition-colors ${newStaffName.trim() ? "text-[#262626] hover:text-[#555]" : "text-[#bbb]"}`} tabIndex={0}>Create</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isInviteOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/20" onClick={() => { setIsInviteOpen(false); setInviteEmail(""); setInviteName(""); setInviteRole("coordinator"); setIsInviteRoleOpen(false) }} />
-          <div className="relative z-10 w-[440px] rounded-lg bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
-            <div className="flex items-center justify-between px-[24px] pt-[20px]">
-              <div className="flex items-center gap-[8px]">
-                <UserPlus className="h-[16px] w-[16px] text-[#555]" strokeWidth={1.5} />
-                <h2 className="text-[15px] font-semibold text-[#262626]">Invite staff member</h2>
-              </div>
-              <button onClick={() => { setIsInviteOpen(false); setInviteEmail(""); setInviteName(""); setInviteRole("coordinator"); setIsInviteRoleOpen(false) }} className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0} aria-label="Close"><X className="h-[16px] w-[16px]" strokeWidth={1.5} /></button>
-            </div>
-            <div className="px-[24px] pb-[20px] pt-[16px]">
-              <div className="mb-[14px]">
-                <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Email *</label>
-                <input type="email" placeholder="name@company.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} className="h-[36px] w-full rounded-md border border-[#e0e0e0] px-[10px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3]" autoFocus />
-              </div>
-              <div className="mb-[14px]">
-                <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Name (optional)</label>
-                <input type="text" placeholder="Full name" value={inviteName} onChange={(e) => setInviteName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleInviteStaff() }} className="h-[36px] w-full rounded-md border border-[#e0e0e0] px-[10px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3]" />
-              </div>
-              <div className="mb-[16px]">
-                <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Permission</label>
-                <div className="relative">
-                  <div className="flex gap-[8px]">
-                    {(["admin", "coordinator"] as const).map((role) => {
-                      const label = role === "admin" ? "Team Leader" : "Coordinator"
-                      const desc = role === "admin" ? "Access all clients, tasks & documents" : "Access assigned clients & own tasks"
-                      const isActive = inviteRole === role
-                      return (
-                        <button
-                          key={role}
-                          onClick={() => setInviteRole(role)}
-                          className={`flex flex-1 flex-col items-start rounded-lg border px-[12px] py-[10px] text-left transition-colors ${isActive ? "border-[#262626] bg-[#fafafa]" : "border-[#e0e0e0] hover:border-[#ccc] hover:bg-[#fafafa]"}`}
-                          tabIndex={0}
-                        >
-                          <span className={`text-[13px] font-medium ${isActive ? "text-[#262626]" : "text-[#555]"}`}>{label}</span>
-                          <span className="mt-[2px] text-[11px] text-[#999]">{desc}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <button onClick={handleInviteStaff} disabled={!inviteEmail.trim() || !inviteEmail.includes("@")} className={`rounded-md px-[16px] py-[7px] text-[13px] font-medium transition-colors ${inviteEmail.trim() && inviteEmail.includes("@") ? "bg-[#262626] text-white hover:bg-[#333]" : "bg-[#e0e0e0] text-[#bbb]"}`} tabIndex={0}>Send invite</button>
-              </div>
-            </div>
-          </div>
-        </div>
       )}
 
       {viewContextMenu && (

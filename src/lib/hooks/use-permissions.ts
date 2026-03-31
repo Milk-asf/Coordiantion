@@ -19,7 +19,6 @@ export interface Permissions {
   canViewStaff: boolean
   canManageClients: boolean
   canCreateTasks: boolean
-  canReturnTasks: boolean
   canManageDocuments: boolean
   canViewBudgets: boolean
   canAssignClients: boolean
@@ -30,18 +29,17 @@ const noPermissions: Permissions = {
   role: null,
   userId: null,
   isLoading: true,
-  canAccessBilling: false,
-  canManageWorkspaceSettings: false,
-  canManageMembers: false,
-  canManageStaff: false,
-  canViewStaff: false,
-  canManageClients: false,
-  canCreateTasks: false,
-  canReturnTasks: false,
-  canManageDocuments: false,
-  canViewBudgets: false,
-  canAssignClients: false,
-  canAssignTasks: false,
+  canAccessBilling: true,
+  canManageWorkspaceSettings: true,
+  canManageMembers: true,
+  canManageStaff: true,
+  canViewStaff: true,
+  canManageClients: true,
+  canCreateTasks: true,
+  canManageDocuments: true,
+  canViewBudgets: true,
+  canAssignClients: true,
+  canAssignTasks: true,
 }
 
 function derivePermissions(role: Role, userId: string | null = null): Permissions {
@@ -58,7 +56,6 @@ function derivePermissions(role: Role, userId: string | null = null): Permission
     canViewStaff: isAdmin,
     canManageClients: true,
     canCreateTasks: true,
-    canReturnTasks: isAdmin,
     canManageDocuments: true,
     canViewBudgets: true,
     canAssignClients: isAdmin,
