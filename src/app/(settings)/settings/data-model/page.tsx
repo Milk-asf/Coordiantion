@@ -120,11 +120,12 @@ export default function DataModelSettingsPage() {
   }
 
   const handleToggleEnabled = (id: string) => {
+    const field = fields.find((f) => f.id === id)
+    const wasEnabled = field?.isEnabled ?? true
     const updated = fields.map((f) => f.id === id ? { ...f, isEnabled: !f.isEnabled } : f)
     setFields(updated)
     saveFields(updated)
-    const field = fields.find((f) => f.id === id)
-    showToast(field?.isEnabled ? "Field disabled" : "Field enabled")
+    showToast(wasEnabled ? "Field disabled" : "Field enabled")
     setMenuFieldId(null)
   }
 

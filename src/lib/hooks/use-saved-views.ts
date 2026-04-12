@@ -46,10 +46,13 @@ export function useSavedViews<TView extends SavedViewBase>({
     }
 
     isInitialMount.current = false
+    hasHydrated.current = true
   }, [activeViewStorageKey, applyView, viewsStorageKey])
 
+  const hasHydrated = useRef(false)
+
   useEffect(() => {
-    if (isInitialMount.current) return
+    if (!hasHydrated.current) return
     localStorage.setItem(viewsStorageKey, JSON.stringify(savedViews))
   }, [savedViews, viewsStorageKey])
 

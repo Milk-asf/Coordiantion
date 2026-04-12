@@ -90,12 +90,12 @@ export default function MembersSettingsPage() {
                         onClick={() => setRoleChangeId(roleChangeId === member.id ? null : member.id)}
                         className={cn(
                           "rounded-[4px] px-[8px] py-[3px] text-[11px] font-medium transition-colors",
-                          roleConfig[member.role].color,
+                          roleConfig[member.role as Role]?.color ?? "bg-gray-50 text-gray-600",
                           member.role !== "super-admin" && "cursor-pointer hover:opacity-80"
                         )}
                         disabled={member.role === "super-admin"}
                       >
-                        {roleConfig[member.role].label}
+                        {roleConfig[member.role as Role]?.label ?? member.role}
                       </button>
 
                       {roleChangeId === member.id && member.role !== "super-admin" && (
@@ -130,7 +130,21 @@ export default function MembersSettingsPage() {
                         {memberMenuId === member.id && (
                           <div className="absolute right-0 top-full z-10 mt-[4px] w-[160px] rounded-[6px] border border-sidebar-border bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
                             {(member.status === "pending" || member.status === "invited") && (
-                              <button className="flex w-full items-center px-[12px] py-[6px] text-[13px] text-[#262626] transition-colors hover:bg-[#f5f5f5]">
+                              <button
+                                onClick={async () => {
+                                  const email = member.invited_email || member.email
+                                  if (!email) return
+                                  try {
+                                    await fetch("/api/invite", {
+                                      method: "POST",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ email, role: member.role }),
+                                    })
+                                  } catch { /* silent */ }
+                                  setMemberMenuId(null)
+                                }}
+                                className="flex w-full items-center px-[12px] py-[6px] text-[13px] text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                              >
                                 Resend invite
                               </button>
                             )}

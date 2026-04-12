@@ -74,13 +74,14 @@ function formatTime(minutes: number): string {
 }
 
 function parseTimeInput(val: string): number {
+  if (!val.trim()) return 0
   const hMatch = val.match(/(\d+)\s*h/)
   const mMatch = val.match(/(\d+)\s*m/)
   const hours = hMatch ? parseInt(hMatch[1], 10) : 0
   const mins = mMatch ? parseInt(mMatch[1], 10) : 0
   if (hours === 0 && mins === 0) {
     const num = parseInt(val, 10)
-    if (!isNaN(num)) return num
+    return isNaN(num) ? 0 : num
   }
   return hours * 60 + mins
 }

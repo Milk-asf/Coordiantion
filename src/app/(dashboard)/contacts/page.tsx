@@ -45,7 +45,7 @@ interface SavedView {
 
 export default function ContactsPage() {
   const { contacts, addContact } = useContacts()
-  const { clientNames } = useClients()
+  const { clients, clientNames } = useClients()
   const { contactDisabled } = useFieldConfig()
 
   const availablePropertyColumns = useMemo(
@@ -360,7 +360,7 @@ export default function ContactsPage() {
           </thead>
           <tbody>
             {filteredContacts.map((contact) => {
-              const rel = relationshipConfig[contact.relationship]
+              const rel = relationshipConfig[contact.relationship] ?? { label: contact.relationship || "—", color: "bg-gray-50 text-gray-600", dotColor: "bg-gray-400" }
               const initials = contact.name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase()
               const dash = <span className="text-[#bbb]">—</span>
 
@@ -470,7 +470,7 @@ export default function ContactsPage() {
                   {newContact.relationship ? (
                     (() => {
                       const rel = relationshipConfig[newContact.relationship]
-                      return <span className="inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] px-[8px] text-[13px] font-medium text-[#262626]">{rel.label}</span>
+                      return <span className="inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] px-[8px] text-[13px] font-medium text-[#262626]">{rel?.label ?? newContact.relationship}</span>
                     })()
                   ) : (
                     <span className="text-[#bbb]">Select relationship</span>
@@ -525,7 +525,8 @@ export default function ContactsPage() {
                     key={name}
                     type="button"
                     onClick={() => {
-                      setNewContact({ ...newContact, clientName: name })
+                      const matchedClient = clients.find((c) => c.name === name || c.displayName === name)
+                      setNewContact({ ...newContact, clientName: name, clientId: matchedClient?.id ?? null })
                       setIsClientOpen(false)
                     }}
                     className={`flex w-full items-center px-[12px] py-[10px] text-left text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${newContact.clientName === name ? "bg-[#f5f5f5]" : ""}`}

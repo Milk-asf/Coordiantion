@@ -31,7 +31,7 @@ export function useMembers() {
       return
     }
     const supabase = createClient()
-    if (!supabase) { setIsLoading(false); return }
+    if (!supabase) { setMembers([]); setIsLoading(false); return }
 
     setIsLoading(true)
     try {

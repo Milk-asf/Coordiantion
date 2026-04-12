@@ -685,21 +685,24 @@ export default function InvoicesPage() {
       </div>
 
       {viewContextMenu && (
-        <div
-          className="fixed z-[70] min-w-[160px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_6px_20px_rgba(0,0,0,0.12)]"
-          style={{ left: viewContextMenu.x, top: viewContextMenu.y }}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              deleteView(viewContextMenu.viewId)
-              setViewContextMenu(null)
-            }}
-            className="flex w-full items-center px-[14px] py-[8px] text-left text-[13px] font-medium text-[#cf5b5b] transition-colors hover:bg-[#faf5f5]"
+        <>
+          <div className="fixed inset-0 z-[69]" onClick={() => setViewContextMenu(null)} />
+          <div
+            className="fixed z-[70] min-w-[160px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_6px_20px_rgba(0,0,0,0.12)]"
+            style={{ left: viewContextMenu.x, top: viewContextMenu.y }}
           >
-            Delete view
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={() => {
+                deleteView(viewContextMenu.viewId)
+                setViewContextMenu(null)
+              }}
+              className="flex w-full items-center px-[14px] py-[8px] text-left text-[13px] font-medium text-[#cf5b5b] transition-colors hover:bg-[#faf5f5]"
+            >
+              Delete view
+            </button>
+          </div>
+        </>
       )}
     </div>
   )

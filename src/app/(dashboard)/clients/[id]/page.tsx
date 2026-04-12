@@ -473,7 +473,7 @@ export default function ParticipantProfilePage() {
                   </thead>
                   <tbody>
                     {allContacts.map((contact) => {
-                      const rel = relationshipConfig[contact.relationship]
+                      const rel = relationshipConfig[contact.relationship] ?? { label: contact.relationship || "—", color: "bg-gray-50 text-gray-600", dotColor: "bg-gray-400" }
                       const fullName = contact.firstName
                       const initials = fullName.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase()
                       return (
@@ -590,7 +590,7 @@ export default function ParticipantProfilePage() {
                           {newContact.relationship ? (
                             (() => {
                               const rel = relationshipConfig[newContact.relationship]
-                              return <span className="inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] px-[8px] text-[13px] font-medium text-[#262626]">{rel.label}</span>
+                              return <span className="inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] px-[8px] text-[13px] font-medium text-[#262626]">{rel?.label ?? newContact.relationship}</span>
                             })()
                           ) : (
                             <span className="text-[#bbb]">Select relationship</span>

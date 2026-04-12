@@ -36,20 +36,22 @@ function formatDate(dateStr: string): string {
   return d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
 }
 
-function getFileIcon(mimeType: string) {
-  if (mimeType.startsWith("image/")) return FileImage
-  if (mimeType.includes("spreadsheet") || mimeType.includes("csv") || mimeType.includes("excel")) return FileSpreadsheet
-  if (mimeType.startsWith("video/")) return FileVideo
-  if (mimeType.includes("pdf")) return FileText
+function getFileIcon(mimeType?: string) {
+  const m = mimeType ?? ""
+  if (m.startsWith("image/")) return FileImage
+  if (m.includes("spreadsheet") || m.includes("csv") || m.includes("excel")) return FileSpreadsheet
+  if (m.startsWith("video/")) return FileVideo
+  if (m.includes("pdf")) return FileText
   return File
 }
 
-function getFileColor(mimeType: string): string {
-  if (mimeType.startsWith("image/")) return "text-purple-500"
-  if (mimeType.includes("spreadsheet") || mimeType.includes("csv") || mimeType.includes("excel")) return "text-green-600"
-  if (mimeType.startsWith("video/")) return "text-red-500"
-  if (mimeType.includes("pdf")) return "text-red-600"
-  if (mimeType.includes("word") || mimeType.includes("document")) return "text-blue-600"
+function getFileColor(mimeType?: string): string {
+  const m = mimeType ?? ""
+  if (m.startsWith("image/")) return "text-purple-500"
+  if (m.includes("spreadsheet") || m.includes("csv") || m.includes("excel")) return "text-green-600"
+  if (m.startsWith("video/")) return "text-red-500"
+  if (m.includes("pdf")) return "text-red-600"
+  if (m.includes("word") || m.includes("document")) return "text-blue-600"
   return "text-[#888]"
 }
 
@@ -116,9 +118,12 @@ export default function DocumentsPage() {
   const handleFileSelect = async (selectedFiles: FileList | null) => {
     if (!selectedFiles || selectedFiles.length === 0) return
     setIsUploading(true)
-    const uploads = Array.from(selectedFiles).map((f) => uploadDocument(f, currentPath))
-    await Promise.all(uploads)
-    setIsUploading(false)
+    try {
+      const uploads = Array.from(selectedFiles).map((f) => uploadDocument(f, currentPath))
+      await Promise.all(uploads)
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   const handleDrop = useCallback((e: React.DragEvent) => {

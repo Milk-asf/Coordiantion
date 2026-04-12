@@ -46,7 +46,7 @@ export function useDocuments() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    if (!activeWorkspace) return
+    if (!activeWorkspace) { setCreatedFiles([]); return }
     setCreatedFiles(loadFiles(activeWorkspace.id))
   }, [activeWorkspace])
 
