@@ -1,6 +1,15 @@
 import { Resend } from "resend"
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+let resend: Resend | null = null
+
+function getResend() {
+  if (!resend) {
+    const key = process.env.RESEND_API_KEY
+    if (!key) throw new Error("RESEND_API_KEY is not set")
+    resend = new Resend(key)
+  }
+  return resend
+}
 
 const DEFAULT_FROM = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev"
 
@@ -29,7 +38,9 @@ export async function sendEmail({
 }: SendEmailOptions) {
   const from = fromName ? `"${fromName}" <${DEFAULT_FROM}>` : DEFAULT_FROM
 
-  const payload: Parameters<typeof resend.emails.send>[0] = {
+  const client = getResend()
+
+  const payload: Parameters<typeof client.emails.send>[0] = {
     from,
     to: Array.isArray(to) ? to : [to],
     subject,
@@ -39,7 +50,7 @@ export async function sendEmail({
   if (replyTo) payload.replyTo = replyTo
   if (attachments) payload.attachments = attachments
 
-  const { data, error } = await resend.emails.send(payload)
+  const { data, error } = await client.emails.send(payload)
 
   if (error) throw new Error(error.message)
   return data
