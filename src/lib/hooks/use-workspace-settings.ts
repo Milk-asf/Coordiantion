@@ -17,6 +17,7 @@ const defaultSettings: WorkspaceEmailSettings = {
   bankBsb: "",
   bankAccountNumber: "",
   bankAccountName: "",
+  logoUrl: "",
 }
 
 function loadSettings(): WorkspaceEmailSettings {

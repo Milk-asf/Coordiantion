@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
 import { usePermissions } from "@/lib/hooks/use-permissions"
+import { useWorkspaceSettings } from "@/lib/hooks/use-workspace-settings"
 
 interface NavItem {
   label: string
@@ -84,6 +85,7 @@ export function Sidebar() {
   const router = useRouter()
   const { activeWorkspace } = useWorkspace()
   const { canViewStaff } = usePermissions()
+  const { settings: orgSettings } = useWorkspaceSettings()
 
   useEffect(() => {
     if (!isSupabaseConfigured()) return
@@ -212,9 +214,18 @@ export function Sidebar() {
       <div className="flex items-center justify-between px-3 pb-2 pt-3">
         {!isCollapsed && (
           <div className="flex items-center gap-2 overflow-hidden px-1 py-0.5">
-            <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-600 text-[8px] font-medium text-white">
-              {activeWorkspace?.name?.[0]?.toUpperCase() || "W"}
-            </div>
+            {orgSettings.logoUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={orgSettings.logoUrl}
+                alt=""
+                className="h-5 w-5 shrink-0 rounded object-contain"
+              />
+            ) : (
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-600 text-[8px] font-medium text-white">
+                {activeWorkspace?.name?.[0]?.toUpperCase() || "W"}
+              </div>
+            )}
             <span className="truncate text-[13px] font-medium text-sidebar-text">
               {activeWorkspace?.name || "Workspace"}
             </span>

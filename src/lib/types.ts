@@ -222,6 +222,7 @@ export interface WorkspaceEmailSettings {
   bankBsb: string
   bankAccountNumber: string
   bankAccountName: string
+  logoUrl: string
 }
 
 export const relationshipConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {

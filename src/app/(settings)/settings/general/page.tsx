@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
   Building2,
   Hash,
@@ -13,8 +13,13 @@ import {
   CreditCard,
   Save,
   Check,
+  Upload,
+  X,
+  ImageIcon,
 } from "lucide-react"
 import { useWorkspaceSettings } from "@/lib/hooks/use-workspace-settings"
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
+import { useWorkspace } from "@/lib/workspace-context"
 
 interface FieldRowProps {
   label: string
@@ -45,8 +50,11 @@ function FieldRow({ label, value, onChange, icon, placeholder, type = "text" }: 
 
 export default function GeneralSettingsPage() {
   const { settings, updateSettings } = useWorkspaceSettings()
+  const { activeWorkspace } = useWorkspace()
   const [local, setLocal] = useState(settings)
   const [saved, setSaved] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setLocal(settings)
@@ -62,6 +70,43 @@ export default function GeneralSettingsPage() {
 
   const update = (key: keyof typeof local) => (val: string) => {
     setLocal((prev) => ({ ...prev, [key]: val }))
+  }
+
+  const handleLogoUpload = async (file: File) => {
+    if (!activeWorkspace || !isSupabaseConfigured()) return
+    const supabase = createClient()
+    if (!supabase) return
+
+    setIsUploading(true)
+    try {
+      const ext = file.name.split(".").pop() || "png"
+      const path = `${activeWorkspace.id}/logo.${ext}`
+
+      await supabase.storage.from("logos").remove([path])
+
+      const { error } = await supabase.storage
+        .from("logos")
+        .upload(path, file, { upsert: true, contentType: file.type })
+
+      if (error) { console.error("Logo upload failed:", error.message); return }
+
+      const { data: urlData } = supabase.storage.from("logos").getPublicUrl(path)
+      const logoUrl = `${urlData.publicUrl}?t=${Date.now()}`
+
+      setLocal((prev) => ({ ...prev, logoUrl }))
+      updateSettings({ ...local, logoUrl })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const handleRemoveLogo = () => {
+    setLocal((prev) => ({ ...prev, logoUrl: "" }))
+    updateSettings({ ...local, logoUrl: "" })
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
   }
 
   return (
@@ -90,6 +135,65 @@ export default function GeneralSettingsPage() {
             Saved
           </div>
         )}
+      </div>
+
+      {/* Logo upload */}
+      <div className="mb-[24px]">
+        <h2 className="mb-[10px] text-[13px] font-semibold text-[#1a1a1a]">Logo</h2>
+        <p className="mb-[10px] px-[4px] text-[12px] text-[#bbb]">
+          Displayed in the sidebar and on invoices.
+        </p>
+        <div className="overflow-hidden rounded-[10px] border border-[#e5e5e5] bg-white p-[16px]">
+          <div className="flex items-center gap-[16px]">
+            {local.logoUrl ? (
+              <div className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={local.logoUrl}
+                  alt="Organisation logo"
+                  className="h-[64px] w-[64px] rounded-[8px] border border-[#e5e5e5] object-contain bg-white"
+                />
+                <button
+                  onClick={handleRemoveLogo}
+                  className="absolute -right-[6px] -top-[6px] flex h-[18px] w-[18px] items-center justify-center rounded-full bg-[#262626] text-white transition-colors hover:bg-red-500"
+                  aria-label="Remove logo"
+                  tabIndex={0}
+                >
+                  <X className="h-[10px] w-[10px]" strokeWidth={2.5} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex h-[64px] w-[64px] items-center justify-center rounded-[8px] border border-dashed border-[#dcdcdc] bg-[#fafafa]">
+                <ImageIcon className="h-[20px] w-[20px] text-[#ccc]" strokeWidth={1.5} />
+              </div>
+            )}
+            <div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="flex items-center gap-[6px] rounded-[6px] border border-[#dcdcdc] bg-white px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] disabled:opacity-50"
+                tabIndex={0}
+              >
+                <Upload className="h-[13px] w-[13px]" strokeWidth={1.75} />
+                {isUploading ? "Uploading..." : local.logoUrl ? "Change logo" : "Upload logo"}
+              </button>
+              <p className="mt-[4px] text-[11px] text-[#bbb]">PNG, JPG, or SVG. Max 2 MB.</p>
+            </div>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/svg+xml,image/webp"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (!file) return
+              if (file.size > 2 * 1024 * 1024) { alert("File must be under 2 MB"); return }
+              handleLogoUpload(file)
+              e.target.value = ""
+            }}
+          />
+        </div>
       </div>
 
       <div className="mb-[24px]">

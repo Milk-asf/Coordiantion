@@ -4,6 +4,7 @@ import {
   Page,
   Text,
   View,
+  Image,
   StyleSheet,
   renderToBuffer,
 } from "@react-pdf/renderer"
@@ -20,6 +21,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 32,
+  },
+  logo: {
+    width: 48,
+    height: 48,
+    objectFit: "contain" as const,
+    marginBottom: 8,
   },
   orgName: {
     fontSize: 18,
@@ -236,6 +243,7 @@ function InvoicePDFDocument({ invoice, participantNdisNumber, orgSettings }: Inv
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <View>
+            {orgSettings.logoUrl && <Image src={orgSettings.logoUrl} style={styles.logo} />}
             <Text style={styles.orgName}>{orgSettings.orgName || "Organisation"}</Text>
             {orgSettings.orgAbn && <Text style={styles.orgDetail}>ABN: {orgSettings.orgAbn}</Text>}
             {orgSettings.orgAddress && <Text style={styles.orgDetail}>{orgSettings.orgAddress}</Text>}
