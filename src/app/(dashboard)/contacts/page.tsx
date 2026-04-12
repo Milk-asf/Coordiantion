@@ -436,7 +436,7 @@ export default function ContactsPage() {
                   placeholder="Full name"
                   value={newContact.name}
                   onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
-                  className="h-[36px] w-full rounded-md border border-[#e0e0e0] px-[10px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3]"
+                  className="h-[36px] w-full rounded-md border border-[#e0e0e0] bg-[#fafafa] px-[10px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3]"
                 />
               </div>
 
@@ -446,7 +446,7 @@ export default function ContactsPage() {
                   ref={clientRef}
                   type="button"
                   onClick={() => { setIsClientOpen(!isClientOpen); setIsRelationshipOpen(false) }}
-                  className="flex h-[36px] w-full items-center justify-between rounded-md border border-[#e0e0e0] bg-white px-[10px] text-[13px] font-medium outline-none transition-colors focus:border-[#a3c4f3]"
+                  className="flex h-[36px] w-full items-center justify-between rounded-md border border-[#e0e0e0] bg-[#fafafa] px-[10px] text-[13px] font-medium outline-none transition-colors focus:border-[#a3c4f3]"
                   tabIndex={0}
                 >
                   {newContact.clientName ? (
@@ -464,7 +464,7 @@ export default function ContactsPage() {
                   ref={relationshipRef}
                   type="button"
                   onClick={() => { setIsRelationshipOpen(!isRelationshipOpen); setIsClientOpen(false) }}
-                  className="flex h-[36px] w-full items-center justify-between rounded-md border border-[#e0e0e0] bg-white px-[10px] text-[13px] font-medium outline-none transition-colors focus:border-[#a3c4f3]"
+                  className="flex h-[36px] w-full items-center justify-between rounded-md border border-[#e0e0e0] bg-[#fafafa] px-[10px] text-[13px] font-medium outline-none transition-colors focus:border-[#a3c4f3]"
                   tabIndex={0}
                 >
                   {newContact.relationship ? (
@@ -486,7 +486,7 @@ export default function ContactsPage() {
                   placeholder="name@company.com"
                   value={newContact.email}
                   onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
-                  className="h-[36px] w-full rounded-md border border-[#e0e0e0] px-[10px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3]"
+                  className="h-[36px] w-full rounded-md border border-[#e0e0e0] bg-[#fafafa] px-[10px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3]"
                 />
               </div>
 
@@ -497,7 +497,7 @@ export default function ContactsPage() {
                   placeholder="Phone number"
                   value={newContact.phone}
                   onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
-                  className="h-[36px] w-full rounded-md border border-[#e0e0e0] px-[10px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3]"
+                  className="h-[36px] w-full rounded-md border border-[#e0e0e0] bg-[#fafafa] px-[10px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3]"
                 />
               </div>
 
@@ -590,7 +590,7 @@ export default function ContactsPage() {
                 onChange={(e) => setNewViewName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleCreateView() }}
                 placeholder="Enter name here"
-                className="mt-[8px] w-full rounded-lg border border-[#dcdcdc] bg-[#fafafa] px-[12px] py-[10px] text-[13px] font-medium text-[#262626] outline-none transition-colors placeholder:text-[#bbb] focus:border-[#a3c4f3] focus:bg-white"
+                className="mt-[8px] w-full rounded-lg border border-[#dcdcdc] bg-[#fafafa] px-[12px] py-[10px] text-[13px] font-medium text-[#262626] outline-none transition-colors placeholder:text-[#bbb] focus:border-[#a3c4f3]"
               />
             </div>
             <div className="mt-[20px] flex items-center justify-end gap-[12px]">

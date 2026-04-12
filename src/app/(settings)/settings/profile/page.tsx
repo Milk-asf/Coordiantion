@@ -19,7 +19,7 @@ const languageOptions = [
 ]
 
 const labelClass = "mb-[6px] block text-[13px] font-medium text-[#555]"
-const inputClass = "h-[40px] w-full rounded-[8px] border border-[#e0e0e0] bg-white px-[12px] text-[14px] text-[#1a1a1a] outline-none transition-colors placeholder:text-[#bbb] focus:border-[#a3c4f3]"
+const inputClass = "h-[40px] w-full rounded-[8px] border border-[#e0e0e0] bg-[#fafafa] px-[12px] text-[14px] text-[#1a1a1a] outline-none transition-colors placeholder:text-[#bbb] focus:border-[#a3c4f3]"
 
 const timezoneOptions = [
   "(UTC+10) Australian Eastern Standard Time",

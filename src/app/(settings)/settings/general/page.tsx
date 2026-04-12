@@ -143,7 +143,7 @@ export default function GeneralSettingsPage() {
         <p className="mb-[10px] px-[4px] text-[12px] text-[#bbb]">
           Displayed in the sidebar and on invoices.
         </p>
-        <div className="overflow-hidden rounded-[10px] border border-[#e5e5e5] bg-white p-[16px]">
+        <div className="overflow-hidden rounded-[10px] border border-[#e5e5e5] bg-[#fafafa] p-[16px]">
           <div className="flex items-center gap-[16px]">
             {local.logoUrl ? (
               <div className="relative">
@@ -151,7 +151,7 @@ export default function GeneralSettingsPage() {
                 <img
                   src={local.logoUrl}
                   alt="Organisation logo"
-                  className="h-[64px] w-[64px] rounded-[8px] border border-[#e5e5e5] object-contain bg-white"
+                  className="h-[64px] w-[64px] rounded-[8px] border border-[#e5e5e5] object-contain bg-[#fafafa]"
                 />
                 <button
                   onClick={handleRemoveLogo}
@@ -198,7 +198,7 @@ export default function GeneralSettingsPage() {
 
       <div className="mb-[24px]">
         <h2 className="mb-[10px] text-[13px] font-semibold text-[#1a1a1a]">Organisation Details</h2>
-        <div className="overflow-hidden rounded-[10px] border border-[#e5e5e5] bg-white">
+        <div className="overflow-hidden rounded-[10px] border border-[#e5e5e5] bg-[#fafafa]">
           <FieldRow
             label="Organisation"
             value={local.orgName}
@@ -256,7 +256,7 @@ export default function GeneralSettingsPage() {
         <p className="mb-[10px] px-[4px] text-[12px] text-[#bbb]">
           Included on invoices and invoice emails so plan managers can process payment.
         </p>
-        <div className="overflow-hidden rounded-[10px] border border-[#e5e5e5] bg-white">
+        <div className="overflow-hidden rounded-[10px] border border-[#e5e5e5] bg-[#fafafa]">
           <FieldRow
             label="Bank"
             value={local.bankName}
@@ -290,7 +290,7 @@ export default function GeneralSettingsPage() {
 
       <div className="mb-[24px]">
         <h2 className="mb-[10px] text-[13px] font-semibold text-[#1a1a1a]">Email Footer</h2>
-        <div className="overflow-hidden rounded-[10px] border border-[#e5e5e5] bg-white">
+        <div className="overflow-hidden rounded-[10px] border border-[#e5e5e5] bg-[#fafafa]">
           <textarea
             value={local.emailFooter}
             onChange={(e) => setLocal((prev) => ({ ...prev, emailFooter: e.target.value }))}

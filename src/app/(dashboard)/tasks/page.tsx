@@ -1347,8 +1347,8 @@ export default function TasksPage() {
           )}
 
           {/* Column headers + task list share same scrollable container for alignment */}
-          <div className="flex-1 overflow-y-auto bg-white">
-            <div className="sticky top-0 z-[1] grid items-center border-b border-[#e0e0e0] bg-white px-[24px]" style={{ gridTemplateColumns: taskGridTemplate }}>
+          <div className="flex-1 overflow-y-auto bg-[#fafafa]">
+            <div className="sticky top-0 z-[1] grid items-center border-b border-[#e0e0e0] bg-[#fafafa] px-[24px]" style={{ gridTemplateColumns: taskGridTemplate }}>
               {visibleTaskColumns.map((col) => {
                 const Icon = col.icon
                 return (
@@ -2045,7 +2045,7 @@ export default function TasksPage() {
                 onChange={(e) => setNewTaskViewName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleCreateTaskView() }}
                 placeholder="Enter name here"
-                className="mt-[8px] w-full rounded-lg border border-[#dcdcdc] bg-[#fafafa] px-[12px] py-[10px] text-[13px] font-medium text-[#262626] outline-none transition-colors placeholder:text-[#bbb] focus:border-[#a3c4f3] focus:bg-white"
+                className="mt-[8px] w-full rounded-lg border border-[#dcdcdc] bg-[#fafafa] px-[12px] py-[10px] text-[13px] font-medium text-[#262626] outline-none transition-colors placeholder:text-[#bbb] focus:border-[#a3c4f3]"
               />
             </div>
             <div className="mt-[20px] flex items-center justify-end gap-[12px]">

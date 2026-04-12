@@ -667,9 +667,9 @@ export default function InvoicesPage() {
         </>
       )}
 
-      <div className="flex-1 overflow-y-auto bg-white">
+      <div className="flex-1 overflow-y-auto bg-[#fafafa]">
         <div
-          className="sticky top-0 z-[1] grid items-center border-b border-[#e0e0e0] bg-white px-[24px]"
+          className="sticky top-0 z-[1] grid items-center border-b border-[#e0e0e0] bg-[#fafafa] px-[24px]"
           style={{ gridTemplateColumns: gridTemplateColumns }}
         >
           {visibleColumns.map((column) => (

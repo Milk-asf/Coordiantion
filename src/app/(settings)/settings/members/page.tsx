@@ -50,7 +50,7 @@ export default function MembersSettingsPage() {
         <h2 className="mb-[12px] text-[14px] font-semibold text-[#1a1a1a]">
           Members ({members.length})
         </h2>
-        <table className="w-full">
+        <table className="w-full rounded-lg bg-[#fafafa]">
           <thead>
             <tr className="border-b border-sidebar-border">
               <th className="pb-[10px] text-left text-[12px] font-medium text-sidebar-muted">Name</th>

@@ -1207,8 +1207,8 @@ export default function InvoicingPage() {
         </>
       )}
 
-      <div className="flex-1 overflow-y-auto bg-white">
-        <div className="sticky top-0 z-[1] grid items-center border-b border-[#e0e0e0] bg-white px-[24px]" style={{ gridTemplateColumns: gridTemplateColumns }}>
+      <div className="flex-1 overflow-y-auto bg-[#fafafa]">
+        <div className="sticky top-0 z-[1] grid items-center border-b border-[#e0e0e0] bg-[#fafafa] px-[24px]" style={{ gridTemplateColumns: gridTemplateColumns }}>
           {visibleColumns.map((column) => {
             return (
               <div
@@ -1491,7 +1491,7 @@ export default function InvoicingPage() {
                   if (event.key === "Enter") handleCreateView()
                 }}
                 placeholder="View name"
-                className="mt-[16px] w-full rounded-[12px] border border-[#e2e2e2] px-[12px] py-[10px] text-[14px] text-[#262626] outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
+                className="mt-[16px] w-full rounded-[12px] border border-[#e2e2e2] bg-[#fafafa] px-[12px] py-[10px] text-[14px] text-[#262626] outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
               />
               <div className="mt-[16px] flex items-center justify-end gap-[8px]">
                 <button
@@ -1755,9 +1755,9 @@ function SidebarField({
           offsetClassName=""
           emptyLabel="Empty"
           displayClassName="block min-w-0 rounded-[10px] px-[8px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f7f7f7]"
-          dropdownButtonClassName="flex w-full min-w-0 items-center justify-between rounded-[10px] border border-[#a3c4f3] bg-white px-[8px] py-[5px] text-left text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
+          dropdownButtonClassName="flex w-full min-w-0 items-center justify-between rounded-[10px] border border-[#a3c4f3] bg-[#fafafa] px-[8px] py-[5px] text-left text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
           dropdownItemClassName="flex w-full items-center px-[8px] py-[6px] text-left text-[13px] font-medium transition-colors hover:bg-[#f5f5f5]"
-          inputClassName="w-full rounded-[10px] border border-[#a3c4f3] bg-white px-[8px] py-[5px] pr-[28px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
+          inputClassName="w-full rounded-[10px] border border-[#a3c4f3] bg-[#fafafa] px-[8px] py-[5px] pr-[28px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
         />
         {formatValue && value && (
           <div className="mt-[2px] px-[8px] text-[12px] text-[#888]">{formatValue(value)}</div>

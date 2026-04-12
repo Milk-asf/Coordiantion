@@ -72,8 +72,8 @@ export function ContactChip({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         className={size === "compact"
-          ? "rounded border border-[#a3c4f3] bg-white px-[8px] py-[3px] text-[12px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
-          : "rounded border border-[#a3c4f3] bg-white px-[10px] py-[4px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"}
+          ? "rounded border border-[#a3c4f3] bg-[#fafafa] px-[8px] py-[3px] text-[12px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
+          : "rounded border border-[#a3c4f3] bg-[#fafafa] px-[10px] py-[4px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"}
       />
     )
   }

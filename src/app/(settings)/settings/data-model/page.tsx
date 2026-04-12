@@ -180,7 +180,7 @@ export default function DataModelSettingsPage() {
 
       {/* Fields table */}
       <div>
-        <table className="w-full text-left">
+        <table className="w-full rounded-lg bg-[#fafafa] text-left">
           <thead>
             <tr className="border-b border-sidebar-border">
               <th className="w-[35%] pb-[10px] text-left text-[12px] font-medium text-sidebar-muted">Name</th>

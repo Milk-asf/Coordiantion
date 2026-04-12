@@ -225,7 +225,7 @@ export default function DocumentsPage() {
         </div>
         <div className="flex items-center gap-[8px]">
           {isInsideFile && (
-            <div className="flex h-[32px] items-center gap-[6px] rounded-md border border-[#e0e0e0] bg-white px-[10px]">
+            <div className="flex h-[32px] items-center gap-[6px] rounded-md border border-[#e0e0e0] bg-[#fafafa] px-[10px]">
               <Search className="h-[14px] w-[14px] text-[#bbb]" strokeWidth={1.75} />
               <input
                 type="text"
@@ -315,7 +315,7 @@ export default function DocumentsPage() {
             onChange={(e) => setNewFileName(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") handleCreateFile(); if (e.key === "Escape") { setIsNewFileOpen(false); setNewFileName("") } }}
             placeholder="File name"
-            className="h-[28px] w-[200px] rounded border border-[#dcdcdc] bg-white px-[8px] text-[12px] font-medium text-[#262626] placeholder-[#bbb] outline-none focus:border-[#a3c4f3]"
+            className="h-[28px] w-[200px] rounded border border-[#dcdcdc] bg-[#fafafa] px-[8px] text-[12px] font-medium text-[#262626] placeholder-[#bbb] outline-none focus:border-[#a3c4f3]"
           />
           <button onClick={handleCreateFile} disabled={!newFileName.trim()} className="rounded bg-[#262626] px-[10px] py-[4px] text-[11px] font-medium text-white hover:bg-[#3d3d3d] disabled:opacity-40" tabIndex={0}>Create</button>
           <button onClick={() => { setIsNewFileOpen(false); setNewFileName("") }} className="text-[12px] font-medium text-[#888] hover:text-[#262626]" tabIndex={0}>Cancel</button>
@@ -496,7 +496,7 @@ export default function DocumentsPage() {
                   <p className="mb-[8px] text-[11px] font-medium tracking-wide text-[#999]">DOCUMENTS</p>
                 )}
 
-                <div className="rounded-lg border border-[#e8e8e8] bg-white">
+                <div className="rounded-lg border border-[#e8e8e8] bg-[#fafafa]">
                   <div className="grid grid-cols-[1fr_100px_120px_40px] items-center border-b border-[#f0f0f0] px-[16px] py-[8px]">
                     <span className="text-[11px] font-medium text-[#999]">Name</span>
                     <span className="text-[11px] font-medium text-[#999]">Size</span>
@@ -520,7 +520,7 @@ export default function DocumentsPage() {
                               onChange={(e) => setRenameValue(e.target.value)}
                               onBlur={() => handleRename(doc.id)}
                               onKeyDown={(e) => { if (e.key === "Enter") handleRename(doc.id); if (e.key === "Escape") setRenamingId(null) }}
-                              className="min-w-0 flex-1 rounded border border-[#a3c4f3] bg-white px-[6px] py-[2px] text-[13px] font-medium text-[#262626] outline-none shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
+                              className="min-w-0 flex-1 rounded border border-[#a3c4f3] bg-[#fafafa] px-[6px] py-[2px] text-[13px] font-medium text-[#262626] outline-none shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
                             />
                           ) : (
                             <button

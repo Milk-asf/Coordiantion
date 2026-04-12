@@ -549,7 +549,7 @@ export default function ParticipantProfilePage() {
                           placeholder="Full name"
                           value={newContact.firstName}
                           onChange={(e) => setNewContact({ ...newContact, firstName: e.target.value })}
-                          className="h-[36px] w-full rounded-md border border-[#e0e0e0] px-[10px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3]"
+                          className="h-[36px] w-full rounded-md border border-[#e0e0e0] bg-[#fafafa] px-[10px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3]"
                         />
                       </div>
 
@@ -561,7 +561,7 @@ export default function ParticipantProfilePage() {
                           placeholder="name@company.com"
                           value={newContact.email}
                           onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
-                          className="h-[36px] w-full rounded-md border border-[#e0e0e0] px-[10px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3]"
+                          className="h-[36px] w-full rounded-md border border-[#e0e0e0] bg-[#fafafa] px-[10px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3]"
                         />
                       </div>
 
@@ -573,7 +573,7 @@ export default function ParticipantProfilePage() {
                           placeholder="Phone number"
                           value={newContact.phone}
                           onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
-                          className="h-[36px] w-full rounded-md border border-[#e0e0e0] px-[10px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3]"
+                          className="h-[36px] w-full rounded-md border border-[#e0e0e0] bg-[#fafafa] px-[10px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3]"
                         />
                       </div>
 
@@ -584,7 +584,7 @@ export default function ParticipantProfilePage() {
                           ref={relationshipRef}
                           type="button"
                           onClick={() => setIsRelationshipOpen(!isRelationshipOpen)}
-                          className="flex h-[36px] w-full items-center justify-between rounded-md border border-[#e0e0e0] bg-white px-[10px] text-[13px] font-medium outline-none transition-colors focus:border-[#a3c4f3]"
+                          className="flex h-[36px] w-full items-center justify-between rounded-md border border-[#e0e0e0] bg-[#fafafa] px-[10px] text-[13px] font-medium outline-none transition-colors focus:border-[#a3c4f3]"
                           tabIndex={0}
                         >
                           {newContact.relationship ? (
