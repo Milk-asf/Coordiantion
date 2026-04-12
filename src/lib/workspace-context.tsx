@@ -21,8 +21,22 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const supabase = createClient()
     if (!supabase) { setIsLoading(false); return }
 
+    let cancelled = false
+
     const init = async () => {
-      const { data } = await supabase.from("workspaces").select("*").order("created_at", { ascending: true }).limit(1).single()
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+      if (authError || !user) {
+        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+          window.location.href = "/login"
+        }
+        setIsLoading(false)
+        return
+      }
+
+      const { data, error } = await supabase.from("workspaces").select("*").order("created_at", { ascending: true }).limit(1).single()
+
+      if (cancelled) return
 
       if (data) {
         setActiveWorkspace(data)
@@ -30,14 +44,17 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setIsLoading(false); return }
+      if (error) {
+        console.error("Workspace query failed:", error.message)
+      }
 
       const fullName = user.user_metadata?.full_name || user.email?.split("@")[0] || "My"
       const { data: wsId } = await supabase.rpc("create_workspace_for_user", {
         workspace_name: `${fullName}'s Workspace`,
         owner_id: user.id,
       })
+
+      if (cancelled) return
 
       if (wsId) {
         await supabase.from("workspace_members").upsert({
@@ -80,13 +97,19 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           industry: [],
         })
 
+        if (cancelled) return
         const { data: ws } = await supabase.from("workspaces").select("*").eq("id", wsId).single()
-        if (ws) setActiveWorkspace(ws)
+        if (ws && !cancelled) setActiveWorkspace(ws)
       }
       setIsLoading(false)
     }
 
-    init().catch(() => setIsLoading(false))
+    init().catch((err) => {
+      console.error("Workspace init failed:", err)
+      setIsLoading(false)
+    })
+
+    return () => { cancelled = true }
   }, [])
 
   const renameWorkspace = useCallback(async (name: string) => {
