@@ -93,12 +93,27 @@ export function useInvoices() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
 
   useEffect(() => {
-    setInvoices(loadInvoices())
+    const hydrate = () => {
+      const loaded = loadInvoices()
+      const today = new Date().toISOString().split("T")[0]
+      let didUpdate = false
+      const updated = loaded.map((inv) => {
+        if (inv.status === "sent" && inv.dueDate && inv.dueDate < today) {
+          didUpdate = true
+          return { ...inv, status: "overdue" as InvoiceStatus }
+        }
+        return inv
+      })
+      if (didUpdate) saveInvoices(updated)
+      setInvoices(updated)
+    }
+
+    hydrate()
 
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) setInvoices(loadInvoices())
+      if (e.key === STORAGE_KEY) hydrate()
     }
-    const handleCustom = () => setInvoices(loadInvoices())
+    const handleCustom = () => hydrate()
 
     window.addEventListener("storage", handleStorage)
     window.addEventListener("invoices-updated", handleCustom)

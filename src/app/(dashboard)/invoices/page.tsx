@@ -15,7 +15,7 @@ import {
 } from "lucide-react"
 import { useInvoices } from "@/lib/hooks/use-invoices"
 import { useSavedViews } from "@/lib/hooks/use-saved-views"
-import type { Invoice } from "@/lib/types"
+import type { Invoice, InvoiceStatus } from "@/lib/types"
 
 interface InvoicesSavedView {
   id: string
@@ -90,7 +90,7 @@ function getInvoiceActivityDate(invoice: Invoice): Date | null {
 }
 
 export default function InvoicesPage() {
-  const { invoices } = useInvoices()
+  const { invoices, updateInvoiceStatus } = useInvoices()
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(defaultVisibleColumnKeys)
   const [displayParticipants, setDisplayParticipants] = useState<string[]>([])
   const [displayEmails, setDisplayEmails] = useState<string[]>([])
@@ -105,6 +105,8 @@ export default function InvoicesPage() {
   const [activeFilterDropdown, setActiveFilterDropdown] = useState<string | null>(null)
   const [isDisplayOpen, setIsDisplayOpen] = useState(false)
   const [viewContextMenu, setViewContextMenu] = useState<{ viewId: string; x: number; y: number } | null>(null)
+  const [statusMenu, setStatusMenu] = useState<{ invoiceId: string; x: number; y: number } | null>(null)
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null)
   const filterButtonRef = useRef<HTMLButtonElement>(null)
   const filterPillRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const pageSizeButtonRef = useRef<HTMLButtonElement>(null)
@@ -280,12 +282,21 @@ export default function InvoicesPage() {
     setItems(items.includes(value) ? items.filter((item) => item !== value) : [...items, value])
   }
 
+  const handleStatusChange = (invoiceId: string, newStatus: InvoiceStatus) => {
+    updateInvoiceStatus(invoiceId, newStatus)
+    setStatusMenu(null)
+  }
+
   const renderInvoiceRow = (invoice: Invoice) => {
     return (
       <div
         key={invoice.id}
-        className="grid items-center border-b border-[#f0f0f0] px-[24px] transition-colors hover:bg-[#fafafa]"
+        className="grid cursor-pointer items-center border-b border-[#f0f0f0] px-[24px] transition-colors hover:bg-[#fafafa]"
         style={{ gridTemplateColumns: gridTemplateColumns }}
+        onClick={() => setSelectedInvoiceId(invoice.id)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter") setSelectedInvoiceId(invoice.id) }}
       >
         {isColumnVisible("invoice") && (
           <div className="whitespace-nowrap py-[12px] text-[13px] font-medium text-[#262626]">
@@ -323,9 +334,20 @@ export default function InvoicesPage() {
         )}
         {isColumnVisible("status") && (
           <div className="whitespace-nowrap py-[12px]">
-            <span className={`inline-flex rounded-[8px] border px-[10px] py-[4px] text-[12px] font-medium ${getInvoiceStatusClasses(invoice)}`}>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                const rect = (e.target as HTMLElement).getBoundingClientRect()
+                setStatusMenu({ invoiceId: invoice.id, x: rect.left, y: rect.bottom + 4 })
+              }}
+              className={`inline-flex items-center gap-[4px] rounded-[8px] border px-[10px] py-[4px] text-[12px] font-medium transition-colors hover:opacity-80 ${getInvoiceStatusClasses(invoice)}`}
+              tabIndex={0}
+              aria-label="Change invoice status"
+            >
               {getInvoiceStatusLabel(invoice)}
-            </span>
+              <ChevronDown className="h-[10px] w-[10px]" strokeWidth={2} />
+            </button>
           </div>
         )}
       </div>
@@ -704,6 +726,153 @@ export default function InvoicesPage() {
           </div>
         </>
       )}
+
+      {statusMenu && (
+        <>
+          <div className="fixed inset-0 z-[69]" onClick={() => setStatusMenu(null)} />
+          <div
+            className="fixed z-[70] min-w-[140px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_6px_20px_rgba(0,0,0,0.12)]"
+            style={{ left: statusMenu.x, top: statusMenu.y }}
+          >
+            {([
+              { value: "sent" as InvoiceStatus, label: "Sent", dot: "bg-[#888]" },
+              { value: "paid" as InvoiceStatus, label: "Paid", dot: "bg-[#286847]" },
+              { value: "overdue" as InvoiceStatus, label: "Overdue", dot: "bg-[#a54848]" },
+            ]).map(({ value, label, dot }) => {
+              const inv = sentInvoices.find((i) => i.id === statusMenu.invoiceId)
+              const currentStatus = inv ? getInvoiceStatusValue(inv) : ""
+              const isActive = currentStatus === value
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => handleStatusChange(statusMenu.invoiceId, value)}
+                  className={`flex w-full items-center gap-[8px] px-[14px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`}
+                  tabIndex={0}
+                >
+                  <div className={`h-[6px] w-[6px] rounded-full ${dot}`} />
+                  {label}
+                  {isActive && <span className="ml-auto text-[11px] text-[#888]">✓</span>}
+                </button>
+              )
+            })}
+          </div>
+        </>
+      )}
+
+      {selectedInvoiceId && (() => {
+        const invoice = sentInvoices.find((i) => i.id === selectedInvoiceId)
+        if (!invoice) return null
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-[16px]">
+            <div className="absolute inset-0 bg-black/20" onClick={() => setSelectedInvoiceId(null)} />
+            <div className="relative z-10 flex w-[560px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[20px] border border-[#e7e7e7] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+              <div className="flex items-center justify-between border-b border-[#f0f0f0] px-[24px] py-[16px]">
+                <div className="flex items-center gap-[10px]">
+                  <Receipt className="h-[16px] w-[16px] text-[#888]" strokeWidth={1.5} />
+                  <h3 className="text-[16px] font-semibold text-[#262626]">{invoice.invoiceNumber}</h3>
+                  <span className={`inline-flex rounded-[8px] border px-[10px] py-[3px] text-[12px] font-medium ${getInvoiceStatusClasses(invoice)}`}>
+                    {getInvoiceStatusLabel(invoice)}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedInvoiceId(null)}
+                  className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+                  tabIndex={0}
+                  aria-label="Close"
+                >
+                  <X className="h-[14px] w-[14px]" strokeWidth={1.5} />
+                </button>
+              </div>
+
+              <div className="px-[24px] py-[20px]">
+                <div className="space-y-[12px]">
+                  <DetailRow label="Participant" value={invoice.clientName} />
+                  <DetailRow label="Sent to" value={invoice.sentTo || "—"} />
+                  <DetailRow label="Delivery" value={
+                    invoice.deliveryMethod === "ndia-portal" ? "NDIA portal claim"
+                    : invoice.deliveryMethod === "plan-manager-email" ? "Plan manager email"
+                    : invoice.deliveryMethod === "participant-email" ? "Participant email"
+                    : "Email"
+                  } />
+                  <DetailRow label="Issue date" value={formatDate(invoice.issueDate) || "—"} />
+                  <DetailRow label="Due date" value={formatDate(invoice.dueDate) || "—"} />
+                  <DetailRow label="Sent" value={formatDate(invoice.sentAt) || "—"} />
+                  {invoice.paidAt && <DetailRow label="Paid" value={formatDate(invoice.paidAt)} />}
+                </div>
+
+                <div className="mt-[20px] rounded-[10px] border border-[#e5e5e5]">
+                  <div className="grid grid-cols-[1fr_80px_80px_90px] border-b border-[#e5e5e5] px-[12px] py-[8px]">
+                    <span className="text-[11px] font-medium uppercase tracking-wide text-[#888]">Item</span>
+                    <span className="text-right text-[11px] font-medium uppercase tracking-wide text-[#888]">Qty</span>
+                    <span className="text-right text-[11px] font-medium uppercase tracking-wide text-[#888]">Rate</span>
+                    <span className="text-right text-[11px] font-medium uppercase tracking-wide text-[#888]">Amount</span>
+                  </div>
+                  {invoice.lineItems.map((item) => (
+                    <div key={item.id} className="grid grid-cols-[1fr_80px_80px_90px] border-b border-[#f0f0f0] px-[12px] py-[8px] last:border-b-0">
+                      <div className="min-w-0">
+                        <div className="truncate text-[13px] font-medium text-[#262626]">{item.description || item.chargeName}</div>
+                        <div className="text-[11px] text-[#888]">{item.chargeItemNumber}</div>
+                      </div>
+                      <div className="text-right text-[13px] text-[#666]">{item.quantity.toFixed(2)}</div>
+                      <div className="text-right text-[13px] text-[#666]">{formatCurrency(item.rate)}</div>
+                      <div className="text-right text-[13px] font-medium text-[#262626]">{formatCurrency(item.amount)}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-[12px] flex flex-col items-end gap-[4px]">
+                  <div className="flex w-[200px] items-center justify-between text-[13px]">
+                    <span className="text-[#888]">Subtotal</span>
+                    <span className="text-[#262626]">{formatCurrency(invoice.subtotal)}</span>
+                  </div>
+                  <div className="flex w-[200px] items-center justify-between text-[13px]">
+                    <span className="text-[#888]">GST</span>
+                    <span className="text-[#262626]">{formatCurrency(invoice.gst)}</span>
+                  </div>
+                  <div className="mt-[4px] flex w-[200px] items-center justify-between border-t border-[#e5e5e5] pt-[6px] text-[14px] font-semibold">
+                    <span className="text-[#262626]">Total</span>
+                    <span className="text-[#262626]">{formatCurrency(invoice.total)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-[#f0f0f0] px-[24px] py-[14px]">
+                <div className="flex items-center gap-[6px]">
+                  <span className="text-[12px] text-[#888]">Status:</span>
+                  {([
+                    { value: "sent" as InvoiceStatus, label: "Sent", classes: "border-[#dcdcdc] bg-[#f7f7f7] text-[#262626]" },
+                    { value: "paid" as InvoiceStatus, label: "Paid", classes: "border-[#d7eadf] bg-[#f3faf6] text-[#286847]" },
+                    { value: "overdue" as InvoiceStatus, label: "Overdue", classes: "border-[#f0d4d4] bg-[#fff7f7] text-[#a54848]" },
+                  ]).map(({ value, label, classes }) => {
+                    const isActive = invoice.status === value || (value === "sent" && invoice.deliveryMethod === "ndia-portal" && invoice.status === "sent")
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => handleStatusChange(invoice.id, value)}
+                        className={`rounded-[8px] border px-[10px] py-[4px] text-[12px] font-medium transition-colors ${isActive ? classes + " ring-2 ring-offset-1 ring-[#262626]/20" : "border-[#e5e5e5] bg-white text-[#888] hover:bg-[#f5f5f5]"}`}
+                        tabIndex={0}
+                      >
+                        {label}
+                      </button>
+                    )
+                  })}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedInvoiceId(null)}
+                  className="rounded-lg bg-[#262626] px-[12px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-black"
+                  tabIndex={0}
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }
@@ -824,6 +993,15 @@ function MultiSelectDropdown({
           Clear
         </button>
       </div>
+    </div>
+  )
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid grid-cols-[100px_1fr] items-center">
+      <span className="text-[13px] font-medium text-[#888]">{label}</span>
+      <span className={`text-[13px] font-medium ${value === "—" ? "text-[#ccc]" : "text-[#262626]"}`}>{value}</span>
     </div>
   )
 }
