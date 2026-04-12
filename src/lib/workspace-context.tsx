@@ -22,7 +22,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     if (!supabase) { setIsLoading(false); return }
 
     const init = async () => {
-      const { data } = await supabase.from("workspaces").select("*").limit(1).single()
+      const { data } = await supabase.from("workspaces").select("*").order("created_at", { ascending: true }).limit(1).single()
 
       if (data) {
         setActiveWorkspace(data)
