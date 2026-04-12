@@ -93,7 +93,7 @@ export default function SettingsLayout({
               <p className="mb-1 px-2 text-[11px] font-medium tracking-wide text-sidebar-muted">
                 {section.title}
               </p>
-              <ul className="space-y-px">
+              <ul className="list-none space-y-px p-0 m-0">
                 {section.items.map((item) => {
                   const isActive = pathname === item.href
                   const Icon = item.icon
