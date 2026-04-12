@@ -1,3 +1,5 @@
+export type FundingType = "plan-managed" | "ndia-managed" | "self-managed" | ""
+
 export interface ParticipantDetails {
   firstName: string
   middleName: string
@@ -22,6 +24,12 @@ export interface ParticipantDetails {
   serviceCommencementDate: string
   serviceExitDate: string
   checkInPeriod: string
+  fundingType: FundingType
+  planManagerName: string
+  planManagerEmail: string
+  planManagerOrg: string
+  planStartDate: string
+  planEndDate: string
 }
 
 export const emptyParticipant: ParticipantDetails = {
@@ -33,6 +41,8 @@ export const emptyParticipant: ParticipantDetails = {
   ndisNumber: "", medicareNumber: "", centrelinkNumber: "", externalId: "",
   serviceCommencementDate: "", serviceExitDate: "",
   checkInPeriod: "",
+  fundingType: "", planManagerName: "", planManagerEmail: "", planManagerOrg: "",
+  planStartDate: "", planEndDate: "",
 }
 
 export interface Client {
@@ -161,7 +171,8 @@ export interface Document {
   createdAt: string
 }
 
-export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue"
+export type InvoiceStatus = "unsent" | "sent" | "paid" | "overdue"
+export type InvoiceDeliveryMethod = "plan-manager-email" | "participant-email" | "ndia-portal"
 
 export interface InvoiceLineItem {
   id: string
@@ -184,6 +195,7 @@ export interface Invoice {
   status: InvoiceStatus
   issueDate: string
   dueDate: string
+  taskIds: string[]
   lineItems: InvoiceLineItem[]
   subtotal: number
   gst: number
@@ -192,9 +204,28 @@ export interface Invoice {
   createdBy: string
   createdAt: string
   paidAt?: string
+  sentAt?: string
+  sentTo?: string
+  sentError?: string
+  deliveryMethod?: InvoiceDeliveryMethod
+}
+
+export interface WorkspaceEmailSettings {
+  orgName: string
+  orgAbn: string
+  orgPhone: string
+  orgEmail: string
+  orgAddress: string
+  replyToEmail: string
+  emailFooter: string
+  bankName: string
+  bankBsb: string
+  bankAccountNumber: string
+  bankAccountName: string
 }
 
 export const relationshipConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {
+  "plan-manager": { label: "Plan Manager", bg: "bg-transparent", text: "text-[#262626]", border: "border-[#dcdcdc]" },
   "support-coordinator": { label: "Support Coordinator", bg: "bg-transparent", text: "text-[#262626]", border: "border-[#dcdcdc]" },
   "general-practitioner": { label: "General Practitioner", bg: "bg-transparent", text: "text-[#262626]", border: "border-[#dcdcdc]" },
   "pharmacy": { label: "Pharmacy", bg: "bg-transparent", text: "text-[#262626]", border: "border-[#dcdcdc]" },

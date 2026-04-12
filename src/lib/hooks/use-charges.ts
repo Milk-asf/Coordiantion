@@ -1,33 +1,82 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo } from "react"
-import { ndisCharges } from "@/lib/ndis-charges"
+import { ndisCharges, type ChargeItem } from "@/lib/ndis-charges"
 
-const STORAGE_KEY = "coordination:enabled-charges"
+const STORAGE_KEY = "coordination:charge-items"
+const LEGACY_KEY = "coordination:enabled-charges"
 
-function loadEnabledItemNumbers(): string[] {
-  if (typeof window === "undefined") return getDefaults()
-  const stored = localStorage.getItem(STORAGE_KEY)
-  if (!stored) return getDefaults()
-  try { return JSON.parse(stored) } catch { return getDefaults() }
+function migrateFromLegacy(): ChargeItem[] {
+  if (typeof window === "undefined") return []
+  const legacy = localStorage.getItem(LEGACY_KEY)
+  if (!legacy) return []
+  try {
+    const itemNumbers: string[] = JSON.parse(legacy)
+    return itemNumbers
+      .map((num) => {
+        const ndis = ndisCharges.find((c) => c.itemNumber === num)
+        if (!ndis) return null
+        return {
+          id: crypto.randomUUID(),
+          name: ndis.name,
+          itemNumber: ndis.itemNumber,
+          claimType: "direct-service",
+          price: ndis.price,
+          unit: ndis.unit,
+          gstCode: "P2",
+          reference: ndis.shortName,
+        } as ChargeItem
+      })
+      .filter(Boolean) as ChargeItem[]
+  } catch {
+    return []
+  }
 }
 
-function getDefaults(): string[] {
+function getDefaults(): ChargeItem[] {
   return ndisCharges
     .filter((c) => c.category === "support-coordination")
-    .map((c) => c.itemNumber)
+    .map((c) => ({
+      id: crypto.randomUUID(),
+      name: c.name,
+      itemNumber: c.itemNumber,
+      claimType: "direct-service",
+      price: c.price,
+      unit: c.unit,
+      gstCode: "P2",
+      reference: c.shortName,
+    }))
+}
+
+function loadItems(): ChargeItem[] {
+  if (typeof window === "undefined") return getDefaults()
+  const stored = localStorage.getItem(STORAGE_KEY)
+  if (stored) {
+    try { return JSON.parse(stored) } catch { /* fall through */ }
+  }
+  const migrated = migrateFromLegacy()
+  if (migrated.length > 0) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated))
+    return migrated
+  }
+  return getDefaults()
+}
+
+function saveItems(items: ChargeItem[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+  window.dispatchEvent(new Event("charges-updated"))
 }
 
 export function useCharges() {
-  const [enabledItemNumbers, setEnabledItemNumbers] = useState<string[]>(getDefaults)
+  const [chargeItems, setChargeItems] = useState<ChargeItem[]>(getDefaults)
 
   useEffect(() => {
-    setEnabledItemNumbers(loadEnabledItemNumbers())
+    setChargeItems(loadItems())
 
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) setEnabledItemNumbers(loadEnabledItemNumbers())
+      if (e.key === STORAGE_KEY) setChargeItems(loadItems())
     }
-    const handleCustom = () => setEnabledItemNumbers(loadEnabledItemNumbers())
+    const handleCustom = () => setChargeItems(loadItems())
 
     window.addEventListener("storage", handleStorage)
     window.addEventListener("charges-updated", handleCustom)
@@ -38,37 +87,58 @@ export function useCharges() {
   }, [])
 
   const enabledCharges = useMemo(() => {
-    const set = new Set(enabledItemNumbers)
-    return ndisCharges.filter((c) => set.has(c.itemNumber))
-  }, [enabledItemNumbers])
+    return chargeItems.map((ci) => {
+      const ndis = ndisCharges.find((n) => n.itemNumber === ci.itemNumber)
+      return ndis ?? {
+        itemNumber: ci.itemNumber,
+        name: ci.name,
+        shortName: ci.reference,
+        registrationGroup: "",
+        unit: ci.unit,
+        price: ci.price,
+        category: "support-coordination" as const,
+      }
+    })
+  }, [chargeItems])
 
-  const toggleCharge = useCallback((itemNumber: string) => {
-    setEnabledItemNumbers((prev) => {
-      const next = prev.includes(itemNumber)
-        ? prev.filter((n) => n !== itemNumber)
-        : [...prev, itemNumber]
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      window.dispatchEvent(new Event("charges-updated"))
+  const enabledItemNumbers = useMemo(() => chargeItems.map((ci) => ci.itemNumber), [chargeItems])
+
+  const addChargeItem = useCallback((item: ChargeItem) => {
+    setChargeItems((prev) => {
+      const next = [...prev, item]
+      saveItems(next)
       return next
     })
   }, [])
 
-  const setEnabled = useCallback((itemNumbers: string[]) => {
-    setEnabledItemNumbers(itemNumbers)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(itemNumbers))
-    window.dispatchEvent(new Event("charges-updated"))
+  const removeChargeItem = useCallback((id: string) => {
+    setChargeItems((prev) => {
+      const next = prev.filter((ci) => ci.id !== id)
+      saveItems(next)
+      return next
+    })
+  }, [])
+
+  const updateChargeItem = useCallback((id: string, updates: Partial<ChargeItem>) => {
+    setChargeItems((prev) => {
+      const next = prev.map((ci) => ci.id === id ? { ...ci, ...updates } : ci)
+      saveItems(next)
+      return next
+    })
   }, [])
 
   const isEnabled = useCallback((itemNumber: string) => {
-    return enabledItemNumbers.includes(itemNumber)
-  }, [enabledItemNumbers])
+    return chargeItems.some((ci) => ci.itemNumber === itemNumber)
+  }, [chargeItems])
 
   return {
     allCharges: ndisCharges,
     enabledCharges,
     enabledItemNumbers,
-    toggleCharge,
-    setEnabled,
+    chargeItems,
+    addChargeItem,
+    removeChargeItem,
+    updateChargeItem,
     isEnabled,
   }
 }

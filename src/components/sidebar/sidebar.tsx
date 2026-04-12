@@ -12,7 +12,6 @@ import {
   User,
   FileText,
   Receipt,
-  Layers,
   ChevronsLeft,
   ChevronsRight,
   LogOut,
@@ -53,7 +52,6 @@ const navigation: NavSection[] = [
     title: "Finance",
     items: [
       { label: "Invoicing", href: "/invoicing", icon: Receipt },
-      { label: "Batches", href: "/batches", icon: Layers },
     ],
   },
   {

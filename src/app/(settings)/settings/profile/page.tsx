@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, User, Mail, Globe, Clock } from "lucide-react"
 
 const languageOptions = [
   "English (US)",
@@ -18,6 +18,9 @@ const languageOptions = [
   "Chinese (Simplified)",
 ]
 
+const labelClass = "mb-[6px] block text-[13px] font-medium text-[#555]"
+const inputClass = "h-[40px] w-full rounded-[8px] border border-[#e0e0e0] bg-white px-[12px] text-[14px] text-[#1a1a1a] outline-none transition-colors placeholder:text-[#bbb] focus:border-[#a3c4f3]"
+
 const timezoneOptions = [
   "(UTC+10) Australian Eastern Standard Time",
   "(UTC+9:30) Australian Central Standard Time",
@@ -30,6 +33,55 @@ const timezoneOptions = [
   "(UTC-8) Pacific Standard Time",
   "(UTC-10) Hawaii-Aleutian Standard Time",
 ]
+
+function ProfileSelect({ label, value, options, onChange, icon }: { label: string; value: string; options: readonly string[]; onChange: (v: string) => void; icon?: React.ReactNode }) {
+  const [isOpen, setIsOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setIsOpen(false)
+    }
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [isOpen])
+
+  return (
+    <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-[12px]">
+      <span className="text-[13px] font-medium text-[#8d8d8d]">{label}</span>
+      <div className="relative" ref={ref}>
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex w-full items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] text-left text-[13px] font-medium text-[#262626] outline-none transition-colors hover:bg-[#f7f7f7]"
+          tabIndex={0}
+        >
+          {icon}
+          <span className="truncate">{value}</span>
+        </button>
+        {isOpen && (
+          <>
+            <div className="fixed inset-0 z-[59]" onClick={() => setIsOpen(false)} />
+            <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[220px] w-full overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
+              {options.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => { onChange(opt); setIsOpen(false) }}
+                  className={`flex w-full items-center px-[12px] py-[8px] text-left text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${opt === value ? "bg-[#f0f0f0] text-[#262626]" : "text-[#555]"}`}
+                  tabIndex={0}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export default function ProfileSettingsPage() {
   const [firstName, setFirstName] = useState("")
@@ -167,10 +219,6 @@ export default function ProfileSettingsPage() {
     }
   }
 
-  const inputClass = "h-[38px] w-full rounded-[6px] border border-sidebar-border bg-[#fafafa] px-[12px] text-[14px] text-[#262626] outline-none transition-colors focus:border-[#bbb] focus:bg-white"
-  const selectClass = "h-[38px] w-full appearance-none rounded-[6px] border border-sidebar-border bg-[#fafafa] px-[12px] pr-[36px] text-[14px] text-[#262626] outline-none transition-colors focus:border-[#bbb] focus:bg-white"
-  const labelClass = "mb-[6px] block text-[13px] font-medium text-sidebar-muted"
-
   return (
     <>
       {/* Profile section */}
@@ -181,81 +229,47 @@ export default function ProfileSettingsPage() {
         </p>
       </div>
 
-      <div className="flex flex-col gap-[18px]">
-        <div className="flex gap-[16px]">
-          <div className="flex-1">
-            <label className={labelClass}>First name</label>
+      <div className="flex flex-col gap-[2px]">
+        <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-[12px]">
+          <span className="text-[13px] font-medium text-[#8d8d8d]">First name</span>
+          <div className="flex items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] transition-colors hover:bg-[#f7f7f7]">
+            <User className={`h-[13px] w-[13px] shrink-0 ${firstName ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
             <input
               type="text"
               value={firstName}
               onChange={(e) => handleFieldChange(setFirstName)(e.target.value)}
-              className={inputClass}
-              placeholder="First name"
+              placeholder="Empty"
+              className="w-full bg-transparent text-[13px] font-medium text-[#262626] placeholder-[#ccc] outline-none"
             />
           </div>
-          <div className="flex-1">
-            <label className={labelClass}>Last name</label>
+        </div>
+
+        <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-[12px]">
+          <span className="text-[13px] font-medium text-[#8d8d8d]">Last name</span>
+          <div className="flex items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] transition-colors hover:bg-[#f7f7f7]">
+            <User className={`h-[13px] w-[13px] shrink-0 ${lastName ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
             <input
               type="text"
               value={lastName}
               onChange={(e) => handleFieldChange(setLastName)(e.target.value)}
-              className={inputClass}
-              placeholder="Last name"
+              placeholder="Empty"
+              className="w-full bg-transparent text-[13px] font-medium text-[#262626] placeholder-[#ccc] outline-none"
             />
           </div>
         </div>
 
-        <div>
-          <label className={labelClass}>Email</label>
-          <input
-            type="email"
-            value={email}
-            readOnly
-            className="h-[38px] w-full rounded-[6px] border border-sidebar-border bg-sidebar-bg px-[12px] text-[14px] text-[#aaa] outline-none"
-          />
-        </div>
-
-        <div>
-          <label className={labelClass}>Language</label>
-          <div className="relative">
-            <select
-              value={language}
-              onChange={(e) => handleFieldChange(setLanguage)(e.target.value)}
-              className={selectClass}
-            >
-              {languageOptions.map((lang) => (
-                <option key={lang} value={lang}>{lang}</option>
-              ))}
-            </select>
-            <div className="pointer-events-none absolute right-[12px] top-1/2 -translate-y-1/2">
-              <svg className="h-[14px] w-[14px] text-sidebar-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
+        <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-[12px]">
+          <span className="text-[13px] font-medium text-[#8d8d8d]">Email</span>
+          <div className="flex items-center gap-[7px] px-[8px] py-[6px]">
+            <Mail className="h-[13px] w-[13px] shrink-0 text-[#888]" strokeWidth={1.5} />
+            <span className="text-[13px] font-medium text-[#888]">{email}</span>
           </div>
         </div>
 
-        <div>
-          <label className={labelClass}>Timezone</label>
-          <div className="relative">
-            <select
-              value={timezone}
-              onChange={(e) => handleFieldChange(setTimezone)(e.target.value)}
-              className={selectClass}
-            >
-              {timezoneOptions.map((tz) => (
-                <option key={tz} value={tz}>{tz}</option>
-              ))}
-            </select>
-            <div className="pointer-events-none absolute right-[12px] top-1/2 -translate-y-1/2">
-              <svg className="h-[14px] w-[14px] text-sidebar-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </div>
-        </div>
+        <ProfileSelect label="Language" value={language} options={languageOptions} onChange={handleFieldChange(setLanguage)} icon={<Globe className="h-[13px] w-[13px] shrink-0 text-[#888]" strokeWidth={1.5} />} />
+        <ProfileSelect label="Timezone" value={timezone} options={timezoneOptions} onChange={handleFieldChange(setTimezone)} icon={<Clock className="h-[13px] w-[13px] shrink-0 text-[#888]" strokeWidth={1.5} />} />
 
-        <div className="flex items-center gap-[12px] pt-[2px]">
+        <div className="mt-[14px] flex items-center gap-[12px]">
           <button
             onClick={handleUpdateProfile}
             disabled={!hasChanges || isSaving}

@@ -5,6 +5,10 @@ import { useParams, useRouter } from "next/navigation"
 import { useStaff } from "@/lib/staff-context"
 import { useClients } from "@/lib/hooks/use-clients"
 import type { StaffMember, StaffDetails } from "@/lib/types"
+import { EntityIcon } from "@/components/entity-icon"
+import { EditableField } from "@/components/editable-field"
+import { ContactChip } from "@/components/contact-chip"
+import { DetailRow } from "@/components/detail-row"
 import {
   User,
   FileText,
@@ -27,9 +31,6 @@ import {
   ShieldCheck,
   UserPlus,
   Users,
-  X,
-  Copy,
-  Check,
 } from "lucide-react"
 
 const tabs = [
@@ -41,25 +42,28 @@ const tabs = [
 ]
 
 function StaffIcon({ member, size = "md" }: { member: StaffMember; size?: "sm" | "md" | "lg" | "xl" }) {
-  const dims = size === "xl" ? "h-[48px] w-[48px]" : size === "lg" ? "h-[36px] w-[36px]" : size === "md" ? "h-[28px] w-[28px]" : "h-[20px] w-[20px]"
-  const textSize = size === "xl" ? "text-[18px]" : size === "lg" ? "text-[15px]" : size === "md" ? "text-[12px]" : "text-[10px]"
-  const radius = size === "xl" ? "rounded-lg" : "rounded-[4px]"
+  const normalizedSize = size === "md" ? "md" : size === "xl" ? "xl" : size === "lg" ? "lg" : "sm"
+
   return (
-    <div className={`${dims} ${radius} flex items-center justify-center bg-blue-100 ${textSize} font-semibold text-blue-600`}>
-      {member.iconText}
-    </div>
+    <EntityIcon
+      text={member.iconText}
+      size={normalizedSize}
+      backgroundClassName="bg-blue-100"
+      textClassName="text-blue-600"
+    />
   )
 }
 
 function SidebarDetailRow({ icon: Icon, label, children }: { icon: React.ComponentType<{ className?: string; strokeWidth?: number }>; label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center py-[6px]">
-      <div className="flex w-[130px] shrink-0 items-center gap-[8px] text-[13px] font-medium text-[#888]">
-        <Icon className="h-[14px] w-[14px] text-[#999]" strokeWidth={1.5} />
-        <span>{label}</span>
-      </div>
-      <div className="min-w-0 flex-1 text-[13px] font-medium text-[#262626]">{children}</div>
-    </div>
+    <DetailRow
+      icon={Icon}
+      label={label}
+      labelWidthClassName="w-[130px]"
+      rowClassName="flex items-center py-[6px]"
+    >
+      {children}
+    </DetailRow>
   )
 }
 
@@ -76,163 +80,28 @@ function SidebarEditableField({
   type?: "text" | "select" | "date"
   options?: string[]
 }) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [draft, setDraft] = useState(value)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const selectRef = useRef<HTMLSelectElement>(null)
-
-  useEffect(() => { setDraft(value) }, [value])
-  useEffect(() => {
-    if (!isEditing) return
-    if (type === "select") selectRef.current?.focus()
-    else inputRef.current?.focus()
-  }, [isEditing, type])
-
-  const handleSave = useCallback(() => { setIsEditing(false); onChange(draft) }, [draft, onChange])
-  const handleCancel = useCallback(() => { setIsEditing(false); setDraft(value) }, [value])
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleSave()
-    if (e.key === "Escape") handleCancel()
-  }, [handleSave, handleCancel])
-
-  if (isEditing) {
-    if (type === "select" && options) {
-      return (
-        <div className="relative">
-          <select
-            ref={selectRef}
-            value={draft}
-            onChange={(e) => { setDraft(e.target.value); onChange(e.target.value); setIsEditing(false) }}
-            onBlur={handleSave}
-            onKeyDown={handleKeyDown}
-            className="w-full appearance-none rounded-lg border border-[#a3c4f3] bg-white px-[8px] py-[5px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
-          >
-            <option value="">—</option>
-            {options.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-[8px] top-1/2 h-[12px] w-[12px] -translate-y-1/2 text-[#999]" strokeWidth={1.5} />
-        </div>
-      )
-    }
-    return (
-      <div className="relative">
-        <input
-          ref={inputRef}
-          type={type === "date" ? "date" : "text"}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={handleSave}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          className="w-full rounded-lg border border-[#a3c4f3] bg-white px-[8px] py-[5px] pr-[28px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
-        />
-        {draft && (
-          <button
-            type="button"
-            onMouseDown={(e) => { e.preventDefault(); setDraft(""); onChange(""); setIsEditing(false) }}
-            className="absolute right-[8px] top-1/2 -translate-y-1/2 text-[#bbb] transition-colors hover:text-[#888]"
-            tabIndex={-1}
-            aria-label="Clear field"
-          >
-            <X className="h-[13px] w-[13px]" strokeWidth={1.5} />
-          </button>
-        )}
-      </div>
-    )
-  }
-
-  const displayValue = type === "date" && value
-    ? new Date(value + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
-    : value
-
   return (
-    <span
-      onClick={() => setIsEditing(true)}
-      className="block cursor-default rounded-lg px-[8px] py-[5px] transition-colors hover:bg-[#f5f5f5]"
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === "Enter") setIsEditing(true) }}
-      aria-label={`Click to edit ${placeholder || "field"}`}
-    >
-      {displayValue || <span className="text-[#bbb]">{placeholder || "—"}</span>}
-    </span>
+    <EditableField
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      type={type}
+      options={options}
+      size="compact"
+    />
   )
 }
 
 function SidebarContactChip({ value, onChange, placeholder, variant = "grey" }: { value: string; onChange: (v: string) => void; placeholder: string; variant?: "grey" | "white" }) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [draft, setDraft] = useState(value)
-  const [isCopied, setIsCopied] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => { setDraft(value) }, [value])
-  useEffect(() => { if (isEditing) inputRef.current?.focus() }, [isEditing])
-
-  const handleSave = () => { setIsEditing(false); onChange(draft) }
-  const handleCancel = () => { setIsEditing(false); setDraft(value) }
-  const handleCopy = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    navigator.clipboard.writeText(value)
-    setIsCopied(true)
-    setTimeout(() => setIsCopied(false), 1500)
-  }
-
-  const isWhite = variant === "white"
-  const chipBg = isWhite ? "bg-transparent" : "bg-[#f5f5f5]"
-  const chipHover = isWhite ? "hover:bg-[#f5f5f5]" : "hover:bg-[#efefef]"
-  const chipBorder = "border-[#dcdcdc]"
-  const copyHoverBg = isWhite ? "hover:bg-[#f0f0f0]" : "hover:bg-[#e5e5e5]"
-
-  if (isEditing) {
-    return (
-      <input
-        ref={inputRef}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={handleSave}
-        onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") handleCancel() }}
-        placeholder={placeholder}
-        className="rounded border border-[#a3c4f3] bg-white px-[8px] py-[3px] text-[12px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
-      />
-    )
-  }
-
-  if (!value) {
-    return (
-      <span
-        onClick={() => setIsEditing(true)}
-        className="inline-flex cursor-default items-center rounded border border-dashed border-[#d0d0d0] bg-transparent px-[8px] py-[2px] text-[12px] font-medium text-[#bbb] transition-colors hover:border-[#999] hover:text-[#999]"
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === "Enter") setIsEditing(true) }}
-        aria-label={`Click to add ${placeholder}`}
-      >
-        + {placeholder}
-      </span>
-    )
-  }
-
   return (
-    <span className={`group/chip inline-flex cursor-default items-center gap-[4px] rounded border ${chipBorder} ${chipBg} py-[2px] pl-[8px] pr-[4px] text-[12px] font-medium text-[#262626] transition-colors ${chipHover}`}>
-      <span
-        onClick={() => setIsEditing(true)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === "Enter") setIsEditing(true) }}
-        aria-label={`Click to edit ${placeholder}`}
-      >
-        {value}
-      </span>
-      <button
-        type="button"
-        onClick={handleCopy}
-        className={`shrink-0 rounded p-[2px] transition-all ${isCopied ? "text-green-600" : `text-[#bbb] opacity-0 group-hover/chip:opacity-100 ${copyHoverBg} hover:text-[#666]`}`}
-        tabIndex={0}
-        aria-label={`Copy ${placeholder}`}
-      >
-        {isCopied ? <Check className="h-[11px] w-[11px]" strokeWidth={2} /> : <Copy className="h-[11px] w-[11px]" strokeWidth={1.5} />}
-      </button>
-    </span>
+    <ContactChip
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      variant={variant}
+      size="compact"
+      emptyPrefix="+"
+    />
   )
 }
 

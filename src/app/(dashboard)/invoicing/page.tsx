@@ -1,380 +1,876 @@
 "use client"
 
-import { useState, useRef, useMemo, useCallback, useEffect } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties } from "react"
+import Link from "next/link"
 import {
-  Receipt,
-  ListFilter,
-  SlidersHorizontal,
+  AlertTriangle,
+  SquareCheck,
   CalendarDays,
-  Building2,
-  User,
-  Tag,
-  Clock,
-  FileText,
-  X,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  SquareCheck,
-  Trash2,
-  Bold,
-  Italic,
-  Underline,
-  List,
-  Strikethrough,
-  Type,
+  ListFilter,
+  Receipt,
+  SlidersHorizontal,
+  Table2,
+  Tag,
+  User,
+  X,
+  Building2,
 } from "lucide-react"
-import { useTasks } from "@/lib/hooks/use-tasks"
-import { useClients } from "@/lib/hooks/use-clients"
+import { DatePicker } from "@/components/date-picker"
+import { EditableField } from "@/components/editable-field"
 import { useCharges } from "@/lib/hooks/use-charges"
-import { useStaff } from "@/lib/hooks/use-staff"
-import { serviceChargeTypes } from "@/lib/ndis-charges"
-import type { Task, Attachment } from "@/lib/types"
+import { useClients } from "@/lib/hooks/use-clients"
+import { useInvoices } from "@/lib/hooks/use-invoices"
+import { useSavedViews } from "@/lib/hooks/use-saved-views"
+import { useTasks } from "@/lib/hooks/use-tasks"
+import { useWorkspaceSettings } from "@/lib/hooks/use-workspace-settings"
+import type { Client, FundingType, InvoiceDeliveryMethod, InvoiceLineItem, Task } from "@/lib/types"
 
-const columnDefs = [
-  { key: "date", label: "Date", icon: CalendarDays, width: "90px" },
-  { key: "participant", label: "Client", icon: Building2, width: "40px" },
-  { key: "title", label: "Title", icon: FileText, width: "1fr", alwaysVisible: true },
-  { key: "assignee", label: "Assignee", icon: User, width: "40px" },
-  { key: "charge", label: "Charge", icon: Tag, width: "64px" },
-  { key: "time", label: "Time", icon: Clock, width: "56px" },
+interface InvoicingSavedView {
+  id: string
+  name: string
+  viewMode: "list" | "week"
+  visibleColumnKeys: string[]
+  displayParticipants: string[]
+  displayAssignees: string[]
+  displayCharges: string[]
+  dateFilter: string[]
+  participantFilter: string[]
+  assigneeFilter: string[]
+  chargeFilter: string[]
+}
+
+interface InvoiceColumnDef {
+  key: string
+  label: string
+  width: string
+  alwaysVisible?: boolean
+}
+
+const invoiceColumnDefs: InvoiceColumnDef[] = [
+  { key: "checkbox", label: "", width: "40px", alwaysVisible: true },
+  { key: "date", label: "Date", width: "100px" },
+  { key: "type", label: "Type", width: "80px" },
+  { key: "participant", label: "Participant", width: "minmax(180px,1.5fr)" },
+  { key: "charge", label: "Charge Item", width: "110px" },
+  { key: "quantity", label: "Quantity", width: "90px" },
+  { key: "unit-cost", label: "Unit Cost", width: "100px" },
+  { key: "amount", label: "Total Cost", width: "100px" },
 ] as const
 
-const defaultVisibleKeys = ["date", "participant", "title", "assignee", "charge", "time"]
-
+const defaultVisibleColumnKeys = ["checkbox", "date", "type", "participant", "charge", "quantity", "unit-cost", "amount"]
+const weekDayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 function formatTime(minutes: number): string {
   if (minutes === 0) return "0m"
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
-  if (h === 0) return `${m}m`
-  if (m === 0) return `${h}h`
-  return `${h}h ${m}m`
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  if (hours === 0) return `${mins}m`
+  if (mins === 0) return `${hours}h`
+  return `${hours}h ${mins}m`
 }
 
-function parseTimeInput(val: string): number {
-  const hMatch = val.match(/(\d+)\s*h/)
-  const mMatch = val.match(/(\d+)\s*m/)
-  const hours = hMatch ? parseInt(hMatch[1], 10) : 0
-  const mins = mMatch ? parseInt(mMatch[1], 10) : 0
-  if (hours === 0 && mins === 0) {
-    const num = parseInt(val, 10)
-    if (!isNaN(num)) return num
-  }
-  return hours * 60 + mins
+function formatCurrency(amount: number): string {
+  return `$${amount.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-
-function DatePicker({ value, onChange, onClose }: { value: string; onChange: (val: string) => void; onClose: () => void }) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const selected = value ? new Date(value + "T00:00:00") : null
-  const [viewYear, setViewYear] = useState(selected ? selected.getFullYear() : today.getFullYear())
-  const [viewMonth, setViewMonth] = useState(selected ? selected.getMonth() : today.getMonth())
-  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
-  const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay()
-  const startOffset = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1
-  const prevMonth = () => { if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1) } else setViewMonth(viewMonth - 1) }
-  const nextMonth = () => { if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1) } else setViewMonth(viewMonth + 1) }
-  const handleSelect = (day: number) => { const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`; onChange(dateStr); onClose() }
-  const monthLabel = new Date(viewYear, viewMonth).toLocaleDateString("en-AU", { month: "long", year: "numeric" })
-  const weekDays = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
-  const quickDates = [{ label: "Today", offset: 0 }, { label: "Tomorrow", offset: 1 }, { label: "Next week", offset: (8 - today.getDay()) % 7 || 7 }]
-  return (
-    <div className="w-[260px] rounded-lg border border-[#e0e0e0] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-      <div className="flex gap-[4px] border-b border-[#f0f0f0] px-[12px] py-[8px]">
-        {quickDates.map((qd) => { const d = new Date(today); d.setDate(d.getDate() + qd.offset); const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; const isSelected = value === dateStr; return (<button key={qd.label} type="button" onClick={() => { onChange(dateStr); onClose() }} className={`rounded px-[8px] py-[4px] text-[11px] font-medium transition-colors ${isSelected ? "bg-[#262626] text-white" : "text-[#555] hover:bg-[#f5f5f5]"}`} tabIndex={0}>{qd.label}</button>) })}
-      </div>
-      <div className="flex items-center justify-between px-[12px] py-[8px]">
-        <button type="button" onClick={prevMonth} className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0} aria-label="Previous month"><ChevronLeft className="h-[14px] w-[14px]" strokeWidth={1.5} /></button>
-        <span className="text-[12px] font-semibold text-[#262626]">{monthLabel}</span>
-        <button type="button" onClick={nextMonth} className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0} aria-label="Next month"><ChevronRight className="h-[14px] w-[14px]" strokeWidth={1.5} /></button>
-      </div>
-      <div className="grid grid-cols-7 px-[8px]">
-        {weekDays.map((wd) => (<div key={wd} className="flex h-[28px] items-center justify-center text-[10px] font-semibold text-[#aaa]">{wd}</div>))}
-        {Array.from({ length: startOffset }).map((_, i) => (<div key={`e-${i}`} />))}
-        {Array.from({ length: daysInMonth }).map((_, i) => {
-          const day = i + 1
-          const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
-          const isToday = dateStr === `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
-          const isSelected = dateStr === value
-          return (<button key={day} type="button" onClick={() => handleSelect(day)} className={`flex h-[28px] w-[28px] items-center justify-center rounded-full text-[12px] font-medium transition-colors ${isSelected ? "bg-[#262626] text-white" : isToday ? "bg-blue-50 text-blue-600 font-semibold" : "text-[#262626] hover:bg-[#f0f0f0]"}`} tabIndex={0}>{day}</button>)
-        })}
-      </div>
-      <div className="h-[8px]" />
-    </div>
-  )
+function formatDecimal(value: number): string {
+  return value.toLocaleString("en-AU", { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 }
 
-function formatRowDate(dateStr: string | null): string {
+function formatInvoiceQuantity(task: Task, unit: "hour" | "each" | undefined): number {
+  if (unit === "each") return task.timeSpent > 0 ? task.timeSpent : 1
+  if (task.timeSpent <= 0) return 0
+  return Number((task.timeSpent / 60).toFixed(2))
+}
+
+function formatFundingType(fundingType: FundingType): string {
+  if (!fundingType) return "Unknown"
+  if (fundingType === "plan-managed") return "Plan managed"
+  if (fundingType === "ndia-managed") return "Agency managed"
+  return "Self managed"
+}
+
+function formatBillingType(fundingType: FundingType): string {
+  if (fundingType === "plan-managed") return "Plan"
+  if (fundingType === "ndia-managed") return "Agency"
+  if (fundingType === "self-managed") return "Self"
+  return "Unknown"
+}
+
+function formatInvoiceDate(dateStr: string | null): string {
   if (!dateStr) return ""
+  return new Date(dateStr + "T00:00:00").toLocaleDateString("en-AU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  })
+}
+
+function getPortalClaimTarget() {
+  return "NDIA myplace provider portal"
+}
+
+function toDateStr(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+}
+
+function getStartOfWeek(offset = 0): Date {
   const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const d = new Date(dateStr + "T00:00:00")
-  d.setHours(0, 0, 0, 0)
-  const diff = d.getTime() - today.getTime()
-  const dayMs = 86400000
-  if (diff === 0) return "Today"
-  if (diff === dayMs) return "Tomorrow"
-  if (diff === -dayMs) return "Yesterday"
-  if (diff > 0 && diff < 7 * dayMs) return d.toLocaleDateString("en-AU", { weekday: "long" })
-  if (diff < 0 && diff > -7 * dayMs) return d.toLocaleDateString("en-AU", { weekday: "long" })
-  return d.toLocaleDateString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" })
+  const start = new Date(today)
+  const day = start.getDay()
+  const diff = day === 0 ? -6 : 1 - day
+  start.setDate(start.getDate() + diff + offset * 7)
+  start.setHours(0, 0, 0, 0)
+  return start
+}
+
+function sortTasksByDate(tasks: Task[]): Task[] {
+  return [...tasks].sort((a, b) => {
+    if (!a.dueDate && !b.dueDate) return 0
+    if (!a.dueDate) return 1
+    if (!b.dueDate) return -1
+    return b.dueDate.localeCompare(a.dueDate)
+  })
 }
 
 export default function InvoicingPage() {
-  const { tasks, updateTask, deleteTask: deleteTaskDb } = useTasks()
-  const { clientNames } = useClients()
+  const { tasks: allTasks, updateTask } = useTasks()
+  const { clients } = useClients()
   const { enabledCharges, allCharges } = useCharges()
-  const { staffNames } = useStaff()
-  const [visibleColumnKeys, _setVisibleColumnKeys] = useState<string[]>(defaultVisibleKeys)
-
-  // Filters
-  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false)
-  const [activeFilterDropdown, setActiveFilterDropdown] = useState<string | null>(null)
-  const filterBtnRef = useRef<HTMLButtonElement>(null)
-  const filterPillRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const { invoices, addInvoice, markInvoiceSent, deleteInvoice, exportInvoiceToCsv } = useInvoices()
+  const { settings } = useWorkspaceSettings()
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+  const [reviewedTaskIds, setReviewedTaskIds] = useState<string[]>([])
+  const [isSendInvoicesOpen, setIsSendInvoicesOpen] = useState(false)
+  const [isSendingInvoices, setIsSendingInvoices] = useState(false)
+  const [sendInvoicesSummary, setSendInvoicesSummary] = useState<{
+    completedCount: number
+    emailedCount: number
+    portalCount: number
+    failedCount: number
+    skippedCount: number
+    failedMessages: string[]
+  } | null>(null)
+  const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(defaultVisibleColumnKeys)
+  const [displayParticipants, setDisplayParticipants] = useState<string[]>([])
+  const [displayAssignees, setDisplayAssignees] = useState<string[]>([])
+  const [displayCharges, setDisplayCharges] = useState<string[]>([])
+  const [dateFilter, setDateFilter] = useState<string[]>([])
   const [participantFilter, setParticipantFilter] = useState<string[]>([])
   const [assigneeFilter, setAssigneeFilter] = useState<string[]>([])
   const [chargeFilter, setChargeFilter] = useState<string[]>([])
-  // Display settings
+  const [viewMode, setViewMode] = useState<"list" | "week">("list")
+  const [weekOffset, setWeekOffset] = useState(0)
+  const [pageSize, setPageSize] = useState(10)
+  const [visibleCount, setVisibleCount] = useState(10)
+  const [isPageSizeOpen, setIsPageSizeOpen] = useState(false)
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false)
+  const [activeFilterDropdown, setActiveFilterDropdown] = useState<string | null>(null)
   const [isDisplayOpen, setIsDisplayOpen] = useState(false)
-  const displayBtnRef = useRef<HTMLButtonElement>(null)
-  const [displayClients, setDisplayClients] = useState<string[]>([])
-  const [displayAssignees, setDisplayAssignees] = useState<string[]>([])
+  const [isCreateViewOpen, setIsCreateViewOpen] = useState(false)
+  const [newViewName, setNewViewName] = useState("")
+  const [viewContextMenu, setViewContextMenu] = useState<{ viewId: string; x: number; y: number } | null>(null)
+  const [datePickerField, setDatePickerField] = useState<"dueDate" | null>(null)
+  const filterButtonRef = useRef<HTMLButtonElement>(null)
+  const filterPillRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const pageSizeButtonRef = useRef<HTMLButtonElement>(null)
+  const displayButtonRef = useRef<HTMLButtonElement>(null)
+  const detailDueDateButtonRef = useRef<HTMLButtonElement>(null)
+  const newViewInputRef = useRef<HTMLInputElement>(null)
 
+  const sentTaskIds = useMemo(() => {
+    return new Set(
+      invoices
+        .filter((invoice) => invoice.status !== "unsent")
+        .flatMap((invoice) => invoice.taskIds)
+    )
+  }, [invoices])
 
-  // Task detail state
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
-  const [detailDropdown, setDetailDropdown] = useState<string | null>(null)
-  const [detailClientIdx, setDetailClientIdx] = useState(-1)
-  const detailClientRef = useRef<HTMLButtonElement>(null)
-  const detailChargeRef = useRef<HTMLButtonElement>(null)
-  const detailSecondaryChargeRef = useRef<HTMLButtonElement>(null)
-  const detailFileInputRef = useRef<HTMLInputElement>(null)
+  const readyTasks = useMemo(
+    () => allTasks.filter((task) => task.status === "done" && !sentTaskIds.has(task.id)),
+    [allTasks, sentTaskIds]
+  )
 
-  const descriptionRef = useRef<HTMLDivElement>(null)
-  const [formatToolbar, setFormatToolbar] = useState<{ x: number; y: number } | null>(null)
-  const [descFormats, setDescFormats] = useState<Record<string, boolean>>({})
-  const [currentBlock, setCurrentBlock] = useState("")
-  const [isTextSizeOpen, setIsTextSizeOpen] = useState(false)
+  useEffect(() => {
+    setReviewedTaskIds((current) => current.filter((taskId) => readyTasks.some((task) => task.id === taskId)))
+  }, [readyTasks])
 
-  const refreshDescFormats = useCallback(() => {
-    setDescFormats({
-      bold: document.queryCommandState("bold"),
-      italic: document.queryCommandState("italic"),
-      underline: document.queryCommandState("underline"),
-      strikeThrough: document.queryCommandState("strikeThrough"),
-      insertUnorderedList: document.queryCommandState("insertUnorderedList"),
-    })
-    setCurrentBlock(document.queryCommandValue("formatBlock") || "")
-  }, [])
+  const chargeLabel = useCallback((value: string) => {
+    if (!value) return ""
+    const charge = allCharges.find((item) => item.itemNumber === value)
+    if (!charge) return value
+    return charge.shortName
+  }, [allCharges])
 
-  const handleDescFormat = useCallback((cmd: string) => {
-    document.execCommand(cmd, false)
-    descriptionRef.current?.focus()
-    setTimeout(refreshDescFormats, 0)
-  }, [refreshDescFormats])
+  const getTaskCharge = useCallback((task: Task) => {
+    if (!task.chargeType) return null
+    return enabledCharges.find((item) => item.itemNumber === task.chargeType)
+      || allCharges.find((item) => item.itemNumber === task.chargeType)
+      || null
+  }, [allCharges, enabledCharges])
 
-  const handleTextSize = useCallback((tag: string) => {
-    if (tag === "p") {
-      document.execCommand("formatBlock", false, "p")
-    } else {
-      const current = document.queryCommandValue("formatBlock")
-      if (current === tag) {
-        document.execCommand("formatBlock", false, "p")
-      } else {
-        document.execCommand("formatBlock", false, tag)
+  const getTaskClient = useCallback((task: Task): Client | null => {
+    if (task.clientId) {
+      const matchedClient = clients.find((client) => client.id === task.clientId)
+      if (matchedClient) return matchedClient
+    }
+
+    if (!task.client) return null
+    return clients.find((client) => client.name === task.client || client.displayName === task.client) || null
+  }, [clients])
+
+  const getInvoiceEmail = useCallback((task: Task): string => {
+    const client = getTaskClient(task)
+    if (!client) return ""
+
+    const isPlanManaged = client.participant.fundingType === "plan-managed"
+    if (isPlanManaged) return client.participant.planManagerEmail || client.participant.email || ""
+    return client.participant.email || client.participant.planManagerEmail || ""
+  }, [getTaskClient])
+
+  const getTaskAmount = useCallback((task: Task): number => {
+    const charge = getTaskCharge(task)
+    if (!charge) return 0
+
+    if (charge.unit === "each") {
+      const quantity = task.timeSpent > 0 ? task.timeSpent : 1
+      return quantity * charge.price
+    }
+
+    const hours = task.timeSpent / 60
+    return hours * charge.price
+  }, [getTaskCharge])
+
+  const getTaskCompletionAction = useCallback((task: Task): {
+    mode: "email" | "portal"
+    deliveryMethod: InvoiceDeliveryMethod
+    sentTo: string
+    recipientName: string
+  } | null => {
+    const client = getTaskClient(task)
+    if (!client) return null
+
+    const participantName = client.displayName || task.client || "Unknown participant"
+    const fundingType = client.participant.fundingType
+
+    if (!fundingType) return null
+    if (fundingType === "ndia-managed") {
+      return {
+        mode: "portal",
+        deliveryMethod: "ndia-portal",
+        sentTo: getPortalClaimTarget(),
+        recipientName: "NDIA portal",
       }
     }
-    descriptionRef.current?.focus()
-    setIsTextSizeOpen(false)
-    setTimeout(refreshDescFormats, 0)
-  }, [refreshDescFormats])
 
-  const handleDescContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    refreshDescFormats()
-    setFormatToolbar({ x: e.clientX, y: e.clientY })
-  }, [refreshDescFormats])
+    const recipientEmail = getInvoiceEmail(task)
+    if (!recipientEmail) return null
 
-  const prevSelectedTaskIdRef = useRef<string | null>(null)
-  useEffect(() => {
-    if (selectedTaskId && selectedTaskId !== prevSelectedTaskIdRef.current && descriptionRef.current) {
-      const task = tasks.find((t) => t.id === selectedTaskId)
-      if (task) descriptionRef.current.innerHTML = task.description || ""
+    if (fundingType === "plan-managed") {
+      return {
+        mode: "email",
+        deliveryMethod: "plan-manager-email",
+        sentTo: recipientEmail,
+        recipientName: client.participant.planManagerName || "Plan Manager",
+      }
     }
-    prevSelectedTaskIdRef.current = selectedTaskId
-  }, [selectedTaskId, tasks])
 
-  const chargeTypes = [{ value: "", label: "No charge" }, ...enabledCharges.map((c) => ({ value: c.itemNumber, label: c.shortName }))]
+    return {
+      mode: "email",
+      deliveryMethod: "participant-email",
+      sentTo: recipientEmail,
+      recipientName: participantName,
+    }
+  }, [getInvoiceEmail, getTaskClient])
 
-  const secondaryChargeLabel = (val: string) => {
-    if (!val) return ""
-    const svc = serviceChargeTypes.find((s) => s.value === val)
-    if (svc) return svc.label
-    const ndis = allCharges.find((c) => c.itemNumber === val)
-    if (ndis) return ndis.shortName
-    return val
-  }
+  const getTaskInvoiceIssues = useCallback((task: Task): string[] => {
+    const issues: string[] = []
+    const client = getTaskClient(task)
+    const charge = getTaskCharge(task)
+    const amount = getTaskAmount(task)
+    const completionAction = getTaskCompletionAction(task)
 
-  const selectedTask = selectedTaskId ? tasks.find((t) => t.id === selectedTaskId) ?? null : null
+    if (!client)
+      issues.push("Link this task to a participant profile before sending the invoice.")
 
-  const handleUpdateTask = useCallback((field: keyof Task, value: string | Attachment[] | boolean | number) => {
-    if (!selectedTaskId) return
-    updateTask(selectedTaskId, { [field]: value } as Partial<Task>)
-  }, [selectedTaskId, updateTask])
+    if (client && !client.participant.fundingType)
+      issues.push("Select whether the participant is plan managed, self managed or agency managed before completing the invoice.")
 
-  const handleDetailFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!selectedTaskId || !e.target.files) return
-    const task = tasks.find((t) => t.id === selectedTaskId)
-    if (!task) return
-    const added: Attachment[] = Array.from(e.target.files).map((f) => ({ id: crypto.randomUUID(), name: f.name, size: f.size }))
-    updateTask(selectedTaskId, { attachments: [...task.attachments, ...added] })
-    e.target.value = ""
-  }
+    if (!charge)
+      issues.push("Select a charge item before sending the invoice.")
 
-  const _handleDetailRemoveAttachment = (attachmentId: string) => {
-    if (!selectedTaskId) return
-    const task = tasks.find((t) => t.id === selectedTaskId)
-    if (!task) return
-    updateTask(selectedTaskId, { attachments: task.attachments.filter((a) => a.id !== attachmentId) })
-  }
+    if (charge) {
+      const quantity = formatInvoiceQuantity(task, charge.unit)
+      if (quantity <= 0)
+        issues.push(charge.unit === "each"
+          ? "Add a billable quantity before sending the invoice."
+          : "Add billable time before sending the invoice.")
+    }
 
-  const handleDeleteTask = (id: string) => {
-    deleteTaskDb(id)
-    if (selectedTaskId === id) setSelectedTaskId(null)
-  }
+    if (amount <= 0)
+      issues.push("Invoice total must be greater than $0.00 before sending.")
 
-  const closeDetail = () => {
-    setSelectedTaskId(null); setDetailDropdown(null); setFormatToolbar(null); setIsTextSizeOpen(false)
-  }
+    if (client?.participant.fundingType === "ndia-managed" && !client.participant.ndisNumber)
+      issues.push("Add the participant NDIS number before preparing an agency-managed claim.")
 
-  const chargeLabel = (val: string) => {
-    if (!val) return ""
-    const match = allCharges.find((c) => c.itemNumber === val)
-    if (match) return match.shortName
-    return val
-  }
+    if (client?.participant.fundingType !== "ndia-managed" && !completionAction?.sentTo)
+      issues.push("Add an invoicing email on the participant profile before sending.")
 
-  const chargeCode = (val: string) => {
-    if (!val) return ""
-    const match = allCharges.find((c) => c.itemNumber === val)
-    if (!match) return val
-    const s = match.shortName
-    if (s.startsWith("SC-L")) return s
-    if (s.includes("PRC")) return "PRC"
-    if (s.includes("Travel")) return "Travel"
-    if (s.includes("Transport")) return "Trans"
-    return s.slice(0, 6)
-  }
+    return issues
+  }, [getTaskAmount, getTaskCharge, getTaskClient, getTaskCompletionAction])
 
-  const completedTasks = useMemo(() => {
-    let result = tasks.filter((t) => t.status === "done")
-
-    if (displayClients.length > 0) result = result.filter((t) => displayClients.includes(t.client))
-    if (displayAssignees.length > 0) result = result.filter((t) => displayAssignees.includes(t.assignee))
-
-    if (participantFilter.length > 0) result = result.filter((t) => participantFilter.includes(t.client))
-    if (assigneeFilter.length > 0) result = result.filter((t) => assigneeFilter.includes(t.assignee))
-    if (chargeFilter.length > 0) result = result.filter((t) => chargeFilter.includes(t.chargeType))
-
-    return result.sort((a, b) => {
-      if (!a.dueDate && !b.dueDate) return 0
-      if (!a.dueDate) return 1
-      if (!b.dueDate) return -1
-      return b.dueDate.localeCompare(a.dueDate)
-    })
-  }, [tasks, displayClients, displayAssignees, participantFilter, assigneeFilter, chargeFilter])
-
-  const uniqueParticipants = Array.from(new Set(completedTasks.map((t) => t.client).filter(Boolean)))
-  const uniqueAssignees = Array.from(new Set(completedTasks.map((t) => t.assignee).filter(Boolean)))
-  const uniqueCharges = Array.from(new Set(completedTasks.map((t) => t.chargeType).filter(Boolean))).sort()
-
-  const toggleDisplayItem = (list: string[], setList: (v: string[]) => void, value: string) => {
-    setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value])
-  }
-
-  const displayFilterCount = displayClients.length + displayAssignees.length
-  const hasDisplayFilters = displayFilterCount > 0
-  const hasActiveFilters = participantFilter.length > 0 || assigneeFilter.length > 0 || chargeFilter.length > 0
-
-  const handleResetDisplay = () => {
-    setDisplayClients([])
+  const resetViewState = useCallback(() => {
+    setViewMode("list")
+    setVisibleColumnKeys(defaultVisibleColumnKeys)
+    setDisplayParticipants([])
     setDisplayAssignees([])
+    setDisplayCharges([])
+    setDateFilter([])
+    setParticipantFilter([])
+    setAssigneeFilter([])
+    setChargeFilter([])
+    setWeekOffset(0)
+  }, [])
+
+  const applySavedView = useCallback((view: InvoicingSavedView) => {
+    setViewMode(view.viewMode)
+    setVisibleColumnKeys(view.visibleColumnKeys)
+    setDisplayParticipants(view.displayParticipants)
+    setDisplayAssignees(view.displayAssignees)
+    setDisplayCharges(view.displayCharges)
+    setDateFilter(view.dateFilter)
+    setParticipantFilter(view.participantFilter)
+    setAssigneeFilter(view.assigneeFilter)
+    setChargeFilter(view.chargeFilter)
+    setWeekOffset(0)
+  }, [])
+
+  const {
+    savedViews,
+    activeViewId,
+    createView,
+    selectView,
+    selectDefaultView,
+    deleteView,
+    syncActiveView,
+  } = useSavedViews<InvoicingSavedView>({
+    viewsStorageKey: "invoicing-views",
+    activeViewStorageKey: "invoicing-active-view",
+    buildView: ({ id, name }) => ({
+      id,
+      name,
+      viewMode,
+      visibleColumnKeys,
+      displayParticipants,
+      displayAssignees,
+      displayCharges,
+      dateFilter,
+      participantFilter,
+      assigneeFilter,
+      chargeFilter,
+    }),
+    applyView: applySavedView,
+    resetState: resetViewState,
+    syncView: (view) => ({
+      ...view,
+      viewMode,
+      visibleColumnKeys,
+      displayParticipants,
+      displayAssignees,
+      displayCharges,
+      dateFilter,
+      participantFilter,
+      assigneeFilter,
+      chargeFilter,
+    }),
+  })
+
+  useEffect(() => {
+    syncActiveView()
+  }, [
+    syncActiveView,
+    viewMode,
+    visibleColumnKeys,
+    displayParticipants,
+    displayAssignees,
+    displayCharges,
+    dateFilter,
+    participantFilter,
+    assigneeFilter,
+    chargeFilter,
+  ])
+
+  useEffect(() => {
+    setVisibleCount(pageSize)
+  }, [pageSize, readyTasks.length])
+
+  useEffect(() => {
+    if (!viewContextMenu) return
+
+    function handleClose() {
+      setViewContextMenu(null)
+    }
+
+    document.addEventListener("click", handleClose)
+    return () => document.removeEventListener("click", handleClose)
+  }, [viewContextMenu])
+
+  const uniqueParticipants = useMemo(
+    () => Array.from(new Set(readyTasks.map((task) => task.client).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
+    [readyTasks]
+  )
+
+  const uniqueAssignees = useMemo(
+    () => Array.from(new Set(readyTasks.map((task) => task.assignee).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
+    [readyTasks]
+  )
+
+  const uniqueCharges = useMemo(
+    () => Array.from(new Set(readyTasks.map((task) => task.chargeType).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
+    [readyTasks]
+  )
+
+  const filteredTasks = useMemo(() => {
+    return readyTasks.filter((task) => {
+      if (participantFilter.length > 0 && !participantFilter.includes(task.client)) return false
+      if (assigneeFilter.length > 0 && !assigneeFilter.includes(task.assignee)) return false
+      if (chargeFilter.length > 0 && !chargeFilter.includes(task.chargeType)) return false
+      if (displayParticipants.length > 0 && !displayParticipants.includes(task.client)) return false
+      if (displayAssignees.length > 0 && !displayAssignees.includes(task.assignee)) return false
+      if (displayCharges.length > 0 && !displayCharges.includes(task.chargeType)) return false
+      if (dateFilter.length === 0) return true
+
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const taskDate = task.dueDate ? new Date(task.dueDate + "T00:00:00") : null
+      if (taskDate) taskDate.setHours(0, 0, 0, 0)
+      const dayMs = 86400000
+
+      return dateFilter.some((filterValue) => {
+        if (filterValue === "today") return taskDate?.getTime() === today.getTime()
+        if (filterValue === "tomorrow") return taskDate?.getTime() === today.getTime() + dayMs
+        if (filterValue === "this-week") {
+          if (!taskDate) return false
+          const startOfWeek = getStartOfWeek()
+          const endOfWeek = new Date(startOfWeek)
+          endOfWeek.setDate(endOfWeek.getDate() + 6)
+          return taskDate >= startOfWeek && taskDate <= endOfWeek
+        }
+        if (filterValue === "overdue") return Boolean(taskDate && taskDate.getTime() < today.getTime())
+        if (filterValue === "no-date") return !task.dueDate
+        return false
+      })
+    })
+  }, [
+    assigneeFilter,
+    chargeFilter,
+    dateFilter,
+    displayAssignees,
+    displayCharges,
+    displayParticipants,
+    participantFilter,
+    readyTasks,
+  ])
+
+  const sortedTasks = useMemo(
+    () => sortTasksByDate(filteredTasks),
+    [filteredTasks]
+  )
+
+  const selectedTask = selectedTaskId
+    ? readyTasks.find((task) => task.id === selectedTaskId) ?? null
+    : null
+
+  const hasDisplayFilters = displayParticipants.length > 0 || displayAssignees.length > 0 || displayCharges.length > 0
+  const filteredTaskIds = filteredTasks.map((task) => task.id)
+  const hasFilteredTasks = filteredTaskIds.length > 0
+  const areAllFilteredTasksReviewed = hasFilteredTasks && filteredTaskIds.every((taskId) => reviewedTaskIds.includes(taskId))
+  const selectedTasksToInvoice = useMemo(
+    () => readyTasks.filter((task) => reviewedTaskIds.includes(task.id)),
+    [readyTasks, reviewedTaskIds]
+  )
+  const selectedTaskCount = selectedTasksToInvoice.length
+  const isColumnVisible = (key: string) => visibleColumnKeys.includes(key)
+  const visibleColumns = invoiceColumnDefs.filter((column) => column.alwaysVisible || visibleColumnKeys.includes(column.key))
+  const gridTemplateColumns = visibleColumns.map((column) => column.width).join(" ")
+  const weekStart = getStartOfWeek(weekOffset)
+  const weekEnd = new Date(weekStart)
+  weekEnd.setDate(weekEnd.getDate() + 6)
+
+  const handleToggleDisplayItem = (items: string[], setItems: (value: string[]) => void, value: string) => {
+    setItems(items.includes(value) ? items.filter((item) => item !== value) : [...items, value])
   }
 
-  const isColVisible = (key: string) => visibleColumnKeys.includes(key)
+  const handleCreateView = () => {
+    const createdView = createView(newViewName)
+    if (!createdView) return
+    setNewViewName("")
+    setIsCreateViewOpen(false)
+  }
 
-  const visibleColumns = columnDefs.filter(
-    (col) => ("alwaysVisible" in col && col.alwaysVisible) || visibleColumnKeys.includes(col.key)
-  )
-  const gridTemplate = visibleColumns.map((c) => c.width).join(" ")
+  const handleMoveBackToTasks = (taskId: string) => {
+    updateTask(taskId, { status: "todo" })
+    if (selectedTaskId === taskId) setSelectedTaskId(null)
+  }
+
+  const handleUpdateTask = (taskId: string, updates: Partial<Task>) => {
+    updateTask(taskId, updates)
+  }
+
+  const handleCloseSendInvoicesModal = () => {
+    if (isSendingInvoices) return
+    setIsSendInvoicesOpen(false)
+    setSendInvoicesSummary(null)
+  }
+
+  const handleSendInvoices = async () => {
+    if (selectedTasksToInvoice.length === 0 || isSendingInvoices) return
+
+    setIsSendingInvoices(true)
+    setSendInvoicesSummary(null)
+
+    let completedCount = 0
+    let emailedCount = 0
+    let portalCount = 0
+    let failedCount = 0
+    let skippedCount = 0
+    const failedMessages: string[] = []
+    const completedTaskIds: string[] = []
+
+    for (const task of selectedTasksToInvoice) {
+      const client = getTaskClient(task)
+      const charge = getTaskCharge(task)
+      const participantName = client?.displayName || task.client || "Unknown participant"
+      const issues = getTaskInvoiceIssues(task)
+      const completionAction = getTaskCompletionAction(task)
+
+      if (issues.length > 0) {
+        skippedCount += 1
+        failedMessages.push(`${participantName}: ${issues[0]}`)
+        continue
+      }
+
+      if (!client || !charge || !completionAction) continue
+
+      const quantity = formatInvoiceQuantity(task, charge.unit)
+      const amount = getTaskAmount(task)
+
+      const lineItem: InvoiceLineItem = {
+        id: crypto.randomUUID(),
+        description: task.title || charge.shortName || "Support item",
+        chargeItemNumber: charge.itemNumber,
+        chargeName: charge.shortName,
+        quantity,
+        unit: charge.unit,
+        rate: charge.price,
+        amount,
+        taskId: task.id,
+        clientId: client.id,
+      }
+
+      const invoice = addInvoice({
+        clientName: participantName,
+        clientId: client.id,
+        taskIds: [task.id],
+        lineItems: [lineItem],
+        subtotal: amount,
+        gst: 0,
+        total: amount,
+        createdBy: "Team Leader",
+        notes: task.description || "",
+      })
+
+      try {
+        if (completionAction.mode === "portal") {
+          exportInvoiceToCsv(invoice)
+          markInvoiceSent(invoice.id, {
+            sentTo: completionAction.sentTo,
+            deliveryMethod: completionAction.deliveryMethod,
+          })
+          completedCount += 1
+          portalCount += 1
+          completedTaskIds.push(task.id)
+          continue
+        }
+
+        const response = await fetch("/api/email/send-invoice", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            invoice,
+            recipientEmail: completionAction.sentTo,
+            recipientName: completionAction.recipientName,
+            participantName,
+            ndisNumber: client.participant.ndisNumber || "",
+            orgSettings: settings,
+          }),
+        })
+
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error || "Failed to send invoice")
+
+        markInvoiceSent(invoice.id, {
+          sentTo: completionAction.sentTo,
+          deliveryMethod: completionAction.deliveryMethod,
+        })
+        completedCount += 1
+        emailedCount += 1
+        completedTaskIds.push(task.id)
+      } catch (error) {
+        deleteInvoice(invoice.id)
+        failedCount += 1
+        failedMessages.push(`${participantName}: ${error instanceof Error ? error.message : "Failed to send invoice"}`)
+      }
+    }
+
+    setReviewedTaskIds((current) => current.filter((taskId) => !completedTaskIds.includes(taskId)))
+    if (selectedTaskId && completedTaskIds.includes(selectedTaskId)) setSelectedTaskId(null)
+
+    setSendInvoicesSummary({
+      completedCount,
+      emailedCount,
+      portalCount,
+      failedCount,
+      skippedCount,
+      failedMessages,
+    })
+    setIsSendingInvoices(false)
+  }
+
+  const formatWeekLabel = () => {
+    const start = weekStart.toLocaleDateString("en-AU", { day: "numeric", month: "short" })
+    const end = weekEnd.toLocaleDateString("en-AU", { day: "numeric", month: "short" })
+    return `${start} - ${end}`
+  }
 
   const renderTaskRow = (task: Task) => {
-    const dateStr = formatRowDate(task.dueDate)
-    const clientInitials = task.client ? task.client.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2) : ""
-    const assigneeInitials = task.assignee ? task.assignee.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2) : ""
+    const client = getTaskClient(task)
+    const participantName = client?.displayName || task.client || "Unknown participant"
+    const fundingType = client?.participant.fundingType || ""
+    const typeLabel = formatBillingType(fundingType)
+    const charge = getTaskCharge(task)
+    const quantity = charge?.unit === "each"
+      ? task.timeSpent > 0 ? task.timeSpent : 1
+      : task.timeSpent > 0 ? task.timeSpent / 60 : 0
+    const unitLabel = charge?.unit === "each" ? "EA" : "H"
+    const unitCost = charge?.price || 0
+    const amount = getTaskAmount(task)
+    const isReviewed = reviewedTaskIds.includes(task.id)
+    const invoiceIssues = getTaskInvoiceIssues(task)
+    const hasInvoiceIssues = invoiceIssues.length > 0
+
     return (
       <div
         key={task.id}
+        className={`group grid cursor-pointer items-center border-b px-[24px] transition-colors ${
+          hasInvoiceIssues
+            ? "border-[#f2d7d7] bg-[#fff8f8] shadow-[inset_3px_0_0_0_#e46a6a] hover:bg-[#fff3f3]"
+            : "border-[#f0f0f0] hover:bg-[#fafafa]"
+        }`}
+        style={{ gridTemplateColumns: gridTemplateColumns }}
         onClick={() => setSelectedTaskId(task.id)}
-        className="group grid cursor-pointer items-center border-b border-[#f0f0f0] px-[24px] transition-colors hover:bg-[#fafafa]"
-        style={{ gridTemplateColumns: gridTemplate }}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") setSelectedTaskId(task.id)
+        }}
       >
-        {isColVisible("date") && (
-          <div className="py-[12px] text-[13px] text-[#888]">
-            {dateStr || <span className="text-[#ccc]">—</span>}
-          </div>
-        )}
-        {isColVisible("participant") && (
-          <div className="flex items-center justify-center py-[12px]">
-            {clientInitials ? (
-              <span className="flex h-[26px] w-[26px] items-center justify-center rounded-md bg-blue-100 text-[10px] font-bold text-blue-600">{clientInitials}</span>
-            ) : <span className="text-[12px] text-[#ccc]">—</span>}
-          </div>
-        )}
-        <div className="truncate py-[12px] pl-[8px]">
-          <span className="text-[13px] text-[#262626]">{task.title}</span>
+        <div className="flex items-center justify-center whitespace-nowrap">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              setReviewedTaskIds((current) => current.includes(task.id)
+                ? current.filter((taskId) => taskId !== task.id)
+                : [...current, task.id])
+            }}
+            className={`flex h-[18px] w-[18px] items-center justify-center rounded border-[1.5px] transition-colors ${
+              isReviewed
+                ? "border-blue-500 bg-blue-500 text-white"
+                : "border-[#ccc] hover:border-[#999]"
+            }`}
+            tabIndex={0}
+            aria-label={isReviewed ? "Unmark invoice review" : "Mark invoice review"}
+          >
+            {isReviewed && <span className="text-[9px]">✓</span>}
+          </button>
         </div>
-        {isColVisible("assignee") && (
-          <div className="flex items-center justify-center py-[12px]">
-            {assigneeInitials ? (
-              <span className="flex h-[26px] w-[26px] items-center justify-center rounded-md bg-[#f0f0f0] text-[10px] font-bold text-[#555]">{assigneeInitials}</span>
-            ) : <span className="text-[12px] text-[#ccc]">—</span>}
+        {isColumnVisible("date") && (
+          <div className="whitespace-nowrap py-[12px] text-[13px] text-[#666]">
+            {formatInvoiceDate(task.dueDate) || <span className="text-[#ccc]">—</span>}
           </div>
         )}
-        {isColVisible("charge") && (
-          <div className="flex items-center justify-center py-[12px] text-[12px] font-medium text-[#888]">
-            <span className="truncate text-center">
-              {task.chargeType ? chargeCode(task.chargeType) : <span className="text-[#ccc]">—</span>}
+        {isColumnVisible("type") && (
+          <div className="whitespace-nowrap py-[12px] text-[13px] text-[#666]">
+            {typeLabel}
+          </div>
+        )}
+        {isColumnVisible("participant") && (
+          <div className="min-w-0 whitespace-nowrap py-[12px]">
+            <span className="inline-flex max-w-full items-center rounded-[8px] border border-[#e2e2e2] bg-[#f7f7f7] px-[10px] py-[4px] text-[12px] font-medium text-[#262626] whitespace-nowrap">
+              <span className="truncate">{participantName}</span>
             </span>
           </div>
         )}
-        {isColVisible("time") && (
-          <div className="flex items-center justify-center py-[12px] text-[13px] text-[#888]">
-            {task.timeSpent > 0 ? task.timeSpent : <span className="text-[#ccc]">—</span>}
+        {isColumnVisible("charge") && (
+          <div className="truncate whitespace-nowrap py-[12px] text-[13px] text-[#666]">
+            {task.chargeType ? chargeLabel(task.chargeType) : <span className="text-[#ccc]">No charge</span>}
+          </div>
+        )}
+        {isColumnVisible("charge-number") && (
+          <div className="truncate whitespace-nowrap py-[12px] text-[13px] text-[#666]">
+            {task.chargeType || <span className="text-[#ccc]">—</span>}
+          </div>
+        )}
+        {isColumnVisible("quantity") && (
+          <div className="whitespace-nowrap py-[12px] text-[13px] text-[#666]">
+            {quantity > 0 ? `${formatDecimal(quantity)} ${unitLabel}` : <span className="text-[#ccc]">—</span>}
+          </div>
+        )}
+        {isColumnVisible("unit-cost") && (
+          <div className="whitespace-nowrap py-[12px] text-[13px] text-[#666]">
+            {unitCost > 0 ? formatCurrency(unitCost) : <span className="text-[#ccc]">—</span>}
+          </div>
+        )}
+        {isColumnVisible("amount") && (
+          <div className="whitespace-nowrap py-[12px] text-[13px] text-[#666]">
+            <span className="font-medium text-[#262626]">
+              {amount > 0 ? formatCurrency(amount) : <span className="text-[#ccc]">—</span>}
+            </span>
           </div>
         )}
       </div>
     )
   }
 
+  const weekTasks = filteredTasks.filter((task) => {
+    if (!task.dueDate) return false
+    const taskDate = new Date(task.dueDate + "T00:00:00")
+    return taskDate >= weekStart && taskDate <= weekEnd
+  }).sort((a, b) => (a.dueDate || "").localeCompare(b.dueDate || ""))
+
+  const noDateTasks = filteredTasks.filter((task) => !task.dueDate)
+
+  const dayBuckets: Record<string, Task[]> = {}
+  for (let index = 0; index < 7; index += 1) {
+    const date = new Date(weekStart)
+    date.setDate(weekStart.getDate() + index)
+    dayBuckets[toDateStr(date)] = []
+  }
+  weekTasks.forEach((task) => {
+    if (task.dueDate && dayBuckets[task.dueDate]) dayBuckets[task.dueDate].push(task)
+  })
+
   return (
     <div className="flex h-full flex-col">
-      {/* Header */}
       <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-[#f0f0f0] px-[16px]">
         <div className="flex items-center gap-[8px]">
           <span className="text-[13px] font-medium text-[#262626]">Invoicing</span>
+          <div className="h-[16px] w-px bg-[#e5e5e5]" />
+          <button
+            type="button"
+            onClick={selectDefaultView}
+            className={`flex items-center gap-[6px] rounded-lg border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === null ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
+            tabIndex={0}
+          >
+            <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
+            <span>Draft invoices</span>
+          </button>
+          <Link
+            href="/invoices"
+            className="flex items-center gap-[6px] rounded-lg border border-transparent px-[8px] py-[4px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+          >
+            <Receipt className="h-[14px] w-[14px]" strokeWidth={1.75} />
+            <span>Invoices</span>
+          </Link>
+          {savedViews.length > 0 && <div className="h-[16px] w-px bg-[#dcdcdc]" />}
+          {savedViews.map((view) => (
+            <button
+              key={view.id}
+              type="button"
+              onClick={() => selectView(view)}
+              onContextMenu={(event) => {
+                event.preventDefault()
+                setViewContextMenu({ viewId: view.id, x: event.clientX, y: event.clientY })
+              }}
+              className={`flex items-center gap-[6px] rounded-lg border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === view.id ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
+              tabIndex={0}
+            >
+              <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
+              <span>{view.name}</span>
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-[8px]">
+          {viewMode === "week" && (
+            <div className="flex items-center gap-[6px]">
+              <button
+                type="button"
+                onClick={() => setWeekOffset((current) => current - 1)}
+                className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+                tabIndex={0}
+                aria-label="Previous week"
+              >
+                <ChevronLeft className="h-[14px] w-[14px]" strokeWidth={1.75} />
+              </button>
+              <span className="min-w-[160px] text-center text-[13px] font-semibold text-[#262626]">{formatWeekLabel()}</span>
+              <button
+                type="button"
+                onClick={() => setWeekOffset((current) => current + 1)}
+                className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+                tabIndex={0}
+                aria-label="Next week"
+              >
+                <ChevronRight className="h-[14px] w-[14px]" strokeWidth={1.75} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setWeekOffset(0)}
+                disabled={weekOffset === 0}
+                className={`flex items-center gap-[5px] rounded border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${weekOffset === 0 ? "cursor-default border-[#e8e8e8] bg-white text-[#ccc]" : "border-[#dcdcdc] bg-white text-[#262626] hover:bg-[#f5f5f5]"}`}
+                tabIndex={0}
+              >
+                This week
+              </button>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              setSendInvoicesSummary(null)
+              setIsSendInvoicesOpen(true)
+            }}
+            disabled={selectedTaskCount === 0}
+            className={`flex items-center gap-[6px] rounded-lg px-[10px] py-[6px] text-[13px] font-medium transition-colors ${
+              selectedTaskCount > 0
+                ? "bg-blue-500 text-white hover:bg-blue-600"
+                : "cursor-not-allowed bg-[#efefef] text-[#b8b8b8]"
+            }`}
+            tabIndex={0}
+          >
+            <Receipt className="h-[13px] w-[13px]" strokeWidth={1.5} />
+            <span>Create invoices</span>
+            <span className={`rounded-full px-[6px] py-[1px] text-[11px] font-semibold ${
+              selectedTaskCount > 0 ? "bg-white/15 text-white" : "bg-[#f5f5f5] text-[#b8b8b8]"
+            }`}>
+              {selectedTaskCount}
+            </span>
+          </button>
         </div>
       </div>
 
-      {/* Filter & display bar */}
       <div className="flex h-[41px] shrink-0 items-center gap-[8px] border-b border-[#dcdcdc] px-[16px]">
         <div className="relative">
           <button
-            ref={filterBtnRef}
-            onClick={() => { setIsFilterMenuOpen(!isFilterMenuOpen); setActiveFilterDropdown(null) }}
+            type="button"
+            ref={filterButtonRef}
+            onClick={() => {
+              setIsFilterMenuOpen((current) => !current)
+              setActiveFilterDropdown(null)
+            }}
             className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
             tabIndex={0}
           >
@@ -387,252 +883,428 @@ export default function InvoicingPage() {
               <div className="absolute left-0 top-full z-[60] mt-[4px] w-[180px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
                 <p className="px-[16px] py-[6px] text-[11px] font-medium text-[#888]">Filter by</p>
                 {[
+                  { key: "date", label: "Date", icon: CalendarDays },
                   { key: "participant", label: "Client", icon: Building2 },
                   { key: "assignee", label: "Assignee", icon: User },
                   { key: "charge", label: "Charge", icon: Tag },
-                ].map((item) => {
-                  const Icon = item.icon
-                  return (
-                    <button
-                      key={item.key}
-                      onClick={() => { setActiveFilterDropdown(item.key); setIsFilterMenuOpen(false) }}
-                      className="flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                      tabIndex={0}
-                    >
-                      <Icon className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
-                      {item.label}
-                    </button>
-                  )
-                })}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Active filter pills */}
-        {participantFilter.length > 0 && (
-          <div className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626]">
-            <Building2 className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
-            <button ref={(el) => { filterPillRefs.current["participant"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "participant" ? null : "participant")} className="hover:underline" tabIndex={0}>Client</button>
-            <span className="text-[#888]">is</span>
-            <span>{participantFilter.length} {participantFilter.length === 1 ? "value" : "values"}</span>
-            <button onClick={() => setParticipantFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded text-[#888] transition-colors hover:text-[#262626]" tabIndex={0} aria-label="Clear client filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
-          </div>
-        )}
-        {assigneeFilter.length > 0 && (
-          <div className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626]">
-            <User className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
-            <button ref={(el) => { filterPillRefs.current["assignee"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "assignee" ? null : "assignee")} className="hover:underline" tabIndex={0}>Assignee</button>
-            <span className="text-[#888]">is</span>
-            <span>{assigneeFilter.length} {assigneeFilter.length === 1 ? "value" : "values"}</span>
-            <button onClick={() => setAssigneeFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded text-[#888] transition-colors hover:text-[#262626]" tabIndex={0} aria-label="Clear assignee filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
-          </div>
-        )}
-        {chargeFilter.length > 0 && (
-          <div className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626]">
-            <Tag className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
-            <button ref={(el) => { filterPillRefs.current["charge"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "charge" ? null : "charge")} className="hover:underline" tabIndex={0}>Charge</button>
-            <span className="text-[#888]">is</span>
-            <span>{chargeFilter.length} {chargeFilter.length === 1 ? "value" : "values"}</span>
-            <button onClick={() => setChargeFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded text-[#888] transition-colors hover:text-[#262626]" tabIndex={0} aria-label="Clear charge filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
-          </div>
-        )}
-        {/* Display button — far right */}
-        <div className="relative ml-auto">
-          <button
-            ref={displayBtnRef}
-            onClick={() => setIsDisplayOpen(!isDisplayOpen)}
-            className={`flex items-center gap-[5px] rounded border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${hasDisplayFilters ? "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100" : "border-[#dcdcdc] text-[#262626] hover:bg-[#f5f5f5]"}`}
-            tabIndex={0}
-          >
-            <SlidersHorizontal className="h-[13px] w-[13px]" strokeWidth={1.5} />
-            <span className="hidden sm:inline">Display</span>
-            {hasDisplayFilters && (
-              <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded bg-blue-500 px-[4px] text-[10px] font-bold text-white">
-                {displayFilterCount}
-              </span>
-            )}
-          </button>
-          {isDisplayOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setIsDisplayOpen(false)} />
-              <div
-                className="fixed z-50 w-[420px] rounded-lg border border-[#dcdcdc] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-                style={(() => {
-                  const rect = displayBtnRef.current?.getBoundingClientRect()
-                  if (!rect) return {}
-                  return { top: rect.bottom + 4, right: window.innerWidth - rect.right }
-                })()}
-              >
-                <div className="max-h-[520px] overflow-y-auto">
-                  {clientNames.length > 0 && (
-                    <div className="px-[20px] pb-[16px] pt-[14px]">
-                      <div className="pb-[12px] text-[13px] font-medium text-[#888]">Clients</div>
-                      <div className="flex flex-wrap gap-[8px]">
-                        {clientNames.map((name) => {
-                          const isActive = displayClients.includes(name)
-                          return (
-                            <button
-                              key={name}
-                              onClick={() => toggleDisplayItem(displayClients, setDisplayClients, name)}
-                              className={`inline-flex items-center rounded-lg border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
-                              tabIndex={0}
-                            >
-                              {name}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )}
-                  {staffNames.length > 0 && (
-                    <div className="px-[20px] pb-[16px] pt-[2px]">
-                      <div className="pb-[12px] text-[13px] font-medium text-[#888]">Person</div>
-                      <div className="flex flex-wrap gap-[8px]">
-                        {staffNames.map((name) => {
-                          const isActive = displayAssignees.includes(name)
-                          return (
-                            <button
-                              key={name}
-                              onClick={() => toggleDisplayItem(displayAssignees, setDisplayAssignees, name)}
-                              className={`inline-flex items-center rounded-lg border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
-                              tabIndex={0}
-                            >
-                              {name}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-[20px] border-t border-[#f0f0f0] px-[20px] py-[12px]">
+                ].map(({ key, label, icon: Icon }) => (
                   <button
-                    onClick={() => { handleResetDisplay(); setIsDisplayOpen(false) }}
-                    className="text-[13px] font-medium text-[#bbb] transition-colors hover:text-[#262626]"
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      setActiveFilterDropdown(key)
+                      setIsFilterMenuOpen(false)
+                    }}
+                    className="flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
                     tabIndex={0}
                   >
-                    Reset
+                    <Icon className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+                    {label}
                   </button>
-                </div>
+                ))}
               </div>
             </>
           )}
         </div>
-      </div>
 
-      {/* Filter dropdowns */}
-      {activeFilterDropdown && (
-        <>
-          <div className="fixed inset-0 z-[55]" onClick={() => setActiveFilterDropdown(null)} />
-          <div
-            className="fixed z-[60] w-[240px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-            style={(() => {
-              const ref = filterPillRefs.current[activeFilterDropdown] || filterBtnRef.current
-              const rect = ref?.getBoundingClientRect()
-              if (!rect) return {}
-              return { top: rect.bottom + 4, left: rect.left }
-            })()}
+        {dateFilter.length > 0 && (
+          <FilterPill
+            icon={CalendarDays}
+            label="Date"
+            count={dateFilter.length}
+            onOpen={() => setActiveFilterDropdown(activeFilterDropdown === "date" ? null : "date")}
+            onClear={() => setDateFilter([])}
+            buttonRef={(element) => {
+              filterPillRefs.current.date = element
+            }}
+          />
+        )}
+        {participantFilter.length > 0 && (
+          <FilterPill
+            icon={Building2}
+            label="Client"
+            count={participantFilter.length}
+            onOpen={() => setActiveFilterDropdown(activeFilterDropdown === "participant" ? null : "participant")}
+            onClear={() => setParticipantFilter([])}
+            buttonRef={(element) => {
+              filterPillRefs.current.participant = element
+            }}
+          />
+        )}
+        {assigneeFilter.length > 0 && (
+          <FilterPill
+            icon={User}
+            label="Assignee"
+            count={assigneeFilter.length}
+            onOpen={() => setActiveFilterDropdown(activeFilterDropdown === "assignee" ? null : "assignee")}
+            onClear={() => setAssigneeFilter([])}
+            buttonRef={(element) => {
+              filterPillRefs.current.assignee = element
+            }}
+          />
+        )}
+        {chargeFilter.length > 0 && (
+          <FilterPill
+            icon={Tag}
+            label="Charge"
+            count={chargeFilter.length}
+            onOpen={() => setActiveFilterDropdown(activeFilterDropdown === "charge" ? null : "charge")}
+            onClear={() => setChargeFilter([])}
+            buttonRef={(element) => {
+              filterPillRefs.current.charge = element
+            }}
+          />
+        )}
+
+        <div className="relative ml-auto">
+          <button
+            type="button"
+            ref={pageSizeButtonRef}
+            onClick={() => setIsPageSizeOpen((current) => !current)}
+            className="flex items-center gap-[5px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+            tabIndex={0}
           >
-            {activeFilterDropdown === "participant" && (
-              <>
-                {(uniqueParticipants.length > 0 ? uniqueParticipants : clientNames).map((name) => {
-                  const isActive = participantFilter.includes(name)
-                  const initials = name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-                  return (
-                    <button key={name} onClick={() => toggleDisplayItem(participantFilter, setParticipantFilter, name)} className={`flex w-full items-center gap-[8px] px-[12px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-blue-50 text-blue-600" : "text-[#262626]"}`} tabIndex={0}>
-                      <span className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded bg-blue-100 text-[8px] font-bold text-blue-600">{initials}</span>
-                      {name}
-                    </button>
-                  )
-                })}
-                <button onClick={() => { setParticipantFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded px-[8px] py-[6px] text-left text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0}>Clear</button>
-              </>
-            )}
-            {activeFilterDropdown === "assignee" && (
-              <>
-                {(uniqueAssignees.length > 0 ? uniqueAssignees : staffNames).map((name) => {
-                  const isActive = assigneeFilter.includes(name)
-                  const initials = name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-                  return (
-                    <button key={name} onClick={() => toggleDisplayItem(assigneeFilter, setAssigneeFilter, name)} className={`flex w-full items-center gap-[8px] px-[12px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-blue-50 text-blue-600" : "text-[#262626]"}`} tabIndex={0}>
-                      <span className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded bg-[#e8e8e8] text-[8px] font-bold text-[#555]">{initials}</span>
-                      {name}
-                    </button>
-                  )
-                })}
-                <button onClick={() => { setAssigneeFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded px-[8px] py-[6px] text-left text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0}>Clear</button>
-              </>
-            )}
-            {activeFilterDropdown === "charge" && (
-              <>
-                {uniqueCharges.map((val) => {
-                  const isActive = chargeFilter.includes(val)
-                  return (
-                    <button key={val} onClick={() => toggleDisplayItem(chargeFilter, setChargeFilter, val)} className={`flex w-full items-center gap-[8px] px-[12px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-blue-50 text-blue-600" : "text-[#262626]"}`} tabIndex={0}>
-                      {chargeLabel(val)}
-                    </button>
-                  )
-                })}
-                <button onClick={() => { setChargeFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded px-[8px] py-[6px] text-left text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0}>Clear</button>
-              </>
-            )}
-          </div>
-        </>
-      )}
+            <span>{pageSize} per page</span>
+            <ChevronDown className="h-[11px] w-[11px] text-[#888]" strokeWidth={1.5} />
+          </button>
+          {isPageSizeOpen && (
+            <>
+              <div className="fixed inset-0 z-[55]" onClick={() => setIsPageSizeOpen(false)} />
+              <div className="absolute right-0 top-full z-[60] mt-[4px] w-[120px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                {[10, 20, 50, 100].map((size) => (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => {
+                      setPageSize(size)
+                      setVisibleCount(size)
+                      setIsPageSizeOpen(false)
+                    }}
+                    className={`flex w-full items-center px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${pageSize === size ? "bg-[#f5f5f5] text-[#262626]" : "text-[#262626]"}`}
+                    tabIndex={0}
+                  >
+                    {size} per page
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
 
-      {/* Task list */}
-      <div className="flex-1 overflow-y-auto bg-white">
-        {completedTasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-[80px] text-center">
-            <Receipt className="h-[32px] w-[32px] text-[#ddd]" strokeWidth={1.5} />
-            <p className="mt-[12px] text-[14px] font-medium text-[#999]">
-              {hasActiveFilters || hasDisplayFilters ? "No completed shifts match your filters" : "No completed shifts yet"}
-            </p>
-            <p className="mt-[4px] text-[12px] text-[#bbb]">
-              {!hasActiveFilters && !hasDisplayFilters && "When coordinators complete tasks, they\u2019ll appear here"}
-            </p>
-          </div>
-        ) : (
+        <button
+          type="button"
+          ref={displayButtonRef}
+          onClick={() => setIsDisplayOpen((current) => !current)}
+          className={`flex items-center gap-[5px] rounded border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${hasDisplayFilters ? "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100" : "border-[#dcdcdc] text-[#262626] hover:bg-[#f5f5f5]"}`}
+          tabIndex={0}
+        >
+          <SlidersHorizontal className="h-[13px] w-[13px]" strokeWidth={1.5} />
+          <span className="hidden sm:inline">Display</span>
+          {hasDisplayFilters && (
+            <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-blue-500 px-[4px] text-[10px] font-bold text-white">
+              {displayParticipants.length + displayAssignees.length + displayCharges.length}
+            </span>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (!hasFilteredTasks) return
+            setReviewedTaskIds((current) => (
+              areAllFilteredTasksReviewed
+                ? current.filter((taskId) => !filteredTaskIds.includes(taskId))
+                : Array.from(new Set([...current, ...filteredTaskIds]))
+            ))
+          }}
+          disabled={!hasFilteredTasks}
+          className={`flex items-center gap-[5px] rounded border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${
+            hasFilteredTasks
+              ? "border-[#dcdcdc] text-[#262626] hover:bg-[#f5f5f5]"
+              : "cursor-not-allowed border-[#e8e8e8] text-[#ccc]"
+          }`}
+          tabIndex={0}
+        >
+          <span>{areAllFilteredTasksReviewed ? "Deselect all" : "Select all"}</span>
+        </button>
+        {isDisplayOpen && (
           <>
-            <div className="sticky top-0 z-[1] grid items-center border-b border-[#e0e0e0] bg-white px-[24px]" style={{ gridTemplateColumns: gridTemplate }}>
-              {visibleColumns.map((col) => {
-                const Icon = col.icon
-                return (
-                  <div key={col.key} className={`flex items-center py-[9px] ${col.key === "title" ? "pl-[8px]" : "justify-center"}`}>
-                    <Icon className="h-[14px] w-[14px] text-[#ccc]" strokeWidth={1.5} />
+            <div className="fixed inset-0 z-40" onClick={() => setIsDisplayOpen(false)} />
+            <div
+              className="fixed z-50 w-[420px] rounded-lg border border-[#dcdcdc] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+              style={(() => {
+                const rect = displayButtonRef.current?.getBoundingClientRect()
+                if (!rect) return {}
+                return { top: rect.bottom + 4, right: window.innerWidth - rect.right }
+              })()}
+            >
+              <div className="max-h-[520px] overflow-y-auto">
+                <div className="px-[20px] pb-[16px] pt-[16px]">
+                  <div className="flex gap-[10px]">
+                    {([
+                      { key: "list" as const, label: "List", icon: Table2 },
+                      { key: "week" as const, label: "Week", icon: CalendarDays },
+                    ]).map(({ key, label, icon: Icon }) => {
+                      const isActive = viewMode === key
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => {
+                            setViewMode(key)
+                            if (key === "list") setWeekOffset(0)
+                          }}
+                          className={`flex flex-1 flex-col items-center justify-center gap-[6px] rounded-xl border py-[14px] transition-colors ${isActive ? "border-[#d0d0d0] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]" : "border-transparent bg-[#fafafa] hover:bg-[#f0f0f0]"}`}
+                          tabIndex={0}
+                        >
+                          <Icon className={`h-[20px] w-[20px] ${isActive ? "text-[#262626]" : "text-[#999]"}`} strokeWidth={1.5} />
+                          <span className={`text-[13px] font-medium ${isActive ? "text-[#262626]" : "text-[#999]"}`}>{label}</span>
+                        </button>
+                      )
+                    })}
                   </div>
-                )
-              })}
+                </div>
+
+                <DisplaySection
+                  title="Clients"
+                  items={uniqueParticipants}
+                  activeItems={displayParticipants}
+                  onToggle={(value) => handleToggleDisplayItem(displayParticipants, setDisplayParticipants, value)}
+                />
+                <DisplaySection
+                  title="Assignees"
+                  items={uniqueAssignees}
+                  activeItems={displayAssignees}
+                  onToggle={(value) => handleToggleDisplayItem(displayAssignees, setDisplayAssignees, value)}
+                />
+                <DisplaySection
+                  title="Charges"
+                  items={uniqueCharges}
+                  activeItems={displayCharges}
+                  onToggle={(value) => handleToggleDisplayItem(displayCharges, setDisplayCharges, value)}
+                  formatLabel={chargeLabel}
+                />
+              </div>
+
+              <div className="flex items-center gap-[20px] border-t border-[#f0f0f0] px-[20px] py-[12px]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDisplayParticipants([])
+                    setDisplayAssignees([])
+                    setDisplayCharges([])
+                    setViewMode("list")
+                    setWeekOffset(0)
+                  }}
+                  className="text-[13px] font-medium text-[#bbb] transition-colors hover:text-[#262626]"
+                  tabIndex={0}
+                >
+                  Reset
+                </button>
+              </div>
             </div>
-            {completedTasks.map(renderTaskRow)}
           </>
         )}
       </div>
 
-      {/* Footer */}
-      <div className="flex items-center gap-[12px] border-t border-[#f0f0f0] px-[16px] py-[8px]">
-        <span className="text-[12px] text-[#bbb]">{completedTasks.length} shift{completedTasks.length !== 1 ? "s" : ""}</span>
+      {activeFilterDropdown && (
+        <>
+          <div className="fixed inset-0 z-[55]" onClick={() => setActiveFilterDropdown(null)} />
+          {(() => {
+            const anchor = filterPillRefs.current[activeFilterDropdown] || filterButtonRef.current
+            const rect = anchor?.getBoundingClientRect()
+            if (!rect) return null
+            const dropdownStyle = { top: rect.bottom + 4, left: rect.left, minWidth: 200 }
+
+            if (activeFilterDropdown === "date") {
+              const dateOptions = [
+                { key: "today", label: "Today" },
+                { key: "tomorrow", label: "Tomorrow" },
+                { key: "this-week", label: "This week" },
+                { key: "overdue", label: "Overdue" },
+                { key: "no-date", label: "No date" },
+              ]
+
+              return (
+                <MultiSelectDropdown
+                  title="Filter by date"
+                  items={dateOptions.map((option) => ({ value: option.key, label: option.label }))}
+                  selectedValues={dateFilter}
+                  onToggle={(value) => setDateFilter((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value])}
+                  onBack={() => {
+                    setActiveFilterDropdown(null)
+                    setIsFilterMenuOpen(true)
+                  }}
+                  onClear={() => {
+                    setDateFilter([])
+                    setActiveFilterDropdown(null)
+                  }}
+                  style={dropdownStyle}
+                />
+              )
+            }
+
+            if (activeFilterDropdown === "participant") {
+              return (
+                <MultiSelectDropdown
+                  title="Filter by client"
+                  items={uniqueParticipants.map((value) => ({ value, label: value }))}
+                  selectedValues={participantFilter}
+                  onToggle={(value) => setParticipantFilter((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value])}
+                  onBack={() => {
+                    setActiveFilterDropdown(null)
+                    setIsFilterMenuOpen(true)
+                  }}
+                  onClear={() => {
+                    setParticipantFilter([])
+                    setActiveFilterDropdown(null)
+                  }}
+                  emptyLabel="No clients"
+                  style={dropdownStyle}
+                />
+              )
+            }
+
+            if (activeFilterDropdown === "assignee") {
+              return (
+                <MultiSelectDropdown
+                  title="Filter by assignee"
+                  items={uniqueAssignees.map((value) => ({ value, label: value }))}
+                  selectedValues={assigneeFilter}
+                  onToggle={(value) => setAssigneeFilter((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value])}
+                  onBack={() => {
+                    setActiveFilterDropdown(null)
+                    setIsFilterMenuOpen(true)
+                  }}
+                  onClear={() => {
+                    setAssigneeFilter([])
+                    setActiveFilterDropdown(null)
+                  }}
+                  emptyLabel="No assignees"
+                  style={dropdownStyle}
+                />
+              )
+            }
+
+            return (
+              <MultiSelectDropdown
+                title="Filter by charge"
+                items={uniqueCharges.map((value) => ({ value, label: chargeLabel(value) }))}
+                selectedValues={chargeFilter}
+                onToggle={(value) => setChargeFilter((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value])}
+                onBack={() => {
+                  setActiveFilterDropdown(null)
+                  setIsFilterMenuOpen(true)
+                }}
+                onClear={() => {
+                  setChargeFilter([])
+                  setActiveFilterDropdown(null)
+                }}
+                emptyLabel="No charges"
+                style={dropdownStyle}
+              />
+            )
+          })()}
+        </>
+      )}
+
+      <div className="flex-1 overflow-y-auto bg-white">
+        <div className="sticky top-0 z-[1] grid items-center border-b border-[#e0e0e0] bg-white px-[24px]" style={{ gridTemplateColumns: gridTemplateColumns }}>
+          {visibleColumns.map((column) => {
+            return (
+              <div
+                key={column.key}
+                className={`whitespace-nowrap py-[11px] text-[12px] font-medium text-[#666] ${column.key === "checkbox" ? "text-center" : "text-left"}`}
+              >
+                {column.label}
+              </div>
+            )
+          })}
+        </div>
+
+        {viewMode === "list" ? (
+          <>
+            {sortedTasks.slice(0, visibleCount).map(renderTaskRow)}
+            {sortedTasks.length === 0 && (
+              <EmptyState />
+            )}
+            {sortedTasks.length > visibleCount && (
+              <button
+                type="button"
+                onClick={() => setVisibleCount((current) => current + pageSize)}
+                className="flex w-full items-center justify-center gap-[6px] border-b border-[#f0f0f0] py-[10px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#fafafa] hover:text-[#262626]"
+                tabIndex={0}
+              >
+                Show more ({sortedTasks.length - visibleCount} remaining)
+              </button>
+            )}
+          </>
+        ) : (
+          <>
+            {Object.entries(dayBuckets).map(([dateStr, dayTasks], index) => {
+              const date = new Date(dateStr + "T00:00:00")
+              const dayLabel = weekDayNames[index]
+              const dateLabel = date.toLocaleDateString("en-AU", { day: "numeric", month: "short" })
+              const isToday = dateStr === toDateStr(new Date())
+
+              return (
+                <div key={dateStr}>
+                  <div className={`flex items-center gap-[8px] border-b border-[#e8e8e8] px-[12px] py-[6px] ${isToday ? "bg-blue-50/60" : "bg-[#fafafa]"}`}>
+                    <span className={`text-[13px] font-semibold ${isToday ? "text-blue-600" : "text-[#262626]"}`}>
+                      {dayLabel}
+                    </span>
+                    <span className={`text-[12px] font-medium ${isToday ? "text-blue-400" : "text-[#999]"}`}>
+                      {dateLabel}
+                    </span>
+                    {dayTasks.length > 0 && (
+                      <span className="text-[11px] font-medium text-[#bbb]">
+                        {dayTasks.length} {dayTasks.length === 1 ? "task" : "tasks"}
+                      </span>
+                    )}
+                  </div>
+                  {dayTasks.map(renderTaskRow)}
+                </div>
+              )
+            })}
+            {noDateTasks.length > 0 && (
+              <div>
+                <div className="flex items-center gap-[8px] border-b border-[#e8e8e8] bg-[#fafafa] px-[12px] py-[6px]">
+                  <span className="text-[13px] font-semibold text-[#999]">No date</span>
+                  <span className="text-[11px] font-medium text-[#bbb]">
+                    {noDateTasks.length} {noDateTasks.length === 1 ? "task" : "tasks"}
+                  </span>
+                </div>
+                {noDateTasks.map(renderTaskRow)}
+              </div>
+            )}
+            {filteredTasks.length === 0 && <EmptyState />}
+          </>
+        )}
       </div>
 
-      {selectedTask && (() => {
-        const assigneeInitials = selectedTask.assignee
-          ? selectedTask.assignee.split(" ").filter(Boolean).map((part) => part[0]).join("").toUpperCase().slice(0, 2)
-          : ""
+      <div className="shrink-0 border-t border-[#dcdcdc] px-[20px] py-[10px]">
+        <span className="text-[12px] font-medium text-[#999]">
+          {viewMode === "week"
+            ? `${filteredTasks.length} ${filteredTasks.length === 1 ? "task" : "tasks"} ready to invoice`
+            : `${sortedTasks.length} ${sortedTasks.length === 1 ? "task" : "tasks"} ready to invoice`}
+        </span>
+      </div>
 
-        return (
-          <>
+      {selectedTask && (
+        <>
+          {(() => {
+            const selectedClient = getTaskClient(selectedTask)
+            const selectedInvoiceEmail = getInvoiceEmail(selectedTask)
+            const selectedAmount = getTaskAmount(selectedTask)
+            const selectedFunding = formatFundingType(selectedClient?.participant.fundingType || "")
+            const isSelectedTaskReviewed = reviewedTaskIds.includes(selectedTask.id)
+            const selectedTaskInvoiceIssues = getTaskInvoiceIssues(selectedTask)
+            const hasSelectedTaskInvoiceIssues = selectedTaskInvoiceIssues.length > 0
+
+            return (
+        <>
           <div className="fixed inset-0 z-50 flex items-center justify-center p-[16px]">
-            <div className="absolute inset-0 bg-black/20" onClick={closeDetail} />
+            <div className="absolute inset-0 bg-black/20" onClick={() => setSelectedTaskId(null)} />
             <div className="relative z-10 flex h-[680px] max-h-[calc(100vh-32px)] w-[960px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[20px] border border-[#e7e7e7] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
-              <input
-                ref={detailFileInputRef}
-                type="file"
-                multiple
-                onChange={handleDetailFileSelect}
-                className="hidden"
-              />
-
               <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_320px]">
                 <div className="flex min-h-0 flex-col px-[28px] py-[22px]">
                   <div className="flex items-center gap-[6px] text-[11px] font-medium uppercase tracking-[0.03em] text-[#a3a3a3]">
@@ -645,28 +1317,30 @@ export default function InvoicingPage() {
                       type="text"
                       placeholder="Enter a title for this task..."
                       value={selectedTask.title}
-                      onChange={(e) => handleUpdateTask("title", e.target.value)}
+                      onChange={(event) => handleUpdateTask(selectedTask.id, { title: event.target.value })}
                       className="w-full bg-transparent text-[18px] font-semibold text-[#262626] placeholder-[#8f8f8f] outline-none"
                     />
                   </div>
 
-                  <div
-                    ref={descriptionRef}
-                    contentEditable
-                    suppressContentEditableWarning
-                    data-placeholder="Start typing a description..."
-                    onInput={() => {
-                      if (descriptionRef.current) handleUpdateTask("description", descriptionRef.current.innerHTML)
-                    }}
-                    onContextMenu={handleDescContextMenu}
-                    dangerouslySetInnerHTML={!descriptionRef.current ? { __html: selectedTask.description } : undefined}
-                    className="mt-[14px] min-h-[80px] flex-1 overflow-y-auto text-[14px] leading-[1.6] text-[#4b4b4b] outline-none [&:empty]:before:pointer-events-none [&:empty]:before:text-[#b5b5b5] [&:empty]:before:content-[attr(data-placeholder)] [&_ul]:list-disc [&_ul]:pl-[20px] [&_ol]:list-decimal [&_ol]:pl-[20px] [&_li]:my-[2px] [&_h1]:text-[22px] [&_h1]:font-bold [&_h1]:leading-[1.3] [&_h1]:my-[4px] [&_h2]:text-[18px] [&_h2]:font-semibold [&_h2]:leading-[1.4] [&_h2]:my-[3px] [&_h3]:text-[15px] [&_h3]:font-medium [&_h3]:leading-[1.5] [&_h3]:my-[2px]"
+                  <textarea
+                    value={selectedTask.description}
+                    onChange={(event) => handleUpdateTask(selectedTask.id, { description: event.target.value })}
+                    placeholder="Start typing a description..."
+                    className="mt-[14px] min-h-[80px] flex-1 resize-none overflow-y-auto bg-transparent text-[14px] leading-[1.6] text-[#4b4b4b] outline-none placeholder:text-[#b5b5b5]"
                   />
 
                   <div className="mt-[16px] flex items-center gap-[8px] border-t border-[#f1f1f1] pt-[14px]">
                     <button
                       type="button"
-                      onClick={closeDetail}
+                      onClick={() => handleMoveBackToTasks(selectedTask.id)}
+                      className="flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[10px] py-[5px] text-[12px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                      tabIndex={0}
+                    >
+                      Move back to tasks
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTaskId(null)}
                       className="ml-auto flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[10px] py-[5px] text-[12px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
                       tabIndex={0}
                     >
@@ -678,15 +1352,8 @@ export default function InvoicingPage() {
                 <div className="flex min-h-0 flex-col border-l border-[#ececec] px-[20px] py-[18px]">
                   <div className="flex justify-end gap-[4px]">
                     <button
-                      onClick={() => handleDeleteTask(selectedTask.id)}
-                      className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#bbb] transition-colors hover:bg-[#f5f5f5] hover:text-red-500"
-                      tabIndex={0}
-                      aria-label="Delete task"
-                    >
-                      <Trash2 className="h-[14px] w-[14px]" strokeWidth={1.5} />
-                    </button>
-                    <button
-                      onClick={closeDetail}
+                      type="button"
+                      onClick={() => setSelectedTaskId(null)}
                       className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
                       tabIndex={0}
                       aria-label="Close"
@@ -695,380 +1362,432 @@ export default function InvoicingPage() {
                     </button>
                   </div>
 
-                  <div className="mt-[18px] flex flex-col gap-[14px]">
-                    <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
-                      <span className="text-[13px] font-medium text-[#8d8d8d]">Customer</span>
-                      <button
-                        ref={detailClientRef}
-                        type="button"
-                        onClick={() => { setDetailDropdown(detailDropdown === "detail-client" ? null : "detail-client"); setDetailClientIdx(-1) }}
-                        onKeyDown={(e) => {
-                          if (detailDropdown === "detail-client") {
-                            const total = clientNames.length + 1
-                            if (e.key === "ArrowDown") { e.preventDefault(); setDetailClientIdx((p) => (p + 1) % total) }
-                            else if (e.key === "ArrowUp") { e.preventDefault(); setDetailClientIdx((p) => (p - 1 + total) % total) }
-                            else if (e.key === "Enter") {
-                              e.preventDefault()
-                              const val = detailClientIdx === 0 ? "" : clientNames[detailClientIdx - 1] ?? ""
-                              handleUpdateTask("client", val)
-                              setDetailDropdown(null)
-                              setDetailClientIdx(-1)
-                            }
-                            else if (e.key === "Escape") { e.stopPropagation(); setDetailDropdown(null); setDetailClientIdx(-1) }
-                          }
-                        }}
-                        className="flex min-w-0 items-center gap-[8px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
-                        tabIndex={0}
-                      >
-                        {selectedTask.client ? (
-                          <>
-                            <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md bg-blue-100 text-[9px] font-bold text-blue-600">
-                              {selectedTask.client.split(" ").filter(Boolean).map((part) => part[0]).join("").toUpperCase().slice(0, 2)}
-                            </span>
-                            <span className="truncate text-[13px] font-medium text-[#262626]">{selectedTask.client}</span>
-                          </>
-                        ) : (
-                          <span className="text-[13px] font-medium text-[#b0b0b0]">Empty</span>
-                        )}
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
-                      <span className="text-[13px] font-medium text-[#8d8d8d]">Assignee</span>
-                      <div className="relative">
-                        <button
-                          type="button"
-                          onClick={() => setDetailDropdown(detailDropdown === "detail-assignee" ? null : "detail-assignee")}
-                          className="flex min-w-0 items-center gap-[8px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
-                          tabIndex={0}
-                        >
-                          {assigneeInitials ? (
-                            <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md bg-[#f0f0f0] text-[9px] font-bold text-[#555]">
-                              {assigneeInitials}
-                            </span>
-                          ) : null}
-                          <span className={`truncate text-[13px] font-medium ${selectedTask.assignee ? "text-[#262626]" : "text-[#b0b0b0]"}`}>
-                            {selectedTask.assignee || "Empty"}
-                          </span>
-                        </button>
-                        {detailDropdown === "detail-assignee" && (
-                          <>
-                            <div className="fixed inset-0 z-[59]" onClick={() => setDetailDropdown(null)} />
-                            <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[200px] min-w-[180px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-                              <div
-                                onClick={() => { handleUpdateTask("assignee", ""); setDetailDropdown(null) }}
-                                className="flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5]"
-                                role="option"
-                                aria-selected={!selectedTask.assignee}
-                              >
-                                None
-                              </div>
-                              {staffNames.map((name) => {
-                                const initials = name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-                                return (
-                                  <div
-                                    key={name}
-                                    onClick={() => { handleUpdateTask("assignee", name); setDetailDropdown(null) }}
-                                    className={`flex w-full cursor-pointer items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${selectedTask.assignee === name ? "bg-[#f5f5f5]" : ""}`}
-                                    role="option"
-                                    aria-selected={selectedTask.assignee === name}
-                                  >
-                                    <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[4px] bg-[#d4d4d4] text-[9px] font-semibold text-[#555]">
-                                      {initials}
-                                    </div>
-                                    {name}
-                                  </div>
-                                )
-                              })}
+                  <div className="mt-[18px] flex flex-col gap-[14px] overflow-y-auto">
+                    {hasSelectedTaskInvoiceIssues && (
+                      <div className="grid grid-cols-[84px_minmax(0,1fr)] items-start gap-[12px]">
+                        <span className="pt-[6px] text-[13px] font-medium text-[#8d8d8d]">Issues</span>
+                        <div className="min-w-0 space-y-[6px]">
+                          {selectedTaskInvoiceIssues.map((issue) => (
+                            <div key={issue} className="flex items-start gap-[8px] rounded-[10px] bg-[#fff6f6] px-[8px] py-[6px] text-[12px] leading-[1.45] text-[#a14e4e]">
+                              <AlertTriangle className="mt-[1px] h-[12px] w-[12px] shrink-0" strokeWidth={1.75} />
+                              <span>{issue}</span>
                             </div>
-                          </>
-                        )}
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
-                    <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
-                      <span className="text-[13px] font-medium text-[#8d8d8d]">Due date</span>
-                      <div className="relative">
-                        <button
-                          type="button"
-                          onClick={() => setDetailDropdown(detailDropdown === "detail-date" ? null : "detail-date")}
-                          className="flex min-w-0 items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
-                          tabIndex={0}
-                        >
-                          <CalendarDays className="h-[13px] w-[13px] shrink-0 text-[#888]" strokeWidth={1.5} />
-                          <span className={`truncate text-[13px] font-medium ${selectedTask.dueDate ? "text-[#262626]" : "text-[#b0b0b0]"}`}>
-                            {selectedTask.dueDate
-                              ? new Date(selectedTask.dueDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short" })
-                              : "Empty"}
-                          </span>
-                        </button>
-                        {detailDropdown === "detail-date" && (
-                          <>
-                            <div className="fixed inset-0 z-[59]" onClick={() => setDetailDropdown(null)} />
-                            <div className="absolute left-0 top-full z-[60] mt-[6px]">
+                    <div className="space-y-[10px]">
+                      <div className="px-[8px] text-[11px] font-semibold uppercase tracking-[0.08em] text-[#a3a3a3]">
+                        Task information
+                      </div>
+                      <SidebarField
+                        label="Customer"
+                        value={selectedTask.client}
+                        onChange={(value) => handleUpdateTask(selectedTask.id, { client: value })}
+                        placeholder="Empty"
+                      />
+                      <SidebarField
+                        label="Assignee"
+                        value={selectedTask.assignee}
+                        onChange={(value) => handleUpdateTask(selectedTask.id, { assignee: value })}
+                        placeholder="Empty"
+                      />
+                      <SidebarField
+                        label="Charge"
+                        value={selectedTask.chargeType}
+                        onChange={(value) => handleUpdateTask(selectedTask.id, { chargeType: value })}
+                        placeholder="Empty"
+                        type="select"
+                        options={enabledCharges.map((charge) => charge.itemNumber)}
+                        formatValue={chargeLabel}
+                      />
+                      <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
+                        <span className="text-[13px] font-medium text-[#8d8d8d]">Due date</span>
+                        <div>
+                          <button
+                            ref={detailDueDateButtonRef}
+                            type="button"
+                            onClick={() => setDatePickerField(datePickerField ? null : "dueDate")}
+                            className="flex min-w-0 items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
+                            tabIndex={0}
+                          >
+                            <CalendarDays className={`h-[13px] w-[13px] shrink-0 ${selectedTask.dueDate ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
+                            <span className={`truncate text-[13px] font-medium ${selectedTask.dueDate ? "text-[#262626]" : "text-[#ccc]"}`}>
+                              {selectedTask.dueDate
+                                ? new Date(selectedTask.dueDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short" })
+                                : "Empty"}
+                            </span>
+                          </button>
+                          {datePickerField === "dueDate" && (
+                            <div
+                              className="fixed z-[70]"
+                              style={(() => {
+                                const rect = detailDueDateButtonRef.current?.getBoundingClientRect()
+                                if (!rect) return {}
+
+                                const pickerWidth = 260
+                                const viewportPadding = 16
+                                const left = Math.min(
+                                  Math.max(viewportPadding, rect.right - pickerWidth),
+                                  window.innerWidth - pickerWidth - viewportPadding
+                                )
+
+                                const maxTop = window.innerHeight - 320 - viewportPadding
+                                const top = Math.min(rect.bottom + 6, Math.max(viewportPadding, maxTop))
+
+                                return { top, left }
+                              })()}
+                            >
                               <DatePicker
                                 value={selectedTask.dueDate || ""}
-                                onChange={(val) => handleUpdateTask("dueDate", val)}
-                                onClose={() => setDetailDropdown(null)}
+                                onChange={(value) => {
+                                  handleUpdateTask(selectedTask.id, { dueDate: value })
+                                  setDatePickerField(null)
+                                }}
+                                onClose={() => setDatePickerField(null)}
                               />
                             </div>
-                          </>
-                        )}
+                          )}
+                        </div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
-                      <span className="text-[13px] font-medium text-[#8d8d8d]">Charge</span>
-                      <button
-                        ref={detailChargeRef}
-                        type="button"
-                        onClick={() => setDetailDropdown(detailDropdown === "detail-charge" ? null : "detail-charge")}
-                        className="flex min-w-0 items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
-                        tabIndex={0}
-                      >
-                        {selectedTask.chargeType ? (
-                          <span className="truncate rounded-md bg-[#f0f0f0] px-[8px] py-[3px] text-[12px] font-semibold text-[#555]">
-                            {chargeLabel(selectedTask.chargeType)}
-                          </span>
-                        ) : (
-                          <>
-                            <Tag className="h-[13px] w-[13px] shrink-0 text-[#888]" strokeWidth={1.5} />
-                            <span className="text-[13px] font-medium text-[#b0b0b0]">Empty</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
-                      <span className="text-[13px] font-medium text-[#8d8d8d]">Secondary</span>
-                      <button
-                        ref={detailSecondaryChargeRef}
-                        type="button"
-                        onClick={() => setDetailDropdown(detailDropdown === "detail-secondary-charge" ? null : "detail-secondary-charge")}
-                        className="flex min-w-0 items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
-                        tabIndex={0}
-                      >
-                        {selectedTask.secondaryChargeType ? (
-                          <span className="truncate rounded-md bg-[#f0f0f0] px-[8px] py-[3px] text-[12px] font-semibold text-[#555]">
-                            {secondaryChargeLabel(selectedTask.secondaryChargeType)}
-                          </span>
-                        ) : (
-                          <>
-                            <Tag className="h-[13px] w-[13px] shrink-0 text-[#888]" strokeWidth={1.5} />
-                            <span className="text-[13px] font-medium text-[#b0b0b0]">Empty</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
-                      <span className="text-[13px] font-medium text-[#8d8d8d]">Time</span>
-                      <div className="flex items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] transition-colors hover:bg-[#f7f7f7]">
-                        <Clock className="h-[13px] w-[13px] shrink-0 text-[#888]" strokeWidth={1.5} />
-                        <input
-                          key={selectedTask.timeSpent}
-                          type="text"
-                          defaultValue={selectedTask.timeSpent > 0 ? formatTime(selectedTask.timeSpent) : ""}
-                          placeholder="Empty"
-                          onBlur={(e) => handleUpdateTask("timeSpent", parseTimeInput(e.target.value))}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              handleUpdateTask("timeSpent", parseTimeInput(e.currentTarget.value))
-                              e.currentTarget.blur()
-                            }
-                          }}
-                          className="w-full bg-transparent text-[13px] font-medium text-[#262626] placeholder-[#b0b0b0] outline-none"
-                        />
+                    <div className="border-t border-[#efefef] pt-[14px]">
+                      <div className="space-y-[10px]">
+                        <div className="px-[8px] text-[11px] font-semibold uppercase tracking-[0.08em] text-[#a3a3a3]">
+                          Invoice information
+                        </div>
+                        <SidebarStaticField label="Amount" value={selectedAmount > 0 ? formatCurrency(selectedAmount) : "Empty"} />
+                        <SidebarStaticField label="Funding" value={selectedFunding} />
+                        <SidebarStaticField label="Email" value={selectedInvoiceEmail || "Empty"} />
+                        <SidebarStaticField label="Time" value={selectedTask.timeSpent > 0 ? formatTime(selectedTask.timeSpent) : "Empty"} />
+                        <SidebarStaticField label="Status" value={isSelectedTaskReviewed ? "Reviewed" : "Review pending"} />
                       </div>
                     </div>
                   </div>
-
                 </div>
               </div>
             </div>
           </div>
-
-          {detailDropdown === "detail-client" && detailClientRef.current && (() => {
-            const rect = detailClientRef.current.getBoundingClientRect()
-            return (
-              <div
-                className="fixed z-[60] max-h-[200px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-                style={{ top: rect.bottom + 4, left: rect.left, minWidth: 180 }}
-              >
-                <div
-                  onClick={() => { handleUpdateTask("client", ""); setDetailDropdown(null); setDetailClientIdx(-1) }}
-                  className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] ${detailClientIdx === 0 ? "bg-blue-50 text-blue-600" : ""}`}
-                  role="option"
-                  aria-selected={detailClientIdx === 0}
-                >
-                  None
-                </div>
-                {clientNames.map((name, i) => {
-                  const initials = name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-                  const isHighlighted = detailClientIdx === i + 1
-                  return (
-                    <div
-                      key={name}
-                      onClick={() => { handleUpdateTask("client", name); setDetailDropdown(null); setDetailClientIdx(-1) }}
-                      className={`flex w-full cursor-pointer items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${isHighlighted ? "bg-blue-50" : ""}`}
-                      role="option"
-                      aria-selected={isHighlighted}
-                    >
-                      <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[4px] bg-[#d4d4d4] text-[9px] font-semibold text-[#555]">
-                        {initials}
-                      </div>
-                      {name}
-                    </div>
-                  )
-                })}
-              </div>
+        </>
             )
           })()}
+        </>
+      )}
 
-          {detailDropdown === "detail-charge" && selectedTask && detailChargeRef.current && (() => {
-            const rect = detailChargeRef.current.getBoundingClientRect()
-            return (
-              <div
-                className="fixed z-[60] max-h-[220px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-                style={{ top: rect.bottom + 6, left: rect.left, minWidth: Math.max(rect.width, 220) }}
-              >
-                {chargeTypes.map((ct) => (
-                  <div
-                    key={ct.value}
-                    onClick={() => { handleUpdateTask("chargeType", ct.value); setDetailDropdown(null) }}
-                    className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${ct.value ? "text-[#262626]" : "text-[#888]"} ${selectedTask.chargeType === ct.value ? "bg-[#f5f5f5]" : ""}`}
-                    role="option"
-                    aria-selected={selectedTask.chargeType === ct.value}
-                  >
-                    {ct.label}
-                  </div>
-                ))}
-              </div>
-            )
-          })()}
-
-          {detailDropdown === "detail-secondary-charge" && selectedTask && detailSecondaryChargeRef.current && (() => {
-            const rect = detailSecondaryChargeRef.current.getBoundingClientRect()
-            return (
-              <div
-                className="fixed z-[60] max-h-[260px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-                style={{ top: rect.bottom + 6, left: rect.left, minWidth: Math.max(rect.width, 220) }}
-              >
-                <div
-                  onClick={() => { handleUpdateTask("secondaryChargeType", ""); setDetailDropdown(null) }}
-                  className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] ${!selectedTask.secondaryChargeType ? "bg-[#f5f5f5]" : ""}`}
-                  role="option"
-                  aria-selected={!selectedTask.secondaryChargeType}
-                >
-                  No charge
-                </div>
-                <div className="my-[2px] border-t border-[#f0f0f0]" />
-                <div className="px-[12px] py-[4px] text-[10px] font-semibold uppercase tracking-[0.05em] text-[#aaa]">Service type</div>
-                {serviceChargeTypes.map((sct) => (
-                  <div
-                    key={sct.value}
-                    onClick={() => { handleUpdateTask("secondaryChargeType", sct.value); setDetailDropdown(null) }}
-                    className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${selectedTask.secondaryChargeType === sct.value ? "bg-[#f5f5f5]" : ""}`}
-                    role="option"
-                    aria-selected={selectedTask.secondaryChargeType === sct.value}
-                  >
-                    {sct.label}
-                  </div>
-                ))}
-                {enabledCharges.length > 0 && (
-                  <>
-                    <div className="my-[2px] border-t border-[#f0f0f0]" />
-                    <div className="px-[12px] py-[4px] text-[10px] font-semibold uppercase tracking-[0.05em] text-[#aaa]">NDIS line item</div>
-                    {enabledCharges.map((c) => (
-                      <div
-                        key={c.itemNumber}
-                        onClick={() => { handleUpdateTask("secondaryChargeType", c.itemNumber); setDetailDropdown(null) }}
-                        className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${selectedTask.secondaryChargeType === c.itemNumber ? "bg-[#f5f5f5]" : ""}`}
-                        role="option"
-                        aria-selected={selectedTask.secondaryChargeType === c.itemNumber}
-                      >
-                        {c.shortName}
-                      </div>
-                    ))}
-                  </>
-                )}
-              </div>
-            )
-          })()}
-          </>
-        )
-      })()}
-
-      {formatToolbar && (
+      {isCreateViewOpen && (
         <>
-          <div className="fixed inset-0 z-[80]" onClick={() => { setFormatToolbar(null); setIsTextSizeOpen(false) }} onContextMenu={(e) => { e.preventDefault(); setFormatToolbar(null); setIsTextSizeOpen(false) }} />
-          <div
-            className="fixed z-[80] flex items-center gap-[2px] rounded-lg border border-[#e0e0e0] bg-white px-[6px] py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.12)]"
-            style={{ top: formatToolbar.y - 44, left: formatToolbar.x - 100 }}
-          >
-            <div className="relative">
-              <button
-                onMouseDown={(e) => { e.preventDefault(); setIsTextSizeOpen(!isTextSizeOpen) }}
-                className={`flex h-[28px] items-center gap-[3px] rounded-md px-[6px] transition-colors ${isTextSizeOpen || currentBlock === "h1" || currentBlock === "h2" || currentBlock === "h3" ? "bg-[#e8e8e8] text-[#262626]" : "text-[#666] hover:bg-[#f0f0f0] hover:text-[#262626]"}`}
-                tabIndex={0}
-                aria-label="Text size"
-                title="Text size"
-              >
-                <Type className="h-[14px] w-[14px]" strokeWidth={2} />
-                <ChevronDown className="h-[10px] w-[10px]" strokeWidth={2} />
-              </button>
-              {isTextSizeOpen && (
-                <div className="absolute left-0 top-full z-[90] mt-[4px] w-[140px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
-                  {([
-                    { tag: "h1", label: "Heading", className: "text-[16px] font-bold" },
-                    { tag: "h2", label: "Subheading", className: "text-[14px] font-semibold" },
-                    { tag: "h3", label: "Small", className: "text-[13px] font-medium" },
-                    { tag: "p", label: "Normal", className: "text-[13px] font-normal" },
-                  ] as const).map(({ tag, label, className }) => (
-                    <button
-                      key={tag}
-                      onMouseDown={(e) => { e.preventDefault(); handleTextSize(tag) }}
-                      className={`flex w-full items-center px-[12px] py-[6px] transition-colors hover:bg-[#f5f5f5] ${currentBlock === tag ? "bg-[#f0f0f0]" : ""}`}
-                      tabIndex={0}
-                    >
-                      <span className={`text-[#262626] ${className}`}>{label}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
+          <div className="fixed inset-0 z-50 bg-black/20" onClick={() => setIsCreateViewOpen(false)} />
+          <div className="fixed inset-0 z-[51] flex items-center justify-center p-[16px]">
+            <div className="w-full max-w-[420px] rounded-[18px] border border-[#e7e7e7] bg-white p-[20px] shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+              <h3 className="text-[15px] font-semibold text-[#262626]">Create a view for invoicing</h3>
+              <p className="mt-[4px] text-[13px] text-[#888]">Save the current structure, filters and display settings.</p>
+              <input
+                ref={newViewInputRef}
+                value={newViewName}
+                onChange={(event) => setNewViewName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") handleCreateView()
+                }}
+                placeholder="View name"
+                className="mt-[16px] w-full rounded-[12px] border border-[#e2e2e2] px-[12px] py-[10px] text-[14px] text-[#262626] outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
+              />
+              <div className="mt-[16px] flex items-center justify-end gap-[8px]">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateViewOpen(false)}
+                  className="rounded-lg border border-[#dcdcdc] px-[12px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateView}
+                  disabled={!newViewName.trim()}
+                  className="rounded-lg bg-[#262626] px-[12px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Save view
+                </button>
+              </div>
             </div>
-            <div className="mx-[2px] h-[16px] w-px bg-[#e8e8e8]" />
-            {([
-              { cmd: "bold", Icon: Bold, label: "Bold" },
-              { cmd: "italic", Icon: Italic, label: "Italic" },
-              { cmd: "underline", Icon: Underline, label: "Underline" },
-              { cmd: "strikeThrough", Icon: Strikethrough, label: "Strikethrough" },
-            ] as const).map(({ cmd, Icon, label }) => (
-              <button
-                key={cmd}
-                onMouseDown={(e) => { e.preventDefault(); handleDescFormat(cmd) }}
-                className={`flex h-[28px] w-[28px] items-center justify-center rounded-md transition-colors ${descFormats[cmd] ? "bg-[#e8e8e8] text-[#262626]" : "text-[#666] hover:bg-[#f0f0f0] hover:text-[#262626]"}`}
-                tabIndex={0}
-                aria-label={label}
-                title={label}
-              >
-                <Icon className="h-[14px] w-[14px]" strokeWidth={2} />
-              </button>
-            ))}
-            <div className="mx-[2px] h-[16px] w-px bg-[#e8e8e8]" />
-            <button
-              onMouseDown={(e) => { e.preventDefault(); handleDescFormat("insertUnorderedList") }}
-              className={`flex h-[28px] w-[28px] items-center justify-center rounded-md transition-colors ${descFormats.insertUnorderedList ? "bg-[#e8e8e8] text-[#262626]" : "text-[#666] hover:bg-[#f0f0f0] hover:text-[#262626]"}`}
-              tabIndex={0}
-              aria-label="Bullet list"
-              title="Bullet list"
-            >
-              <List className="h-[14px] w-[14px]" strokeWidth={2} />
-            </button>
           </div>
         </>
       )}
 
+      {isSendInvoicesOpen && (
+        <>
+          <div className="fixed inset-0 z-50 bg-black/20" onClick={handleCloseSendInvoicesModal} />
+          <div className="fixed inset-0 z-[51] flex items-center justify-center p-[16px]">
+            <div className="w-full max-w-[460px] rounded-[18px] border border-[#e7e7e7] bg-white p-[20px] shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+              <h3 className="text-[15px] font-semibold text-[#262626]">
+                {sendInvoicesSummary ? "Invoice sending complete" : "Create invoices"}
+              </h3>
+
+              {sendInvoicesSummary ? (
+                <>
+                  <p className="mt-[6px] text-[13px] text-[#666]">
+                    {sendInvoicesSummary.completedCount} {sendInvoicesSummary.completedCount === 1 ? "invoice was" : "invoices were"} completed.
+                    {sendInvoicesSummary.emailedCount > 0 && ` ${sendInvoicesSummary.emailedCount} emailed.`}
+                    {sendInvoicesSummary.portalCount > 0 && ` ${sendInvoicesSummary.portalCount} prepared for agency claim.`}
+                    {sendInvoicesSummary.failedCount > 0 && ` ${sendInvoicesSummary.failedCount} failed.`}
+                    {sendInvoicesSummary.skippedCount > 0 && ` ${sendInvoicesSummary.skippedCount} skipped.`}
+                  </p>
+                  {sendInvoicesSummary.failedMessages.length > 0 && (
+                    <div className="mt-[14px] max-h-[180px] overflow-y-auto rounded-[14px] border border-[#ececec] bg-[#fafafa] px-[12px] py-[10px]">
+                      <div className="text-[12px] font-medium text-[#666]">
+                        {sendInvoicesSummary.failedMessages.join(" | ")}
+                      </div>
+                    </div>
+                  )}
+                  <div className="mt-[16px] flex items-center justify-end">
+                    <button
+                      type="button"
+                      onClick={handleCloseSendInvoicesModal}
+                      className="rounded-lg bg-[#262626] px-[12px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-black"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="mt-[6px] text-[13px] text-[#666]">
+                    Complete {selectedTaskCount} {selectedTaskCount === 1 ? "invoice" : "invoices"} based on each participant&apos;s plan type?
+                  </p>
+                  <p className="mt-[8px] text-[12px] text-[#999]">
+                    Plan-managed and self-managed participants will be emailed. Agency-managed participants will be prepared for NDIA portal claim.
+                  </p>
+                  <div className="mt-[16px] flex items-center justify-end gap-[8px]">
+                    <button
+                      type="button"
+                      onClick={handleCloseSendInvoicesModal}
+                      disabled={isSendingInvoices}
+                      className="rounded-lg border border-[#dcdcdc] px-[12px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSendInvoices}
+                      disabled={isSendingInvoices || selectedTaskCount === 0}
+                      className="rounded-lg bg-blue-500 px-[12px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {isSendingInvoices ? "Sending..." : "Confirm"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {viewContextMenu && (
+        <div
+          className="fixed z-[70] min-w-[160px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_6px_20px_rgba(0,0,0,0.12)]"
+          style={{ left: viewContextMenu.x, top: viewContextMenu.y }}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              deleteView(viewContextMenu.viewId)
+              setViewContextMenu(null)
+            }}
+            className="flex w-full items-center px-[14px] py-[8px] text-left text-[13px] font-medium text-[#c43d3d] transition-colors hover:bg-[#faf5f5]"
+          >
+            Delete view
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FilterPill({
+  icon: Icon,
+  label,
+  count,
+  onOpen,
+  onClear,
+  buttonRef,
+}: {
+  icon: ComponentType<{ className?: string; strokeWidth?: number }>
+  label: string
+  count: number
+  onOpen: () => void
+  onClear: () => void
+  buttonRef: (element: HTMLButtonElement | null) => void
+}) {
+  return (
+    <div className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626]">
+      <Icon className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+      <button ref={buttonRef} onClick={onOpen} className="hover:underline" tabIndex={0}>
+        {label}
+      </button>
+      <span className="text-[#888]">is</span>
+      <span>{count} {count === 1 ? "value" : "values"}</span>
+      <button onClick={onClear} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded text-[#888] transition-colors hover:text-[#262626]" tabIndex={0} aria-label={`Clear ${label.toLowerCase()} filter`}>
+        <X className="h-[12px] w-[12px]" strokeWidth={1.5} />
+      </button>
+    </div>
+  )
+}
+
+function DisplaySection({
+  title,
+  items,
+  activeItems,
+  onToggle,
+  formatLabel,
+}: {
+  title: string
+  items: string[]
+  activeItems: string[]
+  onToggle: (value: string) => void
+  formatLabel?: (value: string) => string
+}) {
+  if (items.length === 0) return null
+
+  return (
+    <div className="px-[20px] pb-[16px] pt-[2px]">
+      <div className="pb-[12px] text-[13px] font-medium text-[#888]">{title}</div>
+      <div className="flex flex-wrap gap-[8px]">
+        {items.map((item) => {
+          const isActive = activeItems.includes(item)
+          return (
+            <button
+              key={item}
+              type="button"
+              onClick={() => onToggle(item)}
+              className={`inline-flex items-center rounded-lg border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
+              tabIndex={0}
+            >
+              {formatLabel ? formatLabel(item) : item}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function MultiSelectDropdown({
+  title,
+  items,
+  selectedValues,
+  onToggle,
+  onBack,
+  onClear,
+  emptyLabel = "No options",
+  style,
+}: {
+  title: string
+  items: Array<{ value: string; label: string }>
+  selectedValues: string[]
+  onToggle: (value: string) => void
+  onBack: () => void
+  onClear: () => void
+  emptyLabel?: string
+  style: CSSProperties
+}) {
+  return (
+    <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={style}>
+      <button onClick={onBack} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+        <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
+        <span>Back</span>
+      </button>
+      <p className="px-[16px] py-[4px] text-[11px] font-medium text-[#888]">{title}</p>
+      {items.map((item) => {
+        const isActive = selectedValues.includes(item.value)
+        return (
+          <button
+            key={item.value}
+            onClick={() => onToggle(item.value)}
+            className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`}
+            tabIndex={0}
+          >
+            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
+              {isActive && <span className="text-[10px] text-white">✓</span>}
+            </div>
+            <span className="text-[#262626]">{item.label}</span>
+          </button>
+        )
+      })}
+      {items.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-[#888]">{emptyLabel}</p>}
+      <div className="border-t border-[#f0f0f0] px-[8px] py-[4px]">
+        <button onClick={onClear} className="w-full rounded px-[8px] py-[6px] text-left text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0}>
+          Clear
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function SidebarField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  options,
+  formatValue,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  placeholder: string
+  type?: "text" | "select"
+  options?: string[]
+  formatValue?: (value: string) => string
+}) {
+  return (
+    <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
+      <span className="text-[13px] font-medium text-[#8d8d8d]">{label}</span>
+      <div className="min-w-0">
+        <EditableField
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          type={type}
+          options={options}
+          size="compact"
+          offsetClassName=""
+          emptyLabel="Empty"
+          displayClassName="block min-w-0 rounded-[10px] px-[8px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f7f7f7]"
+          dropdownButtonClassName="flex w-full min-w-0 items-center justify-between rounded-[10px] border border-[#a3c4f3] bg-white px-[8px] py-[5px] text-left text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
+          dropdownItemClassName="flex w-full items-center px-[8px] py-[6px] text-left text-[13px] font-medium transition-colors hover:bg-[#f5f5f5]"
+          inputClassName="w-full rounded-[10px] border border-[#a3c4f3] bg-white px-[8px] py-[5px] pr-[28px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
+        />
+        {formatValue && value && (
+          <div className="mt-[2px] px-[8px] text-[12px] text-[#888]">{formatValue(value)}</div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function SidebarStaticField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
+      <span className="text-[13px] font-medium text-[#8d8d8d]">{label}</span>
+      <div className={`min-w-0 rounded-[10px] px-[8px] py-[6px] text-[13px] font-medium ${value === "Empty" ? "text-[#ccc]" : "text-[#262626]"}`}>
+        {value}
+      </div>
+    </div>
+  )
+}
+
+function EmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center px-[24px] py-[56px] text-center">
+      <div className="rounded-full bg-[#f5f5f5] p-[12px]">
+        <Receipt className="h-[20px] w-[20px] text-[#999]" strokeWidth={1.5} />
+      </div>
+      <h3 className="mt-[14px] text-[15px] font-semibold text-[#262626]">No tasks ready to invoice</h3>
+      <p className="mt-[6px] max-w-[320px] text-[13px] text-[#888]">
+        Completed coordinator tasks will appear here automatically as soon as they are ticked off.
+      </p>
     </div>
   )
 }

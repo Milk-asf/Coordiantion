@@ -20,7 +20,6 @@ export interface Permissions {
   canManageClients: boolean
   canCreateTasks: boolean
   canManageDocuments: boolean
-  canViewBudgets: boolean
   canAssignClients: boolean
   canAssignTasks: boolean
 }
@@ -37,7 +36,6 @@ const noPermissions: Permissions = {
   canManageClients: true,
   canCreateTasks: true,
   canManageDocuments: true,
-  canViewBudgets: true,
   canAssignClients: true,
   canAssignTasks: true,
 }
@@ -57,7 +55,6 @@ function derivePermissions(role: Role, userId: string | null = null): Permission
     canManageClients: true,
     canCreateTasks: true,
     canManageDocuments: true,
-    canViewBudgets: true,
     canAssignClients: isAdmin,
     canAssignTasks: isAdmin,
   }

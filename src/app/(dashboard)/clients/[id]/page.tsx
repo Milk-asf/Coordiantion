@@ -6,6 +6,10 @@ import { useContacts } from "@/lib/hooks/use-contacts"
 import { useClients } from "@/lib/hooks/use-clients"
 import { relationshipConfig } from "@/lib/types"
 import type { Client, ParticipantDetails } from "@/lib/types"
+import { EntityIcon } from "@/components/entity-icon"
+import { EditableField } from "@/components/editable-field"
+import { ContactChip } from "@/components/contact-chip"
+import { DetailRow } from "@/components/detail-row"
 import {
   UserRound,
   FileText,
@@ -34,8 +38,8 @@ import {
   PanelRightClose,
   ListFilter,
   X,
-  Copy,
-  Check,
+  Wallet,
+  Building2,
 } from "lucide-react"
 
 interface ProfileContact {
@@ -55,42 +59,22 @@ const tabs = [
   { key: "files", label: "Files", icon: FolderOpen },
 ]
 
-interface ActivityItem {
-  id: string
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
-  content: React.ReactNode
-  time: string
-}
-
-function getActivities(_clientName?: string): ActivityItem[] {
-  return [
-    { id: "1", icon: FileText, content: <><strong>Lightfield</strong> set About their business</>, time: "7m ago" },
-    { id: "2", icon: UserPlus, content: <><strong>Lightfield</strong> set Name for the contact <strong>Sam Lee</strong> to Sam Lee</>, time: "7m ago" },
-    { id: "3", icon: FileText, content: <><strong>Lightfield</strong> updated 9 fields</>, time: "7m ago" },
-    { id: "4", icon: UserPlus, content: <><strong>Lightfield</strong> created the contact <strong>Sam Lee</strong></>, time: "7m ago" },
-  ]
-}
-
 function ClientIcon({ client, size = "md" }: { client: Client; size?: "sm" | "md" | "lg" | "xl" }) {
-  const dims = size === "xl" ? "h-[48px] w-[48px]" : size === "lg" ? "h-[36px] w-[36px]" : size === "md" ? "h-[28px] w-[28px]" : "h-[20px] w-[20px]"
-  const textSize = size === "xl" ? "text-[18px]" : size === "lg" ? "text-[15px]" : size === "md" ? "text-[12px]" : "text-[10px]"
-  const radius = size === "xl" ? "rounded-lg" : "rounded-[4px]"
-  return (
-    <div className={`${dims} ${radius} flex items-center justify-center bg-[#d4d4d4] ${textSize} font-semibold text-[#555]`}>
-      {client.iconText}
-    </div>
-  )
+  const normalizedSize = size === "md" ? "md" : size === "xl" ? "xl" : size === "lg" ? "lg" : "sm"
+
+  return <EntityIcon text={client.iconText} size={normalizedSize} />
 }
 
 function SidebarDetailRow({ icon: Icon, label, children }: { icon: React.ComponentType<{ className?: string; strokeWidth?: number }>; label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center py-[6px]">
-      <div className="flex w-[130px] shrink-0 items-center gap-[8px] text-[13px] font-medium text-[#888]">
-        <Icon className="h-[14px] w-[14px] text-[#999]" strokeWidth={1.5} />
-        <span>{label}</span>
-      </div>
-      <div className="min-w-0 flex-1 text-[13px] font-medium text-[#262626]">{children}</div>
-    </div>
+    <DetailRow
+      icon={Icon}
+      label={label}
+      labelWidthClassName="w-[130px]"
+      rowClassName="flex items-center py-[6px]"
+    >
+      {children}
+    </DetailRow>
   )
 }
 
@@ -107,217 +91,42 @@ function SidebarEditableField({
   type?: "text" | "select" | "date"
   options?: string[]
 }) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [draft, setDraft] = useState(value)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const selectRef = useRef<HTMLSelectElement>(null)
-
-  useEffect(() => { setDraft(value) }, [value])
-  useEffect(() => {
-    if (!isEditing) return
-    if (type === "select") selectRef.current?.focus()
-    else inputRef.current?.focus()
-  }, [isEditing, type])
-
-  const handleSave = useCallback(() => { setIsEditing(false); onChange(draft) }, [draft, onChange])
-  const handleCancel = useCallback(() => { setIsEditing(false); setDraft(value) }, [value])
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleSave()
-    if (e.key === "Escape") handleCancel()
-  }, [handleSave, handleCancel])
-
-  if (isEditing) {
-    if (type === "select" && options) {
-      return (
-        <div className="relative">
-          <select
-            ref={selectRef}
-            value={draft}
-            onChange={(e) => { setDraft(e.target.value); onChange(e.target.value); setIsEditing(false) }}
-            onBlur={handleSave}
-            onKeyDown={handleKeyDown}
-            className="w-full appearance-none rounded-lg border border-[#a3c4f3] bg-white px-[8px] py-[5px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
-          >
-            <option value="">—</option>
-            {options.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-[8px] top-1/2 h-[12px] w-[12px] -translate-y-1/2 text-[#999]" strokeWidth={1.5} />
-        </div>
-      )
-    }
-    return (
-      <div className="relative">
-        <input
-          ref={inputRef}
-          type={type === "date" ? "date" : "text"}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={handleSave}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          className="w-full rounded-lg border border-[#a3c4f3] bg-white px-[8px] py-[5px] pr-[28px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
-        />
-        {draft && (
-          <button
-            type="button"
-            onMouseDown={(e) => { e.preventDefault(); setDraft(""); onChange(""); setIsEditing(false) }}
-            className="absolute right-[8px] top-1/2 -translate-y-1/2 text-[#bbb] transition-colors hover:text-[#888]"
-            tabIndex={-1}
-            aria-label="Clear field"
-          >
-            <X className="h-[13px] w-[13px]" strokeWidth={1.5} />
-          </button>
-        )}
-      </div>
-    )
-  }
-
-  const displayValue = type === "date" && value
-    ? new Date(value + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
-    : value
-
   return (
-    <span
-      onClick={() => setIsEditing(true)}
-      className="block cursor-default rounded-lg px-[8px] py-[5px] transition-colors hover:bg-[#f5f5f5]"
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === "Enter") setIsEditing(true) }}
-      aria-label={`Click to edit ${placeholder || "field"}`}
-    >
-      {displayValue || <span className="text-[#bbb]">{placeholder || "—"}</span>}
-    </span>
+    <EditableField
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      type={type}
+      options={options}
+      size="compact"
+    />
   )
 }
 
 function SidebarContactChip({ value, onChange, placeholder, variant = "grey" }: { value: string; onChange: (v: string) => void; placeholder: string; variant?: "grey" | "white" }) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [draft, setDraft] = useState(value)
-  const [isCopied, setIsCopied] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => { setDraft(value) }, [value])
-  useEffect(() => { if (isEditing) inputRef.current?.focus() }, [isEditing])
-
-  const handleSave = () => { setIsEditing(false); onChange(draft) }
-  const handleCancel = () => { setIsEditing(false); setDraft(value) }
-  const handleCopy = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    navigator.clipboard.writeText(value).catch(() => {})
-    setIsCopied(true)
-    setTimeout(() => setIsCopied(false), 1500)
-  }
-
-  const isWhite = variant === "white"
-  const chipBg = isWhite ? "bg-transparent" : "bg-[#f5f5f5]"
-  const chipHover = isWhite ? "hover:bg-[#f5f5f5]" : "hover:bg-[#efefef]"
-  const chipBorder = isWhite ? "border-[#dcdcdc]" : "border-[#dcdcdc]"
-  const copyHoverBg = isWhite ? "hover:bg-[#f0f0f0]" : "hover:bg-[#e5e5e5]"
-
-  if (isEditing) {
-    return (
-      <input
-        ref={inputRef}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={handleSave}
-        onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") handleCancel() }}
-        placeholder={placeholder}
-        className="rounded border border-[#a3c4f3] bg-white px-[8px] py-[3px] text-[12px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
-      />
-    )
-  }
-
-  if (!value) {
-    return (
-      <span
-        onClick={() => setIsEditing(true)}
-        className="inline-flex cursor-default items-center rounded border border-dashed border-[#d0d0d0] bg-transparent px-[8px] py-[2px] text-[12px] font-medium text-[#bbb] transition-colors hover:border-[#999] hover:text-[#999]"
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === "Enter") setIsEditing(true) }}
-        aria-label={`Click to add ${placeholder}`}
-      >
-        + {placeholder}
-      </span>
-    )
-  }
-
   return (
-    <span className={`group/chip inline-flex cursor-default items-center gap-[4px] rounded border ${chipBorder} ${chipBg} py-[2px] pl-[8px] pr-[4px] text-[12px] font-medium text-[#262626] transition-colors ${chipHover}`}>
-      <span
-        onClick={() => setIsEditing(true)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === "Enter") setIsEditing(true) }}
-        aria-label={`Click to edit ${placeholder}`}
-      >
-        {value}
-      </span>
-      <button
-        type="button"
-        onClick={handleCopy}
-        className={`shrink-0 rounded p-[2px] transition-all ${isCopied ? "text-green-600" : `text-[#bbb] opacity-0 group-hover/chip:opacity-100 ${copyHoverBg} hover:text-[#666]`}`}
-        tabIndex={0}
-        aria-label={`Copy ${placeholder}`}
-      >
-        {isCopied ? <Check className="h-[11px] w-[11px]" strokeWidth={2} /> : <Copy className="h-[11px] w-[11px]" strokeWidth={1.5} />}
-      </button>
-    </span>
+    <ContactChip
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      variant={variant}
+      size="compact"
+      emptyPrefix="+"
+    />
   )
 }
 
 function SidebarDiagnosisChip({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [draft, setDraft] = useState(value)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => { setDraft(value) }, [value])
-  useEffect(() => { if (isEditing) inputRef.current?.focus() }, [isEditing])
-
-  const handleSave = () => { setIsEditing(false); onChange(draft) }
-  const handleCancel = () => { setIsEditing(false); setDraft(value) }
-
-  if (isEditing) {
-    return (
-      <input
-        ref={inputRef}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={handleSave}
-        onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") handleCancel() }}
-        placeholder={placeholder}
-        className="rounded border border-[#a3c4f3] bg-white px-[8px] py-[3px] text-[12px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
-      />
-    )
-  }
-
-  if (!value) {
-    return (
-      <span
-        onClick={() => setIsEditing(true)}
-        className="inline-flex cursor-default items-center rounded border border-dashed border-[#d0d0d0] bg-transparent px-[8px] py-[2px] text-[12px] font-medium text-[#bbb] transition-colors hover:border-[#999] hover:text-[#999]"
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === "Enter") setIsEditing(true) }}
-        aria-label={`Click to add ${placeholder}`}
-      >
-        + {placeholder}
-      </span>
-    )
-  }
-
   return (
-    <span
-      onClick={() => setIsEditing(true)}
-      className="inline-flex cursor-default items-center rounded border border-[#dcdcdc] bg-transparent px-[8px] py-[2px] text-[12px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === "Enter") setIsEditing(true) }}
-      aria-label={`Click to edit ${placeholder}`}
-    >
-      {value}
-    </span>
+    <ContactChip
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      variant="white"
+      size="compact"
+      emptyPrefix="+"
+      enableCopy={false}
+    />
   )
 }
 
@@ -359,6 +168,8 @@ export default function ParticipantProfilePage() {
   const tabsContainerRef = useRef<HTMLDivElement>(null)
   const headerRef = useRef<HTMLDivElement>(null)
   const isResizing = useRef(false)
+  const id = params.id as string
+  const client = clients.find((c) => c.id === id) || null
 
   const handleMouseDown = useCallback(() => {
     isResizing.current = true
@@ -429,9 +240,6 @@ export default function ParticipantProfilePage() {
     return () => window.removeEventListener("resize", handleResize)
   }, [isSidebarVisible, sidebarWidth])
 
-  const id = params.id as string
-  const client = clients.find((c) => c.id === id) || null
-
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -454,7 +262,6 @@ export default function ParticipantProfilePage() {
   }
 
   const p = client.participant
-  const activities = getActivities(client.name)
 
   const handleUpdateField = (field: keyof ParticipantDetails, value: string) => {
     updateParticipantField(client.id, field, value)
@@ -836,68 +643,11 @@ export default function ParticipantProfilePage() {
               <p className="text-[13px] font-medium text-[#bbb]">No content yet</p>
             </div>
           ) : (
-          <div className="mx-auto max-w-[720px] px-[40px] py-[32px]">
-            {/* Participant name header */}
-            <div className="flex items-center gap-[14px] pb-[28px]">
+          <div className="mx-auto flex w-full max-w-[1120px] flex-col px-[32px] py-[32px]">
+            <div className="flex items-center gap-[14px]">
               <ClientIcon client={client} size="xl" />
-              <h1 className="text-[24px] font-semibold text-[#262626]">{client.displayName}</h1>
-            </div>
-
-            {/* Account summary */}
-            <div className="mb-[24px]">
-              <h3 className="mb-[8px] text-[13px] font-medium text-[#888]">Account summary</h3>
-              <p className="text-[13px] font-medium leading-[22px] text-[#262626]">{client.summary}</p>
-            </div>
-
-            {/* About their business */}
-            <div className="mb-[24px]">
-              <h3 className="mb-[8px] text-[13px] font-medium text-[#888]">About their business</h3>
-              <p className="text-[13px] font-medium leading-[22px] text-[#262626]">{client.about}</p>
-            </div>
-
-            {/* Upcoming meetings */}
-            <div className="mb-[24px]">
-              <div className="flex items-center justify-between">
-                <h3 className="text-[13px] font-medium text-[#888]">Upcoming meetings</h3>
-                <button className="text-[12px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>See all</button>
-              </div>
-              <p className="mt-[8px] text-[13px] font-medium text-[#bbb]">No upcoming meetings</p>
-            </div>
-
-            {/* Open tasks */}
-            <div className="mb-[24px]">
-              <div className="flex items-center justify-between">
-                <h3 className="text-[13px] font-medium text-[#888]">Open tasks</h3>
-                <button className="text-[12px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>See all</button>
-              </div>
-              <p className="mt-[8px] text-[13px] font-medium text-[#bbb]">No open tasks</p>
-            </div>
-
-            {/* Activity */}
-            <div>
-              <h3 className="mb-[12px] text-[13px] font-medium text-[#888]">Activity</h3>
-              <div className="relative">
-                {activities.map((activity, idx) => {
-                  const isLast = idx === activities.length - 1
-                  const IconComp = activity.icon
-                  return (
-                    <div key={activity.id} className="relative flex gap-[12px]">
-                      <div className="relative flex flex-col items-center">
-                        <div className="relative z-10 flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-[#fafafa]">
-                          <IconComp className="h-[16px] w-[16px] text-[#999]" strokeWidth={1.5} />
-                        </div>
-                        {!isLast && <div className="w-[1px] flex-1 bg-[#e8e8e8]" />}
-                      </div>
-                      <div className={`min-w-0 flex-1 ${isLast ? "pb-0" : "pb-[16px]"}`}>
-                        <p className="text-[13px] font-medium leading-[20px] text-[#555]">
-                          {activity.content}
-                          <span className="ml-[6px] text-[#bbb]">·</span>
-                          <span className="ml-[6px] text-[12px] text-[#bbb]">{activity.time}</span>
-                        </p>
-                      </div>
-                    </div>
-                  )
-                })}
+              <div>
+                <h1 className="text-[24px] font-semibold text-[#262626]">{client.displayName}</h1>
               </div>
             </div>
           </div>
@@ -1004,6 +754,30 @@ export default function ParticipantProfilePage() {
                 </SidebarDetailRow>
                 <SidebarDetailRow icon={Hash} label="External ID">
                   <SidebarContactChip value={p.externalId} onChange={(v) => handleUpdateField("externalId", v)} placeholder="External ID" variant="white" />
+                </SidebarDetailRow>
+
+                <h3 className="mb-[2px] ml-[22px] mt-[10px] text-[11px] font-medium tracking-wide text-[#888]">Funding &amp; Plan Manager</h3>
+                <SidebarDetailRow icon={Wallet} label="Funding Type">
+                  <SidebarEditableField value={p.fundingType} onChange={(v) => handleUpdateField("fundingType", v)} type="select" options={["plan-managed", "ndia-managed", "self-managed"]} />
+                </SidebarDetailRow>
+                {(p.fundingType === "plan-managed" || !p.fundingType) && (
+                  <>
+                    <SidebarDetailRow icon={Building2} label="PM Organisation">
+                      <SidebarEditableField value={p.planManagerOrg} onChange={(v) => handleUpdateField("planManagerOrg", v)} placeholder="Plan manager org" />
+                    </SidebarDetailRow>
+                    <SidebarDetailRow icon={User} label="PM Name">
+                      <SidebarEditableField value={p.planManagerName} onChange={(v) => handleUpdateField("planManagerName", v)} placeholder="Plan manager name" />
+                    </SidebarDetailRow>
+                    <SidebarDetailRow icon={Mail} label="PM Email">
+                      <SidebarContactChip value={p.planManagerEmail} onChange={(v) => handleUpdateField("planManagerEmail", v)} placeholder="Plan manager email" variant="white" />
+                    </SidebarDetailRow>
+                  </>
+                )}
+                <SidebarDetailRow icon={CalendarDays} label="Plan Start">
+                  <SidebarEditableField value={p.planStartDate} onChange={(v) => handleUpdateField("planStartDate", v)} type="date" placeholder="Plan start date" />
+                </SidebarDetailRow>
+                <SidebarDetailRow icon={CalendarDays} label="Plan End">
+                  <SidebarEditableField value={p.planEndDate} onChange={(v) => handleUpdateField("planEndDate", v)} type="date" placeholder="Plan end date" />
                 </SidebarDetailRow>
 
                 <h3 className="mb-[2px] ml-[22px] mt-[10px] text-[11px] font-medium tracking-wide text-[#888]">Other Details</h3>

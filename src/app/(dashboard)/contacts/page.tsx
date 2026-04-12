@@ -21,6 +21,7 @@ import {
 import { useContacts } from "@/lib/hooks/use-contacts"
 import { useClients } from "@/lib/hooks/use-clients"
 import { useFieldConfig } from "@/lib/hooks/use-field-config"
+import { useSavedViews } from "@/lib/hooks/use-saved-views"
 import { relationshipConfig } from "@/lib/types"
 
 const allColumns = [
@@ -65,8 +66,6 @@ export default function ContactsPage() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
   const [displayRelationships, setDisplayRelationships] = useState<string[]>([])
 
-  const [savedViews, setSavedViews] = useState<SavedView[]>([])
-  const [activeViewId, setActiveViewId] = useState<string | null>(null)
   const [isCreateViewOpen, setIsCreateViewOpen] = useState(false)
   const [newViewName, setNewViewName] = useState("")
   const [viewContextMenu, setViewContextMenu] = useState<{ viewId: string; x: number; y: number } | null>(null)
@@ -74,49 +73,54 @@ export default function ContactsPage() {
 
   const displayBtnRef = useRef<HTMLButtonElement>(null)
   const viewNameInputRef = useRef<HTMLInputElement>(null)
-  const isInitialMount = useRef(true)
 
-  useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem("contact-views") || "[]") as SavedView[]
-      setSavedViews(stored)
-      const storedActiveId = localStorage.getItem("contact-active-view") || null
-      setActiveViewId(storedActiveId)
-      if (storedActiveId) {
-        const view = stored.find((v) => v.id === storedActiveId)
-        if (view) {
-          setVisibleColumnKeys(view.columnKeys)
-          setSortKey(view.sortKey)
-          setSortDirection(view.sortDirection)
-          setDisplayRelationships(view.displayRelationships || [])
-        }
-      }
-    } catch {}
-    isInitialMount.current = false
+  const applySavedView = useCallback((view: SavedView) => {
+    setVisibleColumnKeys(view.columnKeys)
+    setSortKey(view.sortKey)
+    setSortDirection(view.sortDirection)
+    setDisplayRelationships(view.displayRelationships || [])
   }, [])
 
-  useEffect(() => {
-    if (isInitialMount.current) return
-    localStorage.setItem("contact-views", JSON.stringify(savedViews))
-  }, [savedViews])
+  const resetSavedViewState = useCallback(() => {
+    setVisibleColumnKeys(defaultVisibleKeys)
+    setSortKey(null)
+    setSortDirection("asc")
+    setDisplayRelationships([])
+  }, [])
+
+  const {
+    savedViews,
+    activeViewId,
+    createView,
+    selectView,
+    selectDefaultView,
+    deleteView,
+    syncActiveView,
+  } = useSavedViews<SavedView>({
+    viewsStorageKey: "contact-views",
+    activeViewStorageKey: "contact-active-view",
+    buildView: ({ id, name }) => ({
+      id,
+      name,
+      columnKeys: [...visibleColumnKeys],
+      sortKey,
+      sortDirection,
+      displayRelationships: [...displayRelationships],
+    }),
+    applyView: applySavedView,
+    resetState: resetSavedViewState,
+    syncView: (view) => ({
+      ...view,
+      columnKeys: [...visibleColumnKeys],
+      sortKey,
+      sortDirection,
+      displayRelationships: [...displayRelationships],
+    }),
+  })
 
   useEffect(() => {
-    if (isInitialMount.current) return
-    if (activeViewId) {
-      localStorage.setItem("contact-active-view", activeViewId)
-    } else {
-      localStorage.removeItem("contact-active-view")
-    }
-  }, [activeViewId])
-
-  useEffect(() => {
-    if (!activeViewId || isInitialMount.current) return
-    setSavedViews((prev) =>
-      prev.map((v) =>
-        v.id === activeViewId ? { ...v, columnKeys: visibleColumnKeys, sortKey, sortDirection, displayRelationships } : v
-      )
-    )
-  }, [visibleColumnKeys, sortKey, sortDirection, displayRelationships, activeViewId])
+    syncActiveView()
+  }, [displayRelationships, sortDirection, sortKey, syncActiveView, visibleColumnKeys])
 
   const visibleColumns = visibleColumnKeys
     .filter((key) => key === "name" || !contactDisabled.has(key))
@@ -141,46 +145,22 @@ export default function ContactsPage() {
   }, [contacts, displayRelationships])
 
   const handleCreateView = () => {
-    if (!newViewName.trim()) return
-    const view: SavedView = {
-      id: Date.now().toString(),
-      name: newViewName.trim(),
-      columnKeys: [...visibleColumnKeys],
-      sortKey,
-      sortDirection,
-      displayRelationships: [...displayRelationships],
-    }
-    setSavedViews((prev) => [...prev, view])
-    setActiveViewId(view.id)
+    const createdView = createView(newViewName)
+    if (!createdView) return
     setNewViewName("")
     setIsCreateViewOpen(false)
   }
 
   const handleSelectView = (view: SavedView) => {
-    setActiveViewId(view.id)
-    setVisibleColumnKeys(view.columnKeys)
-    setSortKey(view.sortKey)
-    setSortDirection(view.sortDirection)
-    setDisplayRelationships(view.displayRelationships || [])
+    selectView(view)
   }
 
   const handleSelectAllView = () => {
-    setActiveViewId(null)
-    setVisibleColumnKeys(defaultVisibleKeys)
-    setSortKey(null)
-    setSortDirection("asc")
-    setDisplayRelationships([])
+    selectDefaultView()
   }
 
   const handleDeleteView = (viewId: string) => {
-    setSavedViews((prev) => prev.filter((v) => v.id !== viewId))
-    if (activeViewId === viewId) {
-      setActiveViewId(null)
-      setVisibleColumnKeys(defaultVisibleKeys)
-      setSortKey(null)
-      setSortDirection("asc")
-      setDisplayRelationships([])
-    }
+    deleteView(viewId)
     setDeleteViewConfirm(null)
   }
 

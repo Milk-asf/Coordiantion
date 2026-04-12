@@ -5,9 +5,14 @@ import { useRouter } from "next/navigation"
 import { useContacts } from "@/lib/hooks/use-contacts"
 import { useClients } from "@/lib/hooks/use-clients"
 import { useFieldConfig } from "@/lib/hooks/use-field-config"
+import { useSavedViews } from "@/lib/hooks/use-saved-views"
 import { useStaff } from "@/lib/hooks/use-staff"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import type { Client, ParticipantDetails } from "@/lib/types"
+import { EntityIcon } from "@/components/entity-icon"
+import { EditableField } from "@/components/editable-field"
+import { ContactChip } from "@/components/contact-chip"
+import { DetailRow, SectionHeader } from "@/components/detail-row"
 import {
   UserRound,
   ListFilter,
@@ -40,8 +45,6 @@ import {
   ArrowRight,
   ArrowLeft,
   EyeOff,
-  Copy,
-  Check,
   SquarePen,
   CheckSquare,
   File,
@@ -85,294 +88,6 @@ const allPropertyColumns = [
 
 const defaultVisibleKeys = ["ndisNumber", "diagnosis", "email", "phone", "dob", "contact-support-coordinator"]
 
-
-function ClientIcon({ client, size = "sm" }: { client: Client; size?: "sm" | "lg" }) {
-  const dims = size === "lg" ? "h-[40px] w-[40px]" : "h-[22px] w-[22px]"
-  const textSize = size === "lg" ? "text-[16px]" : "text-[10px]"
-  const radius = size === "lg" ? "rounded-lg" : "rounded-[4px]"
-
-  return (
-    <div className={`flex ${dims} ${radius} shrink-0 items-center justify-center bg-[#d4d4d4] ${textSize} font-semibold text-[#555]`}>
-      {client.iconText}
-    </div>
-  )
-}
-
-function EditableField({
-  value,
-  onChange,
-  placeholder,
-  type = "text",
-  options,
-}: {
-  value: string
-  onChange: (val: string) => void
-  placeholder?: string
-  type?: "text" | "select" | "date"
-  options?: string[]
-}) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [draft, setDraft] = useState(value)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const selectRef = useRef<HTMLSelectElement>(null)
-
-  useEffect(() => {
-    setDraft(value)
-  }, [value])
-
-  useEffect(() => {
-    if (!isEditing) return
-    if (type === "select") selectRef.current?.focus()
-    else inputRef.current?.focus()
-  }, [isEditing, type])
-
-  const handleSave = useCallback(() => {
-    setIsEditing(false)
-    onChange(draft)
-  }, [draft, onChange])
-
-  const handleCancel = useCallback(() => {
-    setIsEditing(false)
-    setDraft(value)
-  }, [value])
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleSave()
-    if (e.key === "Escape") handleCancel()
-  }, [handleSave, handleCancel])
-
-  if (isEditing) {
-    if (type === "select" && options) {
-      return (
-        <div className="relative -ml-[9px]">
-          <select
-            ref={selectRef}
-            value={draft}
-            onChange={(e) => {
-              setDraft(e.target.value)
-              onChange(e.target.value)
-              setIsEditing(false)
-            }}
-            onBlur={handleSave}
-            onKeyDown={handleKeyDown}
-            className="w-full appearance-none rounded-lg border border-[#a3c4f3] bg-white px-[10px] py-[7px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
-          >
-            <option value="">—</option>
-            {options.map((opt) => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-[10px] top-1/2 h-[12px] w-[12px] -translate-y-1/2 text-[#999]" strokeWidth={1.5} />
-        </div>
-      )
-    }
-
-    return (
-      <div className="relative -ml-[9px]">
-        <input
-          ref={inputRef}
-          type={type === "date" ? "date" : "text"}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={handleSave}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          className="w-full rounded-lg border border-[#a3c4f3] bg-white px-[10px] py-[7px] pr-[32px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
-        />
-        {draft && (
-          <button
-            type="button"
-            onMouseDown={(e) => {
-              e.preventDefault()
-              setDraft("")
-              onChange("")
-              setIsEditing(false)
-            }}
-            className="absolute right-[10px] top-1/2 -translate-y-1/2 text-[#bbb] transition-colors hover:text-[#888]"
-            tabIndex={-1}
-            aria-label="Clear field"
-          >
-            <X className="h-[14px] w-[14px]" strokeWidth={1.5} />
-          </button>
-        )}
-      </div>
-    )
-  }
-
-  const displayValue = type === "date" && value
-    ? new Date(value + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
-    : value
-
-  return (
-    <span
-      onClick={() => setIsEditing(true)}
-      className="block -ml-[9px] cursor-default rounded-lg px-[10px] py-[7px] transition-colors hover:bg-[#f5f5f5]"
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === "Enter") setIsEditing(true) }}
-      aria-label={`Click to edit ${placeholder || "field"}`}
-    >
-      {displayValue || <span className="text-[#bbb]">{placeholder || "—"}</span>}
-    </span>
-  )
-}
-
-interface DetailRowProps {
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
-  label: string
-  children: React.ReactNode
-}
-
-function DetailRow({ icon: Icon, label, children }: DetailRowProps) {
-  return (
-    <div className="flex items-center py-[7px]">
-      <div className="flex w-[180px] shrink-0 items-center gap-[8px] text-[13px] font-medium text-[#888]">
-        <Icon className="h-[14px] w-[14px] text-[#999]" strokeWidth={1.5} />
-        <span>{label}</span>
-      </div>
-      <div className="min-w-0 flex-1 text-[13px] font-medium text-[#262626]">{children}</div>
-    </div>
-  )
-}
-
-function SectionHeader({ title }: { title: string }) {
-  return (
-    <h3 className="mb-[4px] ml-[22px] mt-[12px] text-[11px] font-medium tracking-wide text-[#888]">
-      {title}
-    </h3>
-  )
-}
-
-function ContactChip({ value, onChange, placeholder, variant = "grey" }: { value: string; onChange: (v: string) => void; placeholder: string; variant?: "grey" | "white" }) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [draft, setDraft] = useState(value)
-  const [isCopied, setIsCopied] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => { setDraft(value) }, [value])
-  useEffect(() => { if (isEditing) inputRef.current?.focus() }, [isEditing])
-
-  const handleSave = () => { setIsEditing(false); onChange(draft) }
-  const handleCancel = () => { setIsEditing(false); setDraft(value) }
-
-  const handleCopy = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    navigator.clipboard.writeText(value)
-    setIsCopied(true)
-    setTimeout(() => setIsCopied(false), 1500)
-  }
-
-  const isWhite = variant === "white"
-  const chipBg = isWhite ? "bg-transparent" : "bg-[#f5f5f5]"
-  const chipHover = isWhite ? "hover:bg-[#f5f5f5]" : "hover:bg-[#efefef]"
-  const chipBorder = isWhite ? "border-[#dcdcdc]" : "border-[#dcdcdc]"
-  const copyHoverBg = isWhite ? "hover:bg-[#f0f0f0]" : "hover:bg-[#e5e5e5]"
-
-  if (isEditing) {
-    return (
-      <input
-        ref={inputRef}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={handleSave}
-        onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") handleCancel() }}
-        placeholder={placeholder}
-        className="rounded border border-[#a3c4f3] bg-white px-[10px] py-[4px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
-      />
-    )
-  }
-
-  if (!value) {
-    return (
-      <span
-        onClick={() => setIsEditing(true)}
-        className={`inline-flex cursor-default items-center rounded border border-dashed border-[#d0d0d0] ${chipBg} px-[10px] py-[4px] text-[13px] font-medium text-[#bbb] transition-colors hover:border-[#999] hover:text-[#999]`}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === "Enter") setIsEditing(true) }}
-      >
-        {placeholder}
-      </span>
-    )
-  }
-
-  return (
-    <span
-      className={`group/chip inline-flex cursor-default items-center gap-[6px] rounded border ${chipBorder} ${chipBg} py-[4px] pl-[10px] pr-[6px] text-[13px] font-medium text-[#262626] transition-colors ${chipHover}`}
-    >
-      <span
-        onClick={() => setIsEditing(true)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === "Enter") setIsEditing(true) }}
-        aria-label={`Click to edit ${placeholder || "field"}`}
-      >
-        {value}
-      </span>
-      <button
-        type="button"
-        onClick={handleCopy}
-        className={`shrink-0 rounded p-[3px] transition-all ${isCopied ? "text-green-600" : `text-[#bbb] opacity-0 group-hover/chip:opacity-100 ${copyHoverBg} hover:text-[#666]`}`}
-        tabIndex={0}
-        aria-label={`Copy ${placeholder || "value"}`}
-      >
-        {isCopied ? <Check className="h-[12px] w-[12px]" strokeWidth={2} /> : <Copy className="h-[12px] w-[12px]" strokeWidth={1.5} />}
-      </button>
-    </span>
-  )
-}
-
-function DiagnosisChip({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [draft, setDraft] = useState(value)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => { setDraft(value) }, [value])
-  useEffect(() => { if (isEditing) inputRef.current?.focus() }, [isEditing])
-
-  const handleSave = () => { setIsEditing(false); onChange(draft) }
-  const handleCancel = () => { setIsEditing(false); setDraft(value) }
-
-  if (isEditing) {
-    return (
-      <input
-        ref={inputRef}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={handleSave}
-        onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") handleCancel() }}
-        placeholder={placeholder}
-        className="rounded border border-[#a3c4f3] bg-white px-[10px] py-[4px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
-      />
-    )
-  }
-
-  if (!value) {
-    return (
-      <span
-        onClick={() => setIsEditing(true)}
-        className="inline-flex cursor-default items-center rounded border border-dashed border-[#d0d0d0] bg-transparent px-[10px] py-[4px] text-[13px] font-medium text-[#bbb] transition-colors hover:border-[#999] hover:text-[#999]"
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === "Enter") setIsEditing(true) }}
-      >
-        {placeholder}
-      </span>
-    )
-  }
-
-  return (
-    <span
-      onClick={() => setIsEditing(true)}
-      className="inline-flex cursor-default items-center rounded border border-[#dcdcdc] bg-transparent px-[10px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === "Enter") setIsEditing(true) }}
-    >
-      {value}
-    </span>
-  )
-}
 
 interface ActivityItem {
   id: string
@@ -542,7 +257,7 @@ function ClientProfile({
     <div className="flex h-full w-[625px] flex-col rounded-lg border border-[#dcdcdc] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)]">
       <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-[#f0f0f0] px-[16px]">
         <div className="flex min-w-0 items-center gap-[8px]">
-          <ClientIcon client={client} />
+          <EntityIcon text={client.iconText} size="sm" />
           <span className="truncate text-[13px] font-medium text-[#262626]">
             {client.displayName}
           </span>
@@ -576,7 +291,7 @@ function ClientProfile({
 
       <div className="flex-1 overflow-y-auto overscroll-contain">
         <div className="flex items-center gap-[12px] px-[20px] pb-[20px] pt-[24px]">
-          <ClientIcon client={client} size="lg" />
+          <EntityIcon text={client.iconText} size="lg" />
           <h2 className="text-[18px] font-semibold text-[#262626]">
             {client.displayName}
           </h2>
@@ -653,10 +368,10 @@ function ClientProfile({
             <EditableField value={participantData.dateOfBirth} onChange={(v) => onUpdateField("dateOfBirth", v)} type="date" placeholder="Date of birth" />
           </DetailRow>
           <DetailRow icon={Stethoscope} label="Primary Diagnosis">
-            <DiagnosisChip value={participantData.primaryDiagnosis} onChange={(v) => onUpdateField("primaryDiagnosis", v)} placeholder="Add diagnosis" />
+            <ContactChip value={participantData.primaryDiagnosis} onChange={(v) => onUpdateField("primaryDiagnosis", v)} placeholder="Add diagnosis" variant="white" enableCopy={false} />
           </DetailRow>
           <DetailRow icon={Stethoscope} label="Secondary Diagnosis">
-            <DiagnosisChip value={participantData.secondaryDiagnosis} onChange={(v) => onUpdateField("secondaryDiagnosis", v)} placeholder="Add diagnosis" />
+            <ContactChip value={participantData.secondaryDiagnosis} onChange={(v) => onUpdateField("secondaryDiagnosis", v)} placeholder="Add diagnosis" variant="white" enableCopy={false} />
           </DetailRow>
 
           {!isPersonalExpanded && (
@@ -801,8 +516,6 @@ export default function ClientsPage() {
   const [columnMenuPos, setColumnMenuPos] = useState<{ top: number; left: number } | null>(null)
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
-  const [savedViews, setSavedViews] = useState<SavedView[]>([])
-  const [activeViewId, setActiveViewId] = useState<string | null>(null)
   const [isCreateViewOpen, setIsCreateViewOpen] = useState(false)
   const [newViewName, setNewViewName] = useState("")
   const [isCreateClientOpen, setIsCreateClientOpen] = useState(false)
@@ -811,48 +524,50 @@ export default function ClientsPage() {
   const [deleteViewConfirm, setDeleteViewConfirm] = useState<SavedView | null>(null)
   const displayBtnRef = useRef<HTMLButtonElement>(null)
   const viewNameInputRef = useRef<HTMLInputElement>(null)
-  const isInitialMount = useRef(true)
 
-  useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem("client-views") || "[]") as SavedView[]
-      setSavedViews(stored)
-      const storedActiveId = localStorage.getItem("client-active-view") || null
-      setActiveViewId(storedActiveId)
-      if (storedActiveId) {
-        const view = stored.find((v) => v.id === storedActiveId)
-        if (view) {
-          setVisibleColumnKeys(view.columnKeys)
-          setSortKey(view.sortKey)
-          setSortDirection(view.sortDirection)
-        }
-      }
-    } catch {}
-    isInitialMount.current = false
+  const applySavedView = useCallback((view: SavedView) => {
+    setVisibleColumnKeys(view.columnKeys)
+    setSortKey(view.sortKey)
+    setSortDirection(view.sortDirection)
   }, [])
 
-  useEffect(() => {
-    if (isInitialMount.current) return
-    localStorage.setItem("client-views", JSON.stringify(savedViews))
-  }, [savedViews])
+  const resetSavedViewState = useCallback(() => {
+    setVisibleColumnKeys(defaultVisibleKeys)
+    setSortKey(null)
+    setSortDirection("asc")
+  }, [])
+
+  const {
+    savedViews,
+    activeViewId,
+    createView,
+    selectView,
+    selectDefaultView,
+    deleteView,
+    syncActiveView,
+  } = useSavedViews<SavedView>({
+    viewsStorageKey: "client-views",
+    activeViewStorageKey: "client-active-view",
+    buildView: ({ id, name }) => ({
+      id,
+      name,
+      columnKeys: [...visibleColumnKeys],
+      sortKey,
+      sortDirection,
+    }),
+    applyView: applySavedView,
+    resetState: resetSavedViewState,
+    syncView: (view) => ({
+      ...view,
+      columnKeys: [...visibleColumnKeys],
+      sortKey,
+      sortDirection,
+    }),
+  })
 
   useEffect(() => {
-    if (isInitialMount.current) return
-    if (activeViewId) {
-      localStorage.setItem("client-active-view", activeViewId)
-    } else {
-      localStorage.removeItem("client-active-view")
-    }
-  }, [activeViewId])
-
-  useEffect(() => {
-    if (!activeViewId || isInitialMount.current) return
-    setSavedViews((prev) =>
-      prev.map((v) =>
-        v.id === activeViewId ? { ...v, columnKeys: visibleColumnKeys, sortKey, sortDirection } : v
-      )
-    )
-  }, [visibleColumnKeys, sortKey, sortDirection, activeViewId])
+    syncActiveView()
+  }, [sortDirection, sortKey, syncActiveView, visibleColumnKeys])
 
   const visibleColumns = visibleColumnKeys
     .filter((key) => !participantDisabled.has(key))
@@ -881,42 +596,22 @@ export default function ClientsPage() {
   }
 
   const handleCreateView = () => {
-    if (!newViewName.trim()) return
-    const view: SavedView = {
-      id: Date.now().toString(),
-      name: newViewName.trim(),
-      columnKeys: [...visibleColumnKeys],
-      sortKey,
-      sortDirection,
-    }
-    setSavedViews((prev) => [...prev, view])
-    setActiveViewId(view.id)
+    const createdView = createView(newViewName)
+    if (!createdView) return
     setNewViewName("")
     setIsCreateViewOpen(false)
   }
 
   const handleSelectView = (view: SavedView) => {
-    setActiveViewId(view.id)
-    setVisibleColumnKeys(view.columnKeys)
-    setSortKey(view.sortKey)
-    setSortDirection(view.sortDirection)
+    selectView(view)
   }
 
   const handleSelectAllView = () => {
-    setActiveViewId(null)
-    setVisibleColumnKeys(defaultVisibleKeys)
-    setSortKey(null)
-    setSortDirection("asc")
+    selectDefaultView()
   }
 
   const handleDeleteView = (viewId: string) => {
-    setSavedViews((prev) => prev.filter((v) => v.id !== viewId))
-    if (activeViewId === viewId) {
-      setActiveViewId(null)
-      setVisibleColumnKeys(defaultVisibleKeys)
-      setSortKey(null)
-      setSortDirection("asc")
-    }
+    deleteView(viewId)
     setDeleteViewConfirm(null)
   }
 
@@ -1329,7 +1024,7 @@ export default function ClientsPage() {
                       className={`sticky left-0 z-10 h-[44px] cursor-pointer overflow-hidden whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] ${rowBg} ${rowHover}`}
                     >
                       <div className="flex items-center gap-[10px]">
-                        <ClientIcon client={client} />
+                        <EntityIcon text={client.iconText} size="sm" />
                         <span className="truncate text-[13px] font-medium text-[#262626]">{client.displayName}</span>
                         <button
                           onClick={(e) => { e.stopPropagation(); router.push(`/clients/${client.id}`) }}

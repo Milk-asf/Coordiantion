@@ -5,8 +5,39 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
 import type { Task, Attachment } from "@/lib/types"
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-function dbToTask(row: any): Task {
+interface TaskRow {
+  id: string
+  title: string
+  description: string | null
+  status: Task["status"] | null
+  assignee: string | null
+  client_name: string | null
+  client_id: string | null
+  due_date: string | null
+  attachments: Attachment[] | null
+  charge_type: string | null
+  time_spent: number | null
+  secondary_charge_type: string | null
+  secondary_time_spent: number | null
+}
+
+interface TaskRowUpdate {
+  updated_at?: string
+  title?: string
+  description?: string
+  status?: Task["status"]
+  assignee?: string
+  client_name?: string
+  client_id?: string | null
+  due_date?: string | null
+  attachments?: Attachment[]
+  charge_type?: string
+  time_spent?: number
+  secondary_charge_type?: string
+  secondary_time_spent?: number
+}
+
+function dbToTask(row: TaskRow): Task {
   return {
     id: row.id,
     title: row.title,
@@ -110,7 +141,7 @@ export function useTasks() {
     const supabase = createClient()
     if (!supabase) return
 
-    const dbUpdates: Record<string, any> = { updated_at: new Date().toISOString() }
+    const dbUpdates: TaskRowUpdate = { updated_at: new Date().toISOString() }
     if (updates.title !== undefined) dbUpdates.title = updates.title
     if (updates.description !== undefined) dbUpdates.description = updates.description
     if (updates.status !== undefined) dbUpdates.status = updates.status

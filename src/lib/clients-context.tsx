@@ -6,7 +6,41 @@ import { useWorkspace } from "@/lib/workspace-context"
 import { emptyParticipant } from "@/lib/types"
 import type { Client, ParticipantDetails } from "@/lib/types"
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+interface ClientRow {
+  id: string
+  name: string
+  icon_color: string | null
+  icon_text: string | null
+  icon_shape: "square" | "circle" | null
+  participant: Partial<ParticipantDetails> | null
+  industry: string[] | null
+  last_interaction: string | null
+  revenue: string | null
+  headcount: string | null
+  last_funding: string | null
+  website: string | null
+  owner: string | null
+  assigned_to: string | null
+  summary: string | null
+  about: string | null
+}
+
+interface ClientRowUpdate {
+  name?: string
+  icon_color?: string
+  icon_text?: string
+  icon_shape?: "square" | "circle"
+  participant?: ParticipantDetails
+  industry?: string[]
+  owner?: string
+  assigned_to?: string | null
+  summary?: string
+  about?: string
+  revenue?: string
+  headcount?: string
+  website?: string
+}
+
 function deriveDisplayName(participant: ParticipantDetails, fallbackName: string): string {
   const first = participant.firstName?.trim()
   const last = participant.lastName?.trim()
@@ -25,7 +59,7 @@ function deriveInitials(participant: ParticipantDetails, fallbackName: string): 
   return fallbackName?.[0]?.toUpperCase() || "?"
 }
 
-function dbToClient(row: any): Client {
+function dbToClient(row: ClientRow): Client {
   const participant = { ...emptyParticipant, ...(row.participant || {}) }
   return {
     id: row.id,
@@ -163,7 +197,7 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
     const supabase = createClient()
     if (!supabase) return
 
-    const dbUpdates: Record<string, any> = {}
+    const dbUpdates: ClientRowUpdate = {}
     if (updates.name !== undefined) dbUpdates.name = updates.name
     if (updates.iconColor !== undefined) dbUpdates.icon_color = updates.iconColor
     if (updates.iconText !== undefined) dbUpdates.icon_text = updates.iconText

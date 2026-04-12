@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Plus, MoreHorizontal, X, ChevronDown, Settings2, Check, EyeOff, Eye, Trash2 } from "lucide-react"
+import { Plus, MoreHorizontal, X, Settings2, Check, EyeOff, Eye, Trash2, FileText, Layers, AlignLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
   getDefaultFields,
@@ -178,14 +178,15 @@ export default function DataModelSettingsPage() {
       </div>
 
       {/* Fields table */}
-      <div className="overflow-hidden rounded-[8px] border border-sidebar-border">
-        <table className="w-full border-collapse text-left">
+      <div>
+        <table className="w-full text-left">
           <thead>
-            <tr className="border-b border-sidebar-border bg-[#fafafa]">
-              <th className="w-[40%] px-[20px] py-[10px] text-[12px] font-medium text-[#888]">Name</th>
-              <th className="w-[25%] px-[20px] py-[10px] text-[12px] font-medium text-[#888]">Type</th>
-              <th className="w-[25%] px-[20px] py-[10px] text-[12px] font-medium text-[#888]">Editable by</th>
-              <th className="w-[10%] px-[12px] py-[10px]" />
+            <tr className="border-b border-sidebar-border">
+              <th className="w-[35%] pb-[10px] text-left text-[12px] font-medium text-sidebar-muted">Name</th>
+              <th className="w-[20%] pb-[10px] text-left text-[12px] font-medium text-sidebar-muted">Type</th>
+              <th className="w-[20%] pb-[10px] text-left text-[12px] font-medium text-sidebar-muted">Editable by</th>
+              <th className="w-[15%] pb-[10px] text-left text-[12px] font-medium text-sidebar-muted">Enabled</th>
+              <th className="w-[10%] pb-[10px]" />
             </tr>
           </thead>
           <tbody>
@@ -205,7 +206,7 @@ export default function DataModelSettingsPage() {
             {disabledFields.length > 0 && (
               <>
                 <tr>
-                  <td colSpan={4} className="border-t border-sidebar-border bg-[#fafafa] px-[20px] py-[8px]">
+                  <td colSpan={5} className="border-b border-sidebar-border pt-[20px] pb-[8px]">
                     <span className="text-[11px] font-medium tracking-wide text-[#999]">DISABLED FIELDS</span>
                   </td>
                 </tr>
@@ -227,7 +228,7 @@ export default function DataModelSettingsPage() {
 
             {enabledFields.length === 0 && disabledFields.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-[20px] py-[32px] text-center text-[13px] font-medium text-[#bbb]">
+                <td colSpan={5} className="px-[20px] py-[32px] text-center text-[13px] font-medium text-[#bbb]">
                   No fields defined
                 </td>
               </tr>
@@ -257,62 +258,74 @@ export default function DataModelSettingsPage() {
             </div>
 
             <div className="px-[24px] pb-[20px] pt-[16px]">
-              <div className="mb-[16px]">
-                <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Name</label>
-                <input
-                  type="text"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Field name"
-                  className="h-[38px] w-full rounded-[6px] border border-sidebar-border bg-white px-[12px] text-[14px] text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#bbb]"
-                  onKeyDown={(e) => { if (e.key === "Enter") handleCreate() }}
-                  autoFocus
-                />
-              </div>
-
-              <div className="relative mb-[16px]">
-                <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Type</label>
-                <button
-                  type="button"
-                  onClick={() => setIsTypeOpen(!isTypeOpen)}
-                  className="flex h-[38px] w-full items-center justify-between rounded-[6px] border border-sidebar-border bg-white px-[12px] text-[14px] text-[#262626] transition-colors hover:border-[#bbb]"
-                  tabIndex={0}
-                >
-                  {fieldTypeLabels[newType]}
-                  <ChevronDown className={cn("h-[14px] w-[14px] text-[#888] transition-transform", isTypeOpen && "rotate-180")} strokeWidth={1.5} />
-                </button>
-                {isTypeOpen && (
-                  <div className="absolute left-0 right-0 top-full z-10 mt-[4px] max-h-[200px] overflow-y-auto rounded-[6px] border border-sidebar-border bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-                    {fieldTypes.map((ft) => (
-                      <button
-                        key={ft}
-                        onClick={() => { setNewType(ft); setIsTypeOpen(false) }}
-                        className={cn(
-                          "flex w-full items-center px-[12px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]",
-                          newType === ft && "bg-[#f5f5f5]"
-                        )}
-                        tabIndex={0}
-                      >
-                        {fieldTypeLabels[ft]}
-                        {newType === ft && <Check className="ml-auto h-[13px] w-[13px] text-[#262626]" strokeWidth={2} />}
-                      </button>
-                    ))}
+              <div className="flex flex-col gap-[2px]">
+                <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-[12px]">
+                  <span className="text-[13px] font-medium text-[#8d8d8d]">Name</span>
+                  <div className="flex items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] transition-colors hover:bg-[#f7f7f7]">
+                    <FileText className={`h-[13px] w-[13px] shrink-0 ${newName ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
+                    <input
+                      type="text"
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      placeholder="Empty"
+                      className="w-full bg-transparent text-[13px] font-medium text-[#262626] placeholder-[#ccc] outline-none"
+                      onKeyDown={(e) => { if (e.key === "Enter") handleCreate() }}
+                      autoFocus
+                    />
                   </div>
-                )}
+                </div>
+
+                <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-[12px]">
+                  <span className="text-[13px] font-medium text-[#8d8d8d]">Type</span>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsTypeOpen(!isTypeOpen)}
+                      className="flex w-full items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] text-left text-[13px] font-medium text-[#262626] outline-none transition-colors hover:bg-[#f7f7f7]"
+                      tabIndex={0}
+                    >
+                      <Layers className="h-[13px] w-[13px] shrink-0 text-[#888]" strokeWidth={1.5} />
+                      {fieldTypeLabels[newType]}
+                    </button>
+                    {isTypeOpen && (
+                      <>
+                        <div className="fixed inset-0 z-[59]" onClick={() => setIsTypeOpen(false)} />
+                        <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[200px] min-w-[180px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
+                          {fieldTypes.map((ft) => (
+                            <button
+                              key={ft}
+                              onClick={() => { setNewType(ft); setIsTypeOpen(false) }}
+                              className={cn(
+                                "flex w-full items-center px-[12px] py-[7px] text-[13px] font-medium text-[#555] transition-colors hover:bg-[#f5f5f5]",
+                                newType === ft && "bg-[#f0f0f0] text-[#262626]"
+                              )}
+                              tabIndex={0}
+                            >
+                              {fieldTypeLabels[ft]}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-[100px_minmax(0,1fr)] items-start gap-[12px]">
+                  <span className="pt-[6px] text-[13px] font-medium text-[#8d8d8d]">Description</span>
+                  <div className="flex items-start gap-[7px] rounded-[10px] px-[8px] py-[6px] transition-colors hover:bg-[#f7f7f7]">
+                    <AlignLeft className={`mt-[2px] h-[13px] w-[13px] shrink-0 ${newDescription ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
+                    <textarea
+                      value={newDescription}
+                      onChange={(e) => setNewDescription(e.target.value)}
+                      placeholder="Empty"
+                      rows={2}
+                      className="w-full resize-none bg-transparent text-[13px] font-medium text-[#262626] placeholder-[#ccc] outline-none"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="mb-[20px]">
-                <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Description</label>
-                <textarea
-                  value={newDescription}
-                  onChange={(e) => setNewDescription(e.target.value)}
-                  placeholder="Brief explanation of what this field describes"
-                  rows={3}
-                  className="w-full resize-y rounded-[6px] border border-sidebar-border bg-white px-[12px] py-[10px] text-[14px] text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#bbb]"
-                />
-              </div>
-
-              <div className="flex justify-end">
+              <div className="mt-[16px] flex justify-end">
                 <button
                   onClick={handleCreate}
                   disabled={!newName.trim()}
@@ -355,89 +368,99 @@ export default function DataModelSettingsPage() {
             </div>
 
             <div className="px-[24px] pb-[20px] pt-[16px]">
-              {/* Name */}
-              <div className="mb-[16px]">
-                <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Name</label>
-                {editingField.isSystem ? (
-                  <div className="flex h-[38px] items-center rounded-[6px] border border-sidebar-border bg-[#fafafa] px-[12px] text-[14px] text-[#888]">
-                    {editName}
-                  </div>
-                ) : (
-                  <input
-                    type="text"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    placeholder="Field name"
-                    className="h-[38px] w-full rounded-[6px] border border-sidebar-border bg-white px-[12px] text-[14px] text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#bbb]"
-                    onKeyDown={(e) => { if (e.key === "Enter") handleSaveEdit() }}
-                    autoFocus
-                  />
-                )}
-              </div>
+              <div className="flex flex-col gap-[2px]">
+                <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-[12px]">
+                  <span className="text-[13px] font-medium text-[#8d8d8d]">Name</span>
+                  {editingField.isSystem ? (
+                    <div className="flex items-center gap-[7px] px-[8px] py-[6px]">
+                      <FileText className="h-[13px] w-[13px] shrink-0 text-[#888]" strokeWidth={1.5} />
+                      <span className="text-[13px] font-medium text-[#888]">{editName}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] transition-colors hover:bg-[#f7f7f7]">
+                      <FileText className={`h-[13px] w-[13px] shrink-0 ${editName ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        placeholder="Empty"
+                        className="w-full bg-transparent text-[13px] font-medium text-[#262626] placeholder-[#ccc] outline-none"
+                        onKeyDown={(e) => { if (e.key === "Enter") handleSaveEdit() }}
+                        autoFocus
+                      />
+                    </div>
+                  )}
+                </div>
 
-              {/* Type */}
-              <div className="relative mb-[16px]">
-                <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Type</label>
-                {editingField.isSystem ? (
-                  <div className="flex h-[38px] items-center rounded-[6px] border border-sidebar-border bg-[#fafafa] px-[12px] text-[14px] text-[#888]">
-                    {fieldTypeLabels[editType]}
-                  </div>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setIsEditTypeOpen(!isEditTypeOpen)}
-                      className="flex h-[38px] w-full items-center justify-between rounded-[6px] border border-sidebar-border bg-white px-[12px] text-[14px] text-[#262626] transition-colors hover:border-[#bbb]"
-                      tabIndex={0}
-                    >
-                      {fieldTypeLabels[editType]}
-                      <ChevronDown className={cn("h-[14px] w-[14px] text-[#888] transition-transform", isEditTypeOpen && "rotate-180")} strokeWidth={1.5} />
-                    </button>
-                    {isEditTypeOpen && (
-                      <div className="absolute left-0 right-0 top-full z-10 mt-[4px] max-h-[200px] overflow-y-auto rounded-[6px] border border-sidebar-border bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-                        {fieldTypes.map((ft) => (
-                          <button
-                            key={ft}
-                            onClick={() => { setEditType(ft); setIsEditTypeOpen(false) }}
-                            className={cn(
-                              "flex w-full items-center px-[12px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]",
-                              editType === ft && "bg-[#f5f5f5]"
-                            )}
-                            tabIndex={0}
-                          >
-                            {fieldTypeLabels[ft]}
-                            {editType === ft && <Check className="ml-auto h-[13px] w-[13px] text-[#262626]" strokeWidth={2} />}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
+                <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-[12px]">
+                  <span className="text-[13px] font-medium text-[#8d8d8d]">Type</span>
+                  {editingField.isSystem ? (
+                    <div className="flex items-center gap-[7px] px-[8px] py-[6px]">
+                      <Layers className="h-[13px] w-[13px] shrink-0 text-[#888]" strokeWidth={1.5} />
+                      <span className="text-[13px] font-medium text-[#888]">{fieldTypeLabels[editType]}</span>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setIsEditTypeOpen(!isEditTypeOpen)}
+                        className="flex w-full items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] text-left text-[13px] font-medium text-[#262626] outline-none transition-colors hover:bg-[#f7f7f7]"
+                        tabIndex={0}
+                      >
+                        <Layers className="h-[13px] w-[13px] shrink-0 text-[#888]" strokeWidth={1.5} />
+                        {fieldTypeLabels[editType]}
+                      </button>
+                      {isEditTypeOpen && (
+                        <>
+                          <div className="fixed inset-0 z-[59]" onClick={() => setIsEditTypeOpen(false)} />
+                          <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[200px] min-w-[180px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
+                            {fieldTypes.map((ft) => (
+                              <button
+                                key={ft}
+                                onClick={() => { setEditType(ft); setIsEditTypeOpen(false) }}
+                                className={cn(
+                                  "flex w-full items-center px-[12px] py-[7px] text-[13px] font-medium text-[#555] transition-colors hover:bg-[#f5f5f5]",
+                                  editType === ft && "bg-[#f0f0f0] text-[#262626]"
+                                )}
+                                tabIndex={0}
+                              >
+                                {fieldTypeLabels[ft]}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
 
-              {/* Description */}
-              <div className="mb-[20px]">
-                <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Description</label>
-                {editingField.isSystem ? (
-                  <div className="min-h-[60px] rounded-[6px] border border-sidebar-border bg-[#fafafa] px-[12px] py-[10px] text-[14px] text-[#888]">
-                    {editDescription || <span className="text-[#ccc]">No description</span>}
-                  </div>
-                ) : (
-                  <textarea
-                    value={editDescription}
-                    onChange={(e) => setEditDescription(e.target.value)}
-                    placeholder="Brief explanation of what this field describes"
-                    rows={3}
-                    className="w-full resize-y rounded-[6px] border border-sidebar-border bg-white px-[12px] py-[10px] text-[14px] text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#bbb]"
-                  />
-                )}
-              </div>
+                <div className="grid grid-cols-[100px_minmax(0,1fr)] items-start gap-[12px]">
+                  <span className="pt-[6px] text-[13px] font-medium text-[#8d8d8d]">Description</span>
+                  {editingField.isSystem ? (
+                    <div className="flex items-start gap-[7px] px-[8px] py-[6px]">
+                      <AlignLeft className="mt-[2px] h-[13px] w-[13px] shrink-0 text-[#888]" strokeWidth={1.5} />
+                      <span className="text-[13px] font-medium text-[#888]">{editDescription || <span className="text-[#ccc]">Empty</span>}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-[7px] rounded-[10px] px-[8px] py-[6px] transition-colors hover:bg-[#f7f7f7]">
+                      <AlignLeft className={`mt-[2px] h-[13px] w-[13px] shrink-0 ${editDescription ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
+                      <textarea
+                        value={editDescription}
+                        onChange={(e) => setEditDescription(e.target.value)}
+                        placeholder="Empty"
+                        rows={2}
+                        className="w-full resize-none bg-transparent text-[13px] font-medium text-[#262626] placeholder-[#ccc] outline-none"
+                      />
+                    </div>
+                  )}
+                </div>
 
-              {/* Editable by (read-only display) */}
-              <div className="mb-[20px]">
-                <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Editable by</label>
-                <div className="flex h-[38px] items-center rounded-[6px] border border-sidebar-border bg-[#fafafa] px-[12px] text-[14px] text-[#888]">
-                  {editingField.editableBy === "system" ? "System only" : "Anyone"}
+                <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-[12px]">
+                  <span className="text-[13px] font-medium text-[#8d8d8d]">Editable by</span>
+                  <div className="flex items-center gap-[7px] px-[8px] py-[6px]">
+                    <Settings2 className="h-[13px] w-[13px] shrink-0 text-[#888]" strokeWidth={1.5} />
+                    <span className="text-[13px] font-medium text-[#888]">{editingField.editableBy === "system" ? "System only" : "Anyone"}</span>
+                  </div>
                 </div>
               </div>
 
@@ -542,24 +565,59 @@ function FieldRow({
   return (
     <tr
       className={cn(
-        "border-t border-sidebar-border transition-colors cursor-pointer",
-        isDisabledRow ? "bg-[#fafafa] hover:bg-[#f3f3f3]" : "bg-white hover:bg-[#fafafa]"
+        "border-b border-sidebar-border transition-colors cursor-pointer last:border-b-0",
+        isDisabledRow ? "hover:bg-[#fafafa]" : "hover:bg-[#fafafa]"
       )}
       onClick={onRowClick}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === "Enter") onRowClick() }}
     >
-      <td className={cn("px-[20px] py-[12px] text-[13px] font-medium", textColor)}>
+      <td className={cn("py-[12px] text-[13px] font-medium", textColor)}>
         {field.name}
       </td>
-      <td className={cn("px-[20px] py-[12px] text-[13px] font-medium", mutedColor)}>
+      <td className={cn("py-[12px] text-[13px] font-medium", mutedColor)}>
         {fieldTypeLabels[field.type]}
       </td>
-      <td className={cn("px-[20px] py-[12px] text-[13px] font-medium", mutedColor)}>
+      <td className={cn("py-[12px] text-[13px] font-medium", mutedColor)}>
         {field.editableBy === "system" ? "System only" : "Anyone"}
       </td>
-      <td className="px-[12px] py-[12px] text-right" onClick={(e) => e.stopPropagation()}>
+      <td className="py-[12px]" onClick={(e) => e.stopPropagation()}>
+        {!field.isSystem ? (
+          <button
+            type="button"
+            onClick={onToggleEnabled}
+            className={cn(
+              "relative h-[20px] w-[36px] rounded-full transition-colors",
+              field.isEnabled ? "bg-blue-500" : "bg-[#d4d4d4]"
+            )}
+            tabIndex={0}
+            aria-label={field.isEnabled ? "Disable field" : "Enable field"}
+            aria-checked={field.isEnabled}
+            role="switch"
+          >
+            <span
+              className={cn(
+                "absolute top-[2px] h-[16px] w-[16px] rounded-full bg-white shadow-sm transition-transform",
+                field.isEnabled ? "left-[18px]" : "left-[2px]"
+              )}
+            />
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="relative h-[20px] w-[36px] cursor-not-allowed rounded-full bg-blue-500 opacity-50"
+            disabled
+            tabIndex={-1}
+            aria-label="System field — always enabled"
+            aria-checked
+            role="switch"
+          >
+            <span className="absolute left-[18px] top-[2px] h-[16px] w-[16px] rounded-full bg-white shadow-sm" />
+          </button>
+        )}
+      </td>
+      <td className="py-[12px] text-right" onClick={(e) => e.stopPropagation()}>
         {!field.isSystem && (
           <div className="relative inline-block" ref={menuRef}>
             <button
@@ -572,24 +630,7 @@ function FieldRow({
             </button>
 
             {isMenuOpen && (
-              <div className="absolute right-0 top-full z-20 mt-[4px] w-[180px] rounded-[6px] border border-sidebar-border bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-                <button
-                  onClick={onToggleEnabled}
-                  className="flex w-full items-center gap-[8px] px-[12px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                  tabIndex={0}
-                >
-                  {field.isEnabled ? (
-                    <>
-                      <EyeOff className="h-[14px] w-[14px] text-[#888]" strokeWidth={1.5} />
-                      Disable
-                    </>
-                  ) : (
-                    <>
-                      <Eye className="h-[14px] w-[14px] text-[#888]" strokeWidth={1.5} />
-                      Enable
-                    </>
-                  )}
-                </button>
+              <div className="absolute right-0 top-full z-20 mt-[4px] w-[160px] rounded-[6px] border border-sidebar-border bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
                 <button
                   onClick={onDelete}
                   className="flex w-full items-center gap-[8px] px-[12px] py-[7px] text-[13px] font-medium text-red-500 transition-colors hover:bg-red-50"

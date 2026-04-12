@@ -4,8 +4,13 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useStaff } from "@/lib/hooks/use-staff"
 import { useFieldConfig } from "@/lib/hooks/use-field-config"
+import { useSavedViews } from "@/lib/hooks/use-saved-views"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import type { StaffMember, StaffDetails } from "@/lib/types"
+import { EntityIcon } from "@/components/entity-icon"
+import { EditableField } from "@/components/editable-field"
+import { ContactChip } from "@/components/contact-chip"
+import { DetailRow, SectionHeader } from "@/components/detail-row"
 import {
   Users,
   ListFilter,
@@ -28,8 +33,6 @@ import {
   ArrowRight,
   ArrowLeft,
   EyeOff,
-  Copy,
-  Check,
   Briefcase,
   Building2,
   Clock,
@@ -60,126 +63,6 @@ const allPropertyColumns = [
 
 const defaultVisibleKeys = ["email", "role", "department", "employmentType", "phone", "status"]
 
-function StaffIcon({ member, size = "sm" }: { member: StaffMember; size?: "sm" | "lg" }) {
-  const dims = size === "lg" ? "h-[40px] w-[40px]" : "h-[22px] w-[22px]"
-  const textSize = size === "lg" ? "text-[16px]" : "text-[10px]"
-  const radius = size === "lg" ? "rounded-lg" : "rounded-[4px]"
-
-  return (
-    <div className={`flex ${dims} ${radius} shrink-0 items-center justify-center bg-[#d4d4d4] ${textSize} font-semibold text-[#555]`}>
-      {member.iconText}
-    </div>
-  )
-}
-
-function EditableField({
-  value,
-  onChange,
-  placeholder,
-  type = "text",
-  options,
-}: {
-  value: string
-  onChange: (val: string) => void
-  placeholder?: string
-  type?: "text" | "select" | "date"
-  options?: string[]
-}) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [draft, setDraft] = useState(value)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const selectRef = useRef<HTMLSelectElement>(null)
-
-  useEffect(() => { setDraft(value) }, [value])
-  useEffect(() => {
-    if (!isEditing) return
-    if (type === "select") selectRef.current?.focus()
-    else inputRef.current?.focus()
-  }, [isEditing, type])
-
-  const handleSave = useCallback(() => { setIsEditing(false); onChange(draft) }, [draft, onChange])
-  const handleCancel = useCallback(() => { setIsEditing(false); setDraft(value) }, [value])
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleSave()
-    if (e.key === "Escape") handleCancel()
-  }, [handleSave, handleCancel])
-
-  if (isEditing) {
-    if (type === "select" && options) {
-      return (
-        <div className="relative -ml-[9px]">
-          <select ref={selectRef} value={draft} onChange={(e) => { setDraft(e.target.value); onChange(e.target.value); setIsEditing(false) }} onBlur={handleSave} onKeyDown={handleKeyDown} className="w-full appearance-none rounded-lg border border-[#a3c4f3] bg-white px-[10px] py-[7px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none">
-            <option value="">—</option>
-            {options.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-[10px] top-1/2 h-[12px] w-[12px] -translate-y-1/2 text-[#999]" strokeWidth={1.5} />
-        </div>
-      )
-    }
-    return (
-      <div className="relative -ml-[9px]">
-        <input ref={inputRef} type={type === "date" ? "date" : "text"} value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={handleSave} onKeyDown={handleKeyDown} placeholder={placeholder} className="w-full rounded-lg border border-[#a3c4f3] bg-white px-[10px] py-[7px] pr-[32px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none" />
-        {draft && (
-          <button type="button" onMouseDown={(e) => { e.preventDefault(); setDraft(""); onChange(""); setIsEditing(false) }} className="absolute right-[10px] top-1/2 -translate-y-1/2 text-[#bbb] transition-colors hover:text-[#888]" tabIndex={-1} aria-label="Clear field">
-            <X className="h-[14px] w-[14px]" strokeWidth={1.5} />
-          </button>
-        )}
-      </div>
-    )
-  }
-
-  const displayValue = type === "date" && value
-    ? new Date(value + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
-    : value
-
-  return (
-    <span onClick={() => setIsEditing(true)} className="block -ml-[9px] cursor-default rounded-lg px-[10px] py-[7px] transition-colors hover:bg-[#f5f5f5]" role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") setIsEditing(true) }} aria-label={`Click to edit ${placeholder || "field"}`}>
-      {displayValue || <span className="text-[#bbb]">{placeholder || "—"}</span>}
-    </span>
-  )
-}
-
-function DetailRow({ icon: Icon, label, children }: { icon: React.ComponentType<{ className?: string; strokeWidth?: number }>; label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-center py-[7px]">
-      <div className="flex w-[180px] shrink-0 items-center gap-[8px] text-[13px] font-medium text-[#888]">
-        <Icon className="h-[14px] w-[14px] text-[#999]" strokeWidth={1.5} />
-        <span>{label}</span>
-      </div>
-      <div className="min-w-0 flex-1 text-[13px] font-medium text-[#262626]">{children}</div>
-    </div>
-  )
-}
-
-function SectionHeader({ title }: { title: string }) {
-  return <h3 className="mb-[4px] ml-[22px] mt-[12px] text-[11px] font-medium tracking-wide text-[#888]">{title}</h3>
-}
-
-function ContactChip({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [draft, setDraft] = useState(value)
-  const [isCopied, setIsCopied] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => { setDraft(value) }, [value])
-  useEffect(() => { if (isEditing) inputRef.current?.focus() }, [isEditing])
-
-  const handleSave = () => { setIsEditing(false); onChange(draft) }
-  const handleCancel = () => { setIsEditing(false); setDraft(value) }
-  const handleCopy = (e: React.MouseEvent) => { e.stopPropagation(); navigator.clipboard.writeText(value); setIsCopied(true); setTimeout(() => setIsCopied(false), 1500) }
-
-  if (isEditing) return <input ref={inputRef} value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={handleSave} onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") handleCancel() }} placeholder={placeholder} className="rounded border border-[#a3c4f3] bg-white px-[10px] py-[4px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none" />
-  if (!value) return <span onClick={() => setIsEditing(true)} className="inline-flex cursor-default items-center rounded border border-dashed border-[#d0d0d0] bg-[#f5f5f5] px-[10px] py-[4px] text-[13px] font-medium text-[#bbb] transition-colors hover:border-[#999] hover:text-[#999]" role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") setIsEditing(true) }}>{placeholder}</span>
-  return (
-    <span className="group/chip inline-flex cursor-default items-center gap-[6px] rounded border border-[#dcdcdc] bg-[#f5f5f5] py-[4px] pl-[10px] pr-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#efefef]">
-      <span onClick={() => setIsEditing(true)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") setIsEditing(true) }}>{value}</span>
-      <button type="button" onClick={handleCopy} className={`shrink-0 rounded p-[3px] transition-all ${isCopied ? "text-green-600" : "text-[#bbb] opacity-0 group-hover/chip:opacity-100 hover:bg-[#e5e5e5] hover:text-[#666]"}`} tabIndex={0} aria-label="Copy">
-        {isCopied ? <Check className="h-[12px] w-[12px]" strokeWidth={2} /> : <Copy className="h-[12px] w-[12px]" strokeWidth={1.5} />}
-      </button>
-    </span>
-  )
-}
-
 function StaffProfile({ member, onUpdateField, onClose }: { member: StaffMember; onUpdateField: (field: keyof StaffDetails, value: string) => void; onClose: () => void }) {
   const [isPersonalExpanded, setIsPersonalExpanded] = useState(false)
   const router = useRouter()
@@ -190,7 +73,7 @@ function StaffProfile({ member, onUpdateField, onClose }: { member: StaffMember;
       <div className="flex h-full w-[625px] flex-col rounded-lg border border-[#dcdcdc] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)]">
         <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-[#f0f0f0] px-[16px]">
           <div className="flex min-w-0 items-center gap-[8px]">
-            <StaffIcon member={member} />
+            <EntityIcon text={member.iconText} size="sm" />
             <span className="truncate text-[13px] font-medium text-[#262626]">{member.name}</span>
             {member.status === "invited" && <span className="rounded border border-[#dcdcdc] bg-[#f5f5f5] px-[6px] py-[1px] text-[11px] font-medium text-[#888]">Invited</span>}
           </div>
@@ -206,7 +89,7 @@ function StaffProfile({ member, onUpdateField, onClose }: { member: StaffMember;
 
         <div className="flex-1 overflow-y-auto overscroll-contain">
           <div className="flex items-center gap-[12px] px-[20px] pb-[20px] pt-[24px]">
-            <StaffIcon member={member} size="lg" />
+            <EntityIcon text={member.iconText} size="lg" />
             <div>
               <h2 className="text-[18px] font-semibold text-[#262626]">{d.preferredName || d.firstName} {d.lastName}</h2>
               {d.role && <p className="text-[13px] font-medium text-[#888]">{d.role}{d.department ? ` · ${d.department}` : ""}</p>}
@@ -325,45 +208,56 @@ export default function StaffPage() {
   const [columnMenuPos, setColumnMenuPos] = useState<{ top: number; left: number } | null>(null)
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
-  const [savedViews, setSavedViews] = useState<SavedView[]>([])
-  const [activeViewId, setActiveViewId] = useState<string | null>(null)
   const [isCreateViewOpen, setIsCreateViewOpen] = useState(false)
   const [newViewName, setNewViewName] = useState("")
   const [viewContextMenu, setViewContextMenu] = useState<{ viewId: string; x: number; y: number } | null>(null)
   const [deleteViewConfirm, setDeleteViewConfirm] = useState<SavedView | null>(null)
   const displayBtnRef = useRef<HTMLButtonElement>(null)
   const viewNameInputRef = useRef<HTMLInputElement>(null)
-  const isInitialMount = useRef(true)
 
-  useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem("staff-views") || "[]") as SavedView[]
-      setSavedViews(stored)
-      const storedActiveId = localStorage.getItem("staff-active-view") || null
-      setActiveViewId(storedActiveId)
-      if (storedActiveId) {
-        const view = stored.find((v) => v.id === storedActiveId)
-        if (view) { setVisibleColumnKeys(view.columnKeys); setSortKey(view.sortKey); setSortDirection(view.sortDirection) }
-      }
-    } catch {}
-    isInitialMount.current = false
+  const applySavedView = useCallback((view: SavedView) => {
+    setVisibleColumnKeys(view.columnKeys)
+    setSortKey(view.sortKey)
+    setSortDirection(view.sortDirection)
   }, [])
 
-  useEffect(() => {
-    if (isInitialMount.current) return
-    localStorage.setItem("staff-views", JSON.stringify(savedViews))
-  }, [savedViews])
+  const resetSavedViewState = useCallback(() => {
+    setVisibleColumnKeys(defaultVisibleKeys)
+    setSortKey(null)
+    setSortDirection("asc")
+  }, [])
+
+  const {
+    savedViews,
+    activeViewId,
+    createView,
+    selectView,
+    selectDefaultView,
+    deleteView,
+    syncActiveView,
+  } = useSavedViews<SavedView>({
+    viewsStorageKey: "staff-views",
+    activeViewStorageKey: "staff-active-view",
+    buildView: ({ id, name }) => ({
+      id,
+      name,
+      columnKeys: [...visibleColumnKeys],
+      sortKey,
+      sortDirection,
+    }),
+    applyView: applySavedView,
+    resetState: resetSavedViewState,
+    syncView: (view) => ({
+      ...view,
+      columnKeys: [...visibleColumnKeys],
+      sortKey,
+      sortDirection,
+    }),
+  })
 
   useEffect(() => {
-    if (isInitialMount.current) return
-    if (activeViewId) localStorage.setItem("staff-active-view", activeViewId)
-    else localStorage.removeItem("staff-active-view")
-  }, [activeViewId])
-
-  useEffect(() => {
-    if (!activeViewId || isInitialMount.current) return
-    setSavedViews((prev) => prev.map((v) => v.id === activeViewId ? { ...v, columnKeys: visibleColumnKeys, sortKey, sortDirection } : v))
-  }, [visibleColumnKeys, sortKey, sortDirection, activeViewId])
+    syncActiveView()
+  }, [sortDirection, sortKey, syncActiveView, visibleColumnKeys])
 
   const visibleColumns = visibleColumnKeys
     .filter((key) => !staffDisabled.has(key))
@@ -385,22 +279,17 @@ export default function StaffPage() {
   }
 
   const handleCreateView = () => {
-    if (!newViewName.trim()) return
-    const view: SavedView = { id: Date.now().toString(), name: newViewName.trim(), columnKeys: [...visibleColumnKeys], sortKey, sortDirection }
-    setSavedViews((prev) => [...prev, view]); setActiveViewId(view.id); setNewViewName(""); setIsCreateViewOpen(false)
+    const createdView = createView(newViewName)
+    if (!createdView) return
+    setNewViewName("")
+    setIsCreateViewOpen(false)
   }
 
-  const handleSelectView = (view: SavedView) => { setActiveViewId(view.id); setVisibleColumnKeys(view.columnKeys); setSortKey(view.sortKey); setSortDirection(view.sortDirection) }
-  const handleSelectAllView = () => { setActiveViewId(null); setVisibleColumnKeys(defaultVisibleKeys); setSortKey(null); setSortDirection("asc") }
+  const handleSelectView = (view: SavedView) => { selectView(view) }
+  const handleSelectAllView = () => { selectDefaultView() }
 
   const handleDeleteView = (viewId: string) => {
-    setSavedViews((prev) => prev.filter((v) => v.id !== viewId))
-    if (activeViewId === viewId) {
-      setActiveViewId(null)
-      setVisibleColumnKeys(defaultVisibleKeys)
-      setSortKey(null)
-      setSortDirection("asc")
-    }
+    deleteView(viewId)
     setDeleteViewConfirm(null)
   }
 
@@ -611,7 +500,7 @@ export default function StaffPage() {
                   <tr key={member.id} className="group">
                     <td onClick={() => setSelectedMember(member)} className={`sticky left-0 z-10 h-[44px] cursor-pointer overflow-hidden whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] ${rowBg} ${rowHover}`}>
                       <div className="flex items-center gap-[10px]">
-                        <StaffIcon member={member} />
+                        <EntityIcon text={member.iconText} size="sm" />
                         <span className="truncate text-[13px] font-medium text-[#262626]">{member.name}</span>
                         {member.status === "invited" && <span className="rounded border border-amber-200 bg-amber-50 px-[5px] py-[1px] text-[10px] font-medium text-amber-600">Invited</span>}
                         <button onClick={(e) => { e.stopPropagation(); router.push(`/staff/${member.id}`) }} className="ml-auto flex h-[22px] w-[22px] items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 text-[#999] hover:bg-[#f0f0f0] hover:text-[#262626]" aria-label={`Open ${member.name} profile`} tabIndex={0}>

@@ -29,9 +29,11 @@ import {
 import { useTasks } from "@/lib/hooks/use-tasks"
 import { useClients } from "@/lib/hooks/use-clients"
 import { useCharges } from "@/lib/hooks/use-charges"
+import { useSavedViews } from "@/lib/hooks/use-saved-views"
 import { useStaff } from "@/lib/hooks/use-staff"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
+import { DatePicker } from "@/components/date-picker"
 import { serviceChargeTypes } from "@/lib/ndis-charges"
 import type { Task, Attachment } from "@/lib/types"
 
@@ -99,132 +101,6 @@ function formatRowDate(dateStr: string | null): string {
   return d.toLocaleDateString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" })
 }
 
-function DatePicker({ value, onChange, onClose }: { value: string; onChange: (val: string) => void; onClose: () => void }) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
-
-  const selected = value ? new Date(value + "T00:00:00") : null
-  const [viewYear, setViewYear] = useState(selected ? selected.getFullYear() : today.getFullYear())
-  const [viewMonth, setViewMonth] = useState(selected ? selected.getMonth() : today.getMonth())
-
-  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
-  const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay()
-  const startOffset = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1
-
-  const prevMonth = () => {
-    if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1) }
-    else setViewMonth(viewMonth - 1)
-  }
-  const nextMonth = () => {
-    if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1) }
-    else setViewMonth(viewMonth + 1)
-  }
-
-  const handleSelect = (day: number) => {
-    const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
-    onChange(dateStr)
-    onClose()
-  }
-
-  const monthLabel = new Date(viewYear, viewMonth).toLocaleDateString("en-AU", { month: "long", year: "numeric" })
-  const weekDays = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
-
-  const quickDates = [
-    { label: "Today", offset: 0 },
-    { label: "Tomorrow", offset: 1 },
-    { label: "Next week", offset: (8 - today.getDay()) % 7 || 7 },
-  ]
-
-  return (
-    <div className="w-[260px] rounded-lg border border-[#e0e0e0] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-      {/* Quick dates */}
-      <div className="flex gap-[4px] border-b border-[#f0f0f0] px-[12px] py-[8px]">
-        {quickDates.map((qd) => {
-          const d = new Date(today)
-          d.setDate(d.getDate() + qd.offset)
-          const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-          const isSelected = value === dateStr
-          return (
-            <button
-              key={qd.label}
-              type="button"
-              onClick={() => { onChange(dateStr); onClose() }}
-              className={`rounded px-[8px] py-[4px] text-[11px] font-medium transition-colors ${isSelected ? "bg-[#262626] text-white" : "text-[#555] hover:bg-[#f5f5f5]"}`}
-              tabIndex={0}
-            >
-              {qd.label}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Month nav */}
-      <div className="flex items-center justify-between px-[12px] py-[8px]">
-        <button type="button" onClick={prevMonth} className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0} aria-label="Previous month">
-          <ChevronLeft className="h-[14px] w-[14px]" strokeWidth={1.5} />
-        </button>
-        <span className="text-[12px] font-semibold text-[#262626]">{monthLabel}</span>
-        <button type="button" onClick={nextMonth} className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0} aria-label="Next month">
-          <ChevronRight className="h-[14px] w-[14px]" strokeWidth={1.5} />
-        </button>
-      </div>
-
-      {/* Day grid */}
-      <div className="px-[12px] pb-[12px]">
-        <div className="mb-[4px] grid grid-cols-7 gap-[2px]">
-          {weekDays.map((wd) => (
-            <div key={wd} className="flex h-[24px] items-center justify-center text-[10px] font-medium text-[#bbb]">{wd}</div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-[2px]">
-          {Array.from({ length: startOffset }).map((_, i) => (
-            <div key={`empty-${i}`} className="h-[30px]" />
-          ))}
-          {Array.from({ length: daysInMonth }).map((_, i) => {
-            const day = i + 1
-            const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
-            const isToday = dateStr === todayStr
-            const isSelected = dateStr === value
-            return (
-              <button
-                key={day}
-                type="button"
-                onClick={() => handleSelect(day)}
-                className={`flex h-[30px] w-full items-center justify-center rounded text-[12px] font-medium transition-colors ${
-                  isSelected
-                    ? "bg-[#262626] text-white"
-                    : isToday
-                      ? "bg-[#f0f0f0] text-[#262626] hover:bg-[#e5e5e5]"
-                      : "text-[#555] hover:bg-[#f5f5f5]"
-                }`}
-                tabIndex={0}
-              >
-                {day}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Clear */}
-      {value && (
-        <div className="border-t border-[#f0f0f0] px-[12px] py-[6px]">
-          <button
-            type="button"
-            onClick={() => { onChange(""); onClose() }}
-            className="w-full rounded px-[8px] py-[4px] text-left text-[12px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
-            tabIndex={0}
-          >
-            Clear date
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
-
-
 function getTodayStr(): string {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
@@ -236,6 +112,7 @@ export default function TasksPage() {
   const { enabledCharges, allCharges } = useCharges()
   const { staffNames } = useStaff()
   const { canAssignTasks, role } = usePermissions()
+  const isInvoicingMode = false
   const [currentUserName, setCurrentUserName] = useState("Sam Lee")
   useEffect(() => {
     if (!isSupabaseConfigured()) return
@@ -246,9 +123,11 @@ export default function TasksPage() {
     }).catch(() => {})
   }, [])
 
-  const tasks = role === "coordinator"
-    ? allTasks.filter((t) => t.assignee === currentUserName)
-    : allTasks
+  const tasks = isInvoicingMode
+    ? allTasks.filter((t) => t.status === "done")
+    : role === "coordinator"
+      ? allTasks.filter((t) => t.assignee === currentUserName)
+      : allTasks
   const chargeTypes = [
     { value: "", label: "No charge" },
     ...enabledCharges.map((c) => ({ value: c.itemNumber, label: c.shortName })),
@@ -307,89 +186,13 @@ export default function TasksPage() {
   const [viewMode, setViewMode] = useState<"list" | "week">("list")
   const [weekOffset, setWeekOffset] = useState(0)
 
-  const [taskSavedViews, setTaskSavedViews] = useState<TaskSavedView[]>([])
-  const [activeTaskViewId, setActiveTaskViewId] = useState<string | null>(null)
   const [isCreateTaskViewOpen, setIsCreateTaskViewOpen] = useState(false)
   const [newTaskViewName, setNewTaskViewName] = useState("")
   const [taskViewContextMenu, setTaskViewContextMenu] = useState<{ viewId: string; x: number; y: number } | null>(null)
   const [deleteTaskViewConfirm, setDeleteTaskViewConfirm] = useState<TaskSavedView | null>(null)
   const taskViewNameInputRef = useRef<HTMLInputElement>(null)
-  const isTaskViewInitialMount = useRef(true)
 
-  useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem("task-views") || "[]") as TaskSavedView[]
-      setTaskSavedViews(stored)
-      const storedActiveId = localStorage.getItem("task-active-view") || null
-      setActiveTaskViewId(storedActiveId)
-      if (storedActiveId) {
-        const view = stored.find((v) => v.id === storedActiveId)
-        if (view) {
-          setViewMode(view.viewMode)
-          setVisibleTaskColumnKeys(view.visibleColumnKeys)
-          setDisplayParticipants(view.displayParticipants)
-          setDisplayAssignees(view.displayAssignees)
-          setDisplayCharges(view.displayCharges)
-          setStatusFilter(view.statusFilter)
-          setDateFilter(view.dateFilter)
-          setParticipantFilter(view.participantFilter)
-          setAssigneeFilter(view.assigneeFilter)
-          setChargeFilter(view.chargeFilter)
-        }
-      }
-    } catch {}
-    isTaskViewInitialMount.current = false
-  }, [])
-
-  useEffect(() => {
-    if (isTaskViewInitialMount.current) return
-    localStorage.setItem("task-views", JSON.stringify(taskSavedViews))
-  }, [taskSavedViews])
-
-  useEffect(() => {
-    if (isTaskViewInitialMount.current) return
-    if (activeTaskViewId) {
-      localStorage.setItem("task-active-view", activeTaskViewId)
-    } else {
-      localStorage.removeItem("task-active-view")
-    }
-  }, [activeTaskViewId])
-
-  useEffect(() => {
-    if (!activeTaskViewId || isTaskViewInitialMount.current) return
-    setTaskSavedViews((prev) =>
-      prev.map((v) =>
-        v.id === activeTaskViewId
-          ? { ...v, viewMode, visibleColumnKeys: visibleTaskColumnKeys, displayParticipants, displayAssignees, displayCharges, statusFilter, dateFilter, participantFilter, assigneeFilter, chargeFilter }
-          : v
-      )
-    )
-  }, [viewMode, visibleTaskColumnKeys, displayParticipants, displayAssignees, displayCharges, statusFilter, dateFilter, participantFilter, assigneeFilter, chargeFilter, activeTaskViewId])
-
-  const handleCreateTaskView = () => {
-    if (!newTaskViewName.trim()) return
-    const view: TaskSavedView = {
-      id: Date.now().toString(),
-      name: newTaskViewName.trim(),
-      viewMode,
-      visibleColumnKeys: [...visibleTaskColumnKeys],
-      displayParticipants: [...displayParticipants],
-      displayAssignees: [...displayAssignees],
-      displayCharges: [...displayCharges],
-      statusFilter: [...statusFilter],
-      dateFilter: [...dateFilter],
-      participantFilter: [...participantFilter],
-      assigneeFilter: [...assigneeFilter],
-      chargeFilter: [...chargeFilter],
-    }
-    setTaskSavedViews((prev) => [...prev, view])
-    setActiveTaskViewId(view.id)
-    setNewTaskViewName("")
-    setIsCreateTaskViewOpen(false)
-  }
-
-  const handleSelectTaskView = (view: TaskSavedView) => {
-    setActiveTaskViewId(view.id)
+  const applyTaskView = useCallback((view: TaskSavedView) => {
     setViewMode(view.viewMode)
     setVisibleTaskColumnKeys(view.visibleColumnKeys)
     setDisplayParticipants(view.displayParticipants)
@@ -401,10 +204,9 @@ export default function TasksPage() {
     setAssigneeFilter(view.assigneeFilter)
     setChargeFilter(view.chargeFilter)
     setWeekOffset(0)
-  }
+  }, [])
 
-  const handleSelectAllTaskView = () => {
-    setActiveTaskViewId(null)
+  const resetTaskViewState = useCallback(() => {
     setViewMode("list")
     setVisibleTaskColumnKeys(defaultTaskVisibleKeys)
     setDisplayParticipants([])
@@ -416,11 +218,83 @@ export default function TasksPage() {
     setAssigneeFilter([])
     setChargeFilter([])
     setWeekOffset(0)
+  }, [])
+
+  const {
+    savedViews: taskSavedViews,
+    activeViewId: activeTaskViewId,
+    createView: createTaskView,
+    selectView: selectTaskView,
+    selectDefaultView: selectDefaultTaskView,
+    deleteView: deleteTaskView,
+    syncActiveView: syncActiveTaskView,
+  } = useSavedViews<TaskSavedView>({
+    viewsStorageKey: isInvoicingMode ? "invoicing-task-views" : "task-views",
+    activeViewStorageKey: isInvoicingMode ? "invoicing-task-active-view" : "task-active-view",
+    buildView: ({ id, name }) => ({
+      id,
+      name,
+      viewMode,
+      visibleColumnKeys: [...visibleTaskColumnKeys],
+      displayParticipants: [...displayParticipants],
+      displayAssignees: [...displayAssignees],
+      displayCharges: [...displayCharges],
+      statusFilter: [...statusFilter],
+      dateFilter: [...dateFilter],
+      participantFilter: [...participantFilter],
+      assigneeFilter: [...assigneeFilter],
+      chargeFilter: [...chargeFilter],
+    }),
+    applyView: applyTaskView,
+    resetState: resetTaskViewState,
+    syncView: (view) => ({
+      ...view,
+      viewMode,
+      visibleColumnKeys: [...visibleTaskColumnKeys],
+      displayParticipants: [...displayParticipants],
+      displayAssignees: [...displayAssignees],
+      displayCharges: [...displayCharges],
+      statusFilter: [...statusFilter],
+      dateFilter: [...dateFilter],
+      participantFilter: [...participantFilter],
+      assigneeFilter: [...assigneeFilter],
+      chargeFilter: [...chargeFilter],
+    }),
+  })
+
+  useEffect(() => {
+    syncActiveTaskView()
+  }, [
+    assigneeFilter,
+    chargeFilter,
+    dateFilter,
+    displayAssignees,
+    displayCharges,
+    displayParticipants,
+    participantFilter,
+    statusFilter,
+    syncActiveTaskView,
+    viewMode,
+    visibleTaskColumnKeys,
+  ])
+
+  const handleCreateTaskView = () => {
+    const createdView = createTaskView(newTaskViewName)
+    if (!createdView) return
+    setNewTaskViewName("")
+    setIsCreateTaskViewOpen(false)
+  }
+
+  const handleSelectTaskView = (view: TaskSavedView) => {
+    selectTaskView(view)
+  }
+
+  const handleSelectAllTaskView = () => {
+    selectDefaultTaskView()
   }
 
   const handleDeleteTaskView = (viewId: string) => {
-    setTaskSavedViews((prev) => prev.filter((v) => v.id !== viewId))
-    if (activeTaskViewId === viewId) handleSelectAllTaskView()
+    deleteTaskView(viewId)
     setDeleteTaskViewConfirm(null)
   }
 
@@ -658,13 +532,6 @@ export default function TasksPage() {
     e.target.value = ""
   }
 
-  const _handleDetailRemoveAttachment = (attachmentId: string) => {
-    if (!selectedTaskId) return
-    const task = tasks.find((t) => t.id === selectedTaskId)
-    if (!task) return
-    updateTaskDb(selectedTaskId, { attachments: task.attachments.filter((a) => a.id !== attachmentId) })
-  }
-
   const closeDetail = () => {
     setSelectedTaskId(null)
     setActiveDropdown(null)
@@ -759,7 +626,7 @@ export default function TasksPage() {
           </div>
         )}
         <div className="truncate py-[12px] pl-[8px]">
-          <span className={`text-[13px] ${task.status === "done" ? "text-[#bbb] line-through" : "text-[#262626]"}`}>
+          <span className={`text-[13px] ${isInvoicingMode ? "text-[#262626]" : task.status === "done" ? "text-[#bbb] line-through" : "text-[#262626]"}`}>
             {task.title}
           </span>
         </div>
@@ -805,7 +672,9 @@ export default function TasksPage() {
       {/* View tabs */}
       <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-[#f0f0f0] px-[16px]">
         <div className="flex items-center gap-[8px]">
-          <span className="text-[13px] font-medium text-[#262626]">Tasks</span>
+          <span className="text-[13px] font-medium text-[#262626]">
+            {isInvoicingMode ? "Invoicing" : "Tasks"}
+          </span>
           <div className="h-[16px] w-px bg-[#e5e5e5]" />
           <button
             onClick={handleSelectAllTaskView}
@@ -870,16 +739,17 @@ export default function TasksPage() {
               </button>
             </div>
           )}
-          <div className="relative">
-            <button
-              ref={createBtnRef}
-              onClick={() => { if (isQuickAdding) { resetQuickAdd() } else { setIsQuickAdding(true); setQuickActiveField("title"); setTimeout(() => quickInputRef.current?.focus(), 0) } }}
-              className={`flex items-center gap-[5px] rounded border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${isQuickAdding ? "border-blue-400 bg-blue-50 text-blue-600" : "border-[#dcdcdc] bg-white text-[#262626] hover:bg-[#f5f5f5]"}`}
-              tabIndex={0}
-            >
-              <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-              <span className="hidden sm:inline">Create task</span>
-            </button>
+          {!isInvoicingMode && (
+            <div className="relative">
+              <button
+                ref={createBtnRef}
+                onClick={() => { if (isQuickAdding) { resetQuickAdd() } else { setIsQuickAdding(true); setQuickActiveField("title"); setTimeout(() => quickInputRef.current?.focus(), 0) } }}
+                className={`flex items-center gap-[5px] rounded border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${isQuickAdding ? "border-blue-400 bg-blue-50 text-blue-600" : "border-[#dcdcdc] bg-white text-[#262626] hover:bg-[#f5f5f5]"}`}
+                tabIndex={0}
+              >
+                <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+                <span className="hidden sm:inline">Create task</span>
+              </button>
 
           {isQuickAdding && (
             <>
@@ -921,7 +791,7 @@ export default function TasksPage() {
                           <div
                             className={`flex items-center gap-[5px] rounded border px-[8px] py-[3px] transition-colors ${quickActiveField === "participant" ? "border-blue-400" : "border-[#e0e0e0]"}`}
                           >
-                            <Building2 className="h-[12px] w-[12px] shrink-0 text-[#888]" strokeWidth={1.5} />
+                            <Building2 className={`h-[12px] w-[12px] shrink-0 ${quickClient ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
                             <input
                               ref={quickClientInputRef}
                               type="text"
@@ -960,7 +830,7 @@ export default function TasksPage() {
                                 }
                               }}
                               placeholder="Client"
-                              className="w-[80px] bg-transparent text-[12px] font-medium text-[#262626] placeholder-[#888] outline-none"
+                              className="w-[80px] bg-transparent text-[12px] font-medium text-[#262626] placeholder-[#ccc] outline-none"
                             />
                           </div>
                           {isQuickClientOpen && (
@@ -1015,7 +885,7 @@ export default function TasksPage() {
                           <div
                             className={`flex items-center gap-[5px] rounded border px-[8px] py-[3px] transition-colors ${quickActiveField === "charge" ? "border-blue-400" : "border-[#e0e0e0]"}`}
                           >
-                            <Tag className="h-[12px] w-[12px] shrink-0 text-[#888]" strokeWidth={1.5} />
+                            <Tag className={`h-[12px] w-[12px] shrink-0 ${quickCharge ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
                             <input
                               ref={quickChargeInputRef}
                               type="text"
@@ -1054,7 +924,7 @@ export default function TasksPage() {
                                 }
                               }}
                               placeholder="Charge"
-                              className="w-[80px] bg-transparent text-[12px] font-medium text-[#262626] placeholder-[#888] outline-none"
+                              className="w-[80px] bg-transparent text-[12px] font-medium text-[#262626] placeholder-[#ccc] outline-none"
                             />
                           </div>
                           {isQuickChargeOpen && (
@@ -1085,7 +955,7 @@ export default function TasksPage() {
                   </div>
 
                   <div className="flex items-center gap-[5px] rounded border border-[#e0e0e0] px-[8px] py-[4px]">
-                    <Clock className="h-[12px] w-[12px] text-[#888]" strokeWidth={1.5} />
+                    <Clock className={`h-[12px] w-[12px] ${quickTime ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
                     <input
                       ref={quickTimeRef}
                       type="text"
@@ -1097,7 +967,7 @@ export default function TasksPage() {
                         if (e.key === "Escape") resetQuickAdd()
                       }}
                       placeholder="0m"
-                      className="w-[40px] bg-transparent text-[12px] font-medium text-[#262626] placeholder-[#888] outline-none"
+                      className="w-[40px] bg-transparent text-[12px] font-medium text-[#262626] placeholder-[#ccc] outline-none"
                     />
                   </div>
                 </div>
@@ -1113,6 +983,7 @@ export default function TasksPage() {
             </>
           )}
           </div>
+          )}
         </div>
       </div>
 
@@ -1488,65 +1359,93 @@ export default function TasksPage() {
             </div>
 
             {viewMode === "list" ? (
-              <>
-                {/* This week section */}
-                <button
-                  type="button"
-                  onClick={() => setShowThisWeek(!showThisWeek)}
-                  className="flex w-full items-center gap-[4px] border-b border-[#e8e8e8] bg-[#fafafa] px-[12px] py-[6px] text-left"
-                  tabIndex={0}
-                >
-                  <ChevronDown className={`h-[12px] w-[12px] text-[#888] transition-transform ${showThisWeek ? "" : "-rotate-90"}`} strokeWidth={2} />
-                  <span className="text-[13px] font-semibold text-[#262626]">Uncompleted</span>
-                </button>
+              isInvoicingMode ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowPrevious(!showPrevious)}
+                    className="flex w-full items-center gap-[4px] border-b border-[#e8e8e8] bg-[#fafafa] px-[12px] py-[6px] text-left"
+                    tabIndex={0}
+                  >
+                    <ChevronDown className={`h-[12px] w-[12px] text-[#888] transition-transform ${showPrevious ? "" : "-rotate-90"}`} strokeWidth={2} />
+                    <span className="text-[13px] font-semibold text-[#262626]">Ready to invoice</span>
+                    <span className="ml-[2px] text-[12px] font-medium text-[#ccc]">({previousTasks.length})</span>
+                  </button>
+                  {showPrevious && (
+                    <>
+                      {previousTasks.slice(0, completedVisible).map(renderTaskRow)}
+                      {previousTasks.length > completedVisible && (
+                        <button
+                          type="button"
+                          onClick={() => setCompletedVisible((prev) => prev + pageSize)}
+                          className="flex w-full items-center justify-center gap-[6px] border-b border-[#f0f0f0] py-[10px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#fafafa] hover:text-[#262626]"
+                          tabIndex={0}
+                        >
+                          Show more ({previousTasks.length - completedVisible} remaining)
+                        </button>
+                      )}
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowThisWeek(!showThisWeek)}
+                    className="flex w-full items-center gap-[4px] border-b border-[#e8e8e8] bg-[#fafafa] px-[12px] py-[6px] text-left"
+                    tabIndex={0}
+                  >
+                    <ChevronDown className={`h-[12px] w-[12px] text-[#888] transition-transform ${showThisWeek ? "" : "-rotate-90"}`} strokeWidth={2} />
+                    <span className="text-[13px] font-semibold text-[#262626]">Uncompleted</span>
+                  </button>
 
-                {showThisWeek && (
-                  <>
-                    {thisWeekTasks.slice(0, uncompletedVisible).map(renderTaskRow)}
-                    {thisWeekTasks.length > uncompletedVisible && (
+                  {showThisWeek && (
+                    <>
+                      {thisWeekTasks.slice(0, uncompletedVisible).map(renderTaskRow)}
+                      {thisWeekTasks.length > uncompletedVisible && (
+                        <button
+                          type="button"
+                          onClick={() => setUncompletedVisible((prev) => prev + pageSize)}
+                          className="flex w-full items-center justify-center gap-[6px] border-b border-[#f0f0f0] py-[10px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#fafafa] hover:text-[#262626]"
+                          tabIndex={0}
+                        >
+                          Show more ({thisWeekTasks.length - uncompletedVisible} remaining)
+                        </button>
+                      )}
+                    </>
+                  )}
+
+                  {previousTasks.length > 0 && (
+                    <>
                       <button
                         type="button"
-                        onClick={() => setUncompletedVisible((prev) => prev + pageSize)}
-                        className="flex w-full items-center justify-center gap-[6px] border-b border-[#f0f0f0] py-[10px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#fafafa] hover:text-[#262626]"
+                        onClick={() => setShowPrevious(!showPrevious)}
+                        className="flex w-full items-center gap-[4px] border-b border-[#e8e8e8] bg-[#fafafa] px-[12px] py-[6px] text-left"
                         tabIndex={0}
                       >
-                        Show more ({thisWeekTasks.length - uncompletedVisible} remaining)
+                        <ChevronDown className={`h-[12px] w-[12px] text-[#888] transition-transform ${showPrevious ? "" : "-rotate-90"}`} strokeWidth={2} />
+                        <span className="text-[13px] font-semibold text-[#999]">Completed</span>
+                        <span className="ml-[2px] text-[12px] font-medium text-[#ccc]">({previousTasks.length})</span>
                       </button>
-                    )}
-                  </>
-                )}
-
-                {/* Previous section */}
-                {previousTasks.length > 0 && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setShowPrevious(!showPrevious)}
-                      className="flex w-full items-center gap-[4px] border-b border-[#e8e8e8] bg-[#fafafa] px-[12px] py-[6px] text-left"
-                      tabIndex={0}
-                    >
-                      <ChevronDown className={`h-[12px] w-[12px] text-[#888] transition-transform ${showPrevious ? "" : "-rotate-90"}`} strokeWidth={2} />
-                      <span className="text-[13px] font-semibold text-[#999]">Completed</span>
-                      <span className="ml-[2px] text-[12px] font-medium text-[#ccc]">({previousTasks.length})</span>
-                    </button>
-                    {showPrevious && (
-                      <>
-                        {previousTasks.slice(0, completedVisible).map(renderTaskRow)}
-                        {previousTasks.length > completedVisible && (
-                          <button
-                            type="button"
-                            onClick={() => setCompletedVisible((prev) => prev + pageSize)}
-                            className="flex w-full items-center justify-center gap-[6px] border-b border-[#f0f0f0] py-[10px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#fafafa] hover:text-[#262626]"
-                            tabIndex={0}
-                          >
-                            Show more ({previousTasks.length - completedVisible} remaining)
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </>
-                )}
-              </>
+                      {showPrevious && (
+                        <>
+                          {previousTasks.slice(0, completedVisible).map(renderTaskRow)}
+                          {previousTasks.length > completedVisible && (
+                            <button
+                              type="button"
+                              onClick={() => setCompletedVisible((prev) => prev + pageSize)}
+                              className="flex w-full items-center justify-center gap-[6px] border-b border-[#f0f0f0] py-[10px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#fafafa] hover:text-[#262626]"
+                              tabIndex={0}
+                            >
+                              Show more ({previousTasks.length - completedVisible} remaining)
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </>
+                  )}
+                </>
+              )
             ) : (
               /* Week view — tasks grouped by day */
               (() => {
@@ -1589,7 +1488,7 @@ export default function TasksPage() {
                             {dayTasks.length > 0 && (
                               <span className="text-[11px] font-medium text-[#bbb]">
                                 {dayTasks.length} {dayTasks.length === 1 ? "task" : "tasks"}
-                                {completed > 0 && ` · ${completed} done`}
+                                {!isInvoicingMode && completed > 0 && ` · ${completed} done`}
                               </span>
                             )}
                           </div>
@@ -1626,10 +1525,11 @@ export default function TasksPage() {
                     })
                     const noDate = filtered.filter((t) => !t.dueDate)
                     const total = weekTasks.length + noDate.length
+                    if (isInvoicingMode) return `${total} ${total === 1 ? "task" : "tasks"} ready to invoice`
                     const done = weekTasks.filter((t) => t.status === "done").length
                     return `${total} ${total === 1 ? "task" : "tasks"} this week${done > 0 ? ` · ${done} completed` : ""}`
                   })()
-                : `${taskCount} ${taskCount === 1 ? "task" : "tasks"}`
+                : `${taskCount} ${taskCount === 1 ? "task" : "tasks"}${isInvoicingMode ? " ready to invoice" : ""}`
               }
             </span>
           </div>
@@ -1749,7 +1649,10 @@ export default function TasksPage() {
                             <span className="truncate text-[13px] font-medium text-[#262626]">{selectedTask.client}</span>
                           </>
                         ) : (
-                          <span className="text-[13px] font-medium text-[#b0b0b0]">Empty</span>
+                          <>
+                            <Building2 className="h-[13px] w-[13px] shrink-0 text-[#ccc]" strokeWidth={1.5} />
+                            <span className="text-[13px] font-medium text-[#ccc]">Empty</span>
+                          </>
                         )}
                       </button>
                     </div>
@@ -1764,14 +1667,19 @@ export default function TasksPage() {
                             className="flex min-w-0 items-center gap-[8px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
                             tabIndex={0}
                           >
-                            {assigneeInitials ? (
-                              <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md bg-[#f0f0f0] text-[9px] font-bold text-[#555]">
-                                {assigneeInitials}
-                              </span>
-                            ) : null}
-                            <span className={`truncate text-[13px] font-medium ${selectedTask.assignee ? "text-[#262626]" : "text-[#b0b0b0]"}`}>
-                              {selectedTask.assignee || "Empty"}
-                            </span>
+                            {selectedTask.assignee ? (
+                              <>
+                                <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md bg-[#f0f0f0] text-[9px] font-bold text-[#555]">
+                                  {assigneeInitials}
+                                </span>
+                                <span className="truncate text-[13px] font-medium text-[#262626]">{selectedTask.assignee}</span>
+                              </>
+                            ) : (
+                              <>
+                                <User className="h-[13px] w-[13px] shrink-0 text-[#ccc]" strokeWidth={1.5} />
+                                <span className="text-[13px] font-medium text-[#ccc]">Empty</span>
+                              </>
+                            )}
                           </button>
                           {activeDropdown === "detail-assignee" && (
                             <>
@@ -1808,14 +1716,19 @@ export default function TasksPage() {
                         </div>
                       ) : (
                         <div className="flex min-w-0 items-center gap-[8px] px-[8px] py-[6px]">
-                          {assigneeInitials ? (
-                            <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md bg-[#f0f0f0] text-[9px] font-bold text-[#555]">
-                              {assigneeInitials}
-                            </span>
-                          ) : null}
-                          <span className={`truncate text-[13px] font-medium ${selectedTask.assignee ? "text-[#262626]" : "text-[#b0b0b0]"}`}>
-                            {selectedTask.assignee || "Empty"}
-                          </span>
+                          {selectedTask.assignee ? (
+                            <>
+                              <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md bg-[#f0f0f0] text-[9px] font-bold text-[#555]">
+                                {assigneeInitials}
+                              </span>
+                              <span className="truncate text-[13px] font-medium text-[#262626]">{selectedTask.assignee}</span>
+                            </>
+                          ) : (
+                            <>
+                              <User className="h-[13px] w-[13px] shrink-0 text-[#ccc]" strokeWidth={1.5} />
+                              <span className="text-[13px] font-medium text-[#ccc]">Empty</span>
+                            </>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1829,8 +1742,8 @@ export default function TasksPage() {
                           className="flex min-w-0 items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
                           tabIndex={0}
                         >
-                          <CalendarDays className="h-[13px] w-[13px] shrink-0 text-[#888]" strokeWidth={1.5} />
-                          <span className={`truncate text-[13px] font-medium ${selectedTask.dueDate ? "text-[#262626]" : "text-[#b0b0b0]"}`}>
+                          <CalendarDays className={`h-[13px] w-[13px] shrink-0 ${selectedTask.dueDate ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
+                          <span className={`truncate text-[13px] font-medium ${selectedTask.dueDate ? "text-[#262626]" : "text-[#ccc]"}`}>
                             {selectedTask.dueDate
                               ? new Date(selectedTask.dueDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short" })
                               : "Empty"}
@@ -1866,8 +1779,8 @@ export default function TasksPage() {
                           </span>
                         ) : (
                           <>
-                            <Tag className="h-[13px] w-[13px] shrink-0 text-[#888]" strokeWidth={1.5} />
-                            <span className="text-[13px] font-medium text-[#b0b0b0]">Empty</span>
+                            <Tag className="h-[13px] w-[13px] shrink-0 text-[#ccc]" strokeWidth={1.5} />
+                            <span className="text-[13px] font-medium text-[#ccc]">Empty</span>
                           </>
                         )}
                       </button>
@@ -1888,8 +1801,8 @@ export default function TasksPage() {
                           </span>
                         ) : (
                           <>
-                            <Tag className="h-[13px] w-[13px] shrink-0 text-[#888]" strokeWidth={1.5} />
-                            <span className="text-[13px] font-medium text-[#b0b0b0]">Empty</span>
+                            <Tag className="h-[13px] w-[13px] shrink-0 text-[#ccc]" strokeWidth={1.5} />
+                            <span className="text-[13px] font-medium text-[#ccc]">Empty</span>
                           </>
                         )}
                       </button>
@@ -1898,7 +1811,7 @@ export default function TasksPage() {
                     <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
                       <span className="text-[13px] font-medium text-[#8d8d8d]">Time</span>
                       <div className="flex items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] transition-colors hover:bg-[#f7f7f7]">
-                        <Clock className="h-[13px] w-[13px] shrink-0 text-[#888]" strokeWidth={1.5} />
+                        <Clock className={`h-[13px] w-[13px] shrink-0 ${selectedTask.timeSpent > 0 ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
                         <input
                           key={selectedTask.timeSpent}
                           type="text"
@@ -1911,7 +1824,7 @@ export default function TasksPage() {
                               e.currentTarget.blur()
                             }
                           }}
-                          className="w-full bg-transparent text-[13px] font-medium text-[#262626] placeholder-[#b0b0b0] outline-none"
+                          className="w-full bg-transparent text-[13px] font-medium text-[#262626] placeholder-[#ccc] outline-none"
                         />
                       </div>
                     </div>
@@ -2111,7 +2024,9 @@ export default function TasksPage() {
           <div className="fixed inset-0 z-50 bg-black/20" onClick={() => { setIsCreateTaskViewOpen(false); setNewTaskViewName("") }} />
           <div className="fixed left-1/2 top-1/2 z-50 w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
             <div className="flex items-center justify-between">
-              <h3 className="text-[15px] font-semibold text-[#262626]">Create a view for tasks</h3>
+              <h3 className="text-[15px] font-semibold text-[#262626]">
+                {isInvoicingMode ? "Create a view for invoicing" : "Create a view for tasks"}
+              </h3>
               <button
                 onClick={() => { setIsCreateTaskViewOpen(false); setNewTaskViewName("") }}
                 className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"

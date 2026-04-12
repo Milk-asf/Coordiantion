@@ -8,6 +8,31 @@ export interface NdisChargeItem {
   category: "support-coordination" | "psychosocial-recovery" | "travel"
 }
 
+export interface ChargeItem {
+  id: string
+  name: string
+  itemNumber: string
+  claimType: string
+  price: number
+  unit: "hour" | "each"
+  gstCode: string
+  reference: string
+}
+
+export const claimTypes = [
+  { value: "direct-service", label: "Direct Service" },
+  { value: "cancellation", label: "Cancellation" },
+  { value: "ndia-required-report", label: "NDIA Required Report" },
+  { value: "provider-travel", label: "Provider Travel" },
+  { value: "non-face-to-face", label: "Non-Face-to-Face Services" },
+] as const
+
+export const gstCodes = [
+  { value: "P1", label: "P1: GST on Income" },
+  { value: "P2", label: "P2: GST Free Income" },
+  { value: "P5", label: "P5: GST out of Scope" },
+] as const
+
 export const ndisCharges: NdisChargeItem[] = [
   {
     itemNumber: "07_001_0106_8_3",
