@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { sendEmail } from "@/lib/email/send"
-import { generateInvoicePDF } from "@/lib/pdf/invoice-pdf"
-import { InvoiceEmail } from "@/lib/email/templates/invoice-email"
 import type { Invoice, WorkspaceEmailSettings } from "@/lib/types"
+
+export const dynamic = "force-dynamic"
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -33,6 +32,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid invoice data" }, { status: 400 })
 
   try {
+    const { sendEmail } = await import("@/lib/email/send")
+    const { generateInvoicePDF } = await import("@/lib/pdf/invoice-pdf")
+    const { InvoiceEmail } = await import("@/lib/email/templates/invoice-email")
+
     const pdfBuffer = await generateInvoicePDF(invoice, orgSettings, ndisNumber)
 
     const issueDate = invoice.issueDate
