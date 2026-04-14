@@ -4,8 +4,10 @@ import { useState, useRef, useCallback, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useContacts } from "@/lib/hooks/use-contacts"
 import { useClients } from "@/lib/hooks/use-clients"
+import { useTasks } from "@/lib/hooks/use-tasks"
+import { useCharges } from "@/lib/hooks/use-charges"
 import { relationshipConfig } from "@/lib/types"
-import type { Client, ParticipantDetails } from "@/lib/types"
+import type { Client, ParticipantDetails, Task } from "@/lib/types"
 import { EntityIcon } from "@/components/entity-icon"
 import { EditableField } from "@/components/editable-field"
 import { ContactChip } from "@/components/contact-chip"
@@ -146,6 +148,136 @@ function SidebarSection({ title, emptyText, actionLabel }: { title: string; empt
   )
 }
 
+function formatTaskDate(dateStr: string | null): string {
+  if (!dateStr) return ""
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const d = new Date(dateStr + "T00:00:00")
+  d.setHours(0, 0, 0, 0)
+  const diff = d.getTime() - today.getTime()
+  const dayMs = 86400000
+  if (diff === 0) return "Today"
+  if (diff === dayMs) return "Tomorrow"
+  if (diff === -dayMs) return "Yesterday"
+  return d.toLocaleDateString("en-AU", { day: "numeric", month: "short" })
+}
+
+function ProfileTasksTab({
+  openTasks,
+  completedTasks,
+  chargeCode,
+  onToggleComplete,
+}: {
+  openTasks: Task[]
+  completedTasks: Task[]
+  chargeCode: (itemNumber: string) => string
+  onToggleComplete: (taskId: string) => void
+}) {
+  const [showCompleted, setShowCompleted] = useState(false)
+  const totalTasks = openTasks.length + completedTasks.length
+
+  const gridTemplate = "100px 1fr 80px 40px"
+
+  const renderRow = (task: Task) => {
+    const dateStr = formatTaskDate(task.dueDate)
+    const isOverdue = task.dueDate && task.status !== "done" && new Date(task.dueDate + "T00:00:00") < new Date(new Date().toDateString())
+
+    return (
+      <div
+        key={task.id}
+        className="grid items-center border-b border-[#f0f0f0] px-[20px] transition-colors hover:bg-white"
+        style={{ gridTemplateColumns: gridTemplate }}
+      >
+        <div className={`py-[10px] text-[13px] ${isOverdue ? "font-medium text-[#c43d3d]" : "text-[#888]"}`}>
+          {dateStr || <span className="text-[#ccc]">—</span>}
+        </div>
+        <div className="truncate py-[10px]">
+          <span className={`text-[13px] ${task.status === "done" ? "text-[#bbb] line-through" : "text-[#262626]"}`}>
+            {task.title || <span className="text-[#ccc]">Untitled task</span>}
+          </span>
+          {task.chargeType && (
+            <span className="ml-[8px] text-[11px] font-medium text-[#aaa]">{chargeCode(task.chargeType)}</span>
+          )}
+        </div>
+        <div className="flex items-center justify-center py-[10px] text-[13px] text-[#888]">
+          {task.timeSpent > 0 ? `${task.timeSpent}m` : <span className="text-[#ccc]">—</span>}
+        </div>
+        <div className="flex items-center justify-center">
+          <button
+            onClick={() => onToggleComplete(task.id)}
+            className={`flex h-[18px] w-[18px] items-center justify-center rounded border-[1.5px] transition-colors ${
+              task.status === "done"
+                ? "border-blue-500 bg-blue-500 text-white"
+                : "border-[#ccc] hover:border-[#999]"
+            }`}
+            tabIndex={0}
+            aria-label={task.status === "done" ? "Mark as incomplete" : "Mark as complete"}
+          >
+            {task.status === "done" && <span className="text-[9px]">✓</span>}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (totalTasks === 0) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center px-[24px] py-[56px] text-center">
+        <div className="rounded-full bg-[#f5f5f5] p-[12px]">
+          <CheckSquare className="h-[20px] w-[20px] text-[#999]" strokeWidth={1.5} />
+        </div>
+        <h3 className="mt-[14px] text-[15px] font-semibold text-[#262626]">No tasks yet</h3>
+        <p className="mt-[6px] max-w-[320px] text-[13px] text-[#888]">
+          Tasks assigned to this participant will appear here.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="sticky top-0 z-[1] grid items-center border-b border-[#e0e0e0] bg-[#fafafa] px-[20px]" style={{ gridTemplateColumns: gridTemplate }}>
+        <div className="py-[10px] text-[12px] font-medium text-[#666]">Date</div>
+        <div className="py-[10px] text-[12px] font-medium text-[#666]">Task</div>
+        <div className="py-[10px] text-center text-[12px] font-medium text-[#666]">Time</div>
+        <div className="py-[10px] text-center text-[12px] font-medium text-[#666]" />
+      </div>
+
+      {openTasks.length > 0 && (
+        <div>
+          <div className="flex items-center gap-[8px] border-b border-[#e8e8e8] bg-[#fafafa] px-[20px] py-[6px]">
+            <span className="text-[12px] font-semibold text-[#262626]">Open</span>
+            <span className="text-[11px] font-medium text-[#bbb]">{openTasks.length}</span>
+          </div>
+          {openTasks.map(renderRow)}
+        </div>
+      )}
+
+      {completedTasks.length > 0 && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowCompleted(!showCompleted)}
+            className="flex w-full items-center gap-[8px] border-b border-[#e8e8e8] bg-[#fafafa] px-[20px] py-[6px] text-left"
+            tabIndex={0}
+          >
+            <ChevronDown className={`h-[12px] w-[12px] text-[#888] transition-transform ${showCompleted ? "" : "-rotate-90"}`} strokeWidth={1.75} />
+            <span className="text-[12px] font-semibold text-[#888]">Completed</span>
+            <span className="text-[11px] font-medium text-[#bbb]">{completedTasks.length}</span>
+          </button>
+          {showCompleted && completedTasks.map(renderRow)}
+        </div>
+      )}
+
+      <div className="mt-auto shrink-0 border-t border-[#dcdcdc] px-[20px] py-[10px]">
+        <span className="text-[12px] font-medium text-[#999]">
+          {openTasks.length} open · {completedTasks.length} completed
+        </span>
+      </div>
+    </div>
+  )
+}
+
 export default function ParticipantProfilePage() {
   const params = useParams()
   const router = useRouter()
@@ -155,6 +287,8 @@ export default function ParticipantProfilePage() {
   const [sidebarWidth, setSidebarWidth] = useState(404)
   const { clients, isLoading, updateParticipantField } = useClients()
   const { addContact, getContactsForClient } = useContacts()
+  const { tasks: allTasks, updateTask: updateTaskDb } = useTasks()
+  const { allCharges } = useCharges()
   const [isAddContactOpen, setIsAddContactOpen] = useState(false)
   const [newContact, setNewContact] = useState({ firstName: "", email: "", phone: "", relationship: "" })
   const [isRelationshipOpen, setIsRelationshipOpen] = useState(false)
@@ -272,6 +406,33 @@ export default function ParticipantProfilePage() {
     { id: "owner", firstName: client.owner, email: p.email, phone: p.phone || p.mobile, relationship: "support-coordinator" },
     ...clientContacts.map((c) => ({ id: c.id, firstName: c.name, email: c.email, phone: c.phone, relationship: c.relationship })),
   ]
+
+  const clientTasks = allTasks.filter((t) =>
+    t.clientId === client.id || t.client === client.name || t.client === client.displayName
+  )
+  const openTasks = clientTasks.filter((t) => t.status !== "done").sort((a, b) => {
+    if (!a.dueDate && !b.dueDate) return 0
+    if (!a.dueDate) return 1
+    if (!b.dueDate) return -1
+    return a.dueDate.localeCompare(b.dueDate)
+  })
+  const completedTasks = clientTasks.filter((t) => t.status === "done").sort((a, b) => {
+    if (!a.dueDate && !b.dueDate) return 0
+    if (!a.dueDate) return 1
+    if (!b.dueDate) return -1
+    return b.dueDate.localeCompare(a.dueDate)
+  })
+
+  const chargeCode = (itemNumber: string) => {
+    const charge = allCharges.find((c) => c.itemNumber === itemNumber)
+    return charge?.shortName || itemNumber
+  }
+
+  const handleToggleTaskComplete = (taskId: string) => {
+    const task = clientTasks.find((t) => t.id === taskId)
+    if (!task) return
+    updateTaskDb(taskId, { status: task.status === "done" ? "todo" : "done" })
+  }
 
   const handleCreateContact = async () => {
     if (!newContact.firstName) return
@@ -638,6 +799,13 @@ export default function ParticipantProfilePage() {
                 </div>
               )}
             </div>
+          ) : activeTab === "tasks" ? (
+            <ProfileTasksTab
+              openTasks={openTasks}
+              completedTasks={completedTasks}
+              chargeCode={chargeCode}
+              onToggleComplete={handleToggleTaskComplete}
+            />
           ) : activeTab !== "overview" ? (
             <div className="flex h-full items-center justify-center">
               <p className="text-[13px] font-medium text-[#bbb]">No content yet</p>
