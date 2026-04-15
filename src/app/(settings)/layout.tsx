@@ -1,6 +1,7 @@
 "use client"
 
 import { WorkspaceProvider } from "@/lib/workspace-context"
+import { ClientsProvider } from "@/lib/clients-context"
 
 export default function SettingsGroupLayout({
   children,
@@ -9,9 +10,11 @@ export default function SettingsGroupLayout({
 }) {
   return (
     <WorkspaceProvider>
-      <div className="flex h-screen w-full overflow-hidden bg-[#fafafa]">
-        {children}
-      </div>
+      <ClientsProvider>
+        <div className="flex h-screen w-full overflow-hidden bg-[#fafafa]">
+          {children}
+        </div>
+      </ClientsProvider>
     </WorkspaceProvider>
   )
 }

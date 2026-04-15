@@ -5,7 +5,6 @@ import {
   Handshake,
   ListFilter,
   Plus,
-  Download,
   ArrowDown,
   ArrowUpDown,
   Table2,
@@ -23,6 +22,7 @@ import { useClients } from "@/lib/hooks/use-clients"
 import { useFieldConfig } from "@/lib/hooks/use-field-config"
 import { useSavedViews } from "@/lib/hooks/use-saved-views"
 import { relationshipConfig } from "@/lib/types"
+import { CsvDropdown } from "@/components/csv-dropdown"
 
 const allColumns = [
   { key: "name", label: "Name", icon: UserRound, isSystem: true },
@@ -173,6 +173,57 @@ export default function ContactsPage() {
     setIsClientOpen(false)
   }
 
+  const csvColumns = useMemo(() => [
+    { key: "name", label: "Name" },
+    { key: "clientName", label: "Client" },
+    { key: "relationship", label: "Relationship" },
+    { key: "email", label: "Email" },
+    { key: "phone", label: "Phone" },
+  ], [])
+
+  const exportCsvColumns = useMemo(() =>
+    visibleColumnKeys
+      .map((k) => allColumns.find((c) => c.key === k))
+      .filter(Boolean)
+      .map((c) => ({ key: c!.key === "client" ? "clientName" : c!.key, label: c!.label })),
+    [visibleColumnKeys]
+  )
+
+  const exportCsvData = useMemo(() =>
+    filteredContacts.map((c) => ({
+      name: c.name,
+      clientName: c.clientName,
+      relationship: relationshipConfig[c.relationship]?.label || c.relationship,
+      email: c.email,
+      phone: c.phone,
+    })),
+    [filteredContacts]
+  )
+
+  const handleCsvImport = useCallback(async (rows: Record<string, string>[]) => {
+    const relLabelToKey = new Map<string, string>()
+    for (const [key, cfg] of Object.entries(relationshipConfig)) {
+      relLabelToKey.set(cfg.label.toLowerCase(), key)
+    }
+
+    for (const row of rows) {
+      const name = row.name || ""
+      if (!name) continue
+      const clientName = row.clientName || ""
+      const matchedClient = clients.find((c) => c.displayName === clientName || c.name === clientName)
+      const rawRel = (row.relationship || "").toLowerCase()
+      const relationship = relLabelToKey.get(rawRel) || row.relationship || ""
+      await addContact({
+        name,
+        clientName: matchedClient?.displayName || clientName,
+        clientId: matchedClient?.id || null,
+        relationship,
+        email: row.email || "",
+        phone: row.phone || "",
+      })
+    }
+  }, [addContact, clients])
+
   return (
     <div className="flex h-full flex-col">
       {/* View tabs */}
@@ -182,7 +233,7 @@ export default function ContactsPage() {
           <div className="h-[16px] w-px bg-[#e5e5e5]" />
           <button
             onClick={handleSelectAllView}
-            className={`flex items-center gap-[6px] rounded-lg border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === null ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
+            className={`flex items-center gap-[6px] rounded-[4px] border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === null ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
             tabIndex={0}
           >
             <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -197,7 +248,7 @@ export default function ContactsPage() {
                 e.preventDefault()
                 setViewContextMenu({ viewId: view.id, x: e.clientX, y: e.clientY })
               }}
-              className={`flex items-center gap-[6px] rounded-lg border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === view.id ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
+              className={`flex items-center gap-[6px] rounded-[4px] border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === view.id ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
               tabIndex={0}
             >
               <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -214,20 +265,20 @@ export default function ContactsPage() {
           </button>
         </div>
         <div className="flex items-center gap-[8px]">
-          <button
-            className="flex items-center gap-[5px] rounded px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-            tabIndex={0}
-          >
-            <Download className="h-[13px] w-[13px]" strokeWidth={1.5} />
-            <span className="hidden sm:inline">Import CSV</span>
-          </button>
+          <CsvDropdown
+            entityType="contacts"
+            columns={csvColumns}
+            exportColumns={exportCsvColumns}
+            data={exportCsvData}
+            onImport={handleCsvImport}
+          />
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+            className="flex items-center gap-[5px] rounded-[4px] bg-blue-500 px-[8px] py-[4px] text-[13px] font-medium text-white transition-colors hover:bg-blue-600"
             tabIndex={0}
           >
             <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-            <span className="hidden sm:inline">Create contact</span>
+            <span className="hidden sm:inline">Add new</span>
           </button>
         </div>
       </div>
@@ -268,11 +319,11 @@ export default function ContactsPage() {
                     <span>Sorting</span>
                   </div>
                   <div className="flex items-center gap-[6px]">
-                    <button className="flex items-center gap-[6px] rounded-md border border-[#dcdcdc] px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
+                    <button className="flex items-center gap-[6px] rounded-[4px] border border-[#dcdcdc] px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
                       <span>Name</span>
                       <ChevronDown className="h-[12px] w-[12px] text-[#888]" strokeWidth={1.5} />
                     </button>
-                    <button className="flex h-[32px] w-[32px] items-center justify-center rounded-md border border-[#dcdcdc] text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
+                    <button className="flex h-[32px] w-[32px] items-center justify-center rounded-[4px] border border-[#dcdcdc] text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
                       <ArrowDown className="h-[14px] w-[14px]" strokeWidth={1.75} />
                     </button>
                   </div>
@@ -287,7 +338,7 @@ export default function ContactsPage() {
                         <button
                           key={col.key}
                           onClick={() => handleToggleColumn(col.key)}
-                          className={`inline-flex items-center rounded-lg border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
+                          className={`inline-flex items-center rounded-[4px] border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
                           tabIndex={0}
                         >
                           {col.label}
@@ -306,7 +357,7 @@ export default function ContactsPage() {
                         <button
                           key={key}
                           onClick={() => handleToggleRelationship(key)}
-                          className={`inline-flex items-center rounded-lg border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
+                          className={`inline-flex items-center rounded-[4px] border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
                           tabIndex={0}
                         >
                           {config.label}
@@ -504,7 +555,7 @@ export default function ContactsPage() {
               <div className="flex justify-end">
                 <button
                   onClick={handleCreate}
-                  className="rounded-md bg-[#262626] px-[16px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-[#333]"
+                  className="rounded-[4px] bg-[#262626] px-[16px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-[#333]"
                   tabIndex={0}
                 >
                   Create
@@ -604,7 +655,7 @@ export default function ContactsPage() {
               <button
                 onClick={handleCreateView}
                 disabled={!newViewName.trim()}
-                className={`rounded-lg border px-[16px] py-[6px] text-[13px] font-medium transition-colors ${newViewName.trim() ? "border-[#262626] bg-[#262626] text-white hover:bg-[#333]" : "border-[#dcdcdc] text-[#bbb]"}`}
+                className={`rounded-[4px] border px-[16px] py-[6px] text-[13px] font-medium transition-colors ${newViewName.trim() ? "border-[#262626] bg-[#262626] text-white hover:bg-[#333]" : "border-[#dcdcdc] text-[#bbb]"}`}
                 tabIndex={0}
               >
                 Create
@@ -657,7 +708,7 @@ export default function ContactsPage() {
               </button>
               <button
                 onClick={() => handleDeleteView(deleteViewConfirm.id)}
-                className="rounded-lg bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
+                className="rounded-[4px] bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
                 tabIndex={0}
               >
                 Delete

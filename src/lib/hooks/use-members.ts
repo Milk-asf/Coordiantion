@@ -92,6 +92,14 @@ export function useMembers() {
     setMembers((prev) => prev.map((m) => m.id === memberId ? { ...m, role } : m))
   }, [])
 
+  const updateMemberStatus = useCallback(async (memberId: string, status: WorkspaceMember["status"]) => {
+    setMembers((prev) => prev.map((m) => m.id === memberId ? { ...m, status } : m))
+    if (!isSupabaseConfigured()) return
+    const supabase = createClient()
+    if (!supabase) return
+    await supabase.from("workspace_members").update({ status }).eq("id", memberId)
+  }, [])
+
   const removeMember = useCallback(async (memberId: string) => {
     if (!isSupabaseConfigured()) return
     const supabase = createClient()
@@ -100,5 +108,5 @@ export function useMembers() {
     setMembers((prev) => prev.filter((m) => m.id !== memberId))
   }, [])
 
-  return { members, isLoading, inviteMember, updateMemberRole, removeMember, refetch: fetchMembers }
+  return { members, isLoading, inviteMember, updateMemberRole, updateMemberStatus, removeMember, refetch: fetchMembers }
 }

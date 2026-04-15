@@ -274,7 +274,7 @@ export default function ProfileSettingsPage() {
             onClick={handleUpdateProfile}
             disabled={!hasChanges || isSaving}
             className={cn(
-              "h-[34px] rounded-[6px] px-[16px] text-[13px] font-medium transition-colors",
+              "h-[34px] rounded-[4px] px-[16px] text-[13px] font-medium transition-colors",
               hasChanges
                 ? "bg-[#262626] text-white hover:bg-[#3d3d3d]"
                 : "bg-sidebar-hover text-[#bbb] cursor-not-allowed"
@@ -323,7 +323,7 @@ export default function ProfileSettingsPage() {
             onClick={handleChangeEmail}
             disabled={!newEmail || isChangingEmail}
             className={cn(
-              "h-[34px] rounded-[6px] px-[16px] text-[13px] font-medium transition-colors",
+              "h-[34px] rounded-[4px] px-[16px] text-[13px] font-medium transition-colors",
               newEmail
                 ? "bg-[#262626] text-white hover:bg-[#3d3d3d]"
                 : "bg-sidebar-hover text-[#bbb] cursor-not-allowed"
@@ -430,7 +430,7 @@ export default function ProfileSettingsPage() {
             onClick={handleChangePassword}
             disabled={!newPassword || !confirmPassword || isChangingPassword}
             className={cn(
-              "h-[34px] rounded-[6px] px-[16px] text-[13px] font-medium transition-colors",
+              "h-[34px] rounded-[4px] px-[16px] text-[13px] font-medium transition-colors",
               newPassword && confirmPassword
                 ? "bg-[#262626] text-white hover:bg-[#3d3d3d]"
                 : "bg-sidebar-hover text-[#bbb] cursor-not-allowed"

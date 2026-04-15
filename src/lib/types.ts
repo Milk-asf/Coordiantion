@@ -63,6 +63,7 @@ export interface Client {
   assignedTo: string | null
   summary: string
   about: string
+  status: "active" | "archived"
 }
 
 export interface Contact {
@@ -109,7 +110,7 @@ export interface WorkspaceMember {
   workspace_id: string
   user_id: string | null
   role: "super-admin" | "admin" | "coordinator"
-  status: "active" | "pending" | "invited"
+  status: "active" | "pending" | "invited" | "deactivated"
   invited_email: string | null
   team: string | null
   created_at: string

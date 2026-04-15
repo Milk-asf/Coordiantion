@@ -10,7 +10,9 @@ type Role = WorkspaceMember["role"]
 export interface Permissions {
   role: Role | null
   userId: string | null
+  userEmail: string | null
   isLoading: boolean
+  isSuperAdmin: boolean
 
   canAccessBilling: boolean
   canManageWorkspaceSettings: boolean
@@ -27,7 +29,9 @@ export interface Permissions {
 const noPermissions: Permissions = {
   role: null,
   userId: null,
+  userEmail: null,
   isLoading: true,
+  isSuperAdmin: false,
   canAccessBilling: false,
   canManageWorkspaceSettings: false,
   canManageMembers: false,
@@ -40,13 +44,15 @@ const noPermissions: Permissions = {
   canAssignTasks: false,
 }
 
-function derivePermissions(role: Role, userId: string | null = null): Permissions {
+function derivePermissions(role: Role, userId: string | null = null, userEmail: string | null = null): Permissions {
   const isAdmin = role === "super-admin" || role === "admin"
 
   return {
     role,
     userId,
+    userEmail,
     isLoading: false,
+    isSuperAdmin: role === "super-admin",
     canAccessBilling: role === "super-admin",
     canManageWorkspaceSettings: isAdmin,
     canManageMembers: isAdmin,
@@ -66,7 +72,7 @@ export function usePermissions(): Permissions {
 
   useEffect(() => {
     if (!isSupabaseConfigured()) {
-      setPermissions(derivePermissions("super-admin"))
+      setPermissions(derivePermissions("super-admin", null, "izakjosef@gmail.com"))
       return
     }
 
@@ -96,9 +102,9 @@ export function usePermissions(): Permissions {
         if (cancelled) return
 
         if (error || !data?.role) {
-          setPermissions(derivePermissions("super-admin", user.id))
+          setPermissions(derivePermissions("super-admin", user.id, user.email || null))
         } else {
-          setPermissions(derivePermissions(data.role as Role, user.id))
+          setPermissions(derivePermissions(data.role as Role, user.id, user.email || null))
         }
       } catch {
         if (!cancelled) setPermissions(derivePermissions("super-admin"))

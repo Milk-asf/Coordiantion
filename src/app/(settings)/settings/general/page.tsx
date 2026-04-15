@@ -121,7 +121,7 @@ export default function GeneralSettingsPage() {
         {isDirty && (
           <button
             onClick={handleSave}
-            className="flex items-center gap-[6px] rounded-[8px] bg-[#1a1a1a] px-[14px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-[#333]"
+            className="flex items-center gap-[6px] rounded-[4px] bg-[#1a1a1a] px-[14px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-[#333]"
             tabIndex={0}
             aria-label="Save changes"
           >
@@ -130,7 +130,7 @@ export default function GeneralSettingsPage() {
           </button>
         )}
         {saved && !isDirty && (
-          <div className="flex items-center gap-[6px] rounded-[8px] bg-green-50 px-[14px] py-[7px] text-[13px] font-medium text-green-700">
+          <div className="flex items-center gap-[6px] rounded-[4px] bg-green-50 px-[14px] py-[7px] text-[13px] font-medium text-green-700">
             <Check className="h-[13px] w-[13px]" strokeWidth={2} />
             Saved
           </div>
@@ -171,7 +171,7 @@ export default function GeneralSettingsPage() {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                className="flex items-center gap-[6px] rounded-[6px] border border-[#dcdcdc] bg-white px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] disabled:opacity-50"
+                className="flex items-center gap-[6px] rounded-[4px] border border-[#dcdcdc] bg-white px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] disabled:opacity-50"
                 tabIndex={0}
               >
                 <Upload className="h-[13px] w-[13px]" strokeWidth={1.75} />

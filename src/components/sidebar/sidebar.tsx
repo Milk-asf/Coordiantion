@@ -17,12 +17,18 @@ import {
   LogOut,
   ChevronDown,
   Settings,
+  X,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  FileCheck,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import { useWorkspaceSettings } from "@/lib/hooks/use-workspace-settings"
+import { useNotifications, type AppNotification } from "@/lib/hooks/use-notifications"
 
 interface NavItem {
   label: string
@@ -35,10 +41,6 @@ interface NavSection {
   title: string
   items: NavItem[]
 }
-
-const topItems: NavItem[] = [
-  { label: "Notifications", href: "/notifications", icon: Bell, badge: 2 },
-]
 
 const navigation: NavSection[] = [
   {
@@ -76,16 +78,19 @@ export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const [isNotifOpen, setIsNotifOpen] = useState(false)
   const [userName, setUserName] = useState("")
   const [userEmail, setUserEmail] = useState("")
   const sidebarRef = useRef<HTMLElement>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
+  const notifRef = useRef<HTMLDivElement>(null)
   const widthBeforeCollapse = useRef(DEFAULT_WIDTH)
   const pathname = usePathname()
   const router = useRouter()
   const { activeWorkspace } = useWorkspace()
   const { canViewStaff } = usePermissions()
   const { settings: orgSettings } = useWorkspaceSettings()
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications()
 
   useEffect(() => {
     if (!isSupabaseConfigured()) return
@@ -108,6 +113,21 @@ export function Sidebar() {
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [isUserMenuOpen])
+
+  useEffect(() => {
+    if (!isNotifOpen) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node))
+        setIsNotifOpen(false)
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [isNotifOpen])
+
+  const handleMarkAllRead = () => {
+    markAllAsRead()
+    setIsNotifOpen(false)
+  }
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -190,7 +210,7 @@ export function Sidebar() {
             <>
               <span className="truncate">{item.label}</span>
               {item.badge != null && item.badge > 0 && (
-                <span className="ml-auto flex h-[22px] min-w-[22px] items-center justify-center rounded-md bg-blue-50 text-[12px] font-medium text-blue-500">
+                <span className="ml-auto flex h-[22px] min-w-[22px] items-center justify-center rounded-[4px] bg-blue-50 text-[12px] font-medium text-blue-500">
                   {item.badge}
                 </span>
               )}
@@ -250,9 +270,45 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-2" role="navigation" aria-label="Main navigation">
-        <ul className="space-y-px">
-          {topItems.map(renderNavLink)}
-        </ul>
+        <div className="relative" ref={notifRef}>
+          <button
+            onClick={() => setIsNotifOpen(!isNotifOpen)}
+            className={cn(
+              "flex w-full items-center gap-2 rounded px-2 py-[6px] text-[13px] font-medium transition-colors",
+              isNotifOpen
+                ? "bg-sidebar-active text-sidebar-text"
+                : "text-sidebar-text hover:bg-sidebar-hover",
+              isCollapsed && "justify-center px-0"
+            )}
+            aria-label="Notifications"
+            tabIndex={0}
+          >
+            <Bell className="h-[16px] w-[16px] shrink-0" strokeWidth={1.75} />
+            {!isCollapsed && (
+              <>
+                <span className="truncate">Notifications</span>
+                {unreadCount > 0 && (
+                  <span className="ml-auto flex h-[22px] min-w-[22px] items-center justify-center rounded-[4px] bg-blue-50 text-[12px] font-medium text-blue-500">
+                    {unreadCount}
+                  </span>
+                )}
+              </>
+            )}
+            {isCollapsed && unreadCount > 0 && (
+              <span className="absolute right-1.5 top-1 h-2 w-2 rounded-full bg-blue-500" />
+            )}
+          </button>
+
+          {isNotifOpen && (
+            <NotificationPanel
+              notifications={notifications}
+              onClose={() => setIsNotifOpen(false)}
+              onMarkAllRead={handleMarkAllRead}
+              onMarkRead={markAsRead}
+              sidebarWidth={width}
+            />
+          )}
+        </div>
 
         {navigation.map((section) => {
           const items = section.items.filter((item) => {
@@ -344,5 +400,127 @@ export function Sidebar() {
         }}
       />
     </aside>
+  )
+}
+
+const notifIcon: Record<AppNotification["type"], React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
+  "overdue-task": AlertTriangle,
+  "task-completed": CheckCircle2,
+  "invoice-sent": FileCheck,
+  "invoice-paid": CheckCircle2,
+  "invoice-overdue": AlertTriangle,
+  "new-client": User,
+  "plan-expiring": Clock,
+}
+
+const notifColor: Record<AppNotification["type"], string> = {
+  "overdue-task": "text-red-500 bg-red-50",
+  "task-completed": "text-green-500 bg-green-50",
+  "invoice-sent": "text-blue-500 bg-blue-50",
+  "invoice-paid": "text-green-500 bg-green-50",
+  "invoice-overdue": "text-orange-500 bg-orange-50",
+  "new-client": "text-violet-500 bg-violet-50",
+  "plan-expiring": "text-amber-500 bg-amber-50",
+}
+
+function formatNotifTime(date: Date): string {
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMin = Math.floor(diffMs / 60000)
+  if (diffMin < 1) return "Just now"
+  if (diffMin < 60) return `${diffMin}m ago`
+  const diffHrs = Math.floor(diffMin / 60)
+  if (diffHrs < 24) return `${diffHrs}h ago`
+  const diffDays = Math.floor(diffHrs / 24)
+  if (diffDays < 7) return `${diffDays}d ago`
+  return date.toLocaleDateString("en-AU", { day: "numeric", month: "short" })
+}
+
+function NotificationPanel({
+  notifications,
+  onClose,
+  onMarkAllRead,
+  onMarkRead,
+  sidebarWidth,
+}: {
+  notifications: AppNotification[]
+  onClose: () => void
+  onMarkAllRead: () => void
+  onMarkRead: (id: string) => void
+  sidebarWidth: number
+}) {
+  return (
+    <div
+      className="fixed top-0 z-50 flex h-screen flex-col rounded-r-xl border border-l-0 border-[#e5e5e5] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.08)]"
+      style={{ left: `${sidebarWidth}px`, width: "380px" }}
+    >
+      <div className="flex items-center justify-between border-b border-[#f0f0f0] px-5 py-4">
+        <h2 className="text-[15px] font-semibold text-[#262626]">Notifications</h2>
+        <button
+          onClick={onClose}
+          className="flex h-7 w-7 items-center justify-center rounded-[4px] text-[#999] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+          aria-label="Close notifications"
+          tabIndex={0}
+        >
+          <X className="h-4 w-4" strokeWidth={2} />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {notifications.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center px-6 py-16">
+            <Bell className="mb-3 h-10 w-10 text-[#ccc]" strokeWidth={1.25} />
+            <p className="text-[14px] text-[#999]">No new notifications.</p>
+            <p className="text-[13px] text-[#bbb]">Check back later.</p>
+          </div>
+        ) : (
+          <ul className="divide-y divide-[#f5f5f5]">
+            {notifications.map((n) => {
+              const Icon = notifIcon[n.type]
+              const colors = notifColor[n.type]
+              return (
+                <li
+                  key={n.id}
+                  className={cn(
+                    "flex gap-3 px-5 py-3.5 transition-colors hover:bg-[#fafafa]",
+                    !n.read && "bg-blue-50/30"
+                  )}
+                  onClick={() => onMarkRead(n.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter") onMarkRead(n.id) }}
+                >
+                  <div className={cn("mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full", colors)}>
+                    <Icon className="h-3.5 w-3.5" strokeWidth={2} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className={cn("text-[13px] leading-tight", n.read ? "text-[#666]" : "font-medium text-[#262626]")}>
+                        {n.title}
+                      </p>
+                      <span className="shrink-0 text-[11px] text-[#aaa]">{formatNotifTime(n.timestamp)}</span>
+                    </div>
+                    <p className="mt-0.5 text-[12px] leading-snug text-[#888]">{n.description}</p>
+                  </div>
+                  {!n.read && (
+                    <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-blue-500" />
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </div>
+
+      <div className="border-t border-[#f0f0f0] px-5 py-3">
+        <button
+          onClick={onMarkAllRead}
+          className="ml-auto block text-[13px] font-medium text-[#999] transition-colors hover:text-[#262626]"
+          tabIndex={0}
+        >
+          Mark all as read
+        </button>
+      </div>
+    </div>
   )
 }

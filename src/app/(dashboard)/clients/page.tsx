@@ -17,7 +17,6 @@ import {
   UserRound,
   ListFilter,
   Plus,
-  Download,
   SlidersHorizontal,
   ArrowUpRight,
   Users,
@@ -51,6 +50,7 @@ import {
   UserPlus,
   Info,
 } from "lucide-react"
+import { CsvDropdown } from "@/components/csv-dropdown"
 
 
 
@@ -247,6 +247,8 @@ function ClientProfile({
   const [isPersonalExpanded, setIsPersonalExpanded] = useState(false)
   const [isAssignOpen, setIsAssignOpen] = useState(false)
   const router = useRouter()
+  const { isFieldEnabled } = useFieldConfig()
+  const pf = isFieldEnabled
 
   const handleExpand = () => {
     router.push(`/clients/${client.id}`)
@@ -352,27 +354,27 @@ function ClientProfile({
         {/* Participant Details */}
         <div className="border-b border-[#f0f0f0] px-[20px] pb-[16px]">
           <SectionHeader title="Personal Information" />
-          <DetailRow icon={User} label="First Name">
+          {pf("p-first-name") && <DetailRow icon={User} label="First Name">
             <EditableField value={participantData.firstName} onChange={(v) => onUpdateField("firstName", v)} placeholder="First name" />
-          </DetailRow>
-          <DetailRow icon={User} label="Middle Name">
+          </DetailRow>}
+          {pf("p-middle-name") && <DetailRow icon={User} label="Middle Name">
             <EditableField value={participantData.middleName} onChange={(v) => onUpdateField("middleName", v)} placeholder="Middle name" />
-          </DetailRow>
-          <DetailRow icon={User} label="Last Name">
+          </DetailRow>}
+          {pf("p-last-name") && <DetailRow icon={User} label="Last Name">
             <EditableField value={participantData.lastName} onChange={(v) => onUpdateField("lastName", v)} placeholder="Last name" />
-          </DetailRow>
-          <DetailRow icon={Heart} label="Preferred Name">
+          </DetailRow>}
+          {pf("p-preferred-name") && <DetailRow icon={Heart} label="Preferred Name">
             <EditableField value={participantData.preferredName} onChange={(v) => onUpdateField("preferredName", v)} placeholder="Preferred name" />
-          </DetailRow>
-          <DetailRow icon={CalendarDays} label="Date of Birth">
+          </DetailRow>}
+          {pf("p-date-of-birth") && <DetailRow icon={CalendarDays} label="Date of Birth">
             <EditableField value={participantData.dateOfBirth} onChange={(v) => onUpdateField("dateOfBirth", v)} type="date" placeholder="Date of birth" />
-          </DetailRow>
-          <DetailRow icon={Stethoscope} label="Primary Diagnosis">
+          </DetailRow>}
+          {pf("p-primary-diagnosis") && <DetailRow icon={Stethoscope} label="Primary Diagnosis">
             <ContactChip value={participantData.primaryDiagnosis} onChange={(v) => onUpdateField("primaryDiagnosis", v)} placeholder="Add diagnosis" variant="white" enableCopy={false} />
-          </DetailRow>
-          <DetailRow icon={Stethoscope} label="Secondary Diagnosis">
+          </DetailRow>}
+          {pf("p-secondary-diagnosis") && <DetailRow icon={Stethoscope} label="Secondary Diagnosis">
             <ContactChip value={participantData.secondaryDiagnosis} onChange={(v) => onUpdateField("secondaryDiagnosis", v)} placeholder="Add diagnosis" variant="white" enableCopy={false} />
-          </DetailRow>
+          </DetailRow>}
 
           {!isPersonalExpanded && (
             <button
@@ -388,57 +390,57 @@ function ClientProfile({
 
           {isPersonalExpanded && (
             <>
-              <DetailRow icon={User} label="Gender">
+              {pf("p-gender") && <DetailRow icon={User} label="Gender">
                 <EditableField value={participantData.gender} onChange={(v) => onUpdateField("gender", v)} type="select" options={["Male", "Female", "Non-binary", "Other", "Prefer not to say"]} />
-              </DetailRow>
-              <DetailRow icon={MessageSquare} label="Pronouns">
+              </DetailRow>}
+              {pf("p-pronouns") && <DetailRow icon={MessageSquare} label="Pronouns">
                 <EditableField value={participantData.pronouns} onChange={(v) => onUpdateField("pronouns", v)} type="select" options={["He/Him", "She/Her", "They/Them", "Other"]} />
-              </DetailRow>
-              <DetailRow icon={Globe} label="Ethnicity">
+              </DetailRow>}
+              {pf("p-ethnicity") && <DetailRow icon={Globe} label="Ethnicity">
                 <EditableField value={participantData.ethnicity} onChange={(v) => onUpdateField("ethnicity", v)} placeholder="Ethnicity" />
-              </DetailRow>
-              <DetailRow icon={Languages} label="Language">
+              </DetailRow>}
+              {pf("p-language") && <DetailRow icon={Languages} label="Language">
                 <EditableField value={participantData.language} onChange={(v) => onUpdateField("language", v)} placeholder="Language" />
-              </DetailRow>
+              </DetailRow>}
 
               <SectionHeader title="Contact Information" />
-              <DetailRow icon={Mail} label="Email">
+              {pf("p-email") && <DetailRow icon={Mail} label="Email">
                 <ContactChip value={participantData.email} onChange={(v) => onUpdateField("email", v)} placeholder="Email address" />
-              </DetailRow>
-              <DetailRow icon={Smartphone} label="Mobile">
+              </DetailRow>}
+              {pf("p-mobile") && <DetailRow icon={Smartphone} label="Mobile">
                 <ContactChip value={participantData.mobile} onChange={(v) => onUpdateField("mobile", v)} placeholder="Mobile number" />
-              </DetailRow>
-              <DetailRow icon={Phone} label="Phone">
+              </DetailRow>}
+              {pf("p-phone") && <DetailRow icon={Phone} label="Phone">
                 <ContactChip value={participantData.phone} onChange={(v) => onUpdateField("phone", v)} placeholder="Phone number" />
-              </DetailRow>
-              <DetailRow icon={MessageSquare} label="Contact Method">
+              </DetailRow>}
+              {pf("p-contact-method") && <DetailRow icon={MessageSquare} label="Contact Method">
                 <EditableField value={participantData.preferredContactMethod} onChange={(v) => onUpdateField("preferredContactMethod", v)} type="select" options={["SMS", "Email", "Call (Mobile)", "Call (Phone)"]} />
-              </DetailRow>
-              <DetailRow icon={PenLine} label="Sign Documents">
+              </DetailRow>}
+              {pf("p-sign-method") && <DetailRow icon={PenLine} label="Sign Documents">
                 <EditableField value={participantData.preferredSignMethod} onChange={(v) => onUpdateField("preferredSignMethod", v)} type="select" options={["In Person", "Electronically"]} />
-              </DetailRow>
+              </DetailRow>}
 
               <SectionHeader title="Reference Numbers" />
-              <DetailRow icon={Hash} label="NDIS Number">
+              {pf("p-ndis-number") && <DetailRow icon={Hash} label="NDIS Number">
                 <ContactChip value={participantData.ndisNumber} onChange={(v) => onUpdateField("ndisNumber", v)} placeholder="NDIS number" variant="white" />
-              </DetailRow>
-              <DetailRow icon={Hash} label="Medicare Number">
+              </DetailRow>}
+              {pf("p-medicare-number") && <DetailRow icon={Hash} label="Medicare Number">
                 <ContactChip value={participantData.medicareNumber} onChange={(v) => onUpdateField("medicareNumber", v)} placeholder="Medicare number" variant="white" />
-              </DetailRow>
-              <DetailRow icon={Hash} label="Centrelink Number">
+              </DetailRow>}
+              {pf("p-centrelink-number") && <DetailRow icon={Hash} label="Centrelink Number">
                 <ContactChip value={participantData.centrelinkNumber} onChange={(v) => onUpdateField("centrelinkNumber", v)} placeholder="Centrelink number" variant="white" />
-              </DetailRow>
-              <DetailRow icon={Hash} label="External ID">
+              </DetailRow>}
+              {pf("p-external-id") && <DetailRow icon={Hash} label="External ID">
                 <ContactChip value={participantData.externalId} onChange={(v) => onUpdateField("externalId", v)} placeholder="External ID" variant="white" />
-              </DetailRow>
+              </DetailRow>}
 
               <SectionHeader title="Other Details" />
-              <DetailRow icon={CalendarDays} label="Service Start">
+              {pf("p-service-start") && <DetailRow icon={CalendarDays} label="Service Start">
                 <EditableField value={participantData.serviceCommencementDate} onChange={(v) => onUpdateField("serviceCommencementDate", v)} type="date" placeholder="Commencement date" />
-              </DetailRow>
-              <DetailRow icon={CalendarDays} label="Service Exit">
+              </DetailRow>}
+              {pf("p-service-exit") && <DetailRow icon={CalendarDays} label="Service Exit">
                 <EditableField value={participantData.serviceExitDate} onChange={(v) => onUpdateField("serviceExitDate", v)} type="date" placeholder="Exit date" />
-              </DetailRow>
+              </DetailRow>}
 
               <button
                 onClick={() => setIsPersonalExpanded(false)}
@@ -640,6 +642,107 @@ export default function ClientsPage() {
     setIsCreateClientOpen(false)
   }
 
+  const csvColumns = useMemo(() => [
+    { key: "firstName", label: "First Name" },
+    { key: "lastName", label: "Last Name" },
+    { key: "preferredName", label: "Preferred Name" },
+    { key: "dateOfBirth", label: "Date of Birth" },
+    { key: "gender", label: "Gender" },
+    { key: "pronouns", label: "Pronouns" },
+    { key: "email", label: "Email" },
+    { key: "mobile", label: "Mobile" },
+    { key: "phone", label: "Phone" },
+    { key: "ndisNumber", label: "NDIS Number" },
+    { key: "medicareNumber", label: "Medicare Number" },
+    { key: "centrelinkNumber", label: "Centrelink Number" },
+    { key: "externalId", label: "External ID" },
+    { key: "primaryDiagnosis", label: "Primary Diagnosis" },
+    { key: "secondaryDiagnosis", label: "Secondary Diagnosis" },
+    { key: "ethnicity", label: "Ethnicity" },
+    { key: "language", label: "Language" },
+    { key: "fundingType", label: "Funding Type" },
+    { key: "planManagerName", label: "Plan Manager Name" },
+    { key: "planManagerEmail", label: "Plan Manager Email" },
+    { key: "planManagerOrg", label: "Plan Manager Org" },
+    { key: "planStartDate", label: "Plan Start Date" },
+    { key: "planEndDate", label: "Plan End Date" },
+    { key: "serviceCommencementDate", label: "Service Start" },
+    { key: "serviceExitDate", label: "Service Exit" },
+  ], [])
+
+  const tableKeyToCsvKey: Record<string, string> = useMemo(() => ({
+    ndisNumber: "ndisNumber", diagnosis: "primaryDiagnosis",
+    email: "email", phone: "phone", mobile: "mobile",
+    dob: "dateOfBirth", gender: "gender", pronouns: "pronouns",
+    ethnicity: "ethnicity", language: "language", preferredName: "preferredName",
+    medicareNumber: "medicareNumber", centrelinkNumber: "centrelinkNumber",
+    externalId: "externalId", preferredContactMethod: "preferredContactMethod",
+    preferredSignMethod: "preferredSignMethod",
+    serviceCommencementDate: "serviceCommencementDate", serviceExitDate: "serviceExitDate",
+  }), [])
+
+  const exportCsvColumns = useMemo(() => {
+    const cols: { key: string; label: string }[] = [{ key: "name", label: "Name" }]
+    for (const vk of visibleColumnKeys) {
+      const tableDef = allPropertyColumns.find((c) => c.key === vk)
+      if (!tableDef) continue
+      const csvKey = tableKeyToCsvKey[vk] || vk
+      cols.push({ key: csvKey, label: tableDef.label })
+    }
+    return cols
+  }, [visibleColumnKeys, tableKeyToCsvKey])
+
+  const exportCsvData = useMemo(() =>
+    clients.map((c) => {
+      const p = c.participant
+      const row: Record<string, string> = { name: c.displayName }
+      for (const vk of visibleColumnKeys) {
+        const csvKey = tableKeyToCsvKey[vk] || vk
+        row[csvKey] = (p as unknown as Record<string, string>)[csvKey] || ""
+      }
+      return row
+    }),
+    [clients, visibleColumnKeys, tableKeyToCsvKey]
+  )
+
+  const handleCsvImport = useCallback(async (rows: Record<string, string>[]) => {
+    for (const row of rows) {
+      const firstName = row.firstName || ""
+      const lastName = row.lastName || ""
+      const name = [firstName, lastName].filter(Boolean).join(" ") || "Unnamed"
+      await addClient({
+        name,
+        iconText: name[0]?.toUpperCase() || "?",
+        participant: {
+          firstName, lastName,
+          preferredName: row.preferredName || "",
+          dateOfBirth: row.dateOfBirth || "",
+          gender: row.gender || "",
+          pronouns: row.pronouns || "",
+          email: row.email || "",
+          mobile: row.mobile || "",
+          phone: row.phone || "",
+          ndisNumber: row.ndisNumber || "",
+          medicareNumber: row.medicareNumber || "",
+          centrelinkNumber: row.centrelinkNumber || "",
+          externalId: row.externalId || "",
+          primaryDiagnosis: row.primaryDiagnosis || "",
+          secondaryDiagnosis: row.secondaryDiagnosis || "",
+          ethnicity: row.ethnicity || "",
+          language: row.language || "",
+          fundingType: (row.fundingType as ParticipantDetails["fundingType"]) || "",
+          planManagerName: row.planManagerName || "",
+          planManagerEmail: row.planManagerEmail || "",
+          planManagerOrg: row.planManagerOrg || "",
+          planStartDate: row.planStartDate || "",
+          planEndDate: row.planEndDate || "",
+          serviceCommencementDate: row.serviceCommencementDate || "",
+          serviceExitDate: row.serviceExitDate || "",
+        },
+      })
+    }
+  }, [addClient])
+
   const sortedClients = (() => {
     if (!sortKey) return clients
     return [...clients].sort((a, b) => {
@@ -691,7 +794,7 @@ export default function ClientsPage() {
             <div className="h-[16px] w-px bg-[#e5e5e5]" />
             <button
               onClick={handleSelectAllView}
-              className={`flex items-center gap-[6px] rounded-lg border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === null ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
+              className={`flex items-center gap-[6px] rounded-[4px] border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === null ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
               tabIndex={0}
             >
               <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -706,7 +809,7 @@ export default function ClientsPage() {
                   e.preventDefault()
                   setViewContextMenu({ viewId: view.id, x: e.clientX, y: e.clientY })
                 }}
-                className={`flex items-center gap-[6px] rounded-lg border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === view.id ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
+                className={`flex items-center gap-[6px] rounded-[4px] border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === view.id ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
                 tabIndex={0}
               >
                 <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -724,20 +827,20 @@ export default function ClientsPage() {
           </div>
           {canManageClients && (
             <div className="flex items-center gap-[8px]">
-              <button
-                className="flex items-center gap-[5px] rounded px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                tabIndex={0}
-              >
-                <Download className="h-[13px] w-[13px]" strokeWidth={1.5} />
-                <span className="hidden sm:inline">Import CSV</span>
-              </button>
+              <CsvDropdown
+                entityType="clients"
+                columns={csvColumns}
+                exportColumns={exportCsvColumns}
+                data={exportCsvData}
+                onImport={handleCsvImport}
+              />
               <button
                 onClick={() => setIsCreateClientOpen(true)}
-                className="flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                className="flex items-center gap-[5px] rounded-[4px] bg-blue-500 px-[8px] py-[4px] text-[13px] font-medium text-white transition-colors hover:bg-blue-600"
                 tabIndex={0}
               >
                 <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-                <span className="hidden sm:inline">Create client</span>
+                <span className="hidden sm:inline">Add new</span>
               </button>
             </div>
           )}
@@ -779,11 +882,11 @@ export default function ClientsPage() {
                       <span>Sorting</span>
                     </div>
                     <div className="flex items-center gap-[6px]">
-                      <button className="flex items-center gap-[6px] rounded-md border border-[#dcdcdc] px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
+                      <button className="flex items-center gap-[6px] rounded-[4px] border border-[#dcdcdc] px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
                         <span>Last interaction</span>
                         <ChevronDown className="h-[12px] w-[12px] text-[#888]" strokeWidth={1.5} />
                       </button>
-                      <button className="flex h-[32px] w-[32px] items-center justify-center rounded-md border border-[#dcdcdc] text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
+                      <button className="flex h-[32px] w-[32px] items-center justify-center rounded-[4px] border border-[#dcdcdc] text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
                         <ArrowDown className="h-[14px] w-[14px]" strokeWidth={1.75} />
                       </button>
                     </div>
@@ -798,7 +901,7 @@ export default function ClientsPage() {
                           <button
                             key={col.key}
                             onClick={() => handleToggleColumn(col.key)}
-                            className={`inline-flex items-center rounded-lg border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
+                            className={`inline-flex items-center rounded-[4px] border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
                             tabIndex={0}
                           >
                             {col.label}
@@ -1102,7 +1205,7 @@ export default function ClientsPage() {
               <button
                 onClick={handleCreateView}
                 disabled={!newViewName.trim()}
-                className={`rounded-lg border px-[16px] py-[6px] text-[13px] font-medium transition-colors ${newViewName.trim() ? "border-[#262626] bg-[#262626] text-white hover:bg-[#333]" : "border-[#dcdcdc] text-[#bbb]"}`}
+                className={`rounded-[4px] border px-[16px] py-[6px] text-[13px] font-medium transition-colors ${newViewName.trim() ? "border-[#262626] bg-[#262626] text-white hover:bg-[#333]" : "border-[#dcdcdc] text-[#bbb]"}`}
                 tabIndex={0}
               >
                 Create
@@ -1201,7 +1304,7 @@ export default function ClientsPage() {
               </button>
               <button
                 onClick={() => handleDeleteView(deleteViewConfirm.id)}
-                className="rounded-lg bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
+                className="rounded-[4px] bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
                 tabIndex={0}
               >
                 Delete

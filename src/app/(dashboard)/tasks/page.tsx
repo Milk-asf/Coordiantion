@@ -109,7 +109,7 @@ function getTodayStr(): string {
 
 export default function TasksPage() {
   const { tasks: allTasks, addTask, updateTask: updateTaskDb, deleteTask: deleteTaskDb } = useTasks()
-  const { clientNames } = useClients()
+  const { clients, clientNames } = useClients()
   const { enabledCharges, allCharges } = useCharges()
   const { staffNames } = useStaff()
   const { canAssignTasks, role } = usePermissions()
@@ -679,7 +679,7 @@ export default function TasksPage() {
           <div className="h-[16px] w-px bg-[#e5e5e5]" />
           <button
             onClick={handleSelectAllTaskView}
-            className={`flex items-center gap-[6px] rounded-lg border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeTaskViewId === null ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
+            className={`flex items-center gap-[6px] rounded-[4px] border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeTaskViewId === null ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
             tabIndex={0}
           >
             <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -694,7 +694,7 @@ export default function TasksPage() {
                 e.preventDefault()
                 setTaskViewContextMenu({ viewId: view.id, x: e.clientX, y: e.clientY })
               }}
-              className={`flex items-center gap-[6px] rounded-lg border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeTaskViewId === view.id ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
+              className={`flex items-center gap-[6px] rounded-[4px] border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeTaskViewId === view.id ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
               tabIndex={0}
             >
               <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -745,11 +745,11 @@ export default function TasksPage() {
               <button
                 ref={createBtnRef}
                 onClick={() => { if (isQuickAdding) { resetQuickAdd() } else { setIsQuickAdding(true); setQuickActiveField("title"); setTimeout(() => quickInputRef.current?.focus(), 0) } }}
-                className={`flex items-center gap-[5px] rounded border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${isQuickAdding ? "border-blue-400 bg-blue-50 text-blue-600" : "border-[#dcdcdc] bg-white text-[#262626] hover:bg-[#f5f5f5]"}`}
+                className={`flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors ${isQuickAdding ? "bg-blue-600 text-white" : "bg-blue-500 text-white hover:bg-blue-600"}`}
                 tabIndex={0}
               >
                 <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-                <span className="hidden sm:inline">Create task</span>
+                <span className="hidden sm:inline">Add new</span>
               </button>
 
           {isQuickAdding && (
@@ -784,6 +784,8 @@ export default function TasksPage() {
                         setIsQuickClientOpen(false)
                         setQuickClientIdx(-1)
                         setQuickClientSearch("")
+                        const matched = clients.find((c) => c.name === name || c.displayName === name)
+                        if (matched?.owner && !quickAssignee) setQuickAssignee(matched.owner)
                         setQuickActiveField("charge")
                         setTimeout(() => quickChargeInputRef.current?.focus(), 50)
                       }
@@ -977,7 +979,7 @@ export default function TasksPage() {
                   <span className="text-[11px] font-medium text-[#ccc]">Enter ↵ next · Esc close</span>
                   <div className="flex items-center gap-[6px]">
                     <button type="button" onClick={resetQuickAdd} className="rounded px-[8px] py-[4px] text-[12px] font-medium text-[#999] transition-colors hover:bg-[#f0f0f0]" tabIndex={0}>Cancel</button>
-                    <button type="button" onClick={handleQuickFinish} disabled={!quickTitle.trim()} className="rounded-md bg-blue-500 px-[12px] py-[4px] text-[12px] font-medium text-white transition-colors hover:bg-blue-600 disabled:opacity-40" tabIndex={0}>Create</button>
+                    <button type="button" onClick={handleQuickFinish} disabled={!quickTitle.trim()} className="rounded-[4px] bg-blue-500 px-[12px] py-[4px] text-[12px] font-medium text-white transition-colors hover:bg-blue-600 disabled:opacity-40" tabIndex={0}>Create</button>
                   </div>
                 </div>
               </div>
@@ -1101,7 +1103,7 @@ export default function TasksPage() {
               <SlidersHorizontal className="h-[13px] w-[13px]" strokeWidth={1.5} />
               <span className="hidden sm:inline">Display</span>
               {hasDisplayFilters && (
-                <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-blue-500 px-[4px] text-[10px] font-bold text-white">
+                <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded-[4px] bg-blue-500 px-[4px] text-[10px] font-bold text-white">
                   {displayParticipants.length + displayAssignees.length + displayCharges.length}
                 </span>
               )}
@@ -1149,7 +1151,7 @@ export default function TasksPage() {
                               <button
                                 key={name}
                                 onClick={() => toggleDisplayItem(displayParticipants, setDisplayParticipants, name)}
-                                className={`inline-flex items-center rounded-lg border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
+                                className={`inline-flex items-center rounded-[4px] border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
                                 tabIndex={0}
                               >
                                 {name}
@@ -1170,7 +1172,7 @@ export default function TasksPage() {
                               <button
                                 key={name}
                                 onClick={() => toggleDisplayItem(displayAssignees, setDisplayAssignees, name)}
-                                className={`inline-flex items-center rounded-lg border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
+                                className={`inline-flex items-center rounded-[4px] border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
                                 tabIndex={0}
                               >
                                 {name}
@@ -1191,7 +1193,7 @@ export default function TasksPage() {
                               <button
                                 key={val}
                                 onClick={() => toggleDisplayItem(displayCharges, setDisplayCharges, val)}
-                                className={`inline-flex items-center rounded-lg border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
+                                className={`inline-flex items-center rounded-[4px] border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
                                 tabIndex={0}
                               >
                                 {chargeLabel(val)}
@@ -1633,6 +1635,13 @@ export default function TasksPage() {
                               e.preventDefault()
                               const val = detailClientIdx === 0 ? "" : clientNames[detailClientIdx - 1] ?? ""
                               handleUpdateTask("client", val)
+                              if (val) {
+                                const matched = clients.find((c) => c.name === val || c.displayName === val)
+                                if (matched?.owner && selectedTaskId) {
+                                  const task = tasks.find((t) => t.id === selectedTaskId)
+                                  if (task && !task.assignee) handleUpdateTask("assignee", matched.owner)
+                                }
+                              }
                               setActiveDropdown(null)
                               setDetailClientIdx(-1)
                             }
@@ -1775,7 +1784,7 @@ export default function TasksPage() {
                         tabIndex={0}
                       >
                         {selectedTask.chargeType ? (
-                          <span className="truncate rounded-md bg-[#f0f0f0] px-[8px] py-[3px] text-[12px] font-semibold text-[#555]">
+                          <span className="truncate rounded-[4px] bg-[#f0f0f0] px-[8px] py-[3px] text-[12px] font-semibold text-[#555]">
                             {chargeLabel(selectedTask.chargeType)}
                           </span>
                         ) : (
@@ -1797,7 +1806,7 @@ export default function TasksPage() {
                         tabIndex={0}
                       >
                         {selectedTask.secondaryChargeType ? (
-                          <span className="truncate rounded-md bg-[#f0f0f0] px-[8px] py-[3px] text-[12px] font-semibold text-[#555]">
+                          <span className="truncate rounded-[4px] bg-[#f0f0f0] px-[8px] py-[3px] text-[12px] font-semibold text-[#555]">
                             {secondaryChargeLabel(selectedTask.secondaryChargeType)}
                           </span>
                         ) : (
@@ -1858,7 +1867,15 @@ export default function TasksPage() {
                   return (
                     <div
                       key={name}
-                      onClick={() => { handleUpdateTask("client", name); setActiveDropdown(null); setDetailClientIdx(-1) }}
+                      onClick={() => {
+                        handleUpdateTask("client", name)
+                        const matched = clients.find((c) => c.name === name || c.displayName === name)
+                        if (matched?.owner && selectedTaskId) {
+                          const task = tasks.find((t) => t.id === selectedTaskId)
+                          if (task && !task.assignee) handleUpdateTask("assignee", matched.owner)
+                        }
+                        setActiveDropdown(null); setDetailClientIdx(-1)
+                      }}
                       className={`flex w-full cursor-pointer items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${isHighlighted ? "bg-blue-50" : ""}`}
                       role="option"
                       aria-selected={isHighlighted}
@@ -1960,7 +1977,7 @@ export default function TasksPage() {
             <div className="relative">
               <button
                 onMouseDown={(e) => { e.preventDefault(); setIsTextSizeOpen(!isTextSizeOpen) }}
-                className={`flex h-[28px] items-center gap-[3px] rounded-md px-[6px] transition-colors ${isTextSizeOpen || currentBlock === "h1" || currentBlock === "h2" || currentBlock === "h3" ? "bg-[#e8e8e8] text-[#262626]" : "text-[#666] hover:bg-[#f0f0f0] hover:text-[#262626]"}`}
+                className={`flex h-[28px] items-center gap-[3px] rounded-[4px] px-[6px] transition-colors ${isTextSizeOpen || currentBlock === "h1" || currentBlock === "h2" || currentBlock === "h3" ? "bg-[#e8e8e8] text-[#262626]" : "text-[#666] hover:bg-[#f0f0f0] hover:text-[#262626]"}`}
                 tabIndex={0}
                 aria-label="Text size"
                 title="Text size"
@@ -1998,7 +2015,7 @@ export default function TasksPage() {
               <button
                 key={cmd}
                 onMouseDown={(e) => { e.preventDefault(); handleDescFormat(cmd) }}
-                className={`flex h-[28px] w-[28px] items-center justify-center rounded-md transition-colors ${descFormats[cmd] ? "bg-[#e8e8e8] text-[#262626]" : "text-[#666] hover:bg-[#f0f0f0] hover:text-[#262626]"}`}
+                className={`flex h-[28px] w-[28px] items-center justify-center rounded-[4px] transition-colors ${descFormats[cmd] ? "bg-[#e8e8e8] text-[#262626]" : "text-[#666] hover:bg-[#f0f0f0] hover:text-[#262626]"}`}
                 tabIndex={0}
                 aria-label={label}
                 title={label}
@@ -2009,7 +2026,7 @@ export default function TasksPage() {
             <div className="mx-[2px] h-[16px] w-px bg-[#e8e8e8]" />
             <button
               onMouseDown={(e) => { e.preventDefault(); handleDescFormat("insertUnorderedList") }}
-              className={`flex h-[28px] w-[28px] items-center justify-center rounded-md transition-colors ${descFormats.insertUnorderedList ? "bg-[#e8e8e8] text-[#262626]" : "text-[#666] hover:bg-[#f0f0f0] hover:text-[#262626]"}`}
+              className={`flex h-[28px] w-[28px] items-center justify-center rounded-[4px] transition-colors ${descFormats.insertUnorderedList ? "bg-[#e8e8e8] text-[#262626]" : "text-[#666] hover:bg-[#f0f0f0] hover:text-[#262626]"}`}
               tabIndex={0}
               aria-label="Bullet list"
               title="Bullet list"
@@ -2059,7 +2076,7 @@ export default function TasksPage() {
               <button
                 onClick={handleCreateTaskView}
                 disabled={!newTaskViewName.trim()}
-                className={`rounded-lg border px-[16px] py-[6px] text-[13px] font-medium transition-colors ${newTaskViewName.trim() ? "border-[#262626] bg-[#262626] text-white hover:bg-[#333]" : "border-[#dcdcdc] text-[#bbb]"}`}
+                className={`rounded-[4px] border px-[16px] py-[6px] text-[13px] font-medium transition-colors ${newTaskViewName.trim() ? "border-[#262626] bg-[#262626] text-white hover:bg-[#333]" : "border-[#dcdcdc] text-[#bbb]"}`}
                 tabIndex={0}
               >
                 Create
@@ -2110,7 +2127,7 @@ export default function TasksPage() {
               </button>
               <button
                 onClick={() => handleDeleteTaskView(deleteTaskViewConfirm.id)}
-                className="rounded-lg bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
+                className="rounded-[4px] bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
                 tabIndex={0}
               >
                 Delete

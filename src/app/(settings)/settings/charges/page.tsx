@@ -177,7 +177,7 @@ export default function ChargesSettingsPage() {
 
       <button
         onClick={() => setIsAdding(true)}
-        className="mb-[20px] flex items-center gap-[6px] rounded-lg border border-[#dcdcdc] px-[12px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+        className="mb-[20px] flex items-center gap-[6px] rounded-[4px] border border-[#dcdcdc] px-[12px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
         tabIndex={0}
       >
         <Plus className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -194,7 +194,7 @@ export default function ChargesSettingsPage() {
               <h2 className="text-[15px] font-semibold text-[#262626]">Add charge item</h2>
               <button
                 onClick={handleCancel}
-                className="flex h-[28px] w-[28px] items-center justify-center rounded-md text-[#999] transition-colors hover:bg-[#f0f0f0] hover:text-[#262626]"
+                className="flex h-[28px] w-[28px] items-center justify-center rounded-[4px] text-[#999] transition-colors hover:bg-[#f0f0f0] hover:text-[#262626]"
                 tabIndex={0}
                 aria-label="Close"
               >
@@ -363,7 +363,7 @@ export default function ChargesSettingsPage() {
             <div className="flex items-center justify-end gap-[8px] border-t border-[#f0f0f0] px-[24px] py-[14px]">
               <button
                 onClick={handleCancel}
-                className="rounded-lg px-[14px] py-[7px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+                className="rounded-[4px] px-[14px] py-[7px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
                 tabIndex={0}
               >
                 Cancel
@@ -371,7 +371,7 @@ export default function ChargesSettingsPage() {
               <button
                 onClick={handleAdd}
                 disabled={!form.name.trim() || !form.itemNumber.trim()}
-                className="rounded-lg bg-[#262626] px-[14px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-[#333] disabled:opacity-30"
+                className="rounded-[4px] bg-[#262626] px-[14px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-[#333] disabled:opacity-30"
                 tabIndex={0}
               >
                 Add
@@ -421,7 +421,7 @@ export default function ChargesSettingsPage() {
                   <td className="py-[12px]">
                     <button
                       onClick={() => handleRemove(item)}
-                      className="flex h-[26px] w-[26px] items-center justify-center rounded-md text-[#ddd] opacity-0 transition-all group-hover:opacity-100 hover:bg-red-50 hover:text-red-400"
+                      className="flex h-[26px] w-[26px] items-center justify-center rounded-[4px] text-[#ddd] opacity-0 transition-all group-hover:opacity-100 hover:bg-red-50 hover:text-red-400"
                       tabIndex={0}
                       aria-label={`Remove ${item.reference || item.name}`}
                     >

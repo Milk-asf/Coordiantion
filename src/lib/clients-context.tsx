@@ -23,6 +23,7 @@ interface ClientRow {
   assigned_to: string | null
   summary: string | null
   about: string | null
+  status: string | null
 }
 
 interface ClientRowUpdate {
@@ -39,6 +40,7 @@ interface ClientRowUpdate {
   revenue?: string
   headcount?: string
   website?: string
+  status?: "active" | "archived"
 }
 
 function deriveDisplayName(participant: ParticipantDetails, fallbackName: string): string {
@@ -79,6 +81,7 @@ function dbToClient(row: ClientRow): Client {
     assignedTo: row.assigned_to || null,
     summary: row.summary || "",
     about: row.about || "",
+    status: (row.status === "archived" ? "archived" : "active") as "active" | "archived",
   }
 }
 
@@ -211,6 +214,7 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
     if (updates.revenue !== undefined) dbUpdates.revenue = updates.revenue
     if (updates.headcount !== undefined) dbUpdates.headcount = updates.headcount
     if (updates.website !== undefined) dbUpdates.website = updates.website
+    if (updates.status !== undefined) dbUpdates.status = updates.status
 
     if (Object.keys(dbUpdates).length === 0) return
 

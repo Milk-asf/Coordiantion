@@ -9,6 +9,7 @@ import {
   Bell,
   Building2,
   Users,
+  UserRound,
   BookOpen,
   Database,
   Upload,
@@ -44,6 +45,7 @@ const settingsNav: SettingsNavSection[] = [
       { label: "General", href: "/settings/general", icon: Building2, requiredPermission: "canManageWorkspaceSettings" },
       { label: "Members", href: "/settings/members", icon: Users, requiredPermission: "canManageMembers" },
       { label: "Knowledge", href: "/settings/knowledge", icon: BookOpen, requiredPermission: "canManageWorkspaceSettings" },
+      { label: "Participants", href: "/settings/participants", icon: UserRound, requiredPermission: "canManageWorkspaceSettings" },
       { label: "Data model", href: "/settings/data-model", icon: Database, requiredPermission: "canManageWorkspaceSettings" },
       { label: "Charges", href: "/settings/charges", icon: Tag, requiredPermission: "canManageWorkspaceSettings" },
       { label: "Import history", href: "/settings/import-history", icon: Upload, requiredPermission: "canManageWorkspaceSettings" },
@@ -125,7 +127,7 @@ export default function SettingsLayout({
       <div className="flex-1 overflow-y-auto pt-[28px]">
         <div className={cn(
           "mx-auto w-full pb-[80px]",
-          pathname === "/settings/data-model" || pathname === "/settings/charges" ? "max-w-[800px]" : "max-w-[560px]"
+          pathname === "/settings/data-model" || pathname === "/settings/charges" || pathname === "/settings/participants" ? "max-w-[800px]" : "max-w-[560px]"
         )}>
           {children}
         </div>

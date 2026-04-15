@@ -710,7 +710,7 @@ export default function InvoicingPage() {
         )}
         {isColumnVisible("participant") && (
           <div className="min-w-0 whitespace-nowrap py-[12px]">
-            <span className="inline-flex max-w-full items-center rounded-[8px] border border-[#e2e2e2] bg-[#f7f7f7] px-[10px] py-[4px] text-[12px] font-medium text-[#262626] whitespace-nowrap">
+            <span className="inline-flex max-w-full items-center rounded-[4px] border border-[#e2e2e2] bg-[#f7f7f7] px-[10px] py-[4px] text-[12px] font-medium text-[#262626] whitespace-nowrap">
               <span className="truncate">{participantName}</span>
             </span>
           </div>
@@ -773,7 +773,7 @@ export default function InvoicingPage() {
           <button
             type="button"
             onClick={selectDefaultView}
-            className={`flex items-center gap-[6px] rounded-lg border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === null ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
+            className={`flex items-center gap-[6px] rounded-[4px] border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === null ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
             tabIndex={0}
           >
             <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -781,7 +781,7 @@ export default function InvoicingPage() {
           </button>
           <Link
             href="/invoices"
-            className="flex items-center gap-[6px] rounded-lg border border-transparent px-[8px] py-[4px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+            className="flex items-center gap-[6px] rounded-[4px] border border-transparent px-[8px] py-[4px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
           >
             <Receipt className="h-[14px] w-[14px]" strokeWidth={1.75} />
             <span>Invoices</span>
@@ -796,7 +796,7 @@ export default function InvoicingPage() {
                 event.preventDefault()
                 setViewContextMenu({ viewId: view.id, x: event.clientX, y: event.clientY })
               }}
-              className={`flex items-center gap-[6px] rounded-lg border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === view.id ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
+              className={`flex items-center gap-[6px] rounded-[4px] border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === view.id ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
               tabIndex={0}
             >
               <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -844,7 +844,7 @@ export default function InvoicingPage() {
               setIsSendInvoicesOpen(true)
             }}
             disabled={selectedTaskCount === 0}
-            className={`flex items-center gap-[6px] rounded-lg px-[10px] py-[6px] text-[13px] font-medium transition-colors ${
+            className={`flex items-center gap-[6px] rounded-[4px] px-[10px] py-[6px] text-[13px] font-medium transition-colors ${
               selectedTaskCount > 0
                 ? "bg-blue-500 text-white hover:bg-blue-600"
                 : "cursor-not-allowed bg-[#efefef] text-[#b8b8b8]"
@@ -853,7 +853,7 @@ export default function InvoicingPage() {
           >
             <Receipt className="h-[13px] w-[13px]" strokeWidth={1.5} />
             <span>Create invoices</span>
-            <span className={`rounded-full px-[6px] py-[1px] text-[11px] font-semibold ${
+            <span className={`rounded-[4px] px-[6px] py-[1px] text-[11px] font-semibold ${
               selectedTaskCount > 0 ? "bg-white/15 text-white" : "bg-[#f5f5f5] text-[#b8b8b8]"
             }`}>
               {selectedTaskCount}
@@ -1001,7 +1001,7 @@ export default function InvoicingPage() {
           <SlidersHorizontal className="h-[13px] w-[13px]" strokeWidth={1.5} />
           <span className="hidden sm:inline">Display</span>
           {hasDisplayFilters && (
-            <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-blue-500 px-[4px] text-[10px] font-bold text-white">
+            <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded-[4px] bg-blue-500 px-[4px] text-[10px] font-bold text-white">
               {displayParticipants.length + displayAssignees.length + displayCharges.length}
             </span>
           )}
@@ -1497,7 +1497,7 @@ export default function InvoicingPage() {
                 <button
                   type="button"
                   onClick={() => setIsCreateViewOpen(false)}
-                  className="rounded-lg border border-[#dcdcdc] px-[12px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                  className="rounded-[4px] border border-[#dcdcdc] px-[12px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
                 >
                   Cancel
                 </button>
@@ -1505,7 +1505,7 @@ export default function InvoicingPage() {
                   type="button"
                   onClick={handleCreateView}
                   disabled={!newViewName.trim()}
-                  className="rounded-lg bg-[#262626] px-[12px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded-[4px] bg-[#262626] px-[12px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Save view
                 </button>
@@ -1544,7 +1544,7 @@ export default function InvoicingPage() {
                     <button
                       type="button"
                       onClick={handleCloseSendInvoicesModal}
-                      className="rounded-lg bg-[#262626] px-[12px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-black"
+                      className="rounded-[4px] bg-[#262626] px-[12px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-black"
                     >
                       Close
                     </button>
@@ -1563,7 +1563,7 @@ export default function InvoicingPage() {
                       type="button"
                       onClick={handleCloseSendInvoicesModal}
                       disabled={isSendingInvoices}
-                      className="rounded-lg border border-[#dcdcdc] px-[12px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-[4px] border border-[#dcdcdc] px-[12px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Cancel
                     </button>
@@ -1571,7 +1571,7 @@ export default function InvoicingPage() {
                       type="button"
                       onClick={handleSendInvoices}
                       disabled={isSendingInvoices || selectedTaskCount === 0}
-                      className="rounded-lg bg-blue-500 px-[12px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="rounded-[4px] bg-blue-500 px-[12px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       {isSendingInvoices ? "Sending..." : "Confirm"}
                     </button>
@@ -1660,7 +1660,7 @@ function DisplaySection({
               key={item}
               type="button"
               onClick={() => onToggle(item)}
-              className={`inline-flex items-center rounded-lg border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
+              className={`inline-flex items-center rounded-[4px] border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
               tabIndex={0}
             >
               {formatLabel ? formatLabel(item) : item}

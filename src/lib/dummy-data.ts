@@ -60,6 +60,7 @@ export const dummyClients: Client[] = [
     assignedTo: null,
     summary: "Active participant with support coordination and therapy services.",
     about: "Sarah is a 30-year-old participant who lives independently in a supported apartment. She requires assistance with daily living, physiotherapy, and community access.",
+    status: "active",
   },
   {
     id: clientIds.james,
@@ -109,6 +110,7 @@ export const dummyClients: Client[] = [
     assignedTo: null,
     summary: "Long-term participant with SIL and community participation.",
     about: "James lives in a Supported Independent Living arrangement with two other housemates. He works part-time at a local cafe with support and enjoys art classes on weekends.",
+    status: "active",
   },
   {
     id: clientIds.mei,
@@ -158,6 +160,7 @@ export const dummyClients: Client[] = [
     assignedTo: null,
     summary: "Young participant transitioning from school to adult services.",
     about: "Mei recently finished school and is exploring supported employment and further education options. She needs an interpreter for complex discussions with her family.",
+    status: "active",
   },
   {
     id: clientIds.liam,
@@ -207,6 +210,7 @@ export const dummyClients: Client[] = [
     assignedTo: null,
     summary: "Complex needs participant with high-intensity support.",
     about: "Liam sustained an ABI in a car accident 12 years ago. He requires 24/7 support and uses a wheelchair. His plan includes SIL, therapy, and assistive technology.",
+    status: "active",
   },
   {
     id: clientIds.priya,
@@ -256,6 +260,7 @@ export const dummyClients: Client[] = [
     assignedTo: null,
     summary: "Participant focused on supported employment and social skills.",
     about: "Priya is passionate about cooking and dreams of working in a commercial kitchen. She attends social skills groups twice a week and has a supported employment placement.",
+    status: "active",
   },
   {
     id: clientIds.ben,
@@ -305,6 +310,7 @@ export const dummyClients: Client[] = [
     assignedTo: null,
     summary: "Child participant with early intervention and therapy services.",
     about: "Ben is a school-aged participant who receives OT, speech therapy, and behavioural support. His parents are actively involved in his therapy program.",
+    status: "active",
   },
   {
     id: clientIds.olivia,
@@ -354,6 +360,7 @@ export const dummyClients: Client[] = [
     assignedTo: null,
     summary: "New participant adjusting to progressive condition management.",
     about: "Olivia was recently diagnosed with MS and is in the early stages of building her support team. She works from home as a graphic designer and needs assistance with fatigue management and home modifications.",
+    status: "active",
   },
   {
     id: clientIds.daniel,
@@ -403,6 +410,7 @@ export const dummyClients: Client[] = [
     assignedTo: null,
     summary: "Long-term participant with assistive technology and home mod needs.",
     about: "Daniel is a wheelchair user with a T6 spinal cord injury. He is very active in adaptive sports and advocates for accessibility in his local community. His plan includes SIL, AT, and vehicle modifications.",
+    status: "active",
   },
 ]
 

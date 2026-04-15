@@ -170,7 +170,7 @@ export default function DataModelSettingsPage() {
       <div className="mb-[16px]">
         <button
           onClick={() => setIsCreateOpen(true)}
-          className="flex items-center gap-[6px] rounded-[6px] border border-sidebar-border px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+          className="flex items-center gap-[6px] rounded-[4px] border border-sidebar-border px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
           tabIndex={0}
         >
           <Plus className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -331,7 +331,7 @@ export default function DataModelSettingsPage() {
                   onClick={handleCreate}
                   disabled={!newName.trim()}
                   className={cn(
-                    "rounded-[6px] px-[16px] py-[7px] text-[13px] font-medium transition-colors",
+                    "rounded-[4px] px-[16px] py-[7px] text-[13px] font-medium transition-colors",
                     newName.trim()
                       ? "bg-[#262626] text-white hover:bg-[#3d3d3d]"
                       : "cursor-not-allowed bg-[#e8e8e8] text-[#bbb]"
@@ -471,7 +471,7 @@ export default function DataModelSettingsPage() {
                   {!editingField.isSystem && (
                     <button
                       onClick={() => { handleToggleEnabled(editingField.id); setEditingField(null) }}
-                      className="flex items-center gap-[6px] rounded-[6px] border border-sidebar-border px-[12px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                      className="flex items-center gap-[6px] rounded-[4px] border border-sidebar-border px-[12px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
                       tabIndex={0}
                     >
                       {editingField.isEnabled ? (
@@ -490,7 +490,7 @@ export default function DataModelSettingsPage() {
                   {!editingField.isSystem && (
                     <button
                       onClick={() => { handleDelete(editingField.id); setEditingField(null) }}
-                      className="flex items-center gap-[6px] rounded-[6px] border border-red-200 px-[12px] py-[7px] text-[13px] font-medium text-red-500 transition-colors hover:bg-red-50"
+                      className="flex items-center gap-[6px] rounded-[4px] border border-red-200 px-[12px] py-[7px] text-[13px] font-medium text-red-500 transition-colors hover:bg-red-50"
                       tabIndex={0}
                     >
                       <Trash2 className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -504,7 +504,7 @@ export default function DataModelSettingsPage() {
                     onClick={handleSaveEdit}
                     disabled={!editName.trim()}
                     className={cn(
-                      "rounded-[6px] px-[16px] py-[7px] text-[13px] font-medium transition-colors",
+                      "rounded-[4px] px-[16px] py-[7px] text-[13px] font-medium transition-colors",
                       editName.trim()
                         ? "bg-[#262626] text-white hover:bg-[#3d3d3d]"
                         : "cursor-not-allowed bg-[#e8e8e8] text-[#bbb]"
@@ -516,7 +516,7 @@ export default function DataModelSettingsPage() {
                 ) : (
                   <button
                     onClick={handleCloseEdit}
-                    className="rounded-[6px] border border-sidebar-border px-[16px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                    className="rounded-[4px] border border-sidebar-border px-[16px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
                     tabIndex={0}
                   >
                     Close

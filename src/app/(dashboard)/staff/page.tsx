@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useStaff } from "@/lib/hooks/use-staff"
+import { useClients } from "@/lib/hooks/use-clients"
 import { useFieldConfig } from "@/lib/hooks/use-field-config"
 import { useSavedViews } from "@/lib/hooks/use-saved-views"
 import { usePermissions } from "@/lib/hooks/use-permissions"
@@ -40,8 +41,10 @@ import {
   Shield,
   MessageSquare,
 } from "lucide-react"
+import { CsvDropdown } from "@/components/csv-dropdown"
 
 const allPropertyColumns = [
+  { key: "clients", label: "Clients", icon: Users, minWidth: 220 },
   { key: "email", label: "Email", icon: Mail, minWidth: 220 },
   { key: "phone", label: "Phone", icon: Phone, minWidth: 160 },
   { key: "mobile", label: "Mobile", icon: Smartphone, minWidth: 160 },
@@ -61,9 +64,11 @@ const allPropertyColumns = [
   { key: "emergencyContactPhone", label: "Emergency Phone", icon: Phone, minWidth: 160 },
 ]
 
-const defaultVisibleKeys = ["email", "role", "department", "employmentType", "phone", "status"]
+const defaultVisibleKeys = ["clients", "email", "role", "department", "employmentType", "phone", "status"]
 
 function StaffProfile({ member, onUpdateField, onClose }: { member: StaffMember; onUpdateField: (field: keyof StaffDetails, value: string) => void; onClose: () => void }) {
+  const { isFieldEnabled } = useFieldConfig()
+  const sf = isFieldEnabled
   const [isPersonalExpanded, setIsPersonalExpanded] = useState(false)
   const router = useRouter()
   const d = member.details
@@ -98,32 +103,32 @@ function StaffProfile({ member, onUpdateField, onClose }: { member: StaffMember;
 
           <div className="border-b border-[#f0f0f0] px-[20px] pb-[16px]">
             <SectionHeader title="Work Information" />
-            <DetailRow icon={Briefcase} label="Role">
+            {sf("s-role") && <DetailRow icon={Briefcase} label="Role">
               <EditableField value={d.role} onChange={(v) => onUpdateField("role", v)} placeholder="Job title" />
-            </DetailRow>
-            <DetailRow icon={Building2} label="Department">
+            </DetailRow>}
+            {sf("s-department") && <DetailRow icon={Building2} label="Department">
               <EditableField value={d.department} onChange={(v) => onUpdateField("department", v)} placeholder="Department" />
-            </DetailRow>
-            <DetailRow icon={Clock} label="Employment Type">
+            </DetailRow>}
+            {sf("s-employment-type") && <DetailRow icon={Clock} label="Employment Type">
               <EditableField value={d.employmentType} onChange={(v) => onUpdateField("employmentType", v)} type="select" options={["Full-time", "Part-time", "Casual", "Contract"]} />
-            </DetailRow>
-            <DetailRow icon={CalendarDays} label="Start Date">
+            </DetailRow>}
+            {sf("s-start-date") && <DetailRow icon={CalendarDays} label="Start Date">
               <EditableField value={d.startDate} onChange={(v) => onUpdateField("startDate", v)} type="date" placeholder="Start date" />
-            </DetailRow>
-            <DetailRow icon={CalendarDays} label="End Date">
+            </DetailRow>}
+            {sf("s-end-date") && <DetailRow icon={CalendarDays} label="End Date">
               <EditableField value={d.endDate} onChange={(v) => onUpdateField("endDate", v)} type="date" placeholder="End date" />
-            </DetailRow>
+            </DetailRow>}
 
             <SectionHeader title="Contact Information" />
-            <DetailRow icon={Mail} label="Email">
+            {sf("s-email") && <DetailRow icon={Mail} label="Email">
               <ContactChip value={d.email} onChange={(v) => onUpdateField("email", v)} placeholder="Email address" />
-            </DetailRow>
-            <DetailRow icon={Smartphone} label="Mobile">
+            </DetailRow>}
+            {sf("s-mobile") && <DetailRow icon={Smartphone} label="Mobile">
               <ContactChip value={d.mobile} onChange={(v) => onUpdateField("mobile", v)} placeholder="Mobile number" />
-            </DetailRow>
-            <DetailRow icon={Phone} label="Phone">
+            </DetailRow>}
+            {sf("s-phone") && <DetailRow icon={Phone} label="Phone">
               <ContactChip value={d.phone} onChange={(v) => onUpdateField("phone", v)} placeholder="Phone number" />
-            </DetailRow>
+            </DetailRow>}
 
             {!isPersonalExpanded && (
               <button onClick={() => setIsPersonalExpanded(true)} className="mt-[8px] flex items-center gap-[4px] text-[13px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
@@ -135,40 +140,40 @@ function StaffProfile({ member, onUpdateField, onClose }: { member: StaffMember;
             {isPersonalExpanded && (
               <>
                 <SectionHeader title="Personal Information" />
-                <DetailRow icon={User} label="First Name">
+                {sf("s-first-name") && <DetailRow icon={User} label="First Name">
                   <EditableField value={d.firstName} onChange={(v) => onUpdateField("firstName", v)} placeholder="First name" />
-                </DetailRow>
-                <DetailRow icon={User} label="Last Name">
+                </DetailRow>}
+                {sf("s-last-name") && <DetailRow icon={User} label="Last Name">
                   <EditableField value={d.lastName} onChange={(v) => onUpdateField("lastName", v)} placeholder="Last name" />
-                </DetailRow>
-                <DetailRow icon={Heart} label="Preferred Name">
+                </DetailRow>}
+                {sf("s-preferred-name") && <DetailRow icon={Heart} label="Preferred Name">
                   <EditableField value={d.preferredName} onChange={(v) => onUpdateField("preferredName", v)} placeholder="Preferred name" />
-                </DetailRow>
-                <DetailRow icon={CalendarDays} label="Date of Birth">
+                </DetailRow>}
+                {sf("s-date-of-birth") && <DetailRow icon={CalendarDays} label="Date of Birth">
                   <EditableField value={d.dateOfBirth} onChange={(v) => onUpdateField("dateOfBirth", v)} type="date" placeholder="Date of birth" />
-                </DetailRow>
-                <DetailRow icon={User} label="Gender">
+                </DetailRow>}
+                {sf("s-gender") && <DetailRow icon={User} label="Gender">
                   <EditableField value={d.gender} onChange={(v) => onUpdateField("gender", v)} type="select" options={["Male", "Female", "Non-binary", "Other", "Prefer not to say"]} />
-                </DetailRow>
-                <DetailRow icon={MessageSquare} label="Pronouns">
+                </DetailRow>}
+                {sf("s-pronouns") && <DetailRow icon={MessageSquare} label="Pronouns">
                   <EditableField value={d.pronouns} onChange={(v) => onUpdateField("pronouns", v)} type="select" options={["He/Him", "She/Her", "They/Them", "Other"]} />
-                </DetailRow>
+                </DetailRow>}
 
                 <SectionHeader title="Qualifications" />
-                <DetailRow icon={Award} label="Qualifications">
+                {sf("s-qualifications") && <DetailRow icon={Award} label="Qualifications">
                   <EditableField value={d.qualifications} onChange={(v) => onUpdateField("qualifications", v)} placeholder="Qualifications" />
-                </DetailRow>
-                <DetailRow icon={Award} label="Certifications">
+                </DetailRow>}
+                {sf("s-certifications") && <DetailRow icon={Award} label="Certifications">
                   <EditableField value={d.certifications} onChange={(v) => onUpdateField("certifications", v)} placeholder="Certifications" />
-                </DetailRow>
+                </DetailRow>}
 
                 <SectionHeader title="Emergency Contact" />
-                <DetailRow icon={Users} label="Contact Name">
+                {sf("s-emergency-contact") && <DetailRow icon={Users} label="Contact Name">
                   <EditableField value={d.emergencyContactName} onChange={(v) => onUpdateField("emergencyContactName", v)} placeholder="Emergency contact name" />
-                </DetailRow>
-                <DetailRow icon={Phone} label="Contact Phone">
+                </DetailRow>}
+                {sf("s-emergency-phone") && <DetailRow icon={Phone} label="Contact Phone">
                   <ContactChip value={d.emergencyContactPhone} onChange={(v) => onUpdateField("emergencyContactPhone", v)} placeholder="Emergency phone" />
-                </DetailRow>
+                </DetailRow>}
 
                 <button onClick={() => setIsPersonalExpanded(false)} className="mt-[8px] flex items-center gap-[4px] text-[13px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
                   <ChevronDown className="h-[12px] w-[12px] rotate-180" strokeWidth={1.5} />
@@ -193,7 +198,8 @@ interface SavedView {
 
 export default function StaffPage() {
   const router = useRouter()
-  const { staff, updateStaff } = useStaff()
+  const { staff, addStaff, updateStaff } = useStaff()
+  const { clients } = useClients()
   const { staffDisabled } = useFieldConfig()
   const { canManageStaff } = usePermissions()
 
@@ -299,9 +305,93 @@ export default function StaffPage() {
     updateStaff(memberId, { details: { ...member.details, [field]: value } })
   }, [staff, updateStaff])
 
+  const csvColumns = useMemo(() => [
+    { key: "firstName", label: "First Name" },
+    { key: "lastName", label: "Last Name" },
+    { key: "preferredName", label: "Preferred Name" },
+    { key: "email", label: "Email" },
+    { key: "mobile", label: "Mobile" },
+    { key: "phone", label: "Phone" },
+    { key: "role", label: "Role" },
+    { key: "department", label: "Department" },
+    { key: "employmentType", label: "Employment Type" },
+    { key: "startDate", label: "Start Date" },
+    { key: "qualifications", label: "Qualifications" },
+    { key: "certifications", label: "Certifications" },
+    { key: "dateOfBirth", label: "Date of Birth" },
+    { key: "gender", label: "Gender" },
+    { key: "pronouns", label: "Pronouns" },
+    { key: "emergencyContactName", label: "Emergency Contact" },
+    { key: "emergencyContactPhone", label: "Emergency Phone" },
+  ], [])
+
+  const staffTableKeyMap: Record<string, string> = useMemo(() => ({
+    dob: "dateOfBirth", status: "_status",
+  }), [])
+
+  const exportCsvColumns = useMemo(() => {
+    const cols: { key: string; label: string }[] = [{ key: "name", label: "Name" }]
+    for (const vk of visibleColumnKeys) {
+      const tableDef = allPropertyColumns.find((c) => c.key === vk)
+      if (!tableDef) continue
+      const csvKey = staffTableKeyMap[vk] || vk
+      cols.push({ key: csvKey, label: tableDef.label })
+    }
+    return cols
+  }, [visibleColumnKeys, staffTableKeyMap])
+
+  const exportCsvData = useMemo(() =>
+    staff.map((s) => {
+      const row: Record<string, string> = { name: s.name }
+      for (const vk of visibleColumnKeys) {
+        const csvKey = staffTableKeyMap[vk] || vk
+        if (csvKey === "_status") { row[csvKey] = s.status; continue }
+        row[csvKey] = (s.details as unknown as Record<string, string>)[csvKey] || ""
+      }
+      return row
+    }),
+    [staff, visibleColumnKeys, staffTableKeyMap]
+  )
+
+  const handleCsvImport = useCallback(async (rows: Record<string, string>[]) => {
+    for (const row of rows) {
+      const firstName = row.firstName || ""
+      const lastName = row.lastName || ""
+      const name = [firstName, lastName].filter(Boolean).join(" ") || "Unnamed"
+      await addStaff({
+        name,
+        iconText: name[0]?.toUpperCase() || "?",
+        details: {
+          firstName, lastName,
+          preferredName: row.preferredName || "",
+          email: row.email || "",
+          mobile: row.mobile || "",
+          phone: row.phone || "",
+          role: row.role || "",
+          department: row.department || "",
+          employmentType: row.employmentType || "",
+          startDate: row.startDate || "",
+          qualifications: row.qualifications || "",
+          certifications: row.certifications || "",
+          dateOfBirth: row.dateOfBirth || "",
+          gender: row.gender || "",
+          pronouns: row.pronouns || "",
+          emergencyContactName: row.emergencyContactName || "",
+          emergencyContactPhone: row.emergencyContactPhone || "",
+        },
+      })
+    }
+  }, [addStaff])
+
   const sortedStaff = (() => {
     if (!sortKey) return staff
     return [...staff].sort((a, b) => {
+      if (sortKey === "clients") {
+        const countA = clients.filter((c) => c.owner === a.name).length
+        const countB = clients.filter((c) => c.owner === b.name).length
+        const cmp = countA - countB
+        return sortDirection === "asc" ? cmp : -cmp
+      }
       let valA = "", valB = ""
       switch (sortKey) {
         case "name": valA = a.name; valB = b.name; break
@@ -335,7 +425,7 @@ export default function StaffPage() {
           <div className="flex items-center gap-[8px]">
             <span className="text-[13px] font-medium text-[#262626]">Staff</span>
             <div className="h-[16px] w-px bg-[#e5e5e5]" />
-            <button onClick={handleSelectAllView} className={`flex items-center gap-[6px] rounded-lg border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === null ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`} tabIndex={0}>
+            <button onClick={handleSelectAllView} className={`flex items-center gap-[6px] rounded-[4px] border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === null ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`} tabIndex={0}>
               <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
               <span>All</span>
             </button>
@@ -345,7 +435,7 @@ export default function StaffPage() {
                 key={view.id}
                 onClick={() => handleSelectView(view)}
                 onContextMenu={(e) => { e.preventDefault(); setViewContextMenu({ viewId: view.id, x: e.clientX, y: e.clientY }) }}
-                className={`flex items-center gap-[6px] rounded-lg border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === view.id ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
+                className={`flex items-center gap-[6px] rounded-[4px] border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === view.id ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
                 tabIndex={0}
               >
                 <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -357,10 +447,19 @@ export default function StaffPage() {
             </button>
           </div>
           {canManageStaff && (
-            <button onClick={() => router.push("/settings/members")} className="flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
-              <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-              <span className="hidden sm:inline">Add staff</span>
-            </button>
+            <div className="flex items-center gap-[8px]">
+              <CsvDropdown
+                entityType="staff"
+                columns={csvColumns}
+                exportColumns={exportCsvColumns}
+                data={exportCsvData}
+                onImport={handleCsvImport}
+              />
+              <button onClick={() => router.push("/settings/members")} className="flex items-center gap-[5px] rounded-[4px] bg-blue-500 px-[8px] py-[4px] text-[13px] font-medium text-white transition-colors hover:bg-blue-600" tabIndex={0}>
+                <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+                <span className="hidden sm:inline">Add new</span>
+              </button>
+            </div>
           )}
         </div>
 
@@ -390,7 +489,7 @@ export default function StaffPage() {
                       {availablePropertyColumns.map((col) => {
                         const isActive = visibleColumnKeys.includes(col.key)
                         return (
-                          <button key={col.key} onClick={() => handleToggleColumn(col.key)} className={`inline-flex items-center rounded-lg border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`} tabIndex={0}>
+                          <button key={col.key} onClick={() => handleToggleColumn(col.key)} className={`inline-flex items-center rounded-[4px] border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`} tabIndex={0}>
                             {col.label}
                           </button>
                         )
@@ -468,10 +567,27 @@ export default function StaffPage() {
                 const dash = <span className="text-[#bbb]">—</span>
                 const whiteChip = "inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] bg-transparent px-[8px] text-[12px] font-medium text-[#262626]"
 
+                const memberClients = clients.filter((c) => c.owner === member.name)
+
                 const renderCell = (key: string, isLast: boolean) => {
                   const cls = isLast ? `h-[44px] overflow-hidden whitespace-nowrap border-b px-[20px] ${rowBg} ${rowHover}` : cellClass
                   const tCls = `${cls} text-[13px] font-medium text-[#262626]`
                   switch (key) {
+                    case "clients": {
+                      const chipCls = isLast ? `min-h-[44px] border-b px-[20px] py-[8px] align-middle ${rowBg} ${rowHover}` : `min-h-[44px] border-b border-r border-[#dcdcdc] px-[20px] py-[8px] align-middle ${rowBg} ${rowHover}`
+                      if (memberClients.length === 0) return <td key={key} className={`${chipCls} text-[13px]`}>{dash}</td>
+                      return (
+                        <td key={key} className={chipCls}>
+                          <div className="flex flex-wrap gap-[4px]">
+                            {memberClients.map((c) => (
+                              <span key={c.id} className="inline-flex h-[24px] items-center whitespace-nowrap rounded-[4px] border border-[#dcdcdc] bg-transparent px-[8px] text-[11px] font-medium text-[#262626]">
+                                {c.displayName}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                      )
+                    }
                     case "email": return <td key={key} className={tCls}>{d.email || dash}</td>
                     case "phone": return <td key={key} className={tCls}>{d.phone || dash}</td>
                     case "mobile": return <td key={key} className={tCls}>{d.mobile || dash}</td>
@@ -541,7 +657,7 @@ export default function StaffPage() {
             </div>
             <div className="mt-[20px] flex items-center justify-end gap-[12px]">
               <button onClick={() => { setIsCreateViewOpen(false); setNewViewName("") }} className="px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:text-[#888]" tabIndex={0}>Cancel</button>
-              <button onClick={handleCreateView} disabled={!newViewName.trim()} className={`rounded-lg border px-[16px] py-[6px] text-[13px] font-medium transition-colors ${newViewName.trim() ? "border-[#262626] bg-[#262626] text-white hover:bg-[#333]" : "border-[#dcdcdc] text-[#bbb]"}`} tabIndex={0}>Create</button>
+              <button onClick={handleCreateView} disabled={!newViewName.trim()} className={`rounded-[4px] border px-[16px] py-[6px] text-[13px] font-medium transition-colors ${newViewName.trim() ? "border-[#262626] bg-[#262626] text-white hover:bg-[#333]" : "border-[#dcdcdc] text-[#bbb]"}`} tabIndex={0}>Create</button>
             </div>
           </div>
         </>
@@ -588,7 +704,7 @@ export default function StaffPage() {
               </button>
               <button
                 onClick={() => handleDeleteView(deleteViewConfirm.id)}
-                className="rounded-lg bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
+                className="rounded-[4px] bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
                 tabIndex={0}
               >
                 Delete

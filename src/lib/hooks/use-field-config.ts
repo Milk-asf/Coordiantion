@@ -59,5 +59,11 @@ export function useFieldConfig() {
   const contactDisabled = useMemo(() => getDisabledColumnKeys("contacts"), [getDisabledColumnKeys])
   const staffDisabled = useMemo(() => getDisabledColumnKeys("staff"), [getDisabledColumnKeys])
 
-  return { fields, participantDisabled, contactDisabled, staffDisabled }
+  const isFieldEnabled = useCallback((fieldId: string): boolean => {
+    const field = fields.find((f) => f.id === fieldId)
+    if (!field) return true
+    return field.isEnabled
+  }, [fields])
+
+  return { fields, participantDisabled, contactDisabled, staffDisabled, isFieldEnabled }
 }
