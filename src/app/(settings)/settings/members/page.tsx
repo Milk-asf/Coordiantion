@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 import { MoreHorizontal, ChevronDown } from "lucide-react"
 import { useMembers } from "@/lib/hooks/use-members"
 import { usePermissions } from "@/lib/hooks/use-permissions"
+import { useStaff } from "@/lib/hooks/use-staff"
 import type { WorkspaceMember } from "@/lib/types"
 
 type Role = WorkspaceMember["role"]
@@ -22,6 +23,7 @@ const allRoles: Role[] = ["super-admin", "admin", "coordinator"]
 export default function MembersSettingsPage() {
   const { members, updateMemberRole, updateMemberStatus, removeMember } = useMembers()
   const { canManageMembers, isSuperAdmin } = usePermissions()
+  const { staff, updateStaff } = useStaff()
   const [memberMenuId, setMemberMenuId] = useState<string | null>(null)
   const [roleChangeId, setRoleChangeId] = useState<string | null>(null)
 
@@ -38,6 +40,14 @@ export default function MembersSettingsPage() {
   const handleToggleStatus = (member: WorkspaceMember) => {
     const newStatus = member.status === "deactivated" ? "active" : "deactivated"
     updateMemberStatus(member.id, newStatus)
+
+    const matchedStaff = staff.find((s) => {
+      const memberEmail = member.email || member.invited_email || ""
+      return (memberEmail && s.invitedEmail === memberEmail) || s.name === (member.name || "")
+    })
+    if (matchedStaff) {
+      updateStaff(matchedStaff.id, { status: newStatus === "deactivated" ? "inactive" : "active" })
+    }
   }
 
   if (!canManageMembers) return (

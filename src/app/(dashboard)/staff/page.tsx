@@ -341,7 +341,7 @@ export default function StaffPage() {
   }, [visibleColumnKeys, staffTableKeyMap])
 
   const exportCsvData = useMemo(() =>
-    staff.map((s) => {
+    activeStaff.map((s) => {
       const row: Record<string, string> = { name: s.name }
       for (const vk of visibleColumnKeys) {
         const csvKey = staffTableKeyMap[vk] || vk
@@ -350,7 +350,7 @@ export default function StaffPage() {
       }
       return row
     }),
-    [staff, visibleColumnKeys, staffTableKeyMap]
+    [activeStaff, visibleColumnKeys, staffTableKeyMap]
   )
 
   const handleCsvImport = useCallback(async (rows: Record<string, string>[]) => {
@@ -383,9 +383,11 @@ export default function StaffPage() {
     }
   }, [addStaff])
 
+  const activeStaff = staff.filter((s) => s.status !== "inactive")
+
   const sortedStaff = (() => {
-    if (!sortKey) return staff
-    return [...staff].sort((a, b) => {
+    if (!sortKey) return activeStaff
+    return [...activeStaff].sort((a, b) => {
       if (sortKey === "clients") {
         const countA = clients.filter((c) => c.owner === a.name).length
         const countB = clients.filter((c) => c.owner === b.name).length
@@ -633,7 +635,7 @@ export default function StaffPage() {
         </div>
 
         <div className="shrink-0 border-t border-[#dcdcdc] px-[20px] py-[10px]">
-          <span className="text-[12px] font-medium text-[#999]">{staff.length} staff</span>
+          <span className="text-[12px] font-medium text-[#999]">{activeStaff.length} staff</span>
         </div>
       </div>
 

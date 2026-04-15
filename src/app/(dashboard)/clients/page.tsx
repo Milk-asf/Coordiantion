@@ -693,7 +693,7 @@ export default function ClientsPage() {
   }, [visibleColumnKeys, tableKeyToCsvKey])
 
   const exportCsvData = useMemo(() =>
-    clients.map((c) => {
+    activeClients.map((c) => {
       const p = c.participant
       const row: Record<string, string> = { name: c.displayName }
       for (const vk of visibleColumnKeys) {
@@ -702,7 +702,7 @@ export default function ClientsPage() {
       }
       return row
     }),
-    [clients, visibleColumnKeys, tableKeyToCsvKey]
+    [activeClients, visibleColumnKeys, tableKeyToCsvKey]
   )
 
   const handleCsvImport = useCallback(async (rows: Record<string, string>[]) => {
@@ -743,9 +743,11 @@ export default function ClientsPage() {
     }
   }, [addClient])
 
+  const activeClients = clients.filter((c) => c.status !== "archived")
+
   const sortedClients = (() => {
-    if (!sortKey) return clients
-    return [...clients].sort((a, b) => {
+    if (!sortKey) return activeClients
+    return [...activeClients].sort((a, b) => {
       const pA = getParticipantData(a)
       const pB = getParticipantData(b)
       let valA = ""
@@ -1149,7 +1151,7 @@ export default function ClientsPage() {
 
         <div className="shrink-0 border-t border-[#dcdcdc] px-[20px] py-[10px]">
           <span className="text-[12px] font-medium text-[#999]">
-            {clients.length} clients
+            {activeClients.length} clients
           </span>
         </div>
       </div>

@@ -40,7 +40,6 @@ interface ClientRowUpdate {
   revenue?: string
   headcount?: string
   website?: string
-  status?: "active" | "archived"
 }
 
 function deriveDisplayName(participant: ParticipantDetails, fallbackName: string): string {
@@ -130,7 +129,14 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
       if (error || !data) {
         setClients([])
       } else {
-        setClients(data.map(dbToClient))
+        const savedStatuses = (() => {
+          try { return JSON.parse(localStorage.getItem("client-statuses") || "{}") } catch { return {} }
+        })() as Record<string, string>
+        setClients(data.map((row) => {
+          const c = dbToClient(row)
+          if (savedStatuses[c.id] === "archived") c.status = "archived"
+          return c
+        }))
       }
     } catch {
       setClients([])
@@ -196,6 +202,15 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
   const updateClient = useCallback(async (id: string, updates: Partial<Client>) => {
     setClients((prev) => prev.map((c) => c.id === id ? { ...c, ...updates } : c))
 
+    if (updates.status !== undefined) {
+      try {
+        const saved = JSON.parse(localStorage.getItem("client-statuses") || "{}")
+        if (updates.status === "active") delete saved[id]
+        else saved[id] = updates.status
+        localStorage.setItem("client-statuses", JSON.stringify(saved))
+      } catch { /* ignore */ }
+    }
+
     if (!isSupabaseConfigured()) return
     const supabase = createClient()
     if (!supabase) return
@@ -214,7 +229,6 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
     if (updates.revenue !== undefined) dbUpdates.revenue = updates.revenue
     if (updates.headcount !== undefined) dbUpdates.headcount = updates.headcount
     if (updates.website !== undefined) dbUpdates.website = updates.website
-    if (updates.status !== undefined) dbUpdates.status = updates.status
 
     if (Object.keys(dbUpdates).length === 0) return
 
