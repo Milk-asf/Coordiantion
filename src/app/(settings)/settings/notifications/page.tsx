@@ -194,7 +194,7 @@ export default function NotificationsSettingsPage() {
       <div className="mb-[32px]">
         <h1 className="text-[20px] font-bold text-[#262626]">Notifications</h1>
         <p className="mt-[4px] text-[14px] text-[#888]">
-          Choose which notifications you want to receive. Turn off anything you don't need.
+          Choose which notifications you want to receive. Turn off anything you don&apos;t need.
         </p>
       </div>
 
@@ -206,7 +206,7 @@ export default function NotificationsSettingsPage() {
           </div>
           <div>
             <p className="text-[14px] font-semibold text-[#262626]">{enabledCount} of {totalCount} notifications enabled</p>
-            <p className="text-[13px] text-[#888]">Disabled notifications won't appear in your inbox or be sent via email.</p>
+            <p className="text-[13px] text-[#888]">Disabled notifications won&apos;t appear in your inbox or be sent via email.</p>
           </div>
         </div>
       </div>

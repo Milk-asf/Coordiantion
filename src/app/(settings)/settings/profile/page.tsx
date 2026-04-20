@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
-import { Eye, EyeOff, User, Mail, Globe, Clock } from "lucide-react"
+import { Eye, EyeOff, Mail, Globe, Clock } from "lucide-react"
 
 const languageOptions = [
   "English (US)",
