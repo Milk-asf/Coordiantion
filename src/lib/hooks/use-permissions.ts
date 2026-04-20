@@ -72,7 +72,7 @@ export function usePermissions(): Permissions {
 
   useEffect(() => {
     if (!isSupabaseConfigured()) {
-      setPermissions(derivePermissions("super-admin", null, "izakjosef@gmail.com"))
+      setPermissions({ ...noPermissions, isLoading: false })
       return
     }
 
@@ -82,7 +82,7 @@ export function usePermissions(): Permissions {
     }
 
     const supabase = createClient()
-    if (!supabase) { setPermissions(derivePermissions("super-admin")); return }
+    if (!supabase) { setPermissions({ ...noPermissions, isLoading: false }); return }
 
     let cancelled = false
 
@@ -90,7 +90,7 @@ export function usePermissions(): Permissions {
       try {
         const { data: { user } } = await supabase.auth.getUser()
         if (cancelled) return
-        if (!user) { setPermissions(derivePermissions("super-admin")); return }
+        if (!user) { setPermissions({ ...noPermissions, isLoading: false }); return }
 
         const { data, error } = await supabase
           .from("workspace_members")
@@ -102,12 +102,12 @@ export function usePermissions(): Permissions {
         if (cancelled) return
 
         if (error || !data?.role) {
-          setPermissions(derivePermissions("super-admin", user.id, user.email || null))
+          setPermissions({ ...noPermissions, isLoading: false, userId: user.id, userEmail: user.email || null })
         } else {
           setPermissions(derivePermissions(data.role as Role, user.id, user.email || null))
         }
       } catch {
-        if (!cancelled) setPermissions(derivePermissions("super-admin"))
+        if (!cancelled) setPermissions({ ...noPermissions, isLoading: false })
       }
     }
 

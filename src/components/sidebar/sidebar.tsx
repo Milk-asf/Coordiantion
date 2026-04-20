@@ -6,7 +6,7 @@ import Link from "next/link"
 import {
   Bell,
   SquareCheck,
-  Calendar,
+
   Copy,
   Handshake,
   User,
@@ -47,7 +47,6 @@ const navigation: NavSection[] = [
     title: "Workspace",
     items: [
       { label: "Tasks", href: "/tasks", icon: SquareCheck },
-      { label: "Calendar", href: "/calendar", icon: Calendar },
       { label: "Documents", href: "/documents", icon: FileText },
     ],
   },
@@ -210,7 +209,10 @@ export function Sidebar() {
             <>
               <span className="truncate">{item.label}</span>
               {item.badge != null && item.badge > 0 && (
-                <span className="ml-auto flex h-[22px] min-w-[22px] items-center justify-center rounded-[4px] bg-blue-50 text-[12px] font-medium text-blue-500">
+                <span
+                  className="ml-auto flex h-[22px] min-w-[22px] items-center justify-center rounded-[4px] text-[12px] font-medium"
+                  style={{ backgroundColor: "var(--primary-color-light)", color: "var(--primary-color-text)" }}
+                >
                   {item.badge}
                 </span>
               )}
@@ -239,15 +241,15 @@ export function Sidebar() {
               <img
                 src={orgSettings.logoUrl}
                 alt=""
-                className="h-5 w-5 shrink-0 rounded object-contain"
+                className="h-7 w-7 shrink-0 rounded-[6px] object-contain"
               />
             ) : (
-              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-600 text-[8px] font-medium text-white">
-                {activeWorkspace?.name?.[0]?.toUpperCase() || "W"}
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[6px] bg-green-600 text-[10px] font-semibold text-white">
+                {(orgSettings.orgName || activeWorkspace?.name)?.[0]?.toUpperCase() || "W"}
               </div>
             )}
-            <span className="truncate text-[13px] font-medium text-sidebar-text">
-              {activeWorkspace?.name || "Workspace"}
+            <span className="truncate text-[15px] font-semibold text-sidebar-text">
+              {orgSettings.orgName || activeWorkspace?.name || "Workspace"}
             </span>
           </div>
         )}
@@ -288,14 +290,17 @@ export function Sidebar() {
               <>
                 <span className="truncate">Notifications</span>
                 {unreadCount > 0 && (
-                  <span className="ml-auto flex h-[22px] min-w-[22px] items-center justify-center rounded-[4px] bg-blue-50 text-[12px] font-medium text-blue-500">
+                  <span
+                    className="ml-auto flex h-[22px] min-w-[22px] items-center justify-center rounded-[4px] text-[12px] font-medium"
+                    style={{ backgroundColor: "var(--primary-color-light)", color: "var(--primary-color-text)" }}
+                  >
                     {unreadCount}
                   </span>
                 )}
               </>
             )}
             {isCollapsed && unreadCount > 0 && (
-              <span className="absolute right-1.5 top-1 h-2 w-2 rounded-full bg-blue-500" />
+              <span className="absolute right-1.5 top-1 h-2 w-2 rounded-full" style={{ backgroundColor: "var(--primary-color)" }} />
             )}
           </button>
 
@@ -305,7 +310,6 @@ export function Sidebar() {
               onClose={() => setIsNotifOpen(false)}
               onMarkAllRead={handleMarkAllRead}
               onMarkRead={markAsRead}
-              sidebarWidth={width}
             />
           )}
         </div>
@@ -441,37 +445,33 @@ function NotificationPanel({
   onClose,
   onMarkAllRead,
   onMarkRead,
-  sidebarWidth,
 }: {
   notifications: AppNotification[]
   onClose: () => void
   onMarkAllRead: () => void
   onMarkRead: (id: string) => void
-  sidebarWidth: number
 }) {
   return (
     <div
-      className="fixed top-0 z-50 flex h-screen flex-col rounded-r-xl border border-l-0 border-[#e5e5e5] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.08)]"
-      style={{ left: `${sidebarWidth}px`, width: "380px" }}
+      className="absolute left-full top-0 z-50 ml-2 flex max-h-[420px] w-[320px] flex-col overflow-hidden rounded-xl border border-[#e5e5e5] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.08)]"
     >
-      <div className="flex items-center justify-between border-b border-[#f0f0f0] px-5 py-4">
-        <h2 className="text-[15px] font-semibold text-[#262626]">Notifications</h2>
+      <div className="flex items-center justify-between border-b border-[#f0f0f0] px-4 py-3">
+        <h2 className="text-[14px] font-semibold text-[#262626]">Notifications</h2>
         <button
           onClick={onClose}
-          className="flex h-7 w-7 items-center justify-center rounded-[4px] text-[#999] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+          className="flex h-6 w-6 items-center justify-center rounded-[4px] text-[#999] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
           aria-label="Close notifications"
           tabIndex={0}
         >
-          <X className="h-4 w-4" strokeWidth={2} />
+          <X className="h-3.5 w-3.5" strokeWidth={2} />
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto">
         {notifications.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center px-6 py-16">
-            <Bell className="mb-3 h-10 w-10 text-[#ccc]" strokeWidth={1.25} />
-            <p className="text-[14px] text-[#999]">No new notifications.</p>
-            <p className="text-[13px] text-[#bbb]">Check back later.</p>
+          <div className="flex flex-col items-center justify-center px-6 py-12">
+            <p className="text-[13px] text-[#999]">No new notifications.</p>
+            <p className="mt-1 text-[12px] text-[#bbb]">Check back later.</p>
           </div>
         ) : (
           <ul className="divide-y divide-[#f5f5f5]">
@@ -482,7 +482,7 @@ function NotificationPanel({
                 <li
                   key={n.id}
                   className={cn(
-                    "flex gap-3 px-5 py-3.5 transition-colors hover:bg-[#fafafa]",
+                    "flex gap-2.5 px-4 py-3 transition-colors hover:bg-[#fafafa]",
                     !n.read && "bg-blue-50/30"
                   )}
                   onClick={() => onMarkRead(n.id)}
@@ -490,20 +490,20 @@ function NotificationPanel({
                   tabIndex={0}
                   onKeyDown={(e) => { if (e.key === "Enter") onMarkRead(n.id) }}
                 >
-                  <div className={cn("mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full", colors)}>
-                    <Icon className="h-3.5 w-3.5" strokeWidth={2} />
+                  <div className={cn("mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full", colors)}>
+                    <Icon className="h-3 w-3" strokeWidth={2} />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
-                      <p className={cn("text-[13px] leading-tight", n.read ? "text-[#666]" : "font-medium text-[#262626]")}>
+                      <p className={cn("text-[12px] leading-tight", n.read ? "text-[#666]" : "font-medium text-[#262626]")}>
                         {n.title}
                       </p>
-                      <span className="shrink-0 text-[11px] text-[#aaa]">{formatNotifTime(n.timestamp)}</span>
+                      <span className="shrink-0 text-[10px] text-[#aaa]">{formatNotifTime(n.timestamp)}</span>
                     </div>
-                    <p className="mt-0.5 text-[12px] leading-snug text-[#888]">{n.description}</p>
+                    <p className="mt-0.5 text-[11px] leading-snug text-[#888]">{n.description}</p>
                   </div>
                   {!n.read && (
-                    <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-blue-500" />
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: "var(--primary-color)" }} />
                   )}
                 </li>
               )
@@ -512,10 +512,10 @@ function NotificationPanel({
         )}
       </div>
 
-      <div className="border-t border-[#f0f0f0] px-5 py-3">
+      <div className="border-t border-[#f0f0f0] px-4 py-2.5">
         <button
           onClick={onMarkAllRead}
-          className="ml-auto block text-[13px] font-medium text-[#999] transition-colors hover:text-[#262626]"
+          className="ml-auto block text-[12px] font-medium text-[#999] transition-colors hover:text-[#262626]"
           tabIndex={0}
         >
           Mark all as read

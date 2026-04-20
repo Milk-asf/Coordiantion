@@ -10,7 +10,7 @@ import {
   Building2,
   Users,
   UserRound,
-  BookOpen,
+
   Database,
   Upload,
   CreditCard,
@@ -23,7 +23,7 @@ interface SettingsNavItem {
   label: string
   href: string
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
-  requiredPermission?: "canManageWorkspaceSettings" | "canManageMembers" | "canAccessBilling"
+  requiredPermission?: "isSuperAdmin" | "canManageWorkspaceSettings" | "canManageMembers" | "canAccessBilling"
 }
 
 interface SettingsNavSection {
@@ -42,9 +42,9 @@ const settingsNav: SettingsNavSection[] = [
   {
     title: "Organisation",
     items: [
-      { label: "General", href: "/settings/general", icon: Building2, requiredPermission: "canManageWorkspaceSettings" },
+      { label: "General", href: "/settings/general", icon: Building2, requiredPermission: "isSuperAdmin" },
       { label: "Members", href: "/settings/members", icon: Users, requiredPermission: "canManageMembers" },
-      { label: "Knowledge", href: "/settings/knowledge", icon: BookOpen, requiredPermission: "canManageWorkspaceSettings" },
+
       { label: "Participants", href: "/settings/participants", icon: UserRound, requiredPermission: "canManageWorkspaceSettings" },
       { label: "Data model", href: "/settings/data-model", icon: Database, requiredPermission: "canManageWorkspaceSettings" },
       { label: "Charges", href: "/settings/charges", icon: Tag, requiredPermission: "canManageWorkspaceSettings" },
@@ -124,10 +124,10 @@ export default function SettingsLayout({
         </nav>
       </aside>
 
-      <div className="flex-1 overflow-y-auto pt-[28px]">
+      <div className="flex-1 overflow-y-auto bg-white px-[40px] pt-[32px]">
         <div className={cn(
           "mx-auto w-full pb-[80px]",
-          pathname === "/settings/data-model" || pathname === "/settings/charges" || pathname === "/settings/participants" ? "max-w-[800px]" : "max-w-[560px]"
+          pathname === "/settings/data-model" || pathname === "/settings/charges" || pathname === "/settings/participants" || pathname === "/settings/members" ? "max-w-[720px]" : "max-w-[560px]"
         )}>
           {children}
         </div>

@@ -139,22 +139,22 @@ export default function DataModelSettingsPage() {
 
   return (
     <>
-      <div className="mb-[28px]">
-        <h1 className="text-[22px] font-semibold text-[#1a1a1a]">Data model</h1>
-        <p className="mt-[4px] text-[14px] text-sidebar-muted">
+      <div className="mb-[32px]">
+        <h1 className="text-[20px] font-bold text-[#262626]">Data model</h1>
+        <p className="mt-[4px] text-[14px] text-[#888]">
           Manage field definitions for your account.
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="mb-[20px] flex items-center gap-[4px] border-b border-sidebar-border">
+      <div className="mb-[20px] flex items-center gap-[4px] border-b border-[#e5e5e5]">
         {entityTabs.map((tab) => (
           <button
             key={tab}
             onClick={() => { setActiveTab(tab); setMenuFieldId(null) }}
             className={cn(
               "relative px-[14px] py-[10px] text-[13px] font-medium transition-colors",
-              activeTab === tab ? "text-[#262626]" : "text-[#888] hover:text-[#262626]"
+              activeTab === tab ? "text-[#262626]" : "text-[#999] hover:text-[#262626]"
             )}
             tabIndex={0}
           >
@@ -170,7 +170,7 @@ export default function DataModelSettingsPage() {
       <div className="mb-[16px]">
         <button
           onClick={() => setIsCreateOpen(true)}
-          className="flex items-center gap-[6px] rounded-[4px] border border-sidebar-border px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+          className="flex items-center gap-[6px] rounded-[8px] border border-[#e0e0e0] bg-white px-[14px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
           tabIndex={0}
         >
           <Plus className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -179,19 +179,34 @@ export default function DataModelSettingsPage() {
       </div>
 
       {/* Fields table */}
-      <div>
-        <table className="w-full rounded-lg bg-[#fafafa] text-left">
-          <thead>
-            <tr className="border-b border-sidebar-border">
-              <th className="w-[35%] pb-[10px] text-left text-[12px] font-medium text-sidebar-muted">Name</th>
-              <th className="w-[20%] pb-[10px] text-left text-[12px] font-medium text-sidebar-muted">Type</th>
-              <th className="w-[20%] pb-[10px] text-left text-[12px] font-medium text-sidebar-muted">Editable by</th>
-              <th className="w-[15%] pb-[10px] text-left text-[12px] font-medium text-sidebar-muted">Enabled</th>
-              <th className="w-[10%] pb-[10px]" />
-            </tr>
-          </thead>
-          <tbody>
-            {enabledFields.map((field) => (
+      <div className="overflow-hidden rounded-[14px] border border-[#e5e5e5] bg-[#fafafa]">
+        <div className="grid grid-cols-[35%_20%_20%_15%_10%] items-center border-b border-[#efefef] px-[20px] py-[10px]">
+          <span className="text-[12px] font-medium text-[#999]">Name</span>
+          <span className="text-[12px] font-medium text-[#999]">Type</span>
+          <span className="text-[12px] font-medium text-[#999]">Editable by</span>
+          <span className="text-[12px] font-medium text-[#999]">Enabled</span>
+          <span />
+        </div>
+
+        {enabledFields.map((field) => (
+          <FieldRow
+            key={field.id}
+            field={field}
+            isMenuOpen={menuFieldId === field.id}
+            onRowClick={() => handleOpenEdit(field)}
+            onMenuToggle={() => setMenuFieldId(menuFieldId === field.id ? null : field.id)}
+            onToggleEnabled={() => handleToggleEnabled(field.id)}
+            onDelete={() => handleDelete(field.id)}
+            menuRef={menuFieldId === field.id ? menuRef : undefined}
+          />
+        ))}
+
+        {disabledFields.length > 0 && (
+          <>
+            <div className="border-b border-[#efefef] px-[20px] pb-[8px] pt-[20px]">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-[#999]">Disabled fields</span>
+            </div>
+            {disabledFields.map((field) => (
               <FieldRow
                 key={field.id}
                 field={field}
@@ -201,41 +216,17 @@ export default function DataModelSettingsPage() {
                 onToggleEnabled={() => handleToggleEnabled(field.id)}
                 onDelete={() => handleDelete(field.id)}
                 menuRef={menuFieldId === field.id ? menuRef : undefined}
+                isDisabledRow
               />
             ))}
+          </>
+        )}
 
-            {disabledFields.length > 0 && (
-              <>
-                <tr>
-                  <td colSpan={5} className="border-b border-sidebar-border pt-[20px] pb-[8px]">
-                    <span className="text-[11px] font-medium tracking-wide text-[#999]">DISABLED FIELDS</span>
-                  </td>
-                </tr>
-                {disabledFields.map((field) => (
-                  <FieldRow
-                    key={field.id}
-                    field={field}
-                    isMenuOpen={menuFieldId === field.id}
-                    onRowClick={() => handleOpenEdit(field)}
-                    onMenuToggle={() => setMenuFieldId(menuFieldId === field.id ? null : field.id)}
-                    onToggleEnabled={() => handleToggleEnabled(field.id)}
-                    onDelete={() => handleDelete(field.id)}
-                    menuRef={menuFieldId === field.id ? menuRef : undefined}
-                    isDisabledRow
-                  />
-                ))}
-              </>
-            )}
-
-            {enabledFields.length === 0 && disabledFields.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-[20px] py-[32px] text-center text-[13px] font-medium text-[#bbb]">
-                  No fields defined
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        {enabledFields.length === 0 && disabledFields.length === 0 && (
+          <div className="px-[20px] py-[40px] text-center text-[13px] text-[#bbb]">
+            No fields defined
+          </div>
+        )}
       </div>
 
       {/* Create field modal */}
@@ -530,8 +521,8 @@ export default function DataModelSettingsPage() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-[32px] left-1/2 z-50 -translate-x-1/2">
-          <div className="flex items-center gap-[8px] rounded-[8px] border border-sidebar-border bg-white px-[16px] py-[10px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+        <div className="fixed bottom-[24px] left-1/2 z-50 -translate-x-1/2">
+          <div className="flex items-center gap-[8px] rounded-[10px] border border-[#e5e5e5] bg-white px-[16px] py-[10px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
             <Check className="h-[14px] w-[14px] text-green-500" strokeWidth={2} />
             <span className="text-[13px] font-medium text-[#262626]">{toast}</span>
           </div>
@@ -560,37 +551,29 @@ function FieldRow({
   menuRef?: React.RefObject<HTMLDivElement | null>
   isDisabledRow?: boolean
 }) {
-  const textColor = isDisabledRow ? "text-[#bbb]" : "text-[#262626]"
-  const mutedColor = isDisabledRow ? "text-[#ccc]" : "text-[#888]"
-
   return (
-    <tr
+    <div
       className={cn(
-        "border-b border-sidebar-border transition-colors cursor-pointer last:border-b-0",
-        isDisabledRow ? "hover:bg-[#fafafa]" : "hover:bg-[#fafafa]"
+        "grid grid-cols-[35%_20%_20%_15%_10%] items-center border-b border-[#efefef] px-[20px] py-[14px] transition-colors cursor-pointer last:border-b-0",
+        isDisabledRow ? "opacity-60" : "hover:bg-[#f5f5f5]"
       )}
       onClick={onRowClick}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === "Enter") onRowClick() }}
     >
-      <td className={cn("py-[12px] text-[13px] font-medium", textColor)}>
-        {field.name}
-      </td>
-      <td className={cn("py-[12px] text-[13px] font-medium", mutedColor)}>
-        {fieldTypeLabels[field.type]}
-      </td>
-      <td className={cn("py-[12px] text-[13px] font-medium", mutedColor)}>
-        {field.editableBy === "system" ? "System only" : "Anyone"}
-      </td>
-      <td className="py-[12px]" onClick={(e) => e.stopPropagation()}>
+      <span className="text-[13px] font-medium text-[#262626]">{field.name}</span>
+      <span className="text-[13px] text-[#888]">{fieldTypeLabels[field.type]}</span>
+      <span className="text-[13px] text-[#888]">{field.editableBy === "system" ? "System only" : "Anyone"}</span>
+
+      <div onClick={(e) => e.stopPropagation()}>
         {!field.isSystem ? (
           <button
             type="button"
             onClick={onToggleEnabled}
             className={cn(
-              "relative h-[20px] w-[36px] rounded-full transition-colors",
-              field.isEnabled ? "bg-blue-500" : "bg-[#d4d4d4]"
+              "relative h-[22px] w-[40px] rounded-full transition-colors",
+              field.isEnabled ? "bg-blue-400" : "bg-[#d4d4d4]"
             )}
             tabIndex={0}
             aria-label={field.isEnabled ? "Disable field" : "Enable field"}
@@ -599,31 +582,32 @@ function FieldRow({
           >
             <span
               className={cn(
-                "absolute top-[2px] h-[16px] w-[16px] rounded-full bg-white shadow-sm transition-transform",
-                field.isEnabled ? "left-[18px]" : "left-[2px]"
+                "absolute top-[2px] h-[18px] w-[18px] rounded-full bg-white shadow-sm transition-transform",
+                field.isEnabled ? "left-[20px]" : "left-[2px]"
               )}
             />
           </button>
         ) : (
           <button
             type="button"
-            className="relative h-[20px] w-[36px] cursor-not-allowed rounded-full bg-blue-500 opacity-50"
+            className="relative h-[22px] w-[40px] cursor-not-allowed rounded-full bg-blue-400 opacity-50"
             disabled
             tabIndex={-1}
             aria-label="System field — always enabled"
             aria-checked
             role="switch"
           >
-            <span className="absolute left-[18px] top-[2px] h-[16px] w-[16px] rounded-full bg-white shadow-sm" />
+            <span className="absolute left-[20px] top-[2px] h-[18px] w-[18px] rounded-full bg-white shadow-sm" />
           </button>
         )}
-      </td>
-      <td className="py-[12px] text-right" onClick={(e) => e.stopPropagation()}>
-        {!field.isSystem && (
-          <div className="relative inline-block" ref={menuRef}>
+      </div>
+
+      <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+        {!field.isSystem ? (
+          <div className="relative" ref={menuRef}>
             <button
               onClick={onMenuToggle}
-              className="flex h-[28px] w-[28px] items-center justify-center rounded-[4px] text-[#888] transition-colors hover:bg-[#ebebeb] hover:text-[#262626]"
+              className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-[#bbb] transition-colors hover:bg-[#ebebeb] hover:text-[#666]"
               tabIndex={0}
               aria-label="Field actions"
             >
@@ -631,10 +615,10 @@ function FieldRow({
             </button>
 
             {isMenuOpen && (
-              <div className="absolute right-0 top-full z-20 mt-[4px] w-[160px] rounded-[6px] border border-sidebar-border bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+              <div className="absolute right-0 top-full z-20 mt-[4px] w-[160px] rounded-[10px] border border-[#e5e5e5] bg-white py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
                 <button
                   onClick={onDelete}
-                  className="flex w-full items-center gap-[8px] px-[12px] py-[7px] text-[13px] font-medium text-red-500 transition-colors hover:bg-red-50"
+                  className="flex w-full items-center gap-[8px] px-[14px] py-[8px] text-[13px] font-medium text-red-500 transition-colors hover:bg-red-50"
                   tabIndex={0}
                 >
                   <Trash2 className="h-[14px] w-[14px]" strokeWidth={1.5} />
@@ -643,13 +627,12 @@ function FieldRow({
               </div>
             )}
           </div>
-        )}
-        {field.isSystem && (
-          <span className="inline-flex h-[28px] w-[28px] items-center justify-center text-[#ccc]">
+        ) : (
+          <span className="inline-flex h-[28px] w-[28px] items-center justify-center text-[#d4d4d4]">
             <MoreHorizontal className="h-[16px] w-[16px]" strokeWidth={1.75} />
           </span>
         )}
-      </td>
-    </tr>
+      </div>
+    </div>
   )
 }

@@ -692,6 +692,8 @@ export default function ClientsPage() {
     return cols
   }, [visibleColumnKeys, tableKeyToCsvKey])
 
+  const activeClients = clients.filter((c) => c.status !== "archived")
+
   const exportCsvData = useMemo(() =>
     activeClients.map((c) => {
       const p = c.participant
@@ -742,8 +744,6 @@ export default function ClientsPage() {
       })
     }
   }, [addClient])
-
-  const activeClients = clients.filter((c) => c.status !== "archived")
 
   const sortedClients = (() => {
     if (!sortKey) return activeClients
@@ -838,7 +838,8 @@ export default function ClientsPage() {
               />
               <button
                 onClick={() => setIsCreateClientOpen(true)}
-                className="flex items-center gap-[5px] rounded-[4px] bg-blue-500 px-[8px] py-[4px] text-[13px] font-medium text-white transition-colors hover:bg-blue-600"
+                className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
+                style={{ backgroundColor: "var(--primary-color)" }}
                 tabIndex={0}
               >
                 <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />

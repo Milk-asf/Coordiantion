@@ -96,6 +96,8 @@ export interface Attachment {
   id: string
   name: string
   size: number
+  storagePath?: string
+  url?: string
 }
 
 export interface Workspace {
@@ -214,6 +216,7 @@ export interface Invoice {
 export interface WorkspaceEmailSettings {
   orgName: string
   orgAbn: string
+  ndisNumber: string
   orgPhone: string
   orgEmail: string
   orgAddress: string
@@ -224,6 +227,7 @@ export interface WorkspaceEmailSettings {
   bankAccountNumber: string
   bankAccountName: string
   logoUrl: string
+  primaryColor: string
 }
 
 export const relationshipConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {

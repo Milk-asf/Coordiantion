@@ -18,9 +18,6 @@ const languageOptions = [
   "Chinese (Simplified)",
 ]
 
-const labelClass = "mb-[6px] block text-[13px] font-medium text-[#555]"
-const inputClass = "h-[40px] w-full rounded-[8px] border border-[#e0e0e0] bg-[#fafafa] px-[12px] text-[14px] text-[#1a1a1a] outline-none transition-colors placeholder:text-[#bbb] focus:border-[#a3c4f3]"
-
 const timezoneOptions = [
   "(UTC+10) Australian Eastern Standard Time",
   "(UTC+9:30) Australian Central Standard Time",
@@ -33,6 +30,9 @@ const timezoneOptions = [
   "(UTC-8) Pacific Standard Time",
   "(UTC-10) Hawaii-Aleutian Standard Time",
 ]
+
+const inputClass = "h-[44px] w-full rounded-[10px] border border-[#e5e5e5] bg-[#fafafa] px-[14px] text-[14px] text-[#262626] outline-none transition-colors placeholder:text-[#c0c0c0] focus:border-[#c0c0c0] focus:ring-2 focus:ring-[#e8e8e8]"
+const labelClass = "mb-[8px] block text-[13px] font-semibold text-[#262626]"
 
 function ProfileSelect({ label, value, options, onChange, icon }: { label: string; value: string; options: readonly string[]; onChange: (v: string) => void; icon?: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -48,13 +48,13 @@ function ProfileSelect({ label, value, options, onChange, icon }: { label: strin
   }, [isOpen])
 
   return (
-    <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-[12px]">
-      <span className="text-[13px] font-medium text-[#8d8d8d]">{label}</span>
+    <div>
+      <label className={labelClass}>{label}</label>
       <div className="relative" ref={ref}>
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="flex w-full items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] text-left text-[13px] font-medium text-[#262626] outline-none transition-colors hover:bg-[#f7f7f7]"
+          className={cn(inputClass, "flex items-center gap-[8px] text-left")}
           tabIndex={0}
         >
           {icon}
@@ -63,13 +63,16 @@ function ProfileSelect({ label, value, options, onChange, icon }: { label: strin
         {isOpen && (
           <>
             <div className="fixed inset-0 z-[59]" onClick={() => setIsOpen(false)} />
-            <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[220px] w-full overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
+            <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[220px] w-full overflow-y-auto rounded-[10px] border border-[#e5e5e5] bg-white py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
               {options.map((opt) => (
                 <button
                   key={opt}
                   type="button"
                   onClick={() => { onChange(opt); setIsOpen(false) }}
-                  className={`flex w-full items-center px-[12px] py-[8px] text-left text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${opt === value ? "bg-[#f0f0f0] text-[#262626]" : "text-[#555]"}`}
+                  className={cn(
+                    "flex w-full items-center px-[14px] py-[10px] text-left text-[13px] transition-colors hover:bg-[#f5f5f5]",
+                    opt === value ? "bg-[#f0f0f0] font-medium text-[#262626]" : "text-[#555]"
+                  )}
                   tabIndex={0}
                 >
                   {opt}
@@ -219,87 +222,87 @@ export default function ProfileSettingsPage() {
     }
   }
 
+  const isPasswordFormValid = newPassword && confirmPassword
+  const isEmailFormValid = !!newEmail
+
   return (
     <>
       {/* Profile section */}
-      <div className="mb-[40px]">
-        <h1 className="text-[22px] font-semibold text-[#1a1a1a]">Profile</h1>
-        <p className="mt-[4px] text-[14px] text-sidebar-muted">
+      <div className="mb-[32px]">
+        <h1 className="text-[20px] font-bold text-[#262626]">Profile</h1>
+        <p className="mt-[4px] text-[14px] text-[#888]">
           Manage settings for your personal profile.
         </p>
       </div>
 
-      <div className="flex flex-col gap-[2px]">
-        <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-[12px]">
-          <span className="text-[13px] font-medium text-[#8d8d8d]">First name</span>
-          <div className="flex items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] transition-colors hover:bg-[#f7f7f7]">
-            <User className={`h-[13px] w-[13px] shrink-0 ${firstName ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
+      <div className="rounded-[14px] border border-[#e5e5e5] bg-[#fafafa] p-[24px]">
+        <div className="grid gap-[16px] sm:grid-cols-2">
+          <div>
+            <label className={labelClass}>First name</label>
             <input
               type="text"
               value={firstName}
               onChange={(e) => handleFieldChange(setFirstName)(e.target.value)}
-              placeholder="Empty"
-              className="w-full bg-transparent text-[13px] font-medium text-[#262626] placeholder-[#ccc] outline-none"
+              placeholder="First name"
+              className={inputClass}
             />
           </div>
-        </div>
-
-        <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-[12px]">
-          <span className="text-[13px] font-medium text-[#8d8d8d]">Last name</span>
-          <div className="flex items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] transition-colors hover:bg-[#f7f7f7]">
-            <User className={`h-[13px] w-[13px] shrink-0 ${lastName ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
+          <div>
+            <label className={labelClass}>Last name</label>
             <input
               type="text"
               value={lastName}
               onChange={(e) => handleFieldChange(setLastName)(e.target.value)}
-              placeholder="Empty"
-              className="w-full bg-transparent text-[13px] font-medium text-[#262626] placeholder-[#ccc] outline-none"
+              placeholder="Last name"
+              className={inputClass}
             />
           </div>
         </div>
 
-        <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-[12px]">
-          <span className="text-[13px] font-medium text-[#8d8d8d]">Email</span>
-          <div className="flex items-center gap-[7px] px-[8px] py-[6px]">
-            <Mail className="h-[13px] w-[13px] shrink-0 text-[#888]" strokeWidth={1.5} />
-            <span className="text-[13px] font-medium text-[#888]">{email}</span>
+        <div className="mt-[16px]">
+          <label className={labelClass}>Email</label>
+          <div className={cn(inputClass, "flex items-center gap-[8px] cursor-not-allowed opacity-60")}>
+            <Mail className="h-[14px] w-[14px] shrink-0 text-[#999]" strokeWidth={1.5} />
+            <span className="truncate text-[#888]">{email}</span>
           </div>
         </div>
 
-        <ProfileSelect label="Language" value={language} options={languageOptions} onChange={handleFieldChange(setLanguage)} icon={<Globe className="h-[13px] w-[13px] shrink-0 text-[#888]" strokeWidth={1.5} />} />
-        <ProfileSelect label="Timezone" value={timezone} options={timezoneOptions} onChange={handleFieldChange(setTimezone)} icon={<Clock className="h-[13px] w-[13px] shrink-0 text-[#888]" strokeWidth={1.5} />} />
+        <div className="mt-[16px] grid gap-[16px] sm:grid-cols-2">
+          <ProfileSelect label="Language" value={language} options={languageOptions} onChange={handleFieldChange(setLanguage)} icon={<Globe className="h-[14px] w-[14px] shrink-0 text-[#999]" strokeWidth={1.5} />} />
+          <ProfileSelect label="Timezone" value={timezone} options={timezoneOptions} onChange={handleFieldChange(setTimezone)} icon={<Clock className="h-[14px] w-[14px] shrink-0 text-[#999]" strokeWidth={1.5} />} />
+        </div>
 
-        <div className="mt-[14px] flex items-center gap-[12px]">
+        <div className="mt-[20px] flex items-center gap-[12px]">
           <button
             onClick={handleUpdateProfile}
             disabled={!hasChanges || isSaving}
             className={cn(
-              "h-[34px] rounded-[4px] px-[16px] text-[13px] font-medium transition-colors",
+              "h-[38px] rounded-[8px] px-[20px] text-[13px] font-semibold transition-colors",
               hasChanges
                 ? "bg-[#262626] text-white hover:bg-[#3d3d3d]"
-                : "bg-sidebar-hover text-[#bbb] cursor-not-allowed"
+                : "bg-[#e8e8e8] text-[#c0c0c0] cursor-not-allowed"
             )}
           >
-            {isSaving ? "Updating..." : "Update"}
+            {isSaving ? "Updating..." : "Update profile"}
           </button>
           {saveMessage && (
-            <span className="text-[13px] text-green-600">{saveMessage}</span>
+            <span className="text-[13px] font-medium text-green-600">{saveMessage}</span>
           )}
         </div>
       </div>
 
       {/* Divider */}
-      <div className="my-[36px] h-px bg-sidebar-border" />
+      <div className="my-[36px] h-px bg-[#e5e5e5]" />
 
       {/* Change email section */}
-      <div className="mb-[24px]">
-        <h2 className="text-[17px] font-semibold text-[#1a1a1a]">Change email</h2>
-        <p className="mt-[4px] text-[13px] text-sidebar-muted">
+      <div className="mb-[20px]">
+        <h2 className="text-[17px] font-bold text-[#262626]">Change email</h2>
+        <p className="mt-[4px] text-[14px] text-[#888]">
           Update the email address associated with your account.
         </p>
       </div>
 
-      <div className="flex flex-col gap-[18px]">
+      <div className="space-y-[16px]">
         <div>
           <label className={labelClass}>New email address</label>
           <input
@@ -312,40 +315,38 @@ export default function ProfileSettingsPage() {
         </div>
 
         {emailError && (
-          <p className="rounded-[6px] bg-red-50 px-[12px] py-[8px] text-[13px] text-red-600">{emailError}</p>
+          <p className="rounded-[8px] bg-red-50 px-[14px] py-[10px] text-[13px] font-medium text-red-600">{emailError}</p>
         )}
         {emailSuccess && (
-          <p className="rounded-[6px] bg-green-50 px-[12px] py-[8px] text-[13px] text-green-600">{emailSuccess}</p>
+          <p className="rounded-[8px] bg-green-50 px-[14px] py-[10px] text-[13px] font-medium text-green-600">{emailSuccess}</p>
         )}
 
-        <div>
-          <button
-            onClick={handleChangeEmail}
-            disabled={!newEmail || isChangingEmail}
-            className={cn(
-              "h-[34px] rounded-[4px] px-[16px] text-[13px] font-medium transition-colors",
-              newEmail
-                ? "bg-[#262626] text-white hover:bg-[#3d3d3d]"
-                : "bg-sidebar-hover text-[#bbb] cursor-not-allowed"
-            )}
-          >
-            {isChangingEmail ? "Sending..." : "Update email"}
-          </button>
-        </div>
+        <button
+          onClick={handleChangeEmail}
+          disabled={!isEmailFormValid || isChangingEmail}
+          className={cn(
+            "h-[38px] rounded-[8px] px-[20px] text-[13px] font-semibold transition-colors",
+            isEmailFormValid
+              ? "bg-[#262626] text-white hover:bg-[#3d3d3d]"
+              : "bg-[#e8e8e8] text-[#c0c0c0] cursor-not-allowed"
+          )}
+        >
+          {isChangingEmail ? "Sending..." : "Update email"}
+        </button>
       </div>
 
       {/* Divider */}
-      <div className="my-[36px] h-px bg-sidebar-border" />
+      <div className="my-[36px] h-px bg-[#e5e5e5]" />
 
       {/* Change password section */}
-      <div className="mb-[24px]">
-        <h2 className="text-[17px] font-semibold text-[#1a1a1a]">Change password</h2>
-        <p className="mt-[4px] text-[13px] text-sidebar-muted">
+      <div className="mb-[20px]">
+        <h2 className="text-[17px] font-bold text-[#262626]">Change password</h2>
+        <p className="mt-[4px] text-[14px] text-[#888]">
           Update the password used to sign in to your account.
         </p>
       </div>
 
-      <div className="flex flex-col gap-[18px]">
+      <div className="space-y-[16px]">
         <div>
           <label className={labelClass}>Current password</label>
           <div className="relative">
@@ -353,14 +354,15 @@ export default function ProfileSettingsPage() {
               type={showCurrentPassword ? "text" : "password"}
               value={currentPassword}
               onChange={(e) => { setCurrentPassword(e.target.value); setPasswordError("") }}
-              className={cn(inputClass, "pr-[40px]")}
+              className={cn(inputClass, "pr-[44px]")}
               placeholder="••••••••"
             />
             <button
               type="button"
               onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-              className="absolute right-[10px] top-1/2 -translate-y-1/2 text-sidebar-muted transition-colors hover:text-sidebar-text"
+              className="absolute right-[12px] top-1/2 -translate-y-1/2 text-[#bbb] transition-colors hover:text-[#888]"
               tabIndex={-1}
+              aria-label={showCurrentPassword ? "Hide password" : "Show password"}
             >
               {showCurrentPassword
                 ? <EyeOff className="h-[16px] w-[16px]" strokeWidth={1.75} />
@@ -377,14 +379,15 @@ export default function ProfileSettingsPage() {
               type={showNewPassword ? "text" : "password"}
               value={newPassword}
               onChange={(e) => { setNewPassword(e.target.value); setPasswordError("") }}
-              className={cn(inputClass, "pr-[40px]")}
+              className={cn(inputClass, "pr-[44px]")}
               placeholder="Min 6 characters"
             />
             <button
               type="button"
               onClick={() => setShowNewPassword(!showNewPassword)}
-              className="absolute right-[10px] top-1/2 -translate-y-1/2 text-sidebar-muted transition-colors hover:text-sidebar-text"
+              className="absolute right-[12px] top-1/2 -translate-y-1/2 text-[#bbb] transition-colors hover:text-[#888]"
               tabIndex={-1}
+              aria-label={showNewPassword ? "Hide password" : "Show password"}
             >
               {showNewPassword
                 ? <EyeOff className="h-[16px] w-[16px]" strokeWidth={1.75} />
@@ -401,14 +404,15 @@ export default function ProfileSettingsPage() {
               type={showConfirmPassword ? "text" : "password"}
               value={confirmPassword}
               onChange={(e) => { setConfirmPassword(e.target.value); setPasswordError("") }}
-              className={cn(inputClass, "pr-[40px]")}
+              className={cn(inputClass, "pr-[44px]")}
               placeholder="••••••••"
             />
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-[10px] top-1/2 -translate-y-1/2 text-sidebar-muted transition-colors hover:text-sidebar-text"
+              className="absolute right-[12px] top-1/2 -translate-y-1/2 text-[#bbb] transition-colors hover:text-[#888]"
               tabIndex={-1}
+              aria-label={showConfirmPassword ? "Hide password" : "Show password"}
             >
               {showConfirmPassword
                 ? <EyeOff className="h-[16px] w-[16px]" strokeWidth={1.75} />
@@ -419,26 +423,24 @@ export default function ProfileSettingsPage() {
         </div>
 
         {passwordError && (
-          <p className="rounded-[6px] bg-red-50 px-[12px] py-[8px] text-[13px] text-red-600">{passwordError}</p>
+          <p className="rounded-[8px] bg-red-50 px-[14px] py-[10px] text-[13px] font-medium text-red-600">{passwordError}</p>
         )}
         {passwordSuccess && (
-          <p className="rounded-[6px] bg-green-50 px-[12px] py-[8px] text-[13px] text-green-600">{passwordSuccess}</p>
+          <p className="rounded-[8px] bg-green-50 px-[14px] py-[10px] text-[13px] font-medium text-green-600">{passwordSuccess}</p>
         )}
 
-        <div>
-          <button
-            onClick={handleChangePassword}
-            disabled={!newPassword || !confirmPassword || isChangingPassword}
-            className={cn(
-              "h-[34px] rounded-[4px] px-[16px] text-[13px] font-medium transition-colors",
-              newPassword && confirmPassword
-                ? "bg-[#262626] text-white hover:bg-[#3d3d3d]"
-                : "bg-sidebar-hover text-[#bbb] cursor-not-allowed"
-            )}
-          >
-            {isChangingPassword ? "Updating..." : "Change password"}
-          </button>
-        </div>
+        <button
+          onClick={handleChangePassword}
+          disabled={!isPasswordFormValid || isChangingPassword}
+          className={cn(
+            "h-[38px] rounded-[8px] px-[20px] text-[13px] font-semibold transition-colors",
+            isPasswordFormValid
+              ? "bg-[#262626] text-white hover:bg-[#3d3d3d]"
+              : "bg-[#e8e8e8] text-[#c0c0c0] cursor-not-allowed"
+          )}
+        >
+          {isChangingPassword ? "Updating..." : "Change password"}
+        </button>
       </div>
     </>
   )

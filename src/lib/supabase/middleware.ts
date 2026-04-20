@@ -8,7 +8,8 @@ function isConfigured() {
 }
 
 export async function updateSession(request: NextRequest) {
-  const isAuthPage = request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/signup"
+  const authPaths = ["/login", "/signup", "/reset-password", "/update-password"]
+  const isAuthPage = authPaths.includes(request.nextUrl.pathname)
 
   if (!isConfigured()) {
     if (isAuthPage) return NextResponse.next({ request })
@@ -52,6 +53,10 @@ export async function updateSession(request: NextRequest) {
       })
       return redirectResponse
     }
+    return supabaseResponse
+  }
+
+  if (request.nextUrl.pathname === "/update-password") {
     return supabaseResponse
   }
 

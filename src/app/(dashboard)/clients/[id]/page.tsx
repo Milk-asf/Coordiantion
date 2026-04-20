@@ -578,32 +578,104 @@ export default function ParticipantProfilePage() {
     <div className="flex h-full">
       {/* Left: header + content */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Top bar: back, name, create, sidebar toggle */}
-        <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-[#f0f0f0] bg-white px-[16px]">
-          <div className="flex items-center gap-[10px]">
-            <button
-              onClick={() => router.push("/clients")}
-              className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
-              tabIndex={0}
-              aria-label="Back to clients"
-            >
-              <ArrowLeft className="h-[16px] w-[16px]" strokeWidth={1.75} />
-            </button>
-            <ClientIcon client={client} size="md" />
-            <span className="max-w-[240px] truncate text-[15px] font-semibold text-[#262626]">{client.displayName}</span>
-            <span className={`rounded-[4px] px-[8px] py-[1px] text-[11px] font-medium ${client.status === "archived" ? "bg-gray-100 text-gray-500" : "bg-green-50 text-green-600"}`}>
-              {client.status === "archived" ? "archived" : "active"}
-            </span>
+        {/* Profile header bar */}
+        <div ref={headerRef} className="relative flex h-[48px] shrink-0 items-center overflow-hidden bg-[#f8f6f3] px-[16px]">
+          <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-[#e8ddd0] via-[#e0d6c8] to-[#e8ddd0]" />
+
+          <button
+            onClick={() => router.push("/clients")}
+            className="mr-[6px] flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded text-[#999] transition-colors hover:bg-[#efe9e1] hover:text-[#262626]"
+            tabIndex={0}
+            aria-label="Back to clients"
+          >
+            <ArrowLeft className="h-[15px] w-[15px]" strokeWidth={1.75} />
+          </button>
+
+          <ClientIcon client={client} size="sm" />
+          <span className="ml-[8px] mr-[12px] max-w-[180px] shrink-0 truncate text-[14px] font-semibold text-[#262626]">{client.displayName}</span>
+
+          {/* Hidden measurer for tab widths */}
+          <div data-tab-measurer className="pointer-events-none invisible absolute flex items-center gap-[2px]" aria-hidden="true">
+            {tabs.map((tab) => {
+              const TabIcon = tab.icon
+              return (
+                <div key={tab.key} data-tab-measure className="flex shrink-0 items-center gap-[4px] px-[8px] py-[4px] text-[12px] font-medium">
+                  <TabIcon className="h-[12px] w-[12px]" strokeWidth={1.5} />
+                  <span>{tab.label}</span>
+                </div>
+              )
+            })}
           </div>
-          <div className="flex items-center gap-[6px]">
+
+          <div ref={tabsContainerRef} className="flex flex-1 items-center gap-[2px] overflow-hidden">
+            {tabs.slice(0, visibleTabCount).map((tab) => {
+              const TabIcon = tab.icon
+              const isActive = activeTab === tab.key
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`flex shrink-0 items-center gap-[4px] rounded-[5px] px-[8px] py-[4px] text-[12px] font-medium transition-colors ${isActive ? "bg-[#ebe5dc] text-[#262626]" : "text-[#888] hover:bg-[#efe9e1] hover:text-[#262626]"}`}
+                  tabIndex={0}
+                >
+                  <TabIcon className="h-[12px] w-[12px]" strokeWidth={1.5} />
+                  <span>{tab.label}</span>
+                </button>
+              )
+            })}
+            {visibleTabCount < tabs.length && (
+              <>
+                <button
+                  ref={overflowBtnRef}
+                  onClick={() => setIsTabOverflowOpen(!isTabOverflowOpen)}
+                  className={`flex shrink-0 items-center gap-[3px] rounded-[5px] px-[6px] py-[4px] text-[12px] font-medium transition-colors ${isTabOverflowOpen ? "bg-[#ebe5dc] text-[#262626]" : "text-[#888] hover:bg-[#efe9e1] hover:text-[#262626]"}`}
+                  tabIndex={0}
+                  aria-label="More tabs"
+                >
+                  <span>+{tabs.length - visibleTabCount}</span>
+                </button>
+                {isTabOverflowOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsTabOverflowOpen(false)} />
+                    <div
+                      className="fixed z-50 min-w-[180px] overflow-hidden rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+                      style={(() => {
+                        const rect = overflowBtnRef.current?.getBoundingClientRect()
+                        if (!rect) return {}
+                        return { top: rect.bottom + 4, left: rect.left }
+                      })()}
+                    >
+                      {tabs.slice(visibleTabCount).map((tab) => {
+                        const TabIcon = tab.icon
+                        const isActive = activeTab === tab.key
+                        return (
+                          <button
+                            key={tab.key}
+                            onClick={() => { setActiveTab(tab.key); setIsTabOverflowOpen(false) }}
+                            className={`flex w-full items-center gap-[10px] px-[14px] py-[8px] text-[13px] font-medium transition-colors ${isActive ? "bg-[#f0f0f0] text-[#262626]" : "text-[#262626] hover:bg-[#f5f5f5]"}`}
+                            tabIndex={0}
+                          >
+                            <TabIcon className="h-[16px] w-[16px] text-[#888]" strokeWidth={1.5} />
+                            <span>{tab.label}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+
+          <div className="flex shrink-0 items-center gap-[6px] pl-[8px]">
             <button
               ref={createBtnRef}
               onClick={() => setIsCreateOpen(!isCreateOpen)}
-              className="flex items-center gap-[5px] rounded-[4px] bg-blue-500 px-[10px] py-[5px] text-[13px] font-medium text-white transition-colors hover:bg-blue-600"
+              className="flex items-center gap-[5px] rounded-[6px] border border-[#ddd5ca] bg-white px-[10px] py-[5px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#efe9e1]"
               tabIndex={0}
             >
               <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-              <span>Add new</span>
+              <span>Create</span>
             </button>
             {isCreateOpen && (
               <>
@@ -878,7 +950,7 @@ export default function ParticipantProfilePage() {
                     <span className="text-[11px] font-medium text-[#ccc]">Enter ↵ next · Esc close</span>
                     <div className="flex items-center gap-[6px]">
                       <button type="button" onClick={resetQuickAdd} className="rounded px-[8px] py-[4px] text-[12px] font-medium text-[#999] transition-colors hover:bg-[#f0f0f0]" tabIndex={0}>Cancel</button>
-                      <button type="button" onClick={handleQuickFinish} disabled={!quickTitle.trim()} className="rounded-[4px] bg-blue-500 px-[12px] py-[4px] text-[12px] font-medium text-white transition-colors hover:bg-blue-600 disabled:opacity-40" tabIndex={0}>Create</button>
+                      <button type="button" onClick={handleQuickFinish} disabled={!quickTitle.trim()} className="primary-btn rounded-[4px] px-[12px] py-[4px] text-[12px] font-medium transition-colors disabled:opacity-40" style={{ backgroundColor: "var(--primary-color)" }} tabIndex={0}>Create</button>
                     </div>
                   </div>
                 </div>
@@ -893,82 +965,6 @@ export default function ParticipantProfilePage() {
               >
                 <PanelRightOpen className="h-[18px] w-[18px]" strokeWidth={1.75} />
               </button>
-            )}
-          </div>
-        </div>
-
-        {/* Tabs bar */}
-        <div ref={headerRef} className="flex h-[48px] shrink-0 items-center overflow-hidden border-b border-[#f0f0f0] bg-white px-[24px]">
-          {/* Hidden measurer for tab widths */}
-          <div data-tab-measurer className="pointer-events-none invisible absolute flex items-center gap-[2px]" aria-hidden="true">
-            {tabs.map((tab) => {
-              const TabIcon = tab.icon
-              return (
-                <div key={tab.key} data-tab-measure className="flex shrink-0 items-center gap-[5px] px-[10px] py-[5px] text-[13px] font-medium">
-                  <TabIcon className="h-[13px] w-[13px]" strokeWidth={1.5} />
-                  <span>{tab.label}</span>
-                </div>
-              )
-            })}
-          </div>
-
-          <div ref={tabsContainerRef} className="flex flex-1 items-center gap-[2px] overflow-hidden">
-            {tabs.slice(0, visibleTabCount).map((tab) => {
-              const TabIcon = tab.icon
-              const isActive = activeTab === tab.key
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`flex shrink-0 items-center gap-[5px] rounded px-[10px] py-[5px] text-[13px] font-medium transition-colors ${isActive ? "bg-[#f0f0f0] text-[#262626]" : "text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
-                  tabIndex={0}
-                >
-                  <TabIcon className="h-[13px] w-[13px]" strokeWidth={1.5} />
-                  <span>{tab.label}</span>
-                </button>
-              )
-            })}
-            {visibleTabCount < tabs.length && (
-              <>
-                <button
-                  ref={overflowBtnRef}
-                  onClick={() => setIsTabOverflowOpen(!isTabOverflowOpen)}
-                  className={`flex shrink-0 items-center gap-[3px] rounded px-[8px] py-[5px] text-[13px] font-medium transition-colors ${isTabOverflowOpen ? "bg-[#f0f0f0] text-[#262626]" : "text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
-                  tabIndex={0}
-                  aria-label="More tabs"
-                >
-                  <span>+{tabs.length - visibleTabCount}</span>
-                </button>
-                {isTabOverflowOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setIsTabOverflowOpen(false)} />
-                    <div
-                      className="fixed z-50 min-w-[180px] overflow-hidden rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-                      style={(() => {
-                        const rect = overflowBtnRef.current?.getBoundingClientRect()
-                        if (!rect) return {}
-                        return { top: rect.bottom + 4, left: rect.left }
-                      })()}
-                    >
-                      {tabs.slice(visibleTabCount).map((tab) => {
-                        const TabIcon = tab.icon
-                        const isActive = activeTab === tab.key
-                        return (
-                          <button
-                            key={tab.key}
-                            onClick={() => { setActiveTab(tab.key); setIsTabOverflowOpen(false) }}
-                            className={`flex w-full items-center gap-[10px] px-[14px] py-[8px] text-[13px] font-medium transition-colors ${isActive ? "bg-[#f0f0f0] text-[#262626]" : "text-[#262626] hover:bg-[#f5f5f5]"}`}
-                            tabIndex={0}
-                          >
-                            <TabIcon className="h-[16px] w-[16px] text-[#888]" strokeWidth={1.5} />
-                            <span>{tab.label}</span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </>
-                )}
-              </>
             )}
           </div>
         </div>
@@ -988,7 +984,8 @@ export default function ParticipantProfilePage() {
                 </button>
                 <button
                   onClick={() => setIsAddContactOpen(true)}
-                  className="flex items-center gap-[5px] rounded-[4px] bg-blue-500 px-[8px] py-[4px] text-[13px] font-medium text-white transition-colors hover:bg-blue-600"
+                  className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
+                  style={{ backgroundColor: "var(--primary-color)" }}
                   tabIndex={0}
                 >
                   <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -1058,7 +1055,8 @@ export default function ParticipantProfilePage() {
                 <div className="relative">
                   <button
                     onClick={() => setIsFilesAddNewOpen(!isFilesAddNewOpen)}
-                    className="flex items-center gap-[5px] rounded-[4px] bg-blue-500 px-[8px] py-[4px] text-[13px] font-medium text-white transition-colors hover:bg-blue-600"
+                    className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
+                    style={{ backgroundColor: "var(--primary-color)" }}
                     tabIndex={0}
                     aria-label="Add new"
                   >
@@ -1139,7 +1137,8 @@ export default function ParticipantProfilePage() {
                   <p className="text-[13px] font-medium text-[#bbb]">No files yet</p>
                   <button
                     onClick={() => setIsFilesAddNewOpen(true)}
-                    className="mt-[4px] flex items-center gap-[5px] rounded-[4px] bg-blue-500 px-[10px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-blue-600"
+                    className="primary-btn mt-[4px] flex items-center gap-[5px] rounded-[4px] px-[10px] py-[6px] text-[13px] font-medium transition-colors"
+                    style={{ backgroundColor: "var(--primary-color)" }}
                     tabIndex={0}
                   >
                     <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />

@@ -27,6 +27,15 @@ function saveReadIds(ids: Set<string>) {
   localStorage.setItem("coordination:read-notifications", JSON.stringify([...ids]))
 }
 
+function getNotifPrefs(): Record<string, { enabled: boolean; inApp: boolean; email: boolean }> {
+  if (typeof window === "undefined") return {}
+  try {
+    const stored = localStorage.getItem("coordination:notification-preferences")
+    if (stored) return JSON.parse(stored)
+  } catch { /* fall through */ }
+  return {}
+}
+
 export function useNotifications() {
   const { tasks } = useTasks()
   const { invoices } = useInvoices()
@@ -37,9 +46,15 @@ export function useNotifications() {
     const now = new Date()
     const todayStr = now.toISOString().split("T")[0]
     const readIds = getReadIds()
+    const prefs = getNotifPrefs()
+
+    const isEnabled = (id: string) => {
+      const pref = prefs[id]
+      return !pref || (pref.enabled && pref.inApp)
+    }
 
     for (const task of tasks) {
-      if (task.status !== "done" && task.dueDate && task.dueDate < todayStr) {
+      if (task.status !== "done" && task.dueDate && task.dueDate < todayStr && isEnabled("overdue-task")) {
         items.push({
           id: `overdue-task-${task.id}`,
           type: "overdue-task",
@@ -50,7 +65,7 @@ export function useNotifications() {
         })
       }
 
-      if (task.status === "done") {
+      if (task.status === "done" && isEnabled("task-completed")) {
         items.push({
           id: `task-done-${task.id}`,
           type: "task-completed",
@@ -63,7 +78,7 @@ export function useNotifications() {
     }
 
     for (const inv of invoices) {
-      if (inv.status === "sent" && inv.sentAt) {
+      if (inv.status === "sent" && inv.sentAt && isEnabled("invoice-sent")) {
         items.push({
           id: `inv-sent-${inv.id}`,
           type: "invoice-sent",
@@ -73,7 +88,7 @@ export function useNotifications() {
           read: readIds.has(`inv-sent-${inv.id}`),
         })
       }
-      if (inv.status === "paid" && inv.paidAt) {
+      if (inv.status === "paid" && inv.paidAt && isEnabled("invoice-paid")) {
         items.push({
           id: `inv-paid-${inv.id}`,
           type: "invoice-paid",
@@ -83,7 +98,7 @@ export function useNotifications() {
           read: readIds.has(`inv-paid-${inv.id}`),
         })
       }
-      if (inv.status === "overdue") {
+      if (inv.status === "overdue" && isEnabled("invoice-overdue")) {
         items.push({
           id: `inv-overdue-${inv.id}`,
           type: "invoice-overdue",
@@ -97,7 +112,7 @@ export function useNotifications() {
 
     for (const client of clients) {
       const planEnd = client.participant?.planEndDate
-      if (planEnd) {
+      if (planEnd && isEnabled("plan-expiring")) {
         const endDate = new Date(planEnd + "T00:00:00")
         const daysUntil = Math.ceil((endDate.getTime() - now.getTime()) / 86400000)
         if (daysUntil >= 0 && daysUntil <= 30) {

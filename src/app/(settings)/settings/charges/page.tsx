@@ -162,22 +162,17 @@ export default function ChargesSettingsPage() {
   const claimLabel = (val: string) => claimTypes.find((c) => c.value === val)?.label ?? val
 
   return (
-    <div className="px-6">
-      <div className="mb-[6px] flex items-center gap-[10px]">
-        <div className="flex h-[32px] w-[32px] items-center justify-center rounded-lg bg-[#f0f0f0]">
-          <Tag className="h-[16px] w-[16px] text-[#555]" strokeWidth={1.75} />
-        </div>
-        <div>
-          <h1 className="text-[18px] font-semibold text-[#262626]">Charges</h1>
-        </div>
+    <div>
+      <div className="mb-[32px]">
+        <h1 className="text-[20px] font-bold text-[#262626]">Charges</h1>
+        <p className="mt-[4px] text-[14px] text-[#888]">
+          Add NDIS line items that are available when logging charges against tasks. Search the NDIS Pricing Arrangements to auto-fill, or add details manually.
+        </p>
       </div>
-      <p className="mb-[24px] text-[13px] font-medium leading-[1.5] text-[#888]">
-        Add NDIS line items that are available when logging charges against tasks. Search the NDIS Pricing Arrangements to auto-fill, or add details manually.
-      </p>
 
       <button
         onClick={() => setIsAdding(true)}
-        className="mb-[20px] flex items-center gap-[6px] rounded-[4px] border border-[#dcdcdc] px-[12px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+        className="mb-[20px] flex items-center gap-[6px] rounded-[8px] border border-[#e0e0e0] bg-white px-[14px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
         tabIndex={0}
       >
         <Plus className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -383,64 +378,54 @@ export default function ChargesSettingsPage() {
 
       {/* Charge items table */}
       {chargeItems.length === 0 ? (
-        <div className="px-[20px] py-[40px] text-center">
-          <Tag className="mx-auto h-[24px] w-[24px] text-[#ddd]" strokeWidth={1.5} />
-          <p className="mt-[8px] text-[13px] font-medium text-[#999]">No charge items added</p>
-          <p className="mt-[2px] text-[12px] text-[#bbb]">Add charge items to use when logging time against tasks</p>
+        <div className="flex flex-col items-center justify-center rounded-[14px] border border-[#e5e5e5] bg-[#fafafa] px-[20px] py-[48px] text-center">
+          <Tag className="h-[24px] w-[24px] text-[#d4d4d4]" strokeWidth={1.5} />
+          <p className="mt-[10px] text-[14px] font-medium text-[#888]">No charge items added</p>
+          <p className="mt-[2px] text-[13px] text-[#bbb]">Add charge items to use when logging time against tasks</p>
         </div>
       ) : (
-        <div>
-          <table className="w-full rounded-lg bg-[#fafafa]">
-            <thead>
-              <tr className="border-b border-sidebar-border">
-                <th className="pb-[10px] text-left text-[12px] font-medium text-sidebar-muted">Reference</th>
-                <th className="pb-[10px] text-left text-[12px] font-medium text-sidebar-muted">Item Number</th>
-                <th className="pb-[10px] text-left text-[12px] font-medium text-sidebar-muted">Claim Type</th>
-                <th className="pb-[10px] text-right text-[12px] font-medium text-sidebar-muted">Price</th>
-                <th className="pb-[10px] text-left text-[12px] font-medium text-sidebar-muted">Unit</th>
-                <th className="pb-[10px] text-left text-[12px] font-medium text-sidebar-muted">GST</th>
-                <th className="w-[40px] pb-[10px]" />
-              </tr>
-            </thead>
-            <tbody>
-              {chargeItems.map((item) => (
-                <tr
-                  key={item.id}
-                  className="group border-b border-sidebar-border transition-colors last:border-b-0 hover:bg-[#fafafa]"
+        <div className="overflow-hidden rounded-[14px] border border-[#e5e5e5] bg-[#fafafa]">
+          <div className="grid grid-cols-[1fr_100px_110px_80px_60px_50px_40px] items-center border-b border-[#efefef] px-[20px] py-[10px]">
+            <span className="text-[12px] font-medium text-[#999]">Reference</span>
+            <span className="text-[12px] font-medium text-[#999]">Item Number</span>
+            <span className="text-[12px] font-medium text-[#999]">Claim Type</span>
+            <span className="text-right text-[12px] font-medium text-[#999]">Price</span>
+            <span className="text-[12px] font-medium text-[#999]">Unit</span>
+            <span className="text-[12px] font-medium text-[#999]">GST</span>
+            <span />
+          </div>
+          {chargeItems.map((item) => (
+            <div
+              key={item.id}
+              className="group grid grid-cols-[1fr_100px_110px_80px_60px_50px_40px] items-center border-b border-[#efefef] px-[20px] py-[14px] transition-colors last:border-b-0 hover:bg-[#f5f5f5]"
+            >
+              <span className="text-[13px] font-medium text-[#262626]">{item.reference || item.name}</span>
+              <span className="text-[13px] text-[#888]">{item.itemNumber}</span>
+              <span className="text-[13px] text-[#888]">{claimLabel(item.claimType)}</span>
+              <span className="text-right text-[13px] font-medium text-[#262626]">${item.price.toFixed(2)}</span>
+              <span className="text-[13px] text-[#888]">{item.unit === "hour" ? "Hour" : "Each"}</span>
+              <span className="text-[13px] text-[#888]">{item.gstCode}</span>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => handleRemove(item)}
+                  className="flex h-[26px] w-[26px] items-center justify-center rounded-[6px] text-[#d4d4d4] opacity-0 transition-all group-hover:opacity-100 hover:bg-red-50 hover:text-red-400"
+                  tabIndex={0}
+                  aria-label={`Remove ${item.reference || item.name}`}
                 >
-                  <td className="py-[12px]">
-                    <span className="text-[13px] font-medium text-[#262626]">{item.reference || item.name}</span>
-                  </td>
-                  <td className="py-[12px]">
-                    <span className="text-[13px] font-medium text-sidebar-muted">{item.itemNumber}</span>
-                  </td>
-                  <td className="py-[12px] text-[13px] font-medium text-sidebar-muted">{claimLabel(item.claimType)}</td>
-                  <td className="py-[12px] text-right text-[13px] font-medium text-[#262626]">${item.price.toFixed(2)}</td>
-                  <td className="py-[12px] text-[13px] font-medium text-sidebar-muted">{item.unit === "hour" ? "Hour" : "Each"}</td>
-                  <td className="py-[12px] text-[13px] font-medium text-sidebar-muted">{item.gstCode}</td>
-                  <td className="py-[12px]">
-                    <button
-                      onClick={() => handleRemove(item)}
-                      className="flex h-[26px] w-[26px] items-center justify-center rounded-[4px] text-[#ddd] opacity-0 transition-all group-hover:opacity-100 hover:bg-red-50 hover:text-red-400"
-                      tabIndex={0}
-                      aria-label={`Remove ${item.reference || item.name}`}
-                    >
-                      <Trash2 className="h-[13px] w-[13px]" strokeWidth={1.75} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  <Trash2 className="h-[13px] w-[13px]" strokeWidth={1.75} />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      <p className="mt-[16px] text-[11px] font-medium text-[#bbb]">
+      <p className="mt-[16px] text-[12px] text-[#bbb]">
         Source: NDIS Support Catalogue 2025–26 v1.1, effective 24 Nov 2025.
       </p>
 
       {toast && (
-        <div className="fixed bottom-[24px] left-1/2 z-50 -translate-x-1/2 rounded-lg border border-[#e0e0e0] bg-white px-[16px] py-[10px] text-[13px] font-medium text-[#262626] shadow-lg">
+        <div className="fixed bottom-[24px] left-1/2 z-50 -translate-x-1/2 rounded-[10px] border border-[#e5e5e5] bg-white px-[16px] py-[10px] text-[13px] font-medium text-[#262626] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
           {toast}
         </div>
       )}

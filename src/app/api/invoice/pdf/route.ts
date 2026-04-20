@@ -8,6 +8,16 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
+  const { data: membership } = await supabase
+    .from("workspace_members")
+    .select("role")
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .limit(1)
+    .single()
+
+  if (!membership) return NextResponse.json({ error: "Not a workspace member" }, { status: 403 })
+
   const { invoice, orgSettings, ndisNumber } = await request.json() as {
     invoice: Invoice
     orgSettings: Partial<WorkspaceEmailSettings>

@@ -1,135 +1,184 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { ndisCharges, type ChargeItem } from "@/lib/ndis-charges"
+import { useWorkspace } from "@/lib/workspace-context"
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 
-const STORAGE_KEY = "coordination:charge-items"
-const LEGACY_KEY = "coordination:enabled-charges"
-
-function migrateFromLegacy(): ChargeItem[] {
-  if (typeof window === "undefined") return []
-  const legacy = localStorage.getItem(LEGACY_KEY)
-  if (!legacy) return []
-  try {
-    const itemNumbers: string[] = JSON.parse(legacy)
-    return itemNumbers
-      .map((num) => {
-        const ndis = ndisCharges.find((c) => c.itemNumber === num)
-        if (!ndis) return null
-        return {
-          id: crypto.randomUUID(),
-          name: ndis.name,
-          itemNumber: ndis.itemNumber,
-          claimType: "direct-service",
-          price: ndis.price,
-          unit: ndis.unit,
-          gstCode: "P2",
-          reference: ndis.shortName,
-        } as ChargeItem
-      })
-      .filter(Boolean) as ChargeItem[]
-  } catch {
-    return []
-  }
-}
-
-function getDefaults(): ChargeItem[] {
+function getDefaultItemNumbers(): string[] {
   return ndisCharges
     .filter((c) => c.category === "support-coordination")
-    .map((c) => ({
-      id: crypto.randomUUID(),
-      name: c.name,
-      itemNumber: c.itemNumber,
-      claimType: "direct-service",
-      price: c.price,
-      unit: c.unit,
-      gstCode: "P2",
-      reference: c.shortName,
-    }))
+    .map((c) => c.itemNumber)
 }
 
-function loadItems(): ChargeItem[] {
-  if (typeof window === "undefined") return getDefaults()
-  const stored = localStorage.getItem(STORAGE_KEY)
-  if (stored) {
-    try { return JSON.parse(stored) } catch { /* fall through */ }
-  }
-  const migrated = migrateFromLegacy()
-  if (migrated.length > 0) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated))
-    return migrated
-  }
-  return getDefaults()
-}
-
-function saveItems(items: ChargeItem[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
-  window.dispatchEvent(new Event("charges-updated"))
+function buildChargeItems(itemNumbers: string[]): ChargeItem[] {
+  return itemNumbers
+    .map((num) => {
+      const ndis = ndisCharges.find((c) => c.itemNumber === num)
+      if (!ndis) return null
+      return {
+        id: num,
+        name: ndis.name,
+        itemNumber: ndis.itemNumber,
+        claimType: "direct-service",
+        price: ndis.price,
+        unit: ndis.unit,
+        gstCode: "P2",
+        reference: ndis.shortName,
+      } as ChargeItem
+    })
+    .filter(Boolean) as ChargeItem[]
 }
 
 export function useCharges() {
-  const [chargeItems, setChargeItems] = useState<ChargeItem[]>(getDefaults)
+  const { activeWorkspace } = useWorkspace()
+  const workspaceId = activeWorkspace?.id ?? null
+  const [chargeItems, setChargeItems] = useState<ChargeItem[]>(() =>
+    buildChargeItems(getDefaultItemNumbers())
+  )
+  const [isLoading, setIsLoading] = useState(true)
+  const hasLoadedRef = useRef(false)
 
   useEffect(() => {
-    setChargeItems(loadItems())
-
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) setChargeItems(loadItems())
+    if (!workspaceId || !isSupabaseConfigured()) {
+      setIsLoading(false)
+      return
     }
-    const handleCustom = () => setChargeItems(loadItems())
 
-    window.addEventListener("storage", handleStorage)
-    window.addEventListener("charges-updated", handleCustom)
+    const supabase = createClient()
+    if (!supabase) {
+      setIsLoading(false)
+      return
+    }
+
+    let cancelled = false
+
+    const load = async () => {
+      const { data } = await supabase
+        .from("charges_config")
+        .select("enabled_charges")
+        .eq("workspace_id", workspaceId)
+        .single()
+
+      if (cancelled) return
+
+      if (data?.enabled_charges) {
+        setChargeItems(buildChargeItems(data.enabled_charges))
+        hasLoadedRef.current = true
+        setIsLoading(false)
+        return
+      }
+
+      const defaults = getDefaultItemNumbers()
+      await supabase
+        .from("charges_config")
+        .upsert(
+          { workspace_id: workspaceId, enabled_charges: defaults },
+          { onConflict: "workspace_id" }
+        )
+
+      if (cancelled) return
+      setChargeItems(buildChargeItems(defaults))
+      hasLoadedRef.current = true
+      setIsLoading(false)
+    }
+
+    load().catch((err) => {
+      console.error("Failed to load charges config:", err)
+      if (!cancelled) {
+        hasLoadedRef.current = true
+        setIsLoading(false)
+      }
+    })
+
     return () => {
-      window.removeEventListener("storage", handleStorage)
-      window.removeEventListener("charges-updated", handleCustom)
+      cancelled = true
     }
-  }, [])
+  }, [workspaceId])
+
+  const persistToSupabase = useCallback(
+    async (itemNumbers: string[]) => {
+      if (!workspaceId || !isSupabaseConfigured()) return
+      const supabase = createClient()
+      if (!supabase) return
+      const { error } = await supabase
+        .from("charges_config")
+        .upsert(
+          {
+            workspace_id: workspaceId,
+            enabled_charges: itemNumbers,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "workspace_id" }
+        )
+      if (error) console.error("Failed to save charges config:", error)
+    },
+    [workspaceId]
+  )
 
   const enabledCharges = useMemo(() => {
     return chargeItems.map((ci) => {
       const ndis = ndisCharges.find((n) => n.itemNumber === ci.itemNumber)
-      return ndis ?? {
-        itemNumber: ci.itemNumber,
-        name: ci.name,
-        shortName: ci.reference,
-        registrationGroup: "",
-        unit: ci.unit,
-        price: ci.price,
-        category: "support-coordination" as const,
-      }
+      return (
+        ndis ?? {
+          itemNumber: ci.itemNumber,
+          name: ci.name,
+          shortName: ci.reference,
+          registrationGroup: "",
+          unit: ci.unit,
+          price: ci.price,
+          category: "support-coordination" as const,
+        }
+      )
     })
   }, [chargeItems])
 
-  const enabledItemNumbers = useMemo(() => chargeItems.map((ci) => ci.itemNumber), [chargeItems])
+  const enabledItemNumbers = useMemo(
+    () => chargeItems.map((ci) => ci.itemNumber),
+    [chargeItems]
+  )
 
-  const addChargeItem = useCallback((item: ChargeItem) => {
-    setChargeItems((prev) => {
-      const next = [...prev, item]
-      saveItems(next)
-      return next
-    })
-  }, [])
+  const addChargeItem = useCallback(
+    (item: ChargeItem) => {
+      setChargeItems((prev) => {
+        const next = [...prev, item]
+        persistToSupabase(next.map((ci) => ci.itemNumber))
+        return next
+      })
+    },
+    [persistToSupabase]
+  )
 
-  const removeChargeItem = useCallback((id: string) => {
-    setChargeItems((prev) => {
-      const next = prev.filter((ci) => ci.id !== id)
-      saveItems(next)
-      return next
-    })
-  }, [])
+  const removeChargeItem = useCallback(
+    (id: string) => {
+      setChargeItems((prev) => {
+        const next = prev.filter((ci) => ci.id !== id)
+        persistToSupabase(next.map((ci) => ci.itemNumber))
+        return next
+      })
+    },
+    [persistToSupabase]
+  )
 
-  const updateChargeItem = useCallback((id: string, updates: Partial<ChargeItem>) => {
-    setChargeItems((prev) => {
-      const next = prev.map((ci) => ci.id === id ? { ...ci, ...updates } : ci)
-      saveItems(next)
-      return next
-    })
-  }, [])
+  const updateChargeItem = useCallback(
+    (id: string, updates: Partial<ChargeItem>) => {
+      setChargeItems((prev) => {
+        const next = prev.map((ci) =>
+          ci.id === id ? { ...ci, ...updates } : ci
+        )
+        persistToSupabase(next.map((ci) => ci.itemNumber))
+        return next
+      })
+    },
+    [persistToSupabase]
+  )
 
-  const isEnabled = useCallback((itemNumber: string) => {
-    return chargeItems.some((ci) => ci.itemNumber === itemNumber)
-  }, [chargeItems])
+  const isEnabled = useCallback(
+    (itemNumber: string) => {
+      return chargeItems.some((ci) => ci.itemNumber === itemNumber)
+    },
+    [chargeItems]
+  )
 
   return {
     allCharges: ndisCharges,
@@ -140,5 +189,6 @@ export function useCharges() {
     removeChargeItem,
     updateChargeItem,
     isEnabled,
+    isLoading,
   }
 }

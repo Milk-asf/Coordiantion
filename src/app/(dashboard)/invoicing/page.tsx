@@ -571,7 +571,7 @@ export default function InvoicingPage() {
         clientId: client.id,
       }
 
-      const invoice = addInvoice({
+      const invoice = await addInvoice({
         clientName: participantName,
         clientId: client.id,
         taskIds: [task.id],
@@ -583,10 +583,16 @@ export default function InvoicingPage() {
         notes: task.description || "",
       })
 
+      if (!invoice) {
+        failedCount += 1
+        failedMessages.push(`${participantName}: Failed to create invoice`)
+        continue
+      }
+
       try {
         if (completionAction.mode === "portal") {
           exportInvoiceToCsv(invoice)
-          markInvoiceSent(invoice.id, {
+          await markInvoiceSent(invoice.id, {
             sentTo: completionAction.sentTo,
             deliveryMethod: completionAction.deliveryMethod,
           })
@@ -612,7 +618,7 @@ export default function InvoicingPage() {
         const result = await response.json()
         if (!response.ok) throw new Error(result.error || "Failed to send invoice")
 
-        markInvoiceSent(invoice.id, {
+        await markInvoiceSent(invoice.id, {
           sentTo: completionAction.sentTo,
           deliveryMethod: completionAction.deliveryMethod,
         })
@@ -620,7 +626,7 @@ export default function InvoicingPage() {
         emailedCount += 1
         completedTaskIds.push(task.id)
       } catch (error) {
-        deleteInvoice(invoice.id)
+        await deleteInvoice(invoice.id)
         failedCount += 1
         failedMessages.push(`${participantName}: ${error instanceof Error ? error.message : "Failed to send invoice"}`)
       }
@@ -668,7 +674,7 @@ export default function InvoicingPage() {
         className={`group grid cursor-pointer items-center border-b px-[24px] transition-colors ${
           hasInvoiceIssues
             ? "border-[#f2d7d7] bg-[#fff8f8] shadow-[inset_3px_0_0_0_#e46a6a] hover:bg-[#fff3f3]"
-            : "border-[#f0f0f0] hover:bg-[#fafafa]"
+            : "border-[#f0f0f0] hover:bg-[#f5f5f5]"
         }`}
         style={{ gridTemplateColumns: gridTemplateColumns }}
         onClick={() => setSelectedTaskId(task.id)}
@@ -704,8 +710,15 @@ export default function InvoicingPage() {
           </div>
         )}
         {isColumnVisible("type") && (
-          <div className="whitespace-nowrap py-[12px] text-[13px] text-[#666]">
-            {typeLabel}
+          <div className="whitespace-nowrap py-[12px]">
+            <span className={`inline-flex items-center rounded-[4px] border px-[10px] py-[4px] text-[12px] font-medium whitespace-nowrap ${
+              fundingType === "plan-managed" ? "border-[#d7e6ff] bg-[#eef5ff] text-[#2563eb]"
+              : fundingType === "ndia-managed" ? "border-[#e0d7f5] bg-[#f3eeff] text-[#6d28d9]"
+              : fundingType === "self-managed" ? "border-[#d7eadf] bg-[#f3faf6] text-[#286847]"
+              : "border-[#e2e2e2] bg-[#f7f7f7] text-[#666]"
+            }`}>
+              {typeLabel}
+            </span>
           </div>
         )}
         {isColumnVisible("participant") && (
@@ -737,7 +750,7 @@ export default function InvoicingPage() {
         )}
         {isColumnVisible("amount") && (
           <div className="whitespace-nowrap py-[12px] text-[13px] text-[#666]">
-            <span className="font-medium text-[#262626]">
+            <span className="font-medium text-[#16a34a]">
               {amount > 0 ? formatCurrency(amount) : <span className="text-[#ccc]">—</span>}
             </span>
           </div>
@@ -846,9 +859,10 @@ export default function InvoicingPage() {
             disabled={selectedTaskCount === 0}
             className={`flex items-center gap-[6px] rounded-[4px] px-[10px] py-[6px] text-[13px] font-medium transition-colors ${
               selectedTaskCount > 0
-                ? "bg-blue-500 text-white hover:bg-blue-600"
+                ? "primary-btn"
                 : "cursor-not-allowed bg-[#efefef] text-[#b8b8b8]"
             }`}
+            style={selectedTaskCount > 0 ? { backgroundColor: "var(--primary-color)" } : undefined}
             tabIndex={0}
           >
             <Receipt className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -1001,7 +1015,7 @@ export default function InvoicingPage() {
           <SlidersHorizontal className="h-[13px] w-[13px]" strokeWidth={1.5} />
           <span className="hidden sm:inline">Display</span>
           {hasDisplayFilters && (
-            <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded-[4px] bg-blue-500 px-[4px] text-[10px] font-bold text-white">
+            <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded-[4px] px-[4px] text-[10px] font-bold" style={{ backgroundColor: "var(--primary-color)", color: "var(--primary-btn-text)" }}>
               {displayParticipants.length + displayAssignees.length + displayCharges.length}
             </span>
           )}
@@ -1571,7 +1585,8 @@ export default function InvoicingPage() {
                       type="button"
                       onClick={handleSendInvoices}
                       disabled={isSendingInvoices || selectedTaskCount === 0}
-                      className="rounded-[4px] bg-blue-500 px-[12px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="primary-btn rounded-[4px] px-[12px] py-[7px] text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                      style={{ backgroundColor: "var(--primary-color)" }}
                     >
                       {isSendingInvoices ? "Sending..." : "Confirm"}
                     </button>

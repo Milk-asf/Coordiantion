@@ -340,6 +340,8 @@ export default function StaffPage() {
     return cols
   }, [visibleColumnKeys, staffTableKeyMap])
 
+  const activeStaff = staff.filter((s) => s.status !== "inactive")
+
   const exportCsvData = useMemo(() =>
     activeStaff.map((s) => {
       const row: Record<string, string> = { name: s.name }
@@ -382,8 +384,6 @@ export default function StaffPage() {
       })
     }
   }, [addStaff])
-
-  const activeStaff = staff.filter((s) => s.status !== "inactive")
 
   const sortedStaff = (() => {
     if (!sortKey) return activeStaff
@@ -457,7 +457,7 @@ export default function StaffPage() {
                 data={exportCsvData}
                 onImport={handleCsvImport}
               />
-              <button onClick={() => router.push("/settings/members")} className="flex items-center gap-[5px] rounded-[4px] bg-blue-500 px-[8px] py-[4px] text-[13px] font-medium text-white transition-colors hover:bg-blue-600" tabIndex={0}>
+              <button onClick={() => router.push("/settings/members")} className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors" style={{ backgroundColor: "var(--primary-color)" }} tabIndex={0}>
                 <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
                 <span className="hidden sm:inline">Add new</span>
               </button>

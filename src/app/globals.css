@@ -3,7 +3,26 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --primary-color: #3b82f6;
+    --primary-color-hover: #2563eb;
+    --primary-color-light: rgba(59, 130, 246, 0.08);
+    --primary-color-text: #3b82f6;
+    --primary-btn-text: #ffffff;
+    --primary-btn-border: transparent;
+  }
+
   body {
     @apply antialiased font-medium text-sidebar-text;
   }
+}
+
+.primary-btn {
+  color: var(--primary-btn-text) !important;
+  border: 1px solid var(--primary-btn-border);
+}
+
+.primary-btn:hover {
+  background-color: var(--primary-color-hover) !important;
+  filter: brightness(0.92);
 }

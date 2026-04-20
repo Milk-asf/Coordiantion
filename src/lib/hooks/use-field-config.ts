@@ -3,40 +3,109 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import {
   getDefaultFields,
-  FIELD_CONFIG_STORAGE_KEY,
   participantFieldToColumnKey,
   contactFieldToColumnKey,
   staffFieldToColumnKey,
   type FieldDefinition,
   type EntityTab,
 } from "@/lib/field-definitions"
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
+import { useWorkspace } from "@/lib/workspace-context"
 
-function loadFields(): FieldDefinition[] {
-  if (typeof window === "undefined") return getDefaultFields()
-  const stored = localStorage.getItem(FIELD_CONFIG_STORAGE_KEY)
-  if (!stored) return getDefaultFields()
-  try { return JSON.parse(stored) } catch { return getDefaultFields() }
+function deriveFields(hiddenFields: string[]): FieldDefinition[] {
+  const hiddenSet = new Set(hiddenFields)
+  return getDefaultFields().map((f) => ({
+    ...f,
+    isEnabled: !hiddenSet.has(f.id),
+  }))
 }
 
 export function useFieldConfig() {
-  const [fields, setFields] = useState<FieldDefinition[]>(getDefaultFields)
+  const { activeWorkspace } = useWorkspace()
+  const [hiddenFields, setHiddenFields] = useState<string[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  const workspaceId = activeWorkspace?.id
 
   useEffect(() => {
-    setFields(loadFields())
-
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === FIELD_CONFIG_STORAGE_KEY) setFields(loadFields())
+    if (!workspaceId || !isSupabaseConfigured()) {
+      setIsLoading(false)
+      return
     }
 
-    const handleCustom = () => setFields(loadFields())
-
-    window.addEventListener("storage", handleStorage)
-    window.addEventListener("field-config-updated", handleCustom)
-    return () => {
-      window.removeEventListener("storage", handleStorage)
-      window.removeEventListener("field-config-updated", handleCustom)
+    const supabase = createClient()
+    if (!supabase) {
+      setIsLoading(false)
+      return
     }
-  }, [])
+
+    let cancelled = false
+
+    const load = async () => {
+      const { data, error } = await supabase
+        .from("field_config")
+        .select("hidden_fields")
+        .eq("workspace_id", workspaceId)
+        .single()
+
+      if (cancelled) return
+
+      if (data) {
+        setHiddenFields(data.hidden_fields ?? [])
+      } else if (error?.code === "PGRST116") {
+        const { data: inserted } = await supabase
+          .from("field_config")
+          .upsert(
+            { workspace_id: workspaceId, hidden_fields: [] },
+            { onConflict: "workspace_id" },
+          )
+          .select("hidden_fields")
+          .single()
+
+        if (!cancelled) setHiddenFields(inserted?.hidden_fields ?? [])
+      }
+
+      if (!cancelled) setIsLoading(false)
+    }
+
+    load().catch((err) => {
+      console.error("Failed to load field config:", err)
+      if (!cancelled) setIsLoading(false)
+    })
+
+    return () => { cancelled = true }
+  }, [workspaceId])
+
+  const fields = useMemo(() => deriveFields(hiddenFields), [hiddenFields])
+
+  const toggleField = useCallback(async (fieldId: string) => {
+    if (!workspaceId || !isSupabaseConfigured()) return
+
+    const supabase = createClient()
+    if (!supabase) return
+
+    const nextHidden = hiddenFields.includes(fieldId)
+      ? hiddenFields.filter((id) => id !== fieldId)
+      : [...hiddenFields, fieldId]
+
+    setHiddenFields(nextHidden)
+
+    const { error } = await supabase
+      .from("field_config")
+      .upsert(
+        {
+          workspace_id: workspaceId,
+          hidden_fields: nextHidden,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "workspace_id" },
+      )
+
+    if (error) {
+      console.error("Failed to persist field config:", error)
+      setHiddenFields(hiddenFields)
+    }
+  }, [workspaceId, hiddenFields])
 
   const getDisabledColumnKeys = useCallback((entity: EntityTab): Set<string> => {
     const mapping = entity === "participants"
@@ -65,5 +134,13 @@ export function useFieldConfig() {
     return field.isEnabled
   }, [fields])
 
-  return { fields, participantDisabled, contactDisabled, staffDisabled, isFieldEnabled }
+  return {
+    fields,
+    participantDisabled,
+    contactDisabled,
+    staffDisabled,
+    isFieldEnabled,
+    toggleField,
+    isLoading,
+  }
 }

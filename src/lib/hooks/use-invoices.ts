@@ -1,129 +1,132 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
+import { useWorkspace } from "@/lib/workspace-context"
 import type { Invoice, InvoiceStatus, InvoiceLineItem, InvoiceDeliveryMethod } from "@/lib/types"
 
-const STORAGE_KEY = "coordination:invoices"
-const COUNTER_KEY = "coordination:invoice-counter"
-type StoredInvoice = Omit<Invoice, "status"> & { status: InvoiceStatus | "draft" }
-
-function isInvoiceStatus(value: unknown): value is InvoiceStatus {
-  return value === "unsent" || value === "sent" || value === "paid" || value === "overdue" || value === "draft"
+interface InvoiceRow {
+  id: string
+  workspace_id: string
+  invoice_number: string
+  client_name: string
+  client_id: string | null
+  status: string
+  issue_date: string
+  due_date: string
+  task_ids: string[]
+  line_items: InvoiceLineItem[]
+  subtotal: number
+  gst: number
+  total: number
+  notes: string
+  created_by: string
+  delivery_method: string | null
+  sent_at: string | null
+  sent_to: string | null
+  sent_error: string | null
+  paid_at: string | null
+  created_at: string
+  updated_at: string
 }
 
-function isInvoiceDeliveryMethod(value: unknown): value is InvoiceDeliveryMethod {
-  return value === "plan-manager-email" || value === "participant-email" || value === "ndia-portal"
+function dbToInvoice(row: InvoiceRow): Invoice {
+  return {
+    id: row.id,
+    invoiceNumber: row.invoice_number,
+    clientName: row.client_name,
+    clientId: row.client_id,
+    status: row.status as InvoiceStatus,
+    issueDate: row.issue_date,
+    dueDate: row.due_date,
+    taskIds: row.task_ids || [],
+    lineItems: row.line_items || [],
+    subtotal: Number(row.subtotal),
+    gst: Number(row.gst),
+    total: Number(row.total),
+    notes: row.notes || "",
+    createdBy: row.created_by || "",
+    createdAt: row.created_at,
+    ...(row.paid_at ? { paidAt: row.paid_at } : {}),
+    ...(row.sent_at ? { sentAt: row.sent_at } : {}),
+    ...(row.sent_to ? { sentTo: row.sent_to } : {}),
+    ...(row.sent_error ? { sentError: row.sent_error } : {}),
+    ...(row.delivery_method ? { deliveryMethod: row.delivery_method as InvoiceDeliveryMethod } : {}),
+  }
 }
 
-function isInvoiceLineItem(value: unknown): value is InvoiceLineItem {
-  if (!value || typeof value !== "object") return false
-
-  const lineItem = value as Partial<InvoiceLineItem>
-
-  return typeof lineItem.id === "string"
-    && typeof lineItem.description === "string"
-    && typeof lineItem.chargeItemNumber === "string"
-    && typeof lineItem.chargeName === "string"
-    && typeof lineItem.quantity === "number"
-    && (lineItem.unit === "hour" || lineItem.unit === "each")
-    && typeof lineItem.rate === "number"
-    && typeof lineItem.amount === "number"
-}
-
-function isStoredInvoice(value: unknown): value is StoredInvoice {
-  if (!value || typeof value !== "object") return false
-
-  const invoice = value as Partial<StoredInvoice>
-
-  return typeof invoice.id === "string"
-    && typeof invoice.invoiceNumber === "string"
-    && typeof invoice.clientName === "string"
-    && (typeof invoice.clientId === "string" || invoice.clientId === null)
-    && isInvoiceStatus(invoice.status)
-    && typeof invoice.issueDate === "string"
-    && typeof invoice.dueDate === "string"
-    && Array.isArray(invoice.taskIds)
-    && invoice.taskIds.every((taskId) => typeof taskId === "string")
-    && Array.isArray(invoice.lineItems)
-    && invoice.lineItems.every(isInvoiceLineItem)
-    && typeof invoice.subtotal === "number"
-    && typeof invoice.gst === "number"
-    && typeof invoice.total === "number"
-    && typeof invoice.notes === "string"
-    && typeof invoice.createdBy === "string"
-    && typeof invoice.createdAt === "string"
-    && (invoice.deliveryMethod === undefined || isInvoiceDeliveryMethod(invoice.deliveryMethod))
-}
-
-function loadInvoices(): Invoice[] {
-  if (typeof window === "undefined") return []
-  const stored = localStorage.getItem(STORAGE_KEY)
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored)
-      if (!Array.isArray(parsed)) return []
-
-      return parsed
-        .filter(isStoredInvoice)
-        .map((invoice) => ({
-          ...invoice,
-          status: invoice.status === "draft" ? "unsent" : invoice.status,
-        }))
-    } catch {
-      /* fall through */
+function nextInvoiceNumberFromList(invoices: Invoice[]): string {
+  let max = 0
+  for (const inv of invoices) {
+    const match = inv.invoiceNumber.match(/^INV-(\d+)$/)
+    if (match) {
+      const num = parseInt(match[1], 10)
+      if (num > max) max = num
     }
   }
-  return []
-}
-
-function saveInvoices(invoices: Invoice[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices))
-  window.dispatchEvent(new Event("invoices-updated"))
-}
-
-function nextInvoiceNumber(): string {
-  if (typeof window === "undefined") return "INV-0001"
-  const current = parseInt(localStorage.getItem(COUNTER_KEY) || "0", 10)
-  const next = current + 1
-  localStorage.setItem(COUNTER_KEY, String(next))
+  const next = max + 1
   return `INV-${String(next).padStart(4, "0")}`
 }
 
 export function useInvoices() {
+  const { activeWorkspace } = useWorkspace()
   const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    const hydrate = () => {
-      const loaded = loadInvoices()
+  const fetchInvoices = useCallback(async () => {
+    if (!activeWorkspace || !isSupabaseConfigured()) {
+      setInvoices([])
+      setIsLoading(false)
+      return
+    }
+    const supabase = createClient()
+    if (!supabase) { setInvoices([]); setIsLoading(false); return }
+
+    setIsLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from("invoices")
+        .select("*")
+        .eq("workspace_id", activeWorkspace.id)
+        .order("created_at", { ascending: true })
+
+      if (error || !data) {
+        console.error("Failed to fetch invoices:", error?.message)
+        setInvoices([])
+        setIsLoading(false)
+        return
+      }
+
+      const mapped = (data as InvoiceRow[]).map(dbToInvoice)
+
       const today = new Date().toISOString().split("T")[0]
-      let didUpdate = false
-      const updated = loaded.map((inv) => {
-        if (inv.status === "sent" && inv.dueDate && inv.dueDate < today) {
-          didUpdate = true
+      const overdueIds: string[] = []
+      const withOverdue = mapped.map((inv) => {
+        if (inv.status === "sent" && inv.dueDate < today) {
+          overdueIds.push(inv.id)
           return { ...inv, status: "overdue" as InvoiceStatus }
         }
         return inv
       })
-      if (didUpdate) saveInvoices(updated)
-      setInvoices(updated)
+
+      if (overdueIds.length > 0) {
+        await supabase
+          .from("invoices")
+          .update({ status: "overdue", updated_at: new Date().toISOString() })
+          .in("id", overdueIds)
+      }
+
+      setInvoices(withOverdue)
+    } catch (err) {
+      console.error("Failed to fetch invoices:", err)
+      setInvoices([])
     }
+    setIsLoading(false)
+  }, [activeWorkspace])
 
-    hydrate()
+  useEffect(() => { fetchInvoices() }, [fetchInvoices])
 
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) hydrate()
-    }
-    const handleCustom = () => hydrate()
-
-    window.addEventListener("storage", handleStorage)
-    window.addEventListener("invoices-updated", handleCustom)
-    return () => {
-      window.removeEventListener("storage", handleStorage)
-      window.removeEventListener("invoices-updated", handleCustom)
-    }
-  }, [])
-
-  const addInvoice = useCallback((input: {
+  const addInvoice = useCallback(async (input: {
     clientName: string
     clientId: string | null
     taskIds: string[]
@@ -134,15 +137,21 @@ export function useInvoices() {
     createdBy: string
     notes?: string
     id?: string
-  }): Invoice => {
+  }): Promise<Invoice | null> => {
+    if (!activeWorkspace || !isSupabaseConfigured()) return null
+    const supabase = createClient()
+    if (!supabase) return null
+
     const today = new Date()
     const dueDate = new Date(today)
     dueDate.setDate(dueDate.getDate() + 30)
     const fmt = (d: Date) => d.toISOString().split("T")[0]
 
+    const invoiceNumber = nextInvoiceNumberFromList(invoices)
+
     const invoice: Invoice = {
       id: input.id || crypto.randomUUID(),
-      invoiceNumber: nextInvoiceNumber(),
+      invoiceNumber,
       clientName: input.clientName,
       clientId: input.clientId,
       status: "unsent",
@@ -158,63 +167,137 @@ export function useInvoices() {
       createdAt: today.toISOString(),
     }
 
-    setInvoices((prev) => {
-      const next = [...prev, invoice]
-      saveInvoices(next)
-      return next
-    })
+    setInvoices((prev) => [...prev, invoice])
+
+    const { data, error } = await supabase
+      .from("invoices")
+      .insert({
+        id: invoice.id,
+        workspace_id: activeWorkspace.id,
+        invoice_number: invoice.invoiceNumber,
+        client_name: invoice.clientName,
+        client_id: invoice.clientId,
+        status: invoice.status,
+        issue_date: invoice.issueDate,
+        due_date: invoice.dueDate,
+        task_ids: invoice.taskIds,
+        line_items: invoice.lineItems as unknown as Record<string, unknown>[],
+        subtotal: invoice.subtotal,
+        gst: invoice.gst,
+        total: invoice.total,
+        notes: invoice.notes,
+        created_by: invoice.createdBy,
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Failed to add invoice:", error.message)
+      setInvoices((prev) => prev.filter((i) => i.id !== invoice.id))
+      return null
+    }
+
+    if (data) {
+      const persisted = dbToInvoice(data as InvoiceRow)
+      setInvoices((prev) => prev.map((i) => i.id === invoice.id ? persisted : i))
+      return persisted
+    }
+
     return invoice
-  }, [])
+  }, [activeWorkspace, invoices])
 
-  const updateInvoiceStatus = useCallback((id: string, status: InvoiceStatus) => {
-    setInvoices((prev) => {
-      const next = prev.map((inv) => {
-        if (inv.id !== id) return inv
-        const updates: Partial<Invoice> = { status }
-        if (status === "paid") updates.paidAt = new Date().toISOString()
-        return { ...inv, ...updates }
-      })
-      saveInvoices(next)
-      return next
-    })
-  }, [])
+  const updateInvoiceStatus = useCallback(async (id: string, status: InvoiceStatus) => {
+    const updates: Partial<Invoice> = { status }
+    if (status === "paid") updates.paidAt = new Date().toISOString()
 
-  const markInvoiceSent = useCallback((id: string, params: { sentTo: string; deliveryMethod?: InvoiceDeliveryMethod }) => {
-    setInvoices((prev) => {
-      const next = prev.map((inv) => {
-        if (inv.id !== id) return inv
-        return {
-          ...inv,
-          status: "sent" as InvoiceStatus,
-          sentAt: new Date().toISOString(),
-          sentTo: params.sentTo,
-          sentError: undefined,
-          ...(params.deliveryMethod ? { deliveryMethod: params.deliveryMethod } : {}),
-        }
-      })
-      saveInvoices(next)
-      return next
-    })
-  }, [])
+    setInvoices((prev) => prev.map((inv) =>
+      inv.id === id ? { ...inv, ...updates } : inv
+    ))
 
-  const markInvoiceSendError = useCallback((id: string, error: string) => {
-    setInvoices((prev) => {
-      const next = prev.map((inv) => {
-        if (inv.id !== id) return inv
-        return { ...inv, sentError: error }
-      })
-      saveInvoices(next)
-      return next
-    })
-  }, [])
+    if (!isSupabaseConfigured()) return
+    const supabase = createClient()
+    if (!supabase) return
 
-  const deleteInvoice = useCallback((id: string) => {
-    setInvoices((prev) => {
-      const next = prev.filter((inv) => inv.id !== id)
-      saveInvoices(next)
-      return next
-    })
-  }, [])
+    const dbUpdates: Record<string, unknown> = {
+      status,
+      updated_at: new Date().toISOString(),
+    }
+    if (status === "paid") dbUpdates.paid_at = updates.paidAt
+
+    const { error } = await supabase.from("invoices").update(dbUpdates).eq("id", id)
+    if (error) {
+      console.error("Failed to update invoice status:", error.message)
+      fetchInvoices()
+    }
+  }, [fetchInvoices])
+
+  const markInvoiceSent = useCallback(async (id: string, params: { sentTo: string; deliveryMethod?: InvoiceDeliveryMethod }) => {
+    const now = new Date().toISOString()
+    setInvoices((prev) => prev.map((inv) => {
+      if (inv.id !== id) return inv
+      return {
+        ...inv,
+        status: "sent" as InvoiceStatus,
+        sentAt: now,
+        sentTo: params.sentTo,
+        sentError: undefined,
+        ...(params.deliveryMethod ? { deliveryMethod: params.deliveryMethod } : {}),
+      }
+    }))
+
+    if (!isSupabaseConfigured()) return
+    const supabase = createClient()
+    if (!supabase) return
+
+    const dbUpdates: Record<string, unknown> = {
+      status: "sent",
+      sent_at: now,
+      sent_to: params.sentTo,
+      sent_error: null,
+      updated_at: now,
+    }
+    if (params.deliveryMethod) dbUpdates.delivery_method = params.deliveryMethod
+
+    const { error } = await supabase.from("invoices").update(dbUpdates).eq("id", id)
+    if (error) {
+      console.error("Failed to mark invoice sent:", error.message)
+      fetchInvoices()
+    }
+  }, [fetchInvoices])
+
+  const markInvoiceSendError = useCallback(async (id: string, error: string) => {
+    setInvoices((prev) => prev.map((inv) =>
+      inv.id === id ? { ...inv, sentError: error } : inv
+    ))
+
+    if (!isSupabaseConfigured()) return
+    const supabase = createClient()
+    if (!supabase) return
+
+    const { error: dbError } = await supabase
+      .from("invoices")
+      .update({ sent_error: error, updated_at: new Date().toISOString() })
+      .eq("id", id)
+
+    if (dbError) {
+      console.error("Failed to update send error:", dbError.message)
+      fetchInvoices()
+    }
+  }, [fetchInvoices])
+
+  const deleteInvoice = useCallback(async (id: string) => {
+    setInvoices((prev) => prev.filter((inv) => inv.id !== id))
+
+    if (!isSupabaseConfigured()) return
+    const supabase = createClient()
+    if (!supabase) return
+
+    const { error } = await supabase.from("invoices").delete().eq("id", id)
+    if (error) {
+      console.error("Failed to delete invoice:", error.message)
+      fetchInvoices()
+    }
+  }, [fetchInvoices])
 
   const exportInvoiceToCsv = useCallback((invoice: Invoice) => {
     const headers = [
@@ -286,6 +369,7 @@ export function useInvoices() {
 
   return {
     invoices,
+    isLoading,
     addInvoice,
     updateInvoiceStatus,
     markInvoiceSent,
@@ -293,5 +377,6 @@ export function useInvoices() {
     deleteInvoice,
     exportInvoiceToCsv,
     exportAllToCsv,
+    refetch: fetchInvoices,
   }
 }

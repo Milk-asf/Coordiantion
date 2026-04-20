@@ -15,65 +15,56 @@ export default function ParticipantsSettingsPage() {
 
   return (
     <>
-      <div className="mb-[28px]">
-        <h1 className="text-[22px] font-semibold text-[#1a1a1a]">Participants</h1>
-        <p className="mt-[4px] text-[14px] text-sidebar-muted">
+      <div className="mb-[32px]">
+        <h1 className="text-[20px] font-bold text-[#262626]">Participants</h1>
+        <p className="mt-[4px] text-[14px] text-[#888]">
           Manage participant status. Toggle off to archive a participant.
         </p>
       </div>
 
-      <div>
-        <table className="w-full rounded-lg bg-[#fafafa] text-left">
-          <thead>
-            <tr className="border-b border-sidebar-border">
-              <th className="w-[70%] pb-[10px] text-left text-[12px] font-medium text-sidebar-muted">Name</th>
-              <th className="w-[15%] pb-[10px] text-left text-[12px] font-medium text-sidebar-muted">Status</th>
-              <th className="w-[15%] pb-[10px] text-left text-[12px] font-medium text-sidebar-muted">Active</th>
-            </tr>
-          </thead>
-          <tbody>
-            {activeClients.map((client) => (
+      <div className="overflow-hidden rounded-[14px] border border-[#e5e5e5] bg-[#fafafa]">
+        <div className="grid grid-cols-[1fr_100px_80px] items-center border-b border-[#efefef] px-[20px] py-[10px]">
+          <span className="text-[12px] font-medium text-[#999]">Name</span>
+          <span className="text-[12px] font-medium text-[#999]">Status</span>
+          <span className="text-[12px] font-medium text-[#999]">Active</span>
+        </div>
+
+        {activeClients.map((client) => (
+          <ParticipantRow
+            key={client.id}
+            name={client.displayName}
+            initials={client.iconText}
+            coordinator={client.owner}
+            isActive
+            onToggle={() => handleToggle(client.id, "active")}
+          />
+        ))}
+
+        {clients.length === 0 && (
+          <div className="px-[20px] py-[40px] text-center text-[13px] text-[#bbb]">
+            No participants
+          </div>
+        )}
+      </div>
+
+      {archivedClients.length > 0 && (
+        <div className="mt-[28px]">
+          <h2 className="mb-[10px] text-[13px] font-semibold uppercase tracking-wide text-[#999]">Archived</h2>
+          <div className="overflow-hidden rounded-[14px] border border-[#e5e5e5] bg-[#fafafa]">
+            {archivedClients.map((client) => (
               <ParticipantRow
                 key={client.id}
                 name={client.displayName}
                 initials={client.iconText}
                 coordinator={client.owner}
-                isActive
-                onToggle={() => handleToggle(client.id, "active")}
+                isActive={false}
+                onToggle={() => handleToggle(client.id, "archived")}
+                isDisabledRow
               />
             ))}
-
-            {archivedClients.length > 0 && (
-              <>
-                <tr>
-                  <td colSpan={3} className="border-b border-sidebar-border pb-[8px] pt-[20px]">
-                    <span className="text-[11px] font-medium tracking-wide text-[#999]">ARCHIVED</span>
-                  </td>
-                </tr>
-                {archivedClients.map((client) => (
-                  <ParticipantRow
-                    key={client.id}
-                    name={client.displayName}
-                    initials={client.iconText}
-                    coordinator={client.owner}
-                    isActive={false}
-                    onToggle={() => handleToggle(client.id, "archived")}
-                    isDisabledRow
-                  />
-                ))}
-              </>
-            )}
-
-            {clients.length === 0 && (
-              <tr>
-                <td colSpan={3} className="px-[20px] py-[32px] text-center text-[13px] font-medium text-[#bbb]">
-                  No participants
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
@@ -93,41 +84,41 @@ function ParticipantRow({
   onToggle: () => void
   isDisabledRow?: boolean
 }) {
-  const textColor = isDisabledRow ? "text-[#bbb]" : "text-[#262626]"
-  const mutedColor = isDisabledRow ? "text-[#ccc]" : "text-[#888]"
-
   return (
-    <tr className="border-b border-sidebar-border transition-colors last:border-b-0 hover:bg-[#fafafa]">
-      <td className={cn("py-[12px] text-[13px] font-medium", textColor)}>
-        <div className="flex items-center gap-[10px]">
-          <div className={cn(
-            "flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[6px] text-[10px] font-semibold",
-            isDisabledRow ? "bg-[#e8e8e8] text-[#bbb]" : "bg-[#d4d4d4] text-[#555]"
-          )}>
-            {initials}
-          </div>
-          <div className="min-w-0">
-            <span className="block truncate">{name}</span>
-            {coordinator && (
-              <span className={cn("block truncate text-[11px]", mutedColor)}>{coordinator}</span>
-            )}
-          </div>
+    <div className={cn(
+      "grid grid-cols-[1fr_100px_80px] items-center border-b border-[#efefef] px-[20px] py-[14px] transition-colors last:border-b-0",
+      isDisabledRow ? "opacity-60" : "hover:bg-[#f5f5f5]"
+    )}>
+      <div className="flex items-center gap-[12px]">
+        <div className={cn(
+          "flex h-[32px] w-[32px] shrink-0 items-center justify-center rounded-[8px] text-[11px] font-semibold",
+          isDisabledRow ? "bg-[#e8e8e8] text-[#bbb]" : "bg-[#e0e0e0] text-[#555]"
+        )}>
+          {initials}
         </div>
-      </td>
-      <td className={cn("py-[12px] text-[13px] font-medium", mutedColor)}>
+        <div className="min-w-0">
+          <span className="block truncate text-[14px] font-medium text-[#262626]">{name}</span>
+          {coordinator && (
+            <span className="block truncate text-[12px] text-[#999]">{coordinator}</span>
+          )}
+        </div>
+      </div>
+
+      <div>
         {isActive ? (
-          <span className="inline-flex items-center rounded-[4px] bg-green-50 px-[8px] py-[1px] text-[11px] font-medium text-green-600">active</span>
+          <span className="inline-flex items-center rounded-full border border-green-100 bg-green-50 px-[10px] py-[2px] text-[11px] font-medium text-green-600">Active</span>
         ) : (
-          <span className="inline-flex items-center rounded-[4px] bg-gray-100 px-[8px] py-[1px] text-[11px] font-medium text-gray-500">archived</span>
+          <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-[10px] py-[2px] text-[11px] font-medium text-gray-500">Archived</span>
         )}
-      </td>
-      <td className="py-[12px]">
+      </div>
+
+      <div>
         <button
           type="button"
           onClick={onToggle}
           className={cn(
-            "relative h-[20px] w-[36px] rounded-full transition-colors",
-            isActive ? "bg-blue-500" : "bg-[#d4d4d4]"
+            "relative h-[22px] w-[40px] rounded-full transition-colors",
+            isActive ? "bg-blue-400" : "bg-[#d4d4d4]"
           )}
           tabIndex={0}
           aria-label={isActive ? "Archive participant" : "Activate participant"}
@@ -136,12 +127,12 @@ function ParticipantRow({
         >
           <span
             className={cn(
-              "absolute top-[2px] h-[16px] w-[16px] rounded-full bg-white shadow-sm transition-transform",
-              isActive ? "left-[18px]" : "left-[2px]"
+              "absolute top-[2px] h-[18px] w-[18px] rounded-full bg-white shadow-sm transition-transform",
+              isActive ? "left-[20px]" : "left-[2px]"
             )}
           />
         </button>
-      </td>
-    </tr>
+      </div>
+    </div>
   )
 }

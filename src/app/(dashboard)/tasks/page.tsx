@@ -520,17 +520,34 @@ export default function TasksPage() {
     updateTaskDb(selectedTaskId, { [field]: value } as Partial<Task>)
   }, [selectedTaskId, updateTaskDb])
 
-  const handleDetailFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDetailFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!selectedTaskId || !e.target.files) return
     const task = tasks.find((t) => t.id === selectedTaskId)
     if (!task) return
-    const added: Attachment[] = Array.from(e.target.files).map((f) => ({
-      id: crypto.randomUUID(),
-      name: f.name,
-      size: f.size,
-    }))
-    updateTaskDb(selectedTaskId, { attachments: [...task.attachments, ...added] })
+
+    const files = Array.from(e.target.files)
     e.target.value = ""
+
+    const supabase = isSupabaseConfigured() ? createClient() : null
+    const newAttachments: Attachment[] = []
+
+    for (const file of files) {
+      const id = crypto.randomUUID()
+      if (supabase) {
+        const storagePath = `task-attachments/${selectedTaskId}/${id}-${file.name}`
+        const { error } = await supabase.storage.from("documents").upload(storagePath, file)
+        if (!error) {
+          const { data: urlData } = supabase.storage.from("documents").getPublicUrl(storagePath)
+          newAttachments.push({ id, name: file.name, size: file.size, storagePath, url: urlData.publicUrl })
+        } else {
+          newAttachments.push({ id, name: file.name, size: file.size })
+        }
+      } else {
+        newAttachments.push({ id, name: file.name, size: file.size })
+      }
+    }
+
+    updateTaskDb(selectedTaskId, { attachments: [...task.attachments, ...newAttachments] })
   }
 
   const closeDetail = () => {
@@ -591,7 +608,15 @@ export default function TasksPage() {
   const taskCount = filtered.length
 
   const [showThisWeek, setShowThisWeek] = useState(true)
-  const [showPrevious, setShowPrevious] = useState(false)
+  const [showPrevious, setShowPrevious] = useState(() => {
+    if (typeof window === "undefined") return false
+    return localStorage.getItem("tasks-show-completed") === "true"
+  })
+
+  useEffect(() => {
+    localStorage.setItem("tasks-show-completed", String(showPrevious))
+  }, [showPrevious])
+
   const [pageSize, setPageSize] = useState(10)
   const [uncompletedVisible, setUncompletedVisible] = useState(10)
   const [completedVisible, setCompletedVisible] = useState(10)
@@ -745,7 +770,8 @@ export default function TasksPage() {
               <button
                 ref={createBtnRef}
                 onClick={() => { if (isQuickAdding) { resetQuickAdd() } else { setIsQuickAdding(true); setQuickActiveField("title"); setTimeout(() => quickInputRef.current?.focus(), 0) } }}
-                className={`flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors ${isQuickAdding ? "bg-blue-600 text-white" : "bg-blue-500 text-white hover:bg-blue-600"}`}
+                className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
+                style={{ backgroundColor: isQuickAdding ? "var(--primary-color-hover)" : "var(--primary-color)" }}
                 tabIndex={0}
               >
                 <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -979,7 +1005,7 @@ export default function TasksPage() {
                   <span className="text-[11px] font-medium text-[#ccc]">Enter ↵ next · Esc close</span>
                   <div className="flex items-center gap-[6px]">
                     <button type="button" onClick={resetQuickAdd} className="rounded px-[8px] py-[4px] text-[12px] font-medium text-[#999] transition-colors hover:bg-[#f0f0f0]" tabIndex={0}>Cancel</button>
-                    <button type="button" onClick={handleQuickFinish} disabled={!quickTitle.trim()} className="rounded-[4px] bg-blue-500 px-[12px] py-[4px] text-[12px] font-medium text-white transition-colors hover:bg-blue-600 disabled:opacity-40" tabIndex={0}>Create</button>
+                    <button type="button" onClick={handleQuickFinish} disabled={!quickTitle.trim()} className="primary-btn rounded-[4px] px-[12px] py-[4px] text-[12px] font-medium transition-colors disabled:opacity-40" style={{ backgroundColor: "var(--primary-color)" }} tabIndex={0}>Create</button>
                   </div>
                 </div>
               </div>
@@ -1103,7 +1129,7 @@ export default function TasksPage() {
               <SlidersHorizontal className="h-[13px] w-[13px]" strokeWidth={1.5} />
               <span className="hidden sm:inline">Display</span>
               {hasDisplayFilters && (
-                <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded-[4px] bg-blue-500 px-[4px] text-[10px] font-bold text-white">
+                <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded-[4px] px-[4px] text-[10px] font-bold" style={{ backgroundColor: "var(--primary-color)", color: "var(--primary-btn-text)" }}>
                   {displayParticipants.length + displayAssignees.length + displayCharges.length}
                 </span>
               )}
@@ -1203,6 +1229,22 @@ export default function TasksPage() {
                         </div>
                       </div>
                     )}
+
+                    <div className="px-[20px] pb-[16px] pt-[2px]">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[13px] font-medium text-[#888]">Show completed</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowPrevious((prev) => !prev)}
+                          className={`relative inline-flex h-[20px] w-[36px] shrink-0 items-center rounded-full transition-colors ${showPrevious ? "bg-[#262626]" : "bg-[#dcdcdc]"}`}
+                          role="switch"
+                          aria-checked={showPrevious}
+                          tabIndex={0}
+                        >
+                          <span className={`inline-block h-[16px] w-[16px] rounded-full bg-white shadow-sm transition-transform ${showPrevious ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-[20px] border-t border-[#f0f0f0] px-[20px] py-[12px]">

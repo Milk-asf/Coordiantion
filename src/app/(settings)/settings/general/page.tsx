@@ -2,55 +2,23 @@
 
 import { useState, useEffect, useRef } from "react"
 import {
-  Building2,
-  Hash,
-  Phone,
-  Mail,
-  MapPin,
-  Reply,
-  FileText,
-  Landmark,
-  CreditCard,
   Save,
   Check,
   Upload,
   X,
   ImageIcon,
 } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { useWorkspaceSettings } from "@/lib/hooks/use-workspace-settings"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
 
-interface FieldRowProps {
-  label: string
-  value: string
-  onChange: (val: string) => void
-  icon: React.ReactNode
-  placeholder?: string
-  type?: string
-}
-
-function FieldRow({ label, value, onChange, icon, placeholder, type = "text" }: FieldRowProps) {
-  return (
-    <div className="grid grid-cols-[160px_1fr] items-center border-b border-[#f0f0f0] px-[16px]">
-      <div className="flex items-center gap-[8px] py-[10px]">
-        {icon}
-        <span className="text-[13px] font-medium text-[#888]">{label}</span>
-      </div>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder || "Empty"}
-        className="w-full bg-transparent py-[10px] text-[13px] font-medium text-[#262626] outline-none placeholder:text-[#ccc]"
-      />
-    </div>
-  )
-}
+const inputClass = "h-[44px] w-full rounded-[10px] border border-[#e5e5e5] bg-[#fafafa] px-[14px] text-[14px] text-[#262626] outline-none transition-colors placeholder:text-[#c0c0c0] focus:border-[#c0c0c0] focus:ring-2 focus:ring-[#e8e8e8]"
+const labelClass = "mb-[8px] block text-[13px] font-semibold text-[#262626]"
 
 export default function GeneralSettingsPage() {
   const { settings, updateSettings } = useWorkspaceSettings()
-  const { activeWorkspace } = useWorkspace()
+  const { activeWorkspace, renameWorkspace } = useWorkspace()
   const [local, setLocal] = useState(settings)
   const [saved, setSaved] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -62,8 +30,11 @@ export default function GeneralSettingsPage() {
 
   const isDirty = JSON.stringify(local) !== JSON.stringify(settings)
 
-  const handleSave = () => {
+  const handleSave = async () => {
     updateSettings(local)
+    if (local.orgName && local.orgName !== activeWorkspace?.name) {
+      await renameWorkspace(local.orgName)
+    }
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -111,39 +82,39 @@ export default function GeneralSettingsPage() {
 
   return (
     <>
-      <div className="mb-[28px] flex items-start justify-between">
+      <div className="mb-[32px] flex items-start justify-between">
         <div>
-          <h1 className="text-[22px] font-semibold text-[#1a1a1a]">General</h1>
-          <p className="mt-[4px] text-[14px] text-sidebar-muted">
+          <h1 className="text-[20px] font-bold text-[#262626]">General</h1>
+          <p className="mt-[4px] text-[14px] text-[#888]">
             Organisation details used in invoices and emails.
           </p>
         </div>
-        {isDirty && (
-          <button
-            onClick={handleSave}
-            className="flex items-center gap-[6px] rounded-[4px] bg-[#1a1a1a] px-[14px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-[#333]"
-            tabIndex={0}
-            aria-label="Save changes"
-          >
-            <Save className="h-[13px] w-[13px]" strokeWidth={2} />
-            Save
-          </button>
-        )}
-        {saved && !isDirty && (
-          <div className="flex items-center gap-[6px] rounded-[4px] bg-green-50 px-[14px] py-[7px] text-[13px] font-medium text-green-700">
-            <Check className="h-[13px] w-[13px]" strokeWidth={2} />
-            Saved
-          </div>
-        )}
+        <div className="flex items-center gap-[8px]">
+          {saved && !isDirty && (
+            <div className="flex items-center gap-[6px] text-[13px] font-medium text-green-600">
+              <Check className="h-[14px] w-[14px]" strokeWidth={2} />
+              Saved
+            </div>
+          )}
+          {isDirty && (
+            <button
+              onClick={handleSave}
+              className="flex items-center gap-[6px] rounded-[8px] border border-[#e0e0e0] bg-white px-[16px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+              tabIndex={0}
+              aria-label="Save changes"
+            >
+              <Save className="h-[13px] w-[13px]" strokeWidth={2} />
+              Save
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Logo upload */}
-      <div className="mb-[24px]">
-        <h2 className="mb-[10px] text-[13px] font-semibold text-[#1a1a1a]">Logo</h2>
-        <p className="mb-[10px] px-[4px] text-[12px] text-[#bbb]">
-          Displayed in the sidebar and on invoices.
-        </p>
-        <div className="overflow-hidden rounded-[10px] border border-[#e5e5e5] bg-[#fafafa] p-[16px]">
+      {/* Logo */}
+      <div className="mb-[28px]">
+        <h2 className="mb-[8px] text-[15px] font-bold text-[#262626]">Logo</h2>
+        <p className="mb-[12px] text-[13px] text-[#888]">Displayed in the sidebar and on invoices.</p>
+        <div className="rounded-[14px] border border-[#e5e5e5] bg-[#fafafa] p-[20px]">
           <div className="flex items-center gap-[16px]">
             {local.logoUrl ? (
               <div className="relative">
@@ -151,7 +122,7 @@ export default function GeneralSettingsPage() {
                 <img
                   src={local.logoUrl}
                   alt="Organisation logo"
-                  className="h-[64px] w-[64px] rounded-[8px] border border-[#e5e5e5] object-contain bg-[#fafafa]"
+                  className="h-[64px] w-[64px] rounded-[10px] border border-[#e5e5e5] object-contain bg-white"
                 />
                 <button
                   onClick={handleRemoveLogo}
@@ -163,7 +134,7 @@ export default function GeneralSettingsPage() {
                 </button>
               </div>
             ) : (
-              <div className="flex h-[64px] w-[64px] items-center justify-center rounded-[8px] border border-dashed border-[#dcdcdc] bg-[#fafafa]">
+              <div className="flex h-[64px] w-[64px] items-center justify-center rounded-[10px] border border-dashed border-[#d4d4d4] bg-white">
                 <ImageIcon className="h-[20px] w-[20px] text-[#ccc]" strokeWidth={1.5} />
               </div>
             )}
@@ -171,13 +142,13 @@ export default function GeneralSettingsPage() {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                className="flex items-center gap-[6px] rounded-[4px] border border-[#dcdcdc] bg-white px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] disabled:opacity-50"
+                className="flex items-center gap-[6px] rounded-[8px] border border-[#e0e0e0] bg-white px-[14px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] disabled:opacity-50"
                 tabIndex={0}
               >
                 <Upload className="h-[13px] w-[13px]" strokeWidth={1.75} />
                 {isUploading ? "Uploading..." : local.logoUrl ? "Change logo" : "Upload logo"}
               </button>
-              <p className="mt-[4px] text-[11px] text-[#bbb]">PNG, JPG, or SVG. Max 2 MB.</p>
+              <p className="mt-[6px] text-[12px] text-[#bbb]">PNG, JPG, or SVG. Max 2 MB.</p>
             </div>
           </div>
           <input
@@ -196,107 +167,102 @@ export default function GeneralSettingsPage() {
         </div>
       </div>
 
-      <div className="mb-[24px]">
-        <h2 className="mb-[10px] text-[13px] font-semibold text-[#1a1a1a]">Organisation Details</h2>
-        <div className="overflow-hidden rounded-[10px] border border-[#e5e5e5] bg-[#fafafa]">
-          <FieldRow
-            label="Organisation"
-            value={local.orgName}
-            onChange={update("orgName")}
-            icon={<Building2 className="h-[14px] w-[14px] text-[#bbb]" strokeWidth={1.75} />}
-            placeholder="Your organisation name"
-          />
-          <FieldRow
-            label="ABN"
-            value={local.orgAbn}
-            onChange={update("orgAbn")}
-            icon={<Hash className="h-[14px] w-[14px] text-[#bbb]" strokeWidth={1.75} />}
-            placeholder="XX XXX XXX XXX"
-          />
-          <FieldRow
-            label="Phone"
-            value={local.orgPhone}
-            onChange={update("orgPhone")}
-            icon={<Phone className="h-[14px] w-[14px] text-[#bbb]" strokeWidth={1.75} />}
-            placeholder="(XX) XXXX XXXX"
-          />
-          <FieldRow
-            label="Email"
-            value={local.orgEmail}
-            onChange={update("orgEmail")}
-            icon={<Mail className="h-[14px] w-[14px] text-[#bbb]" strokeWidth={1.75} />}
-            placeholder="admin@yourbusiness.com.au"
-            type="email"
-          />
-          <FieldRow
-            label="Address"
-            value={local.orgAddress}
-            onChange={update("orgAddress")}
-            icon={<MapPin className="h-[14px] w-[14px] text-[#bbb]" strokeWidth={1.75} />}
-            placeholder="123 Main St, Brisbane QLD 4000"
-          />
-          <div className="border-b-0">
-            <FieldRow
-              label="Reply-to Email"
-              value={local.replyToEmail}
-              onChange={update("replyToEmail")}
-              icon={<Reply className="h-[14px] w-[14px] text-[#bbb]" strokeWidth={1.75} />}
-              placeholder="Same as email if empty"
-              type="email"
+      {/* Primary Colour */}
+      <div className="mb-[28px]">
+        <h2 className="mb-[8px] text-[15px] font-bold text-[#262626]">Primary colour</h2>
+        <p className="mb-[12px] text-[13px] text-[#888]">Used for action buttons and notification indicators.</p>
+        <div className="rounded-[14px] border border-[#e5e5e5] bg-[#fafafa] p-[24px]">
+          <label className="relative inline-block cursor-pointer">
+            <input
+              type="color"
+              value={local.primaryColor || "#3b82f6"}
+              onChange={(e) => update("primaryColor")(e.target.value)}
+              className="absolute inset-0 cursor-pointer opacity-0"
             />
+            <div
+              className="h-[44px] w-[44px] rounded-[10px] border border-[#e5e5e5] shadow-sm transition-shadow hover:shadow-md"
+              style={{ backgroundColor: local.primaryColor || "#3b82f6" }}
+            />
+          </label>
+        </div>
+      </div>
+
+      {/* Organisation Details */}
+      <div className="mb-[28px]">
+        <h2 className="mb-[8px] text-[15px] font-bold text-[#262626]">Organisation Details</h2>
+        <p className="mb-[12px] text-[13px] text-[#888]">This information appears on your invoices and emails.</p>
+        <div className="space-y-[16px] rounded-[14px] border border-[#e5e5e5] bg-[#fafafa] p-[24px]">
+          <div>
+            <label className={labelClass}>Organisation name</label>
+            <input type="text" value={local.orgName} onChange={(e) => update("orgName")(e.target.value)} placeholder="Your organisation name" className={inputClass} />
+          </div>
+          <div className="grid gap-[16px] sm:grid-cols-2">
+            <div>
+              <label className={labelClass}>ABN</label>
+              <input type="text" value={local.orgAbn} onChange={(e) => update("orgAbn")(e.target.value)} placeholder="XX XXX XXX XXX" className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>NDIS registration number</label>
+              <input type="text" value={local.ndisNumber} onChange={(e) => update("ndisNumber")(e.target.value)} placeholder="4-XXXXXXXXX" className={inputClass} />
+            </div>
+          </div>
+          <div>
+            <label className={labelClass}>Phone</label>
+            <input type="text" value={local.orgPhone} onChange={(e) => update("orgPhone")(e.target.value)} placeholder="(XX) XXXX XXXX" className={inputClass} />
+          </div>
+          <div>
+            <label className={labelClass}>Email</label>
+            <input type="email" value={local.orgEmail} onChange={(e) => update("orgEmail")(e.target.value)} placeholder="admin@yourbusiness.com.au" className={inputClass} />
+          </div>
+          <div>
+            <label className={labelClass}>Address</label>
+            <input type="text" value={local.orgAddress} onChange={(e) => update("orgAddress")(e.target.value)} placeholder="123 Main St, Brisbane QLD 4000" className={inputClass} />
+          </div>
+          <div>
+            <label className={labelClass}>Reply-to email</label>
+            <input type="email" value={local.replyToEmail} onChange={(e) => update("replyToEmail")(e.target.value)} placeholder="Same as email if empty" className={inputClass} />
+            <p className="mt-[6px] text-[12px] text-[#bbb]">Replies to invoice emails will go to this address, or the organisation email if not set.</p>
           </div>
         </div>
-        <p className="mt-[6px] px-[4px] text-[12px] text-[#bbb]">
-          Replies to invoice emails will go to the reply-to address, or the organisation email if not set.
-        </p>
       </div>
 
-      <div className="mb-[24px]">
-        <h2 className="mb-[10px] text-[13px] font-semibold text-[#1a1a1a]">Bank Details</h2>
-        <p className="mb-[10px] px-[4px] text-[12px] text-[#bbb]">
-          Included on invoices and invoice emails so plan managers can process payment.
-        </p>
-        <div className="overflow-hidden rounded-[10px] border border-[#e5e5e5] bg-[#fafafa]">
-          <FieldRow
-            label="Bank"
-            value={local.bankName}
-            onChange={update("bankName")}
-            icon={<Landmark className="h-[14px] w-[14px] text-[#bbb]" strokeWidth={1.75} />}
-            placeholder="Commonwealth Bank"
-          />
-          <FieldRow
-            label="Account Name"
-            value={local.bankAccountName}
-            onChange={update("bankAccountName")}
-            icon={<FileText className="h-[14px] w-[14px] text-[#bbb]" strokeWidth={1.75} />}
-            placeholder="Your Business Pty Ltd"
-          />
-          <FieldRow
-            label="BSB"
-            value={local.bankBsb}
-            onChange={update("bankBsb")}
-            icon={<Hash className="h-[14px] w-[14px] text-[#bbb]" strokeWidth={1.75} />}
-            placeholder="XXX-XXX"
-          />
-          <FieldRow
-            label="Account Number"
-            value={local.bankAccountNumber}
-            onChange={update("bankAccountNumber")}
-            icon={<CreditCard className="h-[14px] w-[14px] text-[#bbb]" strokeWidth={1.75} />}
-            placeholder="XXXX XXXX"
-          />
+      {/* Bank Details */}
+      <div className="mb-[28px]">
+        <h2 className="mb-[8px] text-[15px] font-bold text-[#262626]">Bank Details</h2>
+        <p className="mb-[12px] text-[13px] text-[#888]">Included on invoices so plan managers can process payment.</p>
+        <div className="space-y-[16px] rounded-[14px] border border-[#e5e5e5] bg-[#fafafa] p-[24px]">
+          <div>
+            <label className={labelClass}>Bank</label>
+            <input type="text" value={local.bankName} onChange={(e) => update("bankName")(e.target.value)} placeholder="Commonwealth Bank" className={inputClass} />
+          </div>
+          <div>
+            <label className={labelClass}>Account name</label>
+            <input type="text" value={local.bankAccountName} onChange={(e) => update("bankAccountName")(e.target.value)} placeholder="Your Business Pty Ltd" className={inputClass} />
+          </div>
+          <div className="grid gap-[16px] sm:grid-cols-2">
+            <div>
+              <label className={labelClass}>BSB</label>
+              <input type="text" value={local.bankBsb} onChange={(e) => update("bankBsb")(e.target.value)} placeholder="XXX-XXX" className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Account number</label>
+              <input type="text" value={local.bankAccountNumber} onChange={(e) => update("bankAccountNumber")(e.target.value)} placeholder="XXXX XXXX" className={inputClass} />
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="mb-[24px]">
-        <h2 className="mb-[10px] text-[13px] font-semibold text-[#1a1a1a]">Email Footer</h2>
-        <div className="overflow-hidden rounded-[10px] border border-[#e5e5e5] bg-[#fafafa]">
+      {/* Email Footer */}
+      <div className="mb-[28px]">
+        <h2 className="mb-[8px] text-[15px] font-bold text-[#262626]">Email Footer</h2>
+        <p className="mb-[12px] text-[13px] text-[#888]">Optional footer text added to all outgoing emails.</p>
+        <div className="rounded-[14px] border border-[#e5e5e5] bg-[#fafafa] p-[24px]">
           <textarea
             value={local.emailFooter}
             onChange={(e) => setLocal((prev) => ({ ...prev, emailFooter: e.target.value }))}
-            placeholder="Optional footer text added to all outgoing emails"
+            placeholder="Enter footer text..."
             rows={3}
-            className="w-full resize-none bg-transparent px-[16px] py-[12px] text-[13px] font-medium text-[#262626] outline-none placeholder:text-[#ccc]"
+            className={cn(inputClass, "h-auto min-h-[100px] resize-none py-[12px]")}
           />
         </div>
       </div>
