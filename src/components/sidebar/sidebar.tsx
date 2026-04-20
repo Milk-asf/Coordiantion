@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useRef, useEffect } from "react"
+import { useState, useCallback, useRef, useEffect, forwardRef } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 import {
@@ -78,11 +78,14 @@ export function Sidebar() {
   const [isDragging, setIsDragging] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [isNotifOpen, setIsNotifOpen] = useState(false)
+  const [notifPos, setNotifPos] = useState({ top: 0, left: 0 })
   const [userName, setUserName] = useState("")
   const [userEmail, setUserEmail] = useState("")
   const sidebarRef = useRef<HTMLElement>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const notifRef = useRef<HTMLDivElement>(null)
+  const notifBtnRef = useRef<HTMLButtonElement>(null)
+  const notifPanelRef = useRef<HTMLDivElement>(null)
   const widthBeforeCollapse = useRef(DEFAULT_WIDTH)
   const pathname = usePathname()
   const router = useRouter()
@@ -116,8 +119,10 @@ export function Sidebar() {
   useEffect(() => {
     if (!isNotifOpen) return
     const handleClickOutside = (e: MouseEvent) => {
-      if (notifRef.current && !notifRef.current.contains(e.target as Node))
-        setIsNotifOpen(false)
+      const target = e.target as Node
+      if (notifRef.current?.contains(target)) return
+      if (notifPanelRef.current?.contains(target)) return
+      setIsNotifOpen(false)
     }
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
@@ -224,6 +229,7 @@ export function Sidebar() {
   }
 
   return (
+    <>
     <aside
       ref={sidebarRef}
       style={{ width: `${width}px` }}
@@ -274,7 +280,14 @@ export function Sidebar() {
       <nav className="flex-1 overflow-y-auto px-2" role="navigation" aria-label="Main navigation">
         <div className="relative" ref={notifRef}>
           <button
-            onClick={() => setIsNotifOpen(!isNotifOpen)}
+            ref={notifBtnRef}
+            onClick={() => {
+              if (!isNotifOpen && notifBtnRef.current) {
+                const rect = notifBtnRef.current.getBoundingClientRect()
+                setNotifPos({ top: rect.top, left: rect.right + 8 })
+              }
+              setIsNotifOpen(!isNotifOpen)
+            }}
             className={cn(
               "flex w-full items-center gap-2 rounded px-2 py-[6px] text-[13px] font-medium transition-colors",
               isNotifOpen
@@ -304,14 +317,6 @@ export function Sidebar() {
             )}
           </button>
 
-          {isNotifOpen && (
-            <NotificationPanel
-              notifications={notifications}
-              onClose={() => setIsNotifOpen(false)}
-              onMarkAllRead={handleMarkAllRead}
-              onMarkRead={markAsRead}
-            />
-          )}
         </div>
 
         {navigation.map((section) => {
@@ -404,6 +409,17 @@ export function Sidebar() {
         }}
       />
     </aside>
+    {isNotifOpen && (
+      <NotificationPanel
+        ref={notifPanelRef}
+        notifications={notifications}
+        onClose={() => setIsNotifOpen(false)}
+        onMarkAllRead={handleMarkAllRead}
+        onMarkRead={markAsRead}
+        position={notifPos}
+      />
+    )}
+    </>
   )
 }
 
@@ -440,20 +456,24 @@ function formatNotifTime(date: Date): string {
   return date.toLocaleDateString("en-AU", { day: "numeric", month: "short" })
 }
 
-function NotificationPanel({
-  notifications,
-  onClose,
-  onMarkAllRead,
-  onMarkRead,
-}: {
+const NotificationPanel = forwardRef<HTMLDivElement, {
   notifications: AppNotification[]
   onClose: () => void
   onMarkAllRead: () => void
   onMarkRead: (id: string) => void
-}) {
+  position: { top: number; left: number }
+}>(function NotificationPanel({
+  notifications,
+  onClose,
+  onMarkAllRead,
+  onMarkRead,
+  position,
+}, ref) {
   return (
     <div
-      className="absolute left-full top-0 z-50 ml-2 flex max-h-[420px] w-[320px] flex-col overflow-hidden rounded-xl border border-[#e5e5e5] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.08)]"
+      ref={ref}
+      className="fixed z-50 flex max-h-[420px] w-[320px] flex-col overflow-hidden rounded-xl border border-[#e5e5e5] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.08)]"
+      style={{ top: position.top, left: position.left }}
     >
       <div className="flex items-center justify-between border-b border-[#f0f0f0] px-4 py-3">
         <h2 className="text-[14px] font-semibold text-[#262626]">Notifications</h2>
@@ -523,4 +543,4 @@ function NotificationPanel({
       </div>
     </div>
   )
-}
+})
