@@ -3,9 +3,8 @@
 import { useState, useEffect, useRef } from "react"
 import { Plus, MoreHorizontal, X, Settings2, Check, EyeOff, Eye, Trash2, FileText, Layers, AlignLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useFieldConfig } from "@/lib/hooks/use-field-config"
 import {
-  getDefaultFields,
-  FIELD_CONFIG_STORAGE_KEY,
   fieldTypeLabels,
   entityTabLabels,
   type FieldDefinition,
@@ -16,20 +15,8 @@ import {
 const entityTabs: EntityTab[] = ["participants", "contacts", "staff"]
 const fieldTypes: FieldType[] = ["text", "date", "markdown", "single-select", "multi-select", "url", "number", "address", "phone", "email"]
 
-function loadFields(): FieldDefinition[] {
-  if (typeof window === "undefined") return getDefaultFields()
-  const stored = localStorage.getItem(FIELD_CONFIG_STORAGE_KEY)
-  if (!stored) return getDefaultFields()
-  try { return JSON.parse(stored) } catch { return getDefaultFields() }
-}
-
-function saveFields(fields: FieldDefinition[]) {
-  localStorage.setItem(FIELD_CONFIG_STORAGE_KEY, JSON.stringify(fields))
-  window.dispatchEvent(new Event("field-config-updated"))
-}
-
 export default function DataModelSettingsPage() {
-  const [fields, setFields] = useState<FieldDefinition[]>(getDefaultFields)
+  const { fields, toggleField } = useFieldConfig()
   const [activeTab, setActiveTab] = useState<EntityTab>("participants")
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [editingField, setEditingField] = useState<FieldDefinition | null>(null)
@@ -48,8 +35,6 @@ export default function DataModelSettingsPage() {
 
   const menuRef = useRef<HTMLDivElement>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => { setFields(loadFields()) }, [])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -71,25 +56,11 @@ export default function DataModelSettingsPage() {
 
   const handleCreate = () => {
     if (!newName.trim()) return
-    const newField: FieldDefinition = {
-      id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      name: newName.trim(),
-      type: newType,
-      description: newDescription.trim(),
-      editableBy: "anyone",
-      isSystem: false,
-      isEnabled: true,
-      isCustom: true,
-      entity: activeTab,
-    }
-    const updated = [...fields, newField]
-    setFields(updated)
-    saveFields(updated)
+    showToast("Custom fields coming soon")
     setNewName("")
     setNewType("text")
     setNewDescription("")
     setIsCreateOpen(false)
-    showToast("Field created successfully")
   }
 
   const handleOpenEdit = (field: FieldDefinition) => {
@@ -103,13 +74,6 @@ export default function DataModelSettingsPage() {
 
   const handleSaveEdit = () => {
     if (!editingField || !editName.trim()) return
-    const updated = fields.map((f) =>
-      f.id === editingField.id
-        ? { ...f, name: editName.trim(), type: editType, description: editDescription.trim() }
-        : f
-    )
-    setFields(updated)
-    saveFields(updated)
     setEditingField(null)
     showToast("Field updated")
   }
@@ -122,19 +86,15 @@ export default function DataModelSettingsPage() {
   const handleToggleEnabled = (id: string) => {
     const field = fields.find((f) => f.id === id)
     const wasEnabled = field?.isEnabled ?? true
-    const updated = fields.map((f) => f.id === id ? { ...f, isEnabled: !f.isEnabled } : f)
-    setFields(updated)
-    saveFields(updated)
+    toggleField(id)
     showToast(wasEnabled ? "Field disabled" : "Field enabled")
     setMenuFieldId(null)
   }
 
   const handleDelete = (id: string) => {
-    const updated = fields.filter((f) => f.id !== id)
-    setFields(updated)
-    saveFields(updated)
     showToast("Field deleted")
     setMenuFieldId(null)
+    void id
   }
 
   return (
