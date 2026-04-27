@@ -114,22 +114,14 @@ export function useWorkspaceSettings() {
 
   useEffect(() => {
     if (typeof document === "undefined") return
-    const color = settings.primaryColor || "#3b82f6"
-    if (!/^#[0-9a-fA-F]{6}$/.test(color)) return
-    const r = parseInt(color.slice(1, 3), 16)
-    const g = parseInt(color.slice(3, 5), 16)
-    const b = parseInt(color.slice(5, 7), 16)
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-    const isLight = luminance > 0.65
-
     const root = document.documentElement
-    root.style.setProperty("--primary-color", color)
-    root.style.setProperty("--primary-color-hover", `rgb(${Math.max(0, r - 20)}, ${Math.max(0, g - 20)}, ${Math.max(0, b - 20)})`)
-    root.style.setProperty("--primary-color-light", `rgba(${r}, ${g}, ${b}, 0.08)`)
-    root.style.setProperty("--primary-color-text", color)
-    root.style.setProperty("--primary-btn-text", isLight ? "#262626" : "#ffffff")
-    root.style.setProperty("--primary-btn-border", isLight ? "rgba(0,0,0,0.12)" : "transparent")
-  }, [settings.primaryColor])
+    root.style.setProperty("--primary-color", "#262626")
+    root.style.setProperty("--primary-color-hover", "#1a1a1a")
+    root.style.setProperty("--primary-color-light", "rgba(38, 38, 38, 0.06)")
+    root.style.setProperty("--primary-color-text", "#262626")
+    root.style.setProperty("--primary-btn-text", "#262626")
+    root.style.setProperty("--primary-btn-border", "#d4d4d4")
+  }, [])
 
   const updateSettings = useCallback(async (updates: Partial<WorkspaceEmailSettings>) => {
     if (!activeWorkspace?.id || !isSupabaseConfigured()) return

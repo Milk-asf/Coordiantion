@@ -8,21 +8,29 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
+  const { invoice, orgSettings, ndisNumber, workspaceId } = await request.json() as {
+    invoice: Invoice
+    orgSettings: Partial<WorkspaceEmailSettings>
+    ndisNumber?: string
+    workspaceId?: string
+  }
+
+  if (!workspaceId)
+    return NextResponse.json({ error: "Missing workspace ID" }, { status: 400 })
+
   const { data: membership } = await supabase
     .from("workspace_members")
     .select("role")
     .eq("user_id", user.id)
+    .eq("workspace_id", workspaceId)
     .eq("status", "active")
-    .limit(1)
     .single()
 
   if (!membership) return NextResponse.json({ error: "Not a workspace member" }, { status: 403 })
 
-  const { invoice, orgSettings, ndisNumber } = await request.json() as {
-    invoice: Invoice
-    orgSettings: Partial<WorkspaceEmailSettings>
-    ndisNumber?: string
-  }
+  const invoiceWsId = (invoice as unknown as Record<string, unknown>)?.workspace_id as string | undefined
+  if (invoiceWsId && invoiceWsId !== workspaceId)
+    return NextResponse.json({ error: "Invoice does not belong to this workspace" }, { status: 403 })
 
   if (!invoice?.invoiceNumber)
     return NextResponse.json({ error: "Invalid invoice data" }, { status: 400 })

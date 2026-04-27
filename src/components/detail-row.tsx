@@ -3,7 +3,7 @@
 import type { ReactNode, ComponentType } from "react"
 
 interface DetailRowProps {
-  icon: ComponentType<{ className?: string; strokeWidth?: number }>
+  icon?: ComponentType<{ className?: string; strokeWidth?: number }>
   label: string
   children: ReactNode
   labelWidthClassName?: string
@@ -22,7 +22,7 @@ export function DetailRow({
   return (
     <div className={rowClassName}>
       <div className={`flex shrink-0 items-center gap-[8px] text-[13px] font-medium text-[#888] ${labelWidthClassName}`}>
-        <Icon className="h-[14px] w-[14px] text-[#999]" strokeWidth={1.5} />
+        {Icon && <Icon className="h-[14px] w-[14px] text-[#999]" strokeWidth={1.5} />}
         <span>{label}</span>
       </div>
       <div className={valueClassName}>{children}</div>

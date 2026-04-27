@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { cn } from "@/lib/utils"
-import { MoreHorizontal, ChevronDown } from "lucide-react"
+import { MoreHorizontal, ChevronDown, Plus, X } from "lucide-react"
 import { useMembers } from "@/lib/hooks/use-members"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import { useStaff } from "@/lib/hooks/use-staff"
+import { useWorkspace } from "@/lib/workspace-context"
 import type { WorkspaceMember } from "@/lib/types"
 
 type Role = WorkspaceMember["role"]
@@ -21,11 +22,61 @@ const roleConfig: Record<Role, { label: string; description: string; color: stri
 const allRoles: Role[] = ["super-admin", "admin", "coordinator"]
 
 export default function MembersSettingsPage() {
-  const { members, updateMemberRole, updateMemberStatus, removeMember } = useMembers()
+  const { members, inviteMember, updateMemberRole, updateMemberStatus, removeMember } = useMembers()
   const { canManageMembers, isSuperAdmin } = usePermissions()
   const { staff, updateStaff } = useStaff()
+  const { activeWorkspace } = useWorkspace()
   const [memberMenuId, setMemberMenuId] = useState<string | null>(null)
   const [roleChangeId, setRoleChangeId] = useState<string | null>(null)
+  const [isInviteOpen, setIsInviteOpen] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState("")
+  const [inviteRole, setInviteRole] = useState<Role>("coordinator")
+  const [isInviting, setIsInviting] = useState(false)
+  const [inviteError, setInviteError] = useState<string | null>(null)
+  const inviteInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (isInviteOpen) setTimeout(() => inviteInputRef.current?.focus(), 50)
+  }, [isInviteOpen])
+
+  const handleInvite = async () => {
+    if (!inviteEmail?.includes("@") || !activeWorkspace) return
+    setIsInviting(true)
+    setInviteError(null)
+    try {
+      const member = await inviteMember(inviteEmail.trim(), inviteRole)
+      if (!member) throw new Error("Failed to create membership record")
+
+      const res = await fetch("/api/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: inviteEmail.trim(), workspaceId: activeWorkspace.id }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || "Failed to send invite email")
+      }
+      setInviteEmail("")
+      setInviteRole("coordinator")
+      setIsInviteOpen(false)
+    } catch (err) {
+      setInviteError(err instanceof Error ? err.message : "Failed to invite member")
+    }
+    setIsInviting(false)
+  }
+
+  const handleResendInvite = async (member: WorkspaceMember) => {
+    if (!activeWorkspace) return
+    const email = member.invited_email || member.email
+    if (!email) return
+    try {
+      await fetch("/api/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, workspaceId: activeWorkspace.id }),
+      })
+    } catch { /* toast could go here */ }
+  }
 
   const handleChangeRole = async (memberId: string, newRole: Role) => {
     await updateMemberRole(memberId, newRole)
@@ -75,12 +126,72 @@ export default function MembersSettingsPage() {
 
   return (
     <>
-      <div className="mb-[32px]">
-        <h1 className="text-[20px] font-bold text-[#262626]">Members</h1>
-        <p className="mt-[4px] text-[14px] text-[#888]">
-          Manage who has access to this workspace. To invite new staff, use the Invite button on the Staff page.
-        </p>
+      <div className="mb-[32px] flex items-start justify-between">
+        <div>
+          <h1 className="text-[20px] font-bold text-[#262626]">Members</h1>
+          <p className="mt-[4px] text-[14px] text-[#888]">
+            Manage who has access to this workspace.
+          </p>
+        </div>
+        <button
+          onClick={() => setIsInviteOpen(true)}
+          className="primary-btn flex items-center gap-[5px] rounded-[8px] px-[12px] py-[7px] text-[13px] font-medium transition-colors"
+          tabIndex={0}
+        >
+          <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+          Invite member
+        </button>
       </div>
+
+      {isInviteOpen && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setIsInviteOpen(false)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-[16px]">
+            <div className="w-full max-w-[420px] rounded-[14px] border border-[#e5e5e5] bg-white p-[24px] shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+              <div className="mb-[16px] flex items-center justify-between">
+                <h2 className="text-[16px] font-bold text-[#262626]">Invite a member</h2>
+                <button onClick={() => setIsInviteOpen(false)} className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-[#999] transition-colors hover:bg-[#f5f5f5]" tabIndex={0} aria-label="Close">
+                  <X className="h-[16px] w-[16px]" strokeWidth={1.75} />
+                </button>
+              </div>
+              <label className="mb-[4px] block text-[13px] font-medium text-[#555]">Email address</label>
+              <input
+                ref={inviteInputRef}
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleInvite() }}
+                placeholder="colleague@example.com"
+                className="mb-[12px] w-full rounded-[8px] border border-[#e0e0e0] bg-white px-[12px] py-[9px] text-[14px] text-[#262626] outline-none transition-colors focus:border-[#bbb]"
+              />
+              <label className="mb-[4px] block text-[13px] font-medium text-[#555]">Role</label>
+              <select
+                value={inviteRole}
+                onChange={(e) => setInviteRole(e.target.value as Role)}
+                className="mb-[16px] w-full rounded-[8px] border border-[#e0e0e0] bg-white px-[12px] py-[9px] text-[14px] text-[#262626] outline-none transition-colors focus:border-[#bbb]"
+              >
+                {(isSuperAdmin ? allRoles : allRoles.filter((r) => r !== "super-admin")).map((r) => (
+                  <option key={r} value={r}>{roleConfig[r].label}</option>
+                ))}
+              </select>
+              {inviteError && <p className="mb-[12px] text-[13px] text-red-500">{inviteError}</p>}
+              <div className="flex justify-end gap-[8px]">
+                <button onClick={() => setIsInviteOpen(false)} className="rounded-[8px] border border-[#e0e0e0] bg-white px-[14px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
+                  Cancel
+                </button>
+                <button
+                  onClick={handleInvite}
+                  disabled={isInviting || !inviteEmail?.includes("@")}
+                  className="primary-btn rounded-[8px] px-[14px] py-[7px] text-[13px] font-medium transition-colors disabled:opacity-50"
+                  tabIndex={0}
+                >
+                  {isInviting ? "Sending…" : "Send invite"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Active members */}
       <div className="overflow-hidden rounded-[14px] border border-[#e5e5e5] bg-[#fafafa]">
@@ -105,6 +216,7 @@ export default function MembersSettingsPage() {
             onMenuToggle={() => setMemberMenuId(memberMenuId === member.id ? null : member.id)}
             onToggleStatus={() => handleToggleStatus(member)}
             onRemove={() => handleRemoveMember(member.id)}
+            onResendInvite={() => handleResendInvite(member)}
           />
         ))}
 
@@ -134,6 +246,7 @@ export default function MembersSettingsPage() {
                 onMenuToggle={() => setMemberMenuId(memberMenuId === member.id ? null : member.id)}
                 onToggleStatus={() => handleToggleStatus(member)}
                 onRemove={() => handleRemoveMember(member.id)}
+                onResendInvite={() => handleResendInvite(member)}
                 isDisabledRow
               />
             ))}
@@ -156,6 +269,7 @@ function MemberRow({
   onMenuToggle,
   onToggleStatus,
   onRemove,
+  onResendInvite,
   isDisabledRow,
 }: {
   member: WorkspaceMember
@@ -169,6 +283,7 @@ function MemberRow({
   onMenuToggle: () => void
   onToggleStatus: () => void
   onRemove: () => void
+  onResendInvite: () => void
   isDisabledRow?: boolean
 }) {
   const displayName = member.name || member.email || member.invited_email || "Unknown"
@@ -256,10 +371,8 @@ function MemberRow({
           <button
             type="button"
             onClick={onToggleStatus}
-            className={cn(
-              "relative h-[22px] w-[40px] rounded-full transition-colors",
-              isActive ? "bg-blue-400" : "bg-[#d4d4d4]"
-            )}
+            className="relative h-[22px] w-[40px] rounded-full transition-colors"
+            style={{ backgroundColor: isActive ? "#262626" : "#d4d4d4" }}
             tabIndex={0}
             aria-label={isActive ? "Deactivate member" : "Activate member"}
             aria-checked={isActive}
@@ -275,7 +388,8 @@ function MemberRow({
         ) : (
           <button
             type="button"
-            className="relative h-[22px] w-[40px] cursor-not-allowed rounded-full bg-blue-400 opacity-50"
+            className="relative h-[22px] w-[40px] cursor-not-allowed rounded-full opacity-50"
+            style={{ backgroundColor: "#262626" }}
             disabled
             tabIndex={-1}
             aria-label="Super admin — always active"
@@ -306,15 +420,7 @@ function MemberRow({
                   {(member.status === "pending" || member.status === "invited") && (
                     <button
                       onClick={async () => {
-                        const email = member.invited_email || member.email
-                        if (!email) return
-                        try {
-                          await fetch("/api/invite", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ email, role: member.role }),
-                          })
-                        } catch { /* silent */ }
+                        await onResendInvite()
                         onMenuToggle()
                       }}
                       className="flex w-full items-center px-[14px] py-[8px] text-[13px] text-[#262626] transition-colors hover:bg-[#f5f5f5]"

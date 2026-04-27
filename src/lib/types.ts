@@ -1,5 +1,55 @@
 export type FundingType = "plan-managed" | "ndia-managed" | "self-managed" | ""
 
+export interface FundingReleasePeriod {
+  period: number
+  amount: number
+}
+
+export interface PlanService {
+  id: string
+  name: string
+  category: "support-coordination" | "psychosocial-recovery"
+  budget: number
+  enabledChargeItems: string[]
+  releasePeriods: FundingReleasePeriod[]
+}
+
+export type BudgetPeriod = "per-week" | "per-fortnight" | "per-month" | "per-year" | "per-plan"
+
+export interface BudgetLineItem {
+  id: string
+  chargeItemNumber: string
+  billingCode: string
+  serviceName: string
+  quantity: number
+  unit: "hour" | "each"
+  period: BudgetPeriod
+  description: string
+}
+
+export interface Budget {
+  id: string
+  name: string
+  startDate: string
+  endDate: string
+  chargeItems: string[]
+  lineItems: BudgetLineItem[]
+  createdAt: string
+}
+
+export interface NdisPlan {
+  id: string
+  startDate: string
+  endDate: string
+  isPacePlan: boolean
+  supportCoordinationBudget?: number
+  services?: PlanService[]
+  documentPath?: string
+  documentName?: string
+  documentUrl?: string
+  createdAt: string
+}
+
 export interface ParticipantDetails {
   firstName: string
   middleName: string
@@ -30,6 +80,20 @@ export interface ParticipantDetails {
   planManagerOrg: string
   planStartDate: string
   planEndDate: string
+  plans?: NdisPlan[]
+  budgets?: Budget[]
+  supportCoordinationBudget?: number
+  supportCoordinationUsed?: number
+  description?: string
+  activityLog?: ActivityEntry[]
+}
+
+export interface ActivityEntry {
+  id: string
+  type: "plan_created" | "plan_updated" | "service_added" | "service_updated" | "service_deleted" | "budget_created" | "budget_updated" | "budget_deleted" | "field_updated" | "description_updated" | "account_created"
+  message: string
+  user: string
+  createdAt: string
 }
 
 export const emptyParticipant: ParticipantDetails = {
@@ -211,6 +275,18 @@ export interface Invoice {
   sentTo?: string
   sentError?: string
   deliveryMethod?: InvoiceDeliveryMethod
+}
+
+export interface Note {
+  id: string
+  workspaceId: string
+  title: string
+  content: string
+  clientId: string | null
+  clientName: string
+  createdBy: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface WorkspaceEmailSettings {

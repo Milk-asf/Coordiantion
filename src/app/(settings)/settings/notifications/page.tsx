@@ -96,10 +96,8 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
     <button
       type="button"
       onClick={onChange}
-      className={cn(
-        "relative h-[22px] w-[40px] shrink-0 rounded-full transition-colors",
-        checked ? "bg-blue-400" : "bg-[#d4d4d4]"
-      )}
+      className="relative h-[22px] w-[40px] shrink-0 rounded-full transition-colors"
+      style={{ backgroundColor: checked ? "var(--primary-color)" : "#d4d4d4" }}
       tabIndex={0}
       role="switch"
       aria-checked={checked}

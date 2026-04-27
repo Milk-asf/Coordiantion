@@ -29,7 +29,6 @@ import {
   User,
   Mail,
   Phone,
-  Smartphone,
   MessageSquare,
   PenLine,
   Hash,
@@ -51,6 +50,7 @@ import {
   Info,
 } from "lucide-react"
 import { CsvDropdown } from "@/components/csv-dropdown"
+import { PageLoader, PageError } from "@/components/page-state"
 
 
 
@@ -59,7 +59,6 @@ const allPropertyColumns = [
   { key: "diagnosis", label: "Diagnosis", icon: Stethoscope, minWidth: 240 },
   { key: "email", label: "Email", icon: Mail, minWidth: 200 },
   { key: "phone", label: "Phone", icon: Phone, minWidth: 160 },
-  { key: "mobile", label: "Mobile", icon: Smartphone, minWidth: 160 },
   { key: "dob", label: "Date of Birth", icon: CalendarDays, minWidth: 150 },
   { key: "gender", label: "Gender", icon: User, minWidth: 120 },
   { key: "pronouns", label: "Pronouns", icon: MessageSquare, minWidth: 120 },
@@ -407,9 +406,7 @@ function ClientProfile({
               {pf("p-email") && <DetailRow icon={Mail} label="Email">
                 <ContactChip value={participantData.email} onChange={(v) => onUpdateField("email", v)} placeholder="Email address" />
               </DetailRow>}
-              {pf("p-mobile") && <DetailRow icon={Smartphone} label="Mobile">
-                <ContactChip value={participantData.mobile} onChange={(v) => onUpdateField("mobile", v)} placeholder="Mobile number" />
-              </DetailRow>}
+
               {pf("p-phone") && <DetailRow icon={Phone} label="Phone">
                 <ContactChip value={participantData.phone} onChange={(v) => onUpdateField("phone", v)} placeholder="Phone number" />
               </DetailRow>}
@@ -501,7 +498,7 @@ interface SavedView {
 
 export default function ClientsPage() {
   const router = useRouter()
-  const { clients, addClient, updateClient, updateParticipantField } = useClients()
+  const { clients, isLoading, fetchError, addClient, updateClient, updateParticipantField, refetch } = useClients()
   const { getContactsForClient } = useContacts()
   const { participantDisabled } = useFieldConfig()
   const { staffNames } = useStaff()
@@ -650,7 +647,6 @@ export default function ClientsPage() {
     { key: "gender", label: "Gender" },
     { key: "pronouns", label: "Pronouns" },
     { key: "email", label: "Email" },
-    { key: "mobile", label: "Mobile" },
     { key: "phone", label: "Phone" },
     { key: "ndisNumber", label: "NDIS Number" },
     { key: "medicareNumber", label: "Medicare Number" },
@@ -672,7 +668,7 @@ export default function ClientsPage() {
 
   const tableKeyToCsvKey: Record<string, string> = useMemo(() => ({
     ndisNumber: "ndisNumber", diagnosis: "primaryDiagnosis",
-    email: "email", phone: "phone", mobile: "mobile",
+    email: "email", phone: "phone",
     dob: "dateOfBirth", gender: "gender", pronouns: "pronouns",
     ethnicity: "ethnicity", language: "language", preferredName: "preferredName",
     medicareNumber: "medicareNumber", centrelinkNumber: "centrelinkNumber",
@@ -758,7 +754,6 @@ export default function ClientsPage() {
         case "diagnosis": valA = pA.primaryDiagnosis; valB = pB.primaryDiagnosis; break
         case "email": valA = pA.email; valB = pB.email; break
         case "phone": valA = pA.phone; valB = pB.phone; break
-        case "mobile": valA = pA.mobile; valB = pB.mobile; break
         case "dob": valA = pA.dateOfBirth; valB = pB.dateOfBirth; break
         case "gender": valA = pA.gender; valB = pB.gender; break
         case "pronouns": valA = pA.pronouns; valB = pB.pronouns; break
@@ -786,6 +781,9 @@ export default function ClientsPage() {
       return sortDirection === "asc" ? cmp : -cmp
     })
   })()
+
+  if (isLoading) return <PageLoader label="Loading clients…" />
+  if (fetchError) return <PageError message="Failed to load clients" onRetry={refetch} />
 
   return (
     <div className="relative flex h-full">
@@ -839,7 +837,6 @@ export default function ClientsPage() {
               <button
                 onClick={() => setIsCreateClientOpen(true)}
                 className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
-                style={{ backgroundColor: "var(--primary-color)" }}
                 tabIndex={0}
               >
                 <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -1050,8 +1047,7 @@ export default function ClientsPage() {
                   const cls = isLast
                     ? `h-[44px] overflow-hidden whitespace-nowrap border-b px-[20px] ${rowBg} ${rowHover}`
                     : cellClass
-                  const whiteChip = "inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] bg-transparent px-[8px] text-[12px] font-medium text-[#262626]"
-                  const greyChip = "inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] bg-[#f5f5f5] px-[8px] text-[12px] font-medium text-[#262626]"
+                  const whiteChip = "inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] bg-[#e8edf2] px-[12px] text-[12px] font-medium text-[#334155]"
                   const dash = <span className="text-[#bbb]">—</span>
                   const textCls = `${cls} text-[13px] font-medium text-[#262626]`
 
@@ -1072,8 +1068,6 @@ export default function ClientsPage() {
                       return <td key={key} className={textCls}>{p.email || dash}</td>
                     case "phone":
                       return <td key={key} className={textCls}>{p.phone || dash}</td>
-                    case "mobile":
-                      return <td key={key} className={cls}>{p.mobile ? <span className={greyChip}>{p.mobile}</span> : dash}</td>
                     case "dob":
                       return (
                         <td key={key} className={textCls}>
@@ -1115,8 +1109,16 @@ export default function ClientsPage() {
                     default: {
                       if (key.startsWith("contact-")) {
                         const relKey = key.replace("contact-", "")
-                        const contact = clientContacts.find((c) => c.relationship === relKey)
-                        return <td key={key} className={cls}>{contact ? <span className={whiteChip}>{contact.name}</span> : dash}</td>
+                        const matchingContacts = clientContacts.filter((c) => c.relationship === relKey)
+                        return (
+                          <td key={key} className={cls}>
+                            {matchingContacts.length > 0 ? (
+                              <div className="flex items-center gap-[6px]">
+                                {matchingContacts.map((c) => <span key={c.id} className={whiteChip}>{c.name}</span>)}
+                              </div>
+                            ) : dash}
+                          </td>
+                        )
                       }
                       return <td key={key} className={textCls}>{dash}</td>
                     }

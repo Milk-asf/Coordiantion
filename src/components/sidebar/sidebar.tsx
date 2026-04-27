@@ -7,11 +7,10 @@ import {
   Bell,
   SquareCheck,
 
-  Copy,
-  Handshake,
+  BookOpen,
   User,
-  FileText,
-  Receipt,
+  Package,
+  CircleDollarSign,
   ChevronsLeft,
   ChevronsRight,
   LogOut,
@@ -22,6 +21,7 @@ import {
   AlertTriangle,
   Clock,
   FileCheck,
+  StickyNote,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
@@ -47,20 +47,21 @@ const navigation: NavSection[] = [
     title: "Workspace",
     items: [
       { label: "Tasks", href: "/tasks", icon: SquareCheck },
-      { label: "Documents", href: "/documents", icon: FileText },
+      { label: "Notes", href: "/notes", icon: StickyNote },
+      { label: "Documents", href: "/documents", icon: Package },
     ],
   },
   {
     title: "Finance",
     items: [
-      { label: "Invoicing", href: "/invoicing", icon: Receipt },
+      { label: "Invoicing", href: "/invoicing", icon: CircleDollarSign },
     ],
   },
   {
     title: "People",
     items: [
-      { label: "Clients", href: "/clients", icon: Copy },
-      { label: "Contacts", href: "/contacts", icon: Handshake },
+      { label: "Clients", href: "/clients", icon: User },
+      { label: "Contacts", href: "/contacts", icon: BookOpen },
       { label: "Staff", href: "/staff", icon: User },
     ],
   },
@@ -313,7 +314,7 @@ export function Sidebar() {
               </>
             )}
             {isCollapsed && unreadCount > 0 && (
-              <span className="absolute right-1.5 top-1 h-2 w-2 rounded-full" style={{ backgroundColor: "var(--primary-color)" }} />
+              <span className="absolute right-1.5 top-1 h-2 w-2 rounded-full bg-red-500" />
             )}
           </button>
 
@@ -523,7 +524,7 @@ const NotificationPanel = forwardRef<HTMLDivElement, {
                     <p className="mt-0.5 text-[11px] leading-snug text-[#888]">{n.description}</p>
                   </div>
                   {!n.read && (
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: "var(--primary-color)" }} />
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />
                   )}
                 </li>
               )

@@ -116,10 +116,8 @@ function ParticipantRow({
         <button
           type="button"
           onClick={onToggle}
-          className={cn(
-            "relative h-[22px] w-[40px] rounded-full transition-colors",
-            isActive ? "bg-blue-400" : "bg-[#d4d4d4]"
-          )}
+          className="relative h-[22px] w-[40px] rounded-full transition-colors"
+          style={{ backgroundColor: isActive ? "var(--primary-color)" : "#d4d4d4" }}
           tabIndex={0}
           aria-label={isActive ? "Archive participant" : "Activate participant"}
           aria-checked={isActive}

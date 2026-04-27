@@ -8,6 +8,7 @@ interface WorkspaceContextType {
   activeWorkspace: Workspace | null
   renameWorkspace: (name: string) => Promise<void>
   isLoading: boolean
+  currentUserName: string
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | null>(null)
@@ -15,6 +16,7 @@ const WorkspaceContext = createContext<WorkspaceContextType | null>(null)
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [currentUserName, setCurrentUserName] = useState("You")
 
   useEffect(() => {
     if (!isSupabaseConfigured()) { setIsLoading(false); return }
@@ -37,6 +39,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase.from("workspaces").select("*").order("created_at", { ascending: true }).limit(1).single()
 
       if (cancelled) return
+
+      const userName = user.user_metadata?.full_name || user.email?.split("@")[0] || "You"
+      setCurrentUserName(userName)
 
       if (data) {
         setActiveWorkspace(data)
@@ -121,7 +126,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }, [activeWorkspace])
 
   return (
-    <WorkspaceContext.Provider value={{ activeWorkspace, renameWorkspace, isLoading }}>
+    <WorkspaceContext.Provider value={{ activeWorkspace, renameWorkspace, isLoading, currentUserName }}>
       {children}
     </WorkspaceContext.Provider>
   )

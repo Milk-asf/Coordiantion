@@ -59,6 +59,7 @@ interface TasksContextValue {
   tasks: Task[]
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>
   isLoading: boolean
+  fetchError: string | null
   addTask: (input: {
     title: string
     description?: string
@@ -84,6 +85,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   const { activeWorkspace } = useWorkspace()
   const [tasks, setTasks] = useState<Task[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   const fetchTasks = useCallback(async () => {
     if (!activeWorkspace || !isSupabaseConfigured()) {
@@ -95,6 +97,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     if (!supabase) { setTasks([]); setIsLoading(false); return }
 
     setIsLoading(true)
+    setFetchError(null)
     try {
       const { data, error } = await supabase
         .from("tasks")
@@ -102,12 +105,14 @@ export function TasksProvider({ children }: { children: ReactNode }) {
         .eq("workspace_id", activeWorkspace.id)
         .order("created_at", { ascending: true })
 
-      if (error || !data) {
+      if (error) {
+        setFetchError(error.message)
         setTasks([])
       } else {
-        setTasks(data.map(dbToTask))
+        setTasks((data || []).map(dbToTask))
       }
-    } catch {
+    } catch (err) {
+      setFetchError(err instanceof Error ? err.message : "Failed to load tasks")
       setTasks([])
     }
     setIsLoading(false)
@@ -192,7 +197,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <TasksContext.Provider value={{ tasks, setTasks, isLoading, addTask, updateTask, deleteTask, refetch: fetchTasks }}>
+    <TasksContext.Provider value={{ tasks, setTasks, isLoading, fetchError, addTask, updateTask, deleteTask, refetch: fetchTasks }}>
       {children}
     </TasksContext.Provider>
   )

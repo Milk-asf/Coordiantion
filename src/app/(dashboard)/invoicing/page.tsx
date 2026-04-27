@@ -25,8 +25,10 @@ import { useClients } from "@/lib/hooks/use-clients"
 import { useInvoices } from "@/lib/hooks/use-invoices"
 import { useSavedViews } from "@/lib/hooks/use-saved-views"
 import { useTasks } from "@/lib/hooks/use-tasks"
+import { useWorkspace } from "@/lib/workspace-context"
 import { useWorkspaceSettings } from "@/lib/hooks/use-workspace-settings"
 import type { Client, FundingType, InvoiceDeliveryMethod, InvoiceLineItem, Task } from "@/lib/types"
+import { PageLoader, PageError } from "@/components/page-state"
 
 interface InvoicingSavedView {
   id: string
@@ -137,10 +139,11 @@ function sortTasksByDate(tasks: Task[]): Task[] {
 }
 
 export default function InvoicingPage() {
-  const { tasks: allTasks, updateTask } = useTasks()
-  const { clients } = useClients()
+  const { tasks: allTasks, isLoading: tasksLoading, fetchError: tasksFetchError, updateTask, refetch: refetchTasks } = useTasks()
+  const { clients, isLoading: clientsLoading, fetchError: clientsFetchError } = useClients()
   const { enabledCharges, allCharges } = useCharges()
-  const { invoices, addInvoice, markInvoiceSent, deleteInvoice, exportInvoiceToCsv } = useInvoices()
+  const { invoices, isLoading: invoicesLoading, fetchError: invoicesFetchError, addInvoice, markInvoiceSent, deleteInvoice, exportInvoiceToCsv } = useInvoices()
+  const { activeWorkspace } = useWorkspace()
   const { settings } = useWorkspaceSettings()
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [reviewedTaskIds, setReviewedTaskIds] = useState<string[]>([])
@@ -612,6 +615,7 @@ export default function InvoicingPage() {
             participantName,
             ndisNumber: client.participant.ndisNumber || "",
             orgSettings: settings,
+            workspaceId: activeWorkspace?.id,
           }),
         })
 
@@ -776,6 +780,12 @@ export default function InvoicingPage() {
   weekTasks.forEach((task) => {
     if (task.dueDate && dayBuckets[task.dueDate]) dayBuckets[task.dueDate].push(task)
   })
+
+  const isPageLoading = tasksLoading || clientsLoading || invoicesLoading
+  const pageError = tasksFetchError || clientsFetchError || invoicesFetchError
+
+  if (isPageLoading) return <PageLoader label="Loading invoicing…" />
+  if (pageError) return <PageError message="Failed to load data" onRetry={refetchTasks} />
 
   return (
     <div className="flex h-full flex-col">
@@ -1586,7 +1596,6 @@ export default function InvoicingPage() {
                       onClick={handleSendInvoices}
                       disabled={isSendingInvoices || selectedTaskCount === 0}
                       className="primary-btn rounded-[4px] px-[12px] py-[7px] text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-                      style={{ backgroundColor: "var(--primary-color)" }}
                     >
                       {isSendingInvoices ? "Sending..." : "Confirm"}
                     </button>

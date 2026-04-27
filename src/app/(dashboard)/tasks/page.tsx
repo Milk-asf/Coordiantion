@@ -36,6 +36,7 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { DatePicker } from "@/components/date-picker"
 import { serviceChargeTypes } from "@/lib/ndis-charges"
 import type { Task, Attachment } from "@/lib/types"
+import { PageLoader, PageError } from "@/components/page-state"
 
 interface TaskSavedView {
   id: string
@@ -108,7 +109,7 @@ function getTodayStr(): string {
 }
 
 export default function TasksPage() {
-  const { tasks: allTasks, addTask, updateTask: updateTaskDb, deleteTask: deleteTaskDb } = useTasks()
+  const { tasks: allTasks, isLoading, fetchError, addTask, updateTask: updateTaskDb, deleteTask: deleteTaskDb, refetch } = useTasks()
   const { clients, clientNames } = useClients()
   const { enabledCharges, allCharges } = useCharges()
   const { staffNames } = useStaff()
@@ -693,6 +694,9 @@ export default function TasksPage() {
     )
   }
 
+  if (isLoading) return <PageLoader label="Loading tasks…" />
+  if (fetchError) return <PageError message="Failed to load tasks" onRetry={refetch} />
+
   return (
     <div className="flex h-full flex-col">
       {/* View tabs */}
@@ -1005,7 +1009,7 @@ export default function TasksPage() {
                   <span className="text-[11px] font-medium text-[#ccc]">Enter ↵ next · Esc close</span>
                   <div className="flex items-center gap-[6px]">
                     <button type="button" onClick={resetQuickAdd} className="rounded px-[8px] py-[4px] text-[12px] font-medium text-[#999] transition-colors hover:bg-[#f0f0f0]" tabIndex={0}>Cancel</button>
-                    <button type="button" onClick={handleQuickFinish} disabled={!quickTitle.trim()} className="primary-btn rounded-[4px] px-[12px] py-[4px] text-[12px] font-medium transition-colors disabled:opacity-40" style={{ backgroundColor: "var(--primary-color)" }} tabIndex={0}>Create</button>
+                    <button type="button" onClick={handleQuickFinish} disabled={!quickTitle.trim()} className="primary-btn rounded-[4px] px-[12px] py-[4px] text-[12px] font-medium transition-colors disabled:opacity-40" tabIndex={0}>Create</button>
                   </div>
                 </div>
               </div>
@@ -1236,7 +1240,8 @@ export default function TasksPage() {
                         <button
                           type="button"
                           onClick={() => setShowPrevious((prev) => !prev)}
-                          className={`relative inline-flex h-[20px] w-[36px] shrink-0 items-center rounded-full transition-colors ${showPrevious ? "bg-[#262626]" : "bg-[#dcdcdc]"}`}
+                          className="relative inline-flex h-[20px] w-[36px] shrink-0 items-center rounded-full transition-colors"
+                          style={{ backgroundColor: showPrevious ? "var(--primary-color)" : "#dcdcdc" }}
                           role="switch"
                           aria-checked={showPrevious}
                           tabIndex={0}

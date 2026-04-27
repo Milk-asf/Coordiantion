@@ -9,16 +9,6 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { data: membership } = await supabase
-    .from("workspace_members")
-    .select("role")
-    .eq("user_id", user.id)
-    .eq("status", "active")
-    .limit(1)
-    .single()
-
-  if (!membership) return NextResponse.json({ error: "Not a workspace member" }, { status: 403 })
-
   const body = await request.json()
   const {
     invoice,
@@ -27,6 +17,7 @@ export async function POST(request: Request) {
     participantName,
     ndisNumber,
     orgSettings,
+    workspaceId,
   } = body as {
     invoice: Invoice
     recipientEmail: string
@@ -34,7 +25,25 @@ export async function POST(request: Request) {
     participantName: string
     ndisNumber: string
     orgSettings: Partial<WorkspaceEmailSettings>
+    workspaceId?: string
   }
+
+  if (!workspaceId)
+    return NextResponse.json({ error: "Missing workspace ID" }, { status: 400 })
+
+  const { data: membership } = await supabase
+    .from("workspace_members")
+    .select("role")
+    .eq("user_id", user.id)
+    .eq("workspace_id", workspaceId)
+    .eq("status", "active")
+    .single()
+
+  if (!membership) return NextResponse.json({ error: "Not a workspace member" }, { status: 403 })
+
+  const invoiceWsId = (invoice as unknown as Record<string, unknown>)?.workspace_id as string | undefined
+  if (invoiceWsId && invoiceWsId !== workspaceId)
+    return NextResponse.json({ error: "Invoice does not belong to this workspace" }, { status: 403 })
 
   if (!recipientEmail?.includes("@"))
     return NextResponse.json({ error: "Invalid recipient email" }, { status: 400 })

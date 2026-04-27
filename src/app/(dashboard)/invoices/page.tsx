@@ -17,6 +17,7 @@ import {
 import { useInvoices } from "@/lib/hooks/use-invoices"
 import { useSavedViews } from "@/lib/hooks/use-saved-views"
 import type { Invoice } from "@/lib/types"
+import { PageLoader, PageError } from "@/components/page-state"
 
 interface InvoicesSavedView {
   id: string
@@ -91,7 +92,7 @@ function getInvoiceActivityDate(invoice: Invoice): Date | null {
 }
 
 export default function InvoicesPage() {
-  const { invoices, exportInvoiceToCsv, exportAllToCsv } = useInvoices()
+  const { invoices, isLoading, fetchError, exportInvoiceToCsv, exportAllToCsv, refetch } = useInvoices()
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(defaultVisibleColumnKeys)
   const [displayParticipants, setDisplayParticipants] = useState<string[]>([])
   const [displayEmails, setDisplayEmails] = useState<string[]>([])
@@ -342,6 +343,9 @@ export default function InvoicesPage() {
       </div>
     )
   }
+
+  if (isLoading) return <PageLoader label="Loading invoices…" />
+  if (fetchError) return <PageError message="Failed to load invoices" onRetry={refetch} />
 
   return (
     <div className="flex h-full flex-col">

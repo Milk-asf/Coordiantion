@@ -3,13 +3,19 @@
 import { useState } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
+interface QuickPreset {
+  label: string
+  value: string
+}
+
 interface DatePickerProps {
   value: string
   onChange: (value: string) => void
   onClose: () => void
+  quickPresets?: QuickPreset[]
 }
 
-export function DatePicker({ value, onChange, onClose }: DatePickerProps) {
+export function DatePicker({ value, onChange, onClose, quickPresets }: DatePickerProps) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
@@ -143,6 +149,32 @@ export function DatePicker({ value, onChange, onClose }: DatePickerProps) {
           })}
         </div>
       </div>
+
+      {quickPresets && quickPresets.length > 0 && (
+        <div className="border-t border-[#f0f0f0] px-[12px] py-[8px]">
+          <p className="mb-[6px] text-[10px] font-semibold uppercase tracking-wide text-[#999]">Quick select</p>
+          <div className="flex flex-wrap gap-[4px]">
+            {quickPresets.map((preset) => {
+              const isSelected = value === preset.value
+              return (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => { onChange(preset.value); onClose() }}
+                  className={`rounded-[5px] border px-[8px] py-[3px] text-[11px] font-medium transition-colors ${
+                    isSelected
+                      ? "border-[#262626] bg-[#262626] text-white"
+                      : "border-[#e0e0e0] bg-white text-[#555] hover:border-[#ccc] hover:bg-[#f5f5f5]"
+                  }`}
+                  tabIndex={0}
+                >
+                  {preset.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {value && (
         <div className="border-t border-[#f0f0f0] px-[12px] py-[6px]">

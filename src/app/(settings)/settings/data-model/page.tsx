@@ -531,10 +531,8 @@ function FieldRow({
           <button
             type="button"
             onClick={onToggleEnabled}
-            className={cn(
-              "relative h-[22px] w-[40px] rounded-full transition-colors",
-              field.isEnabled ? "bg-blue-400" : "bg-[#d4d4d4]"
-            )}
+            className="relative h-[22px] w-[40px] rounded-full transition-colors"
+            style={{ backgroundColor: field.isEnabled ? "#262626" : "#d4d4d4" }}
             tabIndex={0}
             aria-label={field.isEnabled ? "Disable field" : "Enable field"}
             aria-checked={field.isEnabled}
@@ -550,7 +548,8 @@ function FieldRow({
         ) : (
           <button
             type="button"
-            className="relative h-[22px] w-[40px] cursor-not-allowed rounded-full bg-blue-400 opacity-50"
+            className="relative h-[22px] w-[40px] cursor-not-allowed rounded-full opacity-50"
+            style={{ backgroundColor: "#262626" }}
             disabled
             tabIndex={-1}
             aria-label="System field — always enabled"

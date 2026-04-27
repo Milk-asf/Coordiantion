@@ -89,6 +89,7 @@ interface ClientsContextValue {
   clients: Client[]
   clientNames: string[]
   isLoading: boolean
+  fetchError: string | null
   addClient: (input: {
     name: string
     iconColor?: string
@@ -109,6 +110,7 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
   const { activeWorkspace } = useWorkspace()
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   const fetchClients = useCallback(async () => {
     if (!activeWorkspace || !isSupabaseConfigured()) {
@@ -120,6 +122,7 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
     if (!supabase) { setClients([]); setIsLoading(false); return }
 
     setIsLoading(true)
+    setFetchError(null)
     try {
       const { data, error } = await supabase
         .from("clients")
@@ -127,12 +130,14 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
         .eq("workspace_id", activeWorkspace.id)
         .order("created_at", { ascending: true })
 
-      if (error || !data) {
+      if (error) {
+        setFetchError(error.message)
         setClients([])
       } else {
-        setClients(data.map(dbToClient))
+        setClients((data || []).map(dbToClient))
       }
-    } catch {
+    } catch (err) {
+      setFetchError(err instanceof Error ? err.message : "Failed to load clients")
       setClients([])
     }
     setIsLoading(false)
@@ -262,7 +267,7 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
   const clientNames = clients.map((c) => c.name)
 
   return (
-    <ClientsContext.Provider value={{ clients, clientNames, isLoading, addClient, updateClient, updateParticipantField, deleteClient, refetch: fetchClients }}>
+    <ClientsContext.Provider value={{ clients, clientNames, isLoading, fetchError, addClient, updateClient, updateParticipantField, deleteClient, refetch: fetchClients }}>
       {children}
     </ClientsContext.Provider>
   )

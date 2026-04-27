@@ -22,6 +22,7 @@ interface StaffContextValue {
   staff: StaffMember[]
   staffNames: string[]
   isLoading: boolean
+  fetchError: string | null
   addStaff: (input: {
     name: string
     iconText?: string
@@ -40,6 +41,7 @@ export function StaffProvider({ children }: { children: ReactNode }) {
   const { activeWorkspace } = useWorkspace()
   const [staff, setStaff] = useState<StaffMember[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   const fetchStaff = useCallback(async () => {
     if (!activeWorkspace || !isSupabaseConfigured()) {
@@ -51,6 +53,7 @@ export function StaffProvider({ children }: { children: ReactNode }) {
     if (!supabase) { setStaff([]); setIsLoading(false); return }
 
     setIsLoading(true)
+    setFetchError(null)
     try {
       const { data, error } = await supabase
         .from("staff")
@@ -58,12 +61,14 @@ export function StaffProvider({ children }: { children: ReactNode }) {
         .eq("workspace_id", activeWorkspace.id)
         .order("created_at", { ascending: true })
 
-      if (error || !data) {
+      if (error) {
+        setFetchError(error.message)
         setStaff([])
       } else {
-        setStaff(data.map(dbToStaff))
+        setStaff((data || []).map(dbToStaff))
       }
-    } catch {
+    } catch (err) {
+      setFetchError(err instanceof Error ? err.message : "Failed to load staff")
       setStaff([])
     }
     setIsLoading(false)
@@ -147,7 +152,7 @@ export function StaffProvider({ children }: { children: ReactNode }) {
   const staffNames = staff.map((s) => s.name)
 
   return (
-    <StaffContext.Provider value={{ staff, staffNames, isLoading, addStaff, updateStaff, deleteStaff, refetch: fetchStaff }}>
+    <StaffContext.Provider value={{ staff, staffNames, isLoading, fetchError, addStaff, updateStaff, deleteStaff, refetch: fetchStaff }}>
       {children}
     </StaffContext.Provider>
   )

@@ -62,7 +62,7 @@ export const defaultParticipantFields: FieldDefinition[] = [
   { id: "p-primary-diagnosis", name: "Primary diagnosis", type: "text", description: "Primary medical or disability diagnosis", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
   { id: "p-secondary-diagnosis", name: "Secondary diagnosis", type: "text", description: "Secondary or co-occurring diagnosis", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
   { id: "p-email", name: "Email", type: "email", description: "Participant email address", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
-  { id: "p-mobile", name: "Mobile", type: "phone", description: "Mobile phone number", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
+
   { id: "p-phone", name: "Phone", type: "phone", description: "Landline or secondary phone number", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
   { id: "p-contact-method", name: "Contact method", type: "single-select", description: "Preferred method of contact", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
   { id: "p-sign-method", name: "Sign method", type: "single-select", description: "Preferred signing method for documents", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
@@ -98,7 +98,7 @@ export const defaultStaffFields: FieldDefinition[] = [
   { id: "s-gender", name: "Gender", type: "single-select", description: "Gender identity", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "staff" },
   { id: "s-pronouns", name: "Pronouns", type: "single-select", description: "Preferred pronouns", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "staff" },
   { id: "s-email", name: "Email", type: "email", description: "Work email address", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "staff" },
-  { id: "s-mobile", name: "Mobile", type: "phone", description: "Mobile phone number", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "staff" },
+
   { id: "s-phone", name: "Phone", type: "phone", description: "Work phone number", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "staff" },
   { id: "s-role", name: "Role", type: "text", description: "Job role or title", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "staff" },
   { id: "s-department", name: "Department", type: "single-select", description: "Department or team", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "staff" },
@@ -126,7 +126,7 @@ export const participantFieldToColumnKey: Record<string, string> = {
   "p-secondary-diagnosis": "diagnosis",
   "p-email": "email",
   "p-phone": "phone",
-  "p-mobile": "mobile",
+
   "p-date-of-birth": "dob",
   "p-gender": "gender",
   "p-pronouns": "pronouns",
@@ -152,7 +152,7 @@ export const contactFieldToColumnKey: Record<string, string> = {
 export const staffFieldToColumnKey: Record<string, string> = {
   "s-email": "email",
   "s-phone": "phone",
-  "s-mobile": "mobile",
+
   "s-role": "role",
   "s-department": "department",
   "s-employment-type": "employmentType",

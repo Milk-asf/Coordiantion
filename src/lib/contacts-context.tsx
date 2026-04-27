@@ -21,6 +21,7 @@ function dbToContact(row: any): Contact {
 interface ContactsContextValue {
   contacts: Contact[]
   isLoading: boolean
+  fetchError: string | null
   addContact: (input: Omit<Contact, "id">) => Promise<Contact | null>
   updateContact: (id: string, updates: Partial<Contact>) => Promise<void>
   deleteContact: (id: string) => Promise<void>
@@ -34,6 +35,7 @@ export function ContactsProvider({ children }: { children: ReactNode }) {
   const { activeWorkspace } = useWorkspace()
   const [contacts, setContacts] = useState<Contact[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   const fetchContacts = useCallback(async () => {
     if (!activeWorkspace || !isSupabaseConfigured()) {
@@ -45,6 +47,7 @@ export function ContactsProvider({ children }: { children: ReactNode }) {
     if (!supabase) { setContacts([]); setIsLoading(false); return }
 
     setIsLoading(true)
+    setFetchError(null)
     try {
       const { data, error } = await supabase
         .from("contacts")
@@ -52,12 +55,14 @@ export function ContactsProvider({ children }: { children: ReactNode }) {
         .eq("workspace_id", activeWorkspace.id)
         .order("created_at", { ascending: true })
 
-      if (error || !data) {
+      if (error) {
+        setFetchError(error.message)
         setContacts([])
       } else {
-        setContacts(data.map(dbToContact))
+        setContacts((data || []).map(dbToContact))
       }
-    } catch {
+    } catch (err) {
+      setFetchError(err instanceof Error ? err.message : "Failed to load contacts")
       setContacts([])
     }
     setIsLoading(false)
@@ -133,7 +138,7 @@ export function ContactsProvider({ children }: { children: ReactNode }) {
   }, [contacts])
 
   return (
-    <ContactsContext.Provider value={{ contacts, isLoading, addContact, updateContact, deleteContact, getContactsForClient, refetch: fetchContacts }}>
+    <ContactsContext.Provider value={{ contacts, isLoading, fetchError, addContact, updateContact, deleteContact, getContactsForClient, refetch: fetchContacts }}>
       {children}
     </ContactsContext.Provider>
   )

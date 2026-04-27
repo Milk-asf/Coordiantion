@@ -167,26 +167,6 @@ export default function GeneralSettingsPage() {
         </div>
       </div>
 
-      {/* Primary Colour */}
-      <div className="mb-[28px]">
-        <h2 className="mb-[8px] text-[15px] font-bold text-[#262626]">Primary colour</h2>
-        <p className="mb-[12px] text-[13px] text-[#888]">Used for action buttons and notification indicators.</p>
-        <div className="rounded-[14px] border border-[#e5e5e5] bg-[#fafafa] p-[24px]">
-          <label className="relative inline-block cursor-pointer">
-            <input
-              type="color"
-              value={local.primaryColor || "#3b82f6"}
-              onChange={(e) => update("primaryColor")(e.target.value)}
-              className="absolute inset-0 cursor-pointer opacity-0"
-            />
-            <div
-              className="h-[44px] w-[44px] rounded-[10px] border border-[#e5e5e5] shadow-sm transition-shadow hover:shadow-md"
-              style={{ backgroundColor: local.primaryColor || "#3b82f6" }}
-            />
-          </label>
-        </div>
-      </div>
-
       {/* Organisation Details */}
       <div className="mb-[28px]">
         <h2 className="mb-[8px] text-[15px] font-bold text-[#262626]">Organisation Details</h2>

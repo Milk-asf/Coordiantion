@@ -72,6 +72,7 @@ export function useInvoices() {
   const { activeWorkspace } = useWorkspace()
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   const fetchInvoices = useCallback(async () => {
     if (!activeWorkspace || !isSupabaseConfigured()) {
@@ -83,6 +84,7 @@ export function useInvoices() {
     if (!supabase) { setInvoices([]); setIsLoading(false); return }
 
     setIsLoading(true)
+    setFetchError(null)
     try {
       const { data, error } = await supabase
         .from("invoices")
@@ -91,7 +93,7 @@ export function useInvoices() {
         .order("created_at", { ascending: true })
 
       if (error || !data) {
-        console.error("Failed to fetch invoices:", error?.message)
+        setFetchError(error?.message || "Failed to load invoices")
         setInvoices([])
         setIsLoading(false)
         return
@@ -119,6 +121,7 @@ export function useInvoices() {
       setInvoices(withOverdue)
     } catch (err) {
       console.error("Failed to fetch invoices:", err)
+      setFetchError(err instanceof Error ? err.message : "Failed to load invoices")
       setInvoices([])
     }
     setIsLoading(false)
@@ -370,6 +373,7 @@ export function useInvoices() {
   return {
     invoices,
     isLoading,
+    fetchError,
     addInvoice,
     updateInvoiceStatus,
     markInvoiceSent,

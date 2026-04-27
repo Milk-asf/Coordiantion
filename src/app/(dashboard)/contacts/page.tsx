@@ -23,6 +23,7 @@ import { useFieldConfig } from "@/lib/hooks/use-field-config"
 import { useSavedViews } from "@/lib/hooks/use-saved-views"
 import { relationshipConfig } from "@/lib/types"
 import { CsvDropdown } from "@/components/csv-dropdown"
+import { PageLoader, PageError } from "@/components/page-state"
 
 const allColumns = [
   { key: "name", label: "Name", icon: UserRound, isSystem: true },
@@ -44,7 +45,7 @@ interface SavedView {
 }
 
 export default function ContactsPage() {
-  const { contacts, addContact } = useContacts()
+  const { contacts, isLoading, fetchError, addContact, refetch } = useContacts()
   const { clients, clientNames } = useClients()
   const { contactDisabled } = useFieldConfig()
 
@@ -224,6 +225,9 @@ export default function ContactsPage() {
     }
   }, [addContact, clients])
 
+  if (isLoading) return <PageLoader label="Loading contacts…" />
+  if (fetchError) return <PageError message="Failed to load contacts" onRetry={refetch} />
+
   return (
     <div className="flex h-full flex-col">
       {/* View tabs */}
@@ -275,7 +279,6 @@ export default function ContactsPage() {
           <button
             onClick={() => setIsModalOpen(true)}
             className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
-            style={{ backgroundColor: "var(--primary-color)" }}
             tabIndex={0}
           >
             <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -431,9 +434,9 @@ export default function ContactsPage() {
                       </td>
                     )
                   case "client":
-                    return <td key={key} className={cls}>{contact.clientName ? <span className="inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] px-[8px] text-[13px] font-medium text-[#262626]">{contact.clientName}</span> : dash}</td>
+                    return <td key={key} className={cls}>{contact.clientName ? <span className="inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] bg-[#e8edf2] px-[12px] text-[13px] font-medium text-[#334155]">{contact.clientName}</span> : dash}</td>
                   case "relationship":
-                    return <td key={key} className={cls}>{rel ? <span className="inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] px-[8px] text-[13px] font-medium text-[#262626]">{rel.label}</span> : <span className="text-[13px] font-medium text-[#bbb]">—</span>}</td>
+                    return <td key={key} className={cls}>{rel ? <span className="inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] bg-[#e8edf2] px-[12px] text-[13px] font-medium text-[#334155]">{rel.label}</span> : <span className="text-[13px] font-medium text-[#bbb]">—</span>}</td>
                   case "email":
                     return <td key={key} className={textCls}>{contact.email || dash}</td>
                   case "phone":
@@ -522,7 +525,7 @@ export default function ContactsPage() {
                   {newContact.relationship ? (
                     (() => {
                       const rel = relationshipConfig[newContact.relationship]
-                      return <span className="inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] px-[8px] text-[13px] font-medium text-[#262626]">{rel?.label ?? newContact.relationship}</span>
+                      return <span className="inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] bg-[#e8edf2] px-[12px] text-[13px] font-medium text-[#334155]">{rel?.label ?? newContact.relationship}</span>
                     })()
                   ) : (
                     <span className="text-[#bbb]">Select relationship</span>
@@ -609,7 +612,7 @@ export default function ContactsPage() {
                     className={`flex w-full items-center gap-[10px] px-[12px] py-[10px] text-left transition-colors hover:bg-[#f5f5f5] ${newContact.relationship === key ? "bg-[#f5f5f5]" : ""}`}
                     tabIndex={0}
                   >
-                    <span className="inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] px-[8px] text-[13px] font-medium text-[#262626]">{config.label}</span>
+                    <span className="inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] bg-[#e8edf2] px-[12px] text-[13px] font-medium text-[#334155]">{config.label}</span>
                   </button>
                 ))}
               </div>

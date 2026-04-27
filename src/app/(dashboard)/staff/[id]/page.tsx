@@ -20,7 +20,6 @@ import {
   FileText,
   Mail,
   Phone,
-  Smartphone,
   MessageSquare,
   CalendarDays,
   Heart,
@@ -317,10 +316,8 @@ export default function StaffProfilePage() {
   const sf = isFieldEnabled
   const [visibleTabCount, setVisibleTabCount] = useState(tabs.length)
   const [isTabOverflowOpen, setIsTabOverflowOpen] = useState(false)
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
   const tabWidthsRef = useRef<number[]>([])
   const overflowBtnRef = useRef<HTMLButtonElement>(null)
-  const createBtnRef = useRef<HTMLButtonElement>(null)
   const tabsContainerRef = useRef<HTMLDivElement>(null)
   const headerRef = useRef<HTMLDivElement>(null)
   const isResizing = useRef(false)
@@ -569,12 +566,12 @@ export default function StaffProfilePage() {
     <div className="flex h-full">
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Profile header bar */}
-        <div ref={headerRef} className="relative flex h-[48px] shrink-0 items-center overflow-hidden bg-[#f8f6f3] px-[16px]">
-          <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-[#e8ddd0] via-[#e0d6c8] to-[#e8ddd0]" />
+        <div ref={headerRef} className="relative flex h-[48px] shrink-0 items-center overflow-hidden bg-[#fafafa] px-[16px]">
+          <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#e5e5e5]" />
 
           <button
             onClick={() => router.push("/staff")}
-            className="mr-[6px] flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded text-[#999] transition-colors hover:bg-[#efe9e1] hover:text-[#262626]"
+            className="mr-[6px] flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded text-[#999] transition-colors hover:bg-[#ebebeb] hover:text-[#262626]"
             tabIndex={0}
             aria-label="Back to staff"
           >
@@ -604,7 +601,7 @@ export default function StaffProfilePage() {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`flex shrink-0 items-center gap-[4px] rounded-[5px] px-[8px] py-[4px] text-[12px] font-medium transition-colors ${isActive ? "bg-[#ebe5dc] text-[#262626]" : "text-[#888] hover:bg-[#efe9e1] hover:text-[#262626]"}`}
+                  className={`flex shrink-0 items-center gap-[4px] rounded-[5px] px-[8px] py-[4px] text-[12px] font-medium transition-colors ${isActive ? "bg-[#ebebeb] text-[#262626]" : "text-[#888] hover:bg-[#ebebeb] hover:text-[#262626]"}`}
                   tabIndex={0}
                 >
                   <TabIcon className="h-[12px] w-[12px]" strokeWidth={1.5} />
@@ -617,7 +614,7 @@ export default function StaffProfilePage() {
                 <button
                   ref={overflowBtnRef}
                   onClick={() => setIsTabOverflowOpen(!isTabOverflowOpen)}
-                  className={`flex shrink-0 items-center gap-[3px] rounded-[5px] px-[6px] py-[4px] text-[12px] font-medium transition-colors ${isTabOverflowOpen ? "bg-[#ebe5dc] text-[#262626]" : "text-[#888] hover:bg-[#efe9e1] hover:text-[#262626]"}`}
+                  className={`flex shrink-0 items-center gap-[3px] rounded-[5px] px-[6px] py-[4px] text-[12px] font-medium transition-colors ${isTabOverflowOpen ? "bg-[#ebebeb] text-[#262626]" : "text-[#888] hover:bg-[#ebebeb] hover:text-[#262626]"}`}
                   tabIndex={0}
                   aria-label="More tabs"
                 >
@@ -657,45 +654,10 @@ export default function StaffProfilePage() {
           </div>
 
           <div className="flex shrink-0 items-center gap-[6px] pl-[8px]">
-            <button
-              ref={createBtnRef}
-              onClick={() => setIsCreateOpen(!isCreateOpen)}
-              className="flex items-center gap-[5px] rounded-[6px] border border-[#ddd5ca] bg-white px-[10px] py-[5px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#efe9e1]"
-              tabIndex={0}
-            >
-              <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-              <span>Create</span>
-            </button>
-            {isCreateOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setIsCreateOpen(false)} />
-                <div
-                  className="fixed z-50 min-w-[180px] overflow-hidden rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-                  style={(() => {
-                    const rect = createBtnRef.current?.getBoundingClientRect()
-                    if (!rect) return {}
-                    return { top: rect.bottom + 4, right: window.innerWidth - rect.right }
-                  })()}
-                >
-                  <button onClick={() => setIsCreateOpen(false)} className="flex w-full items-center gap-[10px] px-[14px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
-                    <FileText className="h-[16px] w-[16px] text-[#888]" strokeWidth={1.5} />
-                    <span>Note</span>
-                  </button>
-                  <button
-                    onClick={() => { setIsCreateOpen(false); setIsQuickAdding(true); setQuickActiveField("title"); setTimeout(() => quickInputRef.current?.focus(), 0) }}
-                    className="flex w-full items-center gap-[10px] px-[14px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                    tabIndex={0}
-                  >
-                    <CheckSquare className="h-[16px] w-[16px] text-[#888]" strokeWidth={1.5} />
-                    <span>Task</span>
-                  </button>
-                </div>
-              </>
-            )}
             {!isSidebarVisible && (
               <button
                 onClick={() => setIsSidebarVisible(true)}
-                className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#262626] transition-colors hover:bg-[#efe9e1]"
+                className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#262626] transition-colors hover:bg-[#ebebeb]"
                 tabIndex={0}
                 aria-label="Show staff details"
               >
@@ -905,7 +867,7 @@ export default function StaffProfilePage() {
 
                 <div className="ml-auto flex items-center gap-[6px]">
                   <button type="button" onClick={resetQuickAdd} className="rounded px-[8px] py-[4px] text-[12px] font-medium text-[#999] transition-colors hover:bg-[#f0f0f0]" tabIndex={0}>Cancel</button>
-                  <button type="button" onClick={handleQuickFinish} disabled={!quickTitle.trim()} className="primary-btn rounded-[4px] px-[12px] py-[4px] text-[12px] font-medium transition-colors disabled:opacity-40" style={{ backgroundColor: "var(--primary-color)" }} tabIndex={0}>Create</button>
+                  <button type="button" onClick={handleQuickFinish} disabled={!quickTitle.trim()} className="primary-btn rounded-[4px] px-[12px] py-[4px] text-[12px] font-medium transition-colors disabled:opacity-40" tabIndex={0}>Create</button>
                 </div>
               </div>
             </div>
@@ -1049,7 +1011,6 @@ export default function StaffProfilePage() {
                   <button
                     onClick={() => setIsFilesAddNewOpen(!isFilesAddNewOpen)}
                     className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
-                    style={{ backgroundColor: "var(--primary-color)" }}
                     tabIndex={0}
                     aria-label="Add new"
                   >
@@ -1131,7 +1092,6 @@ export default function StaffProfilePage() {
                   <button
                     onClick={() => setIsFilesAddNewOpen(true)}
                     className="primary-btn mt-[4px] flex items-center gap-[5px] rounded-[4px] px-[10px] py-[6px] text-[13px] font-medium transition-colors"
-                    style={{ backgroundColor: "var(--primary-color)" }}
                     tabIndex={0}
                   >
                     <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -1362,9 +1322,7 @@ export default function StaffProfilePage() {
                 {sf("s-email") && <SidebarDetailRow icon={Mail} label="Email">
                   <SidebarContactChip value={d.email} onChange={(v) => handleUpdateField("email", v)} placeholder="Email address" />
                 </SidebarDetailRow>}
-                {sf("s-mobile") && <SidebarDetailRow icon={Smartphone} label="Mobile">
-                  <SidebarContactChip value={d.mobile} onChange={(v) => handleUpdateField("mobile", v)} placeholder="Mobile number" />
-                </SidebarDetailRow>}
+
                 {sf("s-phone") && <SidebarDetailRow icon={Phone} label="Phone">
                   <SidebarContactChip value={d.phone} onChange={(v) => handleUpdateField("phone", v)} placeholder="Phone number" />
                 </SidebarDetailRow>}

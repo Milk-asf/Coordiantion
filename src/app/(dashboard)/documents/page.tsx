@@ -367,7 +367,6 @@ export default function DocumentsPage() {
               <button
                 onClick={() => { setIsAddNewOpen(!isAddNewOpen); setIsUploadPickerOpen(false) }}
                 className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
-                style={{ backgroundColor: "var(--primary-color)" }}
                 tabIndex={0}
                 aria-label="Add new"
               >
@@ -664,7 +663,6 @@ export default function DocumentsPage() {
                 <button
                   onClick={() => { setIsAddNewOpen(!isAddNewOpen); setIsUploadPickerOpen(false) }}
                   className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[10px] py-[6px] text-[13px] font-medium transition-colors"
-                  style={{ backgroundColor: "var(--primary-color)" }}
                   tabIndex={0}
                 >
                   <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />

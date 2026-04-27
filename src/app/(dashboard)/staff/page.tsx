@@ -24,7 +24,6 @@ import {
   User,
   Mail,
   Phone,
-  Smartphone,
   CalendarDays,
   Heart,
   ChevronDown,
@@ -42,12 +41,12 @@ import {
   MessageSquare,
 } from "lucide-react"
 import { CsvDropdown } from "@/components/csv-dropdown"
+import { PageLoader, PageError } from "@/components/page-state"
 
 const allPropertyColumns = [
   { key: "clients", label: "Clients", icon: Users, minWidth: 220 },
   { key: "email", label: "Email", icon: Mail, minWidth: 220 },
   { key: "phone", label: "Phone", icon: Phone, minWidth: 160 },
-  { key: "mobile", label: "Mobile", icon: Smartphone, minWidth: 160 },
   { key: "role", label: "Role", icon: Briefcase, minWidth: 160 },
   { key: "department", label: "Department", icon: Building2, minWidth: 160 },
   { key: "employmentType", label: "Employment Type", icon: Clock, minWidth: 160 },
@@ -123,9 +122,7 @@ function StaffProfile({ member, onUpdateField, onClose }: { member: StaffMember;
             {sf("s-email") && <DetailRow icon={Mail} label="Email">
               <ContactChip value={d.email} onChange={(v) => onUpdateField("email", v)} placeholder="Email address" />
             </DetailRow>}
-            {sf("s-mobile") && <DetailRow icon={Smartphone} label="Mobile">
-              <ContactChip value={d.mobile} onChange={(v) => onUpdateField("mobile", v)} placeholder="Mobile number" />
-            </DetailRow>}
+
             {sf("s-phone") && <DetailRow icon={Phone} label="Phone">
               <ContactChip value={d.phone} onChange={(v) => onUpdateField("phone", v)} placeholder="Phone number" />
             </DetailRow>}
@@ -198,7 +195,7 @@ interface SavedView {
 
 export default function StaffPage() {
   const router = useRouter()
-  const { staff, addStaff, updateStaff } = useStaff()
+  const { staff, isLoading, fetchError, addStaff, updateStaff, refetch } = useStaff()
   const { clients } = useClients()
   const { staffDisabled } = useFieldConfig()
   const { canManageStaff } = usePermissions()
@@ -310,7 +307,6 @@ export default function StaffPage() {
     { key: "lastName", label: "Last Name" },
     { key: "preferredName", label: "Preferred Name" },
     { key: "email", label: "Email" },
-    { key: "mobile", label: "Mobile" },
     { key: "phone", label: "Phone" },
     { key: "role", label: "Role" },
     { key: "department", label: "Department" },
@@ -367,7 +363,6 @@ export default function StaffPage() {
           firstName, lastName,
           preferredName: row.preferredName || "",
           email: row.email || "",
-          mobile: row.mobile || "",
           phone: row.phone || "",
           role: row.role || "",
           department: row.department || "",
@@ -399,7 +394,6 @@ export default function StaffPage() {
         case "name": valA = a.name; valB = b.name; break
         case "email": valA = a.details.email; valB = b.details.email; break
         case "phone": valA = a.details.phone; valB = b.details.phone; break
-        case "mobile": valA = a.details.mobile; valB = b.details.mobile; break
         case "role": valA = a.details.role; valB = b.details.role; break
         case "department": valA = a.details.department; valB = b.details.department; break
         case "employmentType": valA = a.details.employmentType; valB = b.details.employmentType; break
@@ -419,6 +413,9 @@ export default function StaffPage() {
       return sortDirection === "asc" ? cmp : -cmp
     })
   })()
+
+  if (isLoading) return <PageLoader label="Loading staff…" />
+  if (fetchError) return <PageError message="Failed to load staff" onRetry={refetch} />
 
   return (
     <div className="relative flex h-full">
@@ -457,7 +454,7 @@ export default function StaffPage() {
                 data={exportCsvData}
                 onImport={handleCsvImport}
               />
-              <button onClick={() => router.push("/settings/members")} className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors" style={{ backgroundColor: "var(--primary-color)" }} tabIndex={0}>
+              <button onClick={() => router.push("/settings/members")} className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors" tabIndex={0}>
                 <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
                 <span className="hidden sm:inline">Add new</span>
               </button>
@@ -567,7 +564,7 @@ export default function StaffPage() {
                 const d = member.details
                 const cellClass = `h-[44px] overflow-hidden whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] ${rowBg} ${rowHover}`
                 const dash = <span className="text-[#bbb]">—</span>
-                const whiteChip = "inline-flex h-[28px] items-center whitespace-nowrap rounded border border-[#dcdcdc] bg-transparent px-[8px] text-[12px] font-medium text-[#262626]"
+                const whiteChip = "inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] bg-[#e8edf2] px-[12px] text-[12px] font-medium text-[#334155]"
 
                 const memberClients = clients.filter((c) => c.owner === member.name)
 
@@ -576,13 +573,13 @@ export default function StaffPage() {
                   const tCls = `${cls} text-[13px] font-medium text-[#262626]`
                   switch (key) {
                     case "clients": {
-                      const chipCls = isLast ? `min-h-[44px] border-b px-[20px] py-[8px] align-middle ${rowBg} ${rowHover}` : `min-h-[44px] border-b border-r border-[#dcdcdc] px-[20px] py-[8px] align-middle ${rowBg} ${rowHover}`
-                      if (memberClients.length === 0) return <td key={key} className={`${chipCls} text-[13px]`}>{dash}</td>
+                      const chipCls = isLast ? `h-[44px] overflow-hidden border-b pl-[20px] ${rowBg} ${rowHover}` : `h-[44px] overflow-hidden border-b border-r border-[#dcdcdc] pl-[20px] ${rowBg} ${rowHover}`
+                      if (memberClients.length === 0) return <td key={key} className={`${chipCls} pr-[20px] text-[13px]`}>{dash}</td>
                       return (
                         <td key={key} className={chipCls}>
-                          <div className="flex flex-wrap gap-[4px]">
+                          <div className="flex h-full items-center gap-[6px]">
                             {memberClients.map((c) => (
-                              <span key={c.id} className="inline-flex h-[24px] items-center whitespace-nowrap rounded-[4px] border border-[#dcdcdc] bg-transparent px-[8px] text-[11px] font-medium text-[#262626]">
+                              <span key={c.id} className="inline-flex h-[24px] shrink-0 items-center whitespace-nowrap rounded-[4px] border border-[#dcdcdc] bg-transparent px-[8px] text-[11px] font-medium text-[#262626]">
                                 {c.displayName}
                               </span>
                             ))}
@@ -592,7 +589,6 @@ export default function StaffPage() {
                     }
                     case "email": return <td key={key} className={tCls}>{d.email || dash}</td>
                     case "phone": return <td key={key} className={tCls}>{d.phone || dash}</td>
-                    case "mobile": return <td key={key} className={tCls}>{d.mobile || dash}</td>
                     case "role": return <td key={key} className={cls}>{d.role ? <span className={whiteChip}>{d.role}</span> : dash}</td>
                     case "department": return <td key={key} className={cls}>{d.department ? <span className={whiteChip}>{d.department}</span> : dash}</td>
                     case "employmentType": return <td key={key} className={cls}>{d.employmentType ? <span className={whiteChip}>{d.employmentType}</span> : dash}</td>
