@@ -2095,7 +2095,7 @@ export default function ParticipantProfilePage() {
             onMouseDown={handleMouseDown}
             className="w-[4px] shrink-0 cursor-col-resize border-l border-[#f0f0f0] transition-colors hover:border-[#aaa] hover:bg-[#f0f0f0]"
           />
-          <div className="flex shrink-0 flex-col bg-white" style={{ width: sidebarWidth }}>
+          <div className="flex min-h-0 shrink-0 flex-col overflow-y-auto bg-white" style={{ width: sidebarWidth }}>
           {isPlanModalOpen ? (
             <>
             <div className="flex items-center justify-between px-[24px] pb-[4px] pt-[20px]">
