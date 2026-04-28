@@ -3294,6 +3294,36 @@ export default function ParticipantProfilePage() {
             )}
           </div>
 
+          {/* Recent tasks */}
+          <div className="border-t border-[#f0f0f0] px-[24px] py-[16px]">
+            <h3 className="text-[13px] font-semibold text-[#262626]">Recent tasks</h3>
+            {clientTasks.length === 0 ? (
+              <p className="mt-[6px] text-[13px] font-medium text-[#bbb]">No tasks</p>
+            ) : (
+              <div className="mt-[8px] overflow-hidden rounded-[8px] border border-[#e8e8e8]">
+                {clientTasks.slice(0, 3).map((task) => {
+                  const statusColor = task.status === "done" ? "text-green-600 bg-green-50" : task.status === "in-progress" ? "text-blue-600 bg-blue-50" : "text-[#888] bg-[#f5f5f5]"
+                  const statusLabel = task.status === "done" ? "Done" : task.status === "in-progress" ? "In progress" : "To do"
+                  const dueFmt = task.dueDate ? new Date(task.dueDate + "T00:00:00").toLocaleDateString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" }) : null
+                  return (
+                    <div
+                      key={task.id}
+                      className="flex items-start gap-[10px] border-b border-[#f0f0f0] px-[12px] py-[10px] last:border-b-0"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] font-medium text-[#262626]">{task.title}</p>
+                        <div className="mt-[3px] flex items-center gap-[6px]">
+                          <span className={`inline-flex rounded-[4px] px-[6px] py-[1px] text-[11px] font-medium ${statusColor}`}>{statusLabel}</span>
+                          {dueFmt && <span className="text-[11px] text-[#999]">{dueFmt}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
           {/* Plans section */}
           <div className="border-t border-[#f0f0f0] px-[24px] py-[16px]">
             <div className="flex items-center justify-between">
