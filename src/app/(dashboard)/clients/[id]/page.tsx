@@ -3300,22 +3300,37 @@ export default function ParticipantProfilePage() {
             {clientTasks.length === 0 ? (
               <p className="mt-[6px] text-[13px] font-medium text-[#bbb]">No tasks</p>
             ) : (
-              <div className="mt-[8px] overflow-hidden rounded-[8px] border border-[#e8e8e8]">
+              <div className="mt-[8px] overflow-hidden rounded-[8px] border border-[#e8e8e8] bg-[#fafafa]">
                 {clientTasks.slice(0, 3).map((task) => {
-                  const statusColor = task.status === "done" ? "text-green-600 bg-green-50" : task.status === "in-progress" ? "text-blue-600 bg-blue-50" : "text-[#888] bg-[#f5f5f5]"
-                  const statusLabel = task.status === "done" ? "Done" : task.status === "in-progress" ? "In progress" : "To do"
-                  const dueFmt = task.dueDate ? new Date(task.dueDate + "T00:00:00").toLocaleDateString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" }) : null
+                  const dateStr = formatTaskDate(task.dueDate)
+                  const isDone = task.status === "done"
                   return (
                     <div
                       key={task.id}
-                      className="flex items-start gap-[10px] border-b border-[#f0f0f0] px-[12px] py-[10px] last:border-b-0"
+                      className="grid items-center border-b border-[#f0f0f0] px-[12px] transition-colors last:border-b-0 hover:bg-[#f5f5f5]"
+                      style={{ gridTemplateColumns: "70px 1fr 32px" }}
                     >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[13px] font-medium text-[#262626]">{task.title}</p>
-                        <div className="mt-[3px] flex items-center gap-[6px]">
-                          <span className={`inline-flex rounded-[4px] px-[6px] py-[1px] text-[11px] font-medium ${statusColor}`}>{statusLabel}</span>
-                          {dueFmt && <span className="text-[11px] text-[#999]">{dueFmt}</span>}
-                        </div>
+                      <div className="py-[10px] text-[12px] text-[#888]">
+                        {dateStr || <span className="text-[#ccc]">—</span>}
+                      </div>
+                      <div className="truncate py-[10px] pl-[6px]">
+                        <span className={`text-[13px] ${isDone ? "text-[#bbb] line-through" : "text-[#262626]"}`}>
+                          {task.title || <span className="text-[#ccc]">Untitled task</span>}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-center">
+                        <button
+                          onClick={() => updateTask(task.id, { status: isDone ? "todo" : "done" })}
+                          className={`flex h-[18px] w-[18px] items-center justify-center rounded border-[1.5px] transition-colors ${
+                            isDone
+                              ? "border-blue-500 bg-blue-500 text-white hover:border-blue-400 hover:bg-blue-400"
+                              : "border-[#ccc] hover:border-[#999]"
+                          }`}
+                          tabIndex={0}
+                          aria-label={isDone ? "Mark as incomplete" : "Mark as complete"}
+                        >
+                          {isDone && <span className="text-[9px]">✓</span>}
+                        </button>
                       </div>
                     </div>
                   )
