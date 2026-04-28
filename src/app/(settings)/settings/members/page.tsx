@@ -22,7 +22,7 @@ const roleConfig: Record<Role, { label: string; description: string; color: stri
 const allRoles: Role[] = ["super-admin", "admin", "coordinator"]
 
 export default function MembersSettingsPage() {
-  const { members, inviteMember, updateMemberRole, updateMemberStatus, removeMember } = useMembers()
+  const { members, updateMemberRole, updateMemberStatus, removeMember, refetch } = useMembers()
   const { canManageMembers, isSuperAdmin } = usePermissions()
   const { staff, updateStaff } = useStaff()
   const { activeWorkspace } = useWorkspace()
@@ -44,18 +44,15 @@ export default function MembersSettingsPage() {
     setIsInviting(true)
     setInviteError(null)
     try {
-      const member = await inviteMember(inviteEmail.trim(), inviteRole)
-      if (!member) throw new Error("Failed to create membership record")
-
       const res = await fetch("/api/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: inviteEmail.trim(), workspaceId: activeWorkspace.id }),
+        body: JSON.stringify({ email: inviteEmail.trim(), workspaceId: activeWorkspace.id, role: inviteRole }),
       })
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || "Failed to send invite email")
-      }
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to invite member")
+
+      await refetch()
       setInviteEmail("")
       setInviteRole("coordinator")
       setIsInviteOpen(false)

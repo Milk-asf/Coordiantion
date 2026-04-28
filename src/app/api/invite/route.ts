@@ -7,22 +7,49 @@ export async function POST(request: Request) {
   const { data: { user: caller } } = await supabase.auth.getUser()
   if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { email, workspaceId } = await request.json()
+  const { email, workspaceId, role } = await request.json()
   if (!email?.includes("@")) return NextResponse.json({ error: "Invalid email" }, { status: 400 })
   if (!workspaceId) return NextResponse.json({ error: "Missing workspaceId" }, { status: 400 })
 
   const adminClient = createAdminClient()
   if (!adminClient) return NextResponse.json({ error: "Server not configured for invites. Add SUPABASE_SERVICE_ROLE_KEY to environment." }, { status: 500 })
 
-  const { data: membership } = await adminClient
+  const { data: callerMembership } = await adminClient
     .from("workspace_members")
     .select("role")
     .eq("workspace_id", workspaceId)
     .eq("user_id", caller.id)
     .single()
 
-  if (!membership || !["super-admin", "admin"].includes(membership.role)) {
+  if (!callerMembership || !["super-admin", "admin"].includes(callerMembership.role)) {
     return NextResponse.json({ error: "You don't have permission to invite members" }, { status: 403 })
+  }
+
+  const { data: existingMember } = await adminClient
+    .from("workspace_members")
+    .select("id")
+    .eq("workspace_id", workspaceId)
+    .eq("invited_email", email)
+    .maybeSingle()
+
+  let memberId: string | null = existingMember?.id ?? null
+
+  if (!existingMember) {
+    const { data: newMember, error: insertError } = await adminClient
+      .from("workspace_members")
+      .insert({
+        workspace_id: workspaceId,
+        invited_email: email,
+        role: role || "coordinator",
+        status: "invited",
+      })
+      .select()
+      .single()
+
+    if (insertError || !newMember) {
+      return NextResponse.json({ error: insertError?.message || "Failed to create membership record" }, { status: 500 })
+    }
+    memberId = newMember.id
   }
 
   const origin = new URL(request.url).origin
@@ -49,14 +76,13 @@ export async function POST(request: Request) {
     }
   }
 
-  if (userId) {
+  if (userId && memberId) {
     await adminClient
       .from("workspace_members")
       .update({ user_id: userId })
-      .eq("workspace_id", workspaceId)
-      .eq("invited_email", email)
+      .eq("id", memberId)
       .is("user_id", null)
   }
 
-  return NextResponse.json({ success: true, userId, emailSent })
+  return NextResponse.json({ success: true, memberId, userId, emailSent })
 }
