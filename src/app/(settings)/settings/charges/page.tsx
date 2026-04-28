@@ -320,8 +320,8 @@ export default function ChargesSettingsPage() {
                   <div className="rounded-[10px] transition-colors hover:bg-[#f7f7f7]">
                     <CustomSelect
                       value={form.unit}
-                      options={[{ value: "hour", label: "Hour" }, { value: "each", label: "Each" }]}
-                      onChange={(v) => setForm({ ...form, unit: v as "hour" | "each" })}
+                      options={[{ value: "hour", label: "Hour" }, { value: "each", label: "Each" }, { value: "km", label: "Kilometre" }]}
+                      onChange={(v) => setForm({ ...form, unit: v as "hour" | "each" | "km" })}
                       icon={<Clock className="h-[13px] w-[13px] shrink-0 text-[#888]" strokeWidth={1.5} />}
                     />
                   </div>

@@ -82,8 +82,8 @@ function formatDecimal(value: number): string {
   return value.toLocaleString("en-AU", { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 }
 
-function formatInvoiceQuantity(task: Task, unit: "hour" | "each" | undefined): number {
-  if (unit === "each") return task.timeSpent > 0 ? task.timeSpent : 1
+function formatInvoiceQuantity(task: Task, unit: "hour" | "each" | "km" | undefined): number {
+  if (unit === "each" || unit === "km") return task.timeSpent > 0 ? task.timeSpent : 1
   if (task.timeSpent <= 0) return 0
   return Number((task.timeSpent / 60).toFixed(2))
 }
@@ -238,7 +238,7 @@ export default function InvoicingPage() {
     const charge = getTaskCharge(task)
     if (!charge) return 0
 
-    if (charge.unit === "each") {
+    if (charge.unit === "each" || charge.unit === "km") {
       const quantity = task.timeSpent > 0 ? task.timeSpent : 1
       return quantity * charge.price
     }
@@ -308,7 +308,7 @@ export default function InvoicingPage() {
     if (charge) {
       const quantity = formatInvoiceQuantity(task, charge.unit)
       if (quantity <= 0)
-        issues.push(charge.unit === "each"
+        issues.push(charge.unit === "each" || charge.unit === "km"
           ? "Add a billable quantity before sending the invoice."
           : "Add billable time before sending the invoice.")
     }
@@ -662,10 +662,10 @@ export default function InvoicingPage() {
     const fundingType = client?.participant.fundingType || ""
     const typeLabel = formatBillingType(fundingType)
     const charge = getTaskCharge(task)
-    const quantity = charge?.unit === "each"
+    const quantity = charge?.unit === "each" || charge?.unit === "km"
       ? task.timeSpent > 0 ? task.timeSpent : 1
       : task.timeSpent > 0 ? task.timeSpent / 60 : 0
-    const unitLabel = charge?.unit === "each" ? "EA" : "H"
+    const unitLabel = charge?.unit === "km" ? "KM" : charge?.unit === "each" ? "EA" : "H"
     const unitCost = charge?.price || 0
     const amount = getTaskAmount(task)
     const isReviewed = reviewedTaskIds.includes(task.id)

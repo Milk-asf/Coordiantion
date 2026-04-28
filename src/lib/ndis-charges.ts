@@ -3,7 +3,7 @@ export interface NdisChargeItem {
   name: string
   shortName: string
   registrationGroup: string
-  unit: "hour" | "each"
+  unit: "hour" | "each" | "km"
   price: number
   category: "support-coordination" | "psychosocial-recovery" | "travel"
 }
@@ -14,7 +14,7 @@ export interface ChargeItem {
   itemNumber: string
   claimType: string
   price: number
-  unit: "hour" | "each"
+  unit: "hour" | "each" | "km"
   gstCode: string
   reference: string
 }
@@ -149,6 +149,15 @@ export const ndisCharges: NdisChargeItem[] = [
     registrationGroup: "Support Coordination",
     unit: "each",
     price: 1.0,
+    category: "travel",
+  },
+  {
+    itemNumber: "07_799_0106_6_3_KM",
+    name: "Provider Travel - Kilometres",
+    shortName: "Travel (km)",
+    registrationGroup: "Assistance In Coordinating Or Managing Life Stages, Transitions And Supports",
+    unit: "km",
+    price: 0.99,
     category: "travel",
   },
 ]

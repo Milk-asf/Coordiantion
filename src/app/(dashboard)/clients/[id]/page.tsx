@@ -497,7 +497,7 @@ export default function ParticipantProfilePage() {
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null)
   const [editingServicePlanId, setEditingServicePlanId] = useState<string | null>(null)
   const [svcName, setSvcName] = useState("")
-  const [svcCategory, setSvcCategory] = useState<"support-coordination" | "psychosocial-recovery">("support-coordination")
+  const [svcCategory, setSvcCategory] = useState<"support-coordination" | "psychosocial-recovery" | "travel">("support-coordination")
   const [svcBudget, setSvcBudget] = useState("")
   const [svcChargeItems, setSvcChargeItems] = useState<string[]>([])
   const [svcReleasePeriodCount, setSvcReleasePeriodCount] = useState("")
@@ -514,7 +514,6 @@ export default function ParticipantProfilePage() {
   const [budgetEndDate, setBudgetEndDate] = useState("")
   const [budgetStartPickerOpen, setBudgetStartPickerOpen] = useState(false)
   const [budgetEndPickerOpen, setBudgetEndPickerOpen] = useState(false)
-  const [expandedBudgetId, setExpandedBudgetId] = useState<string | null>(null)
   const [hoveredOverviewDonut, setHoveredOverviewDonut] = useState<{ label: string, value: number, x: number, y: number } | null>(null)
   const [isEditingDescription, setIsEditingDescription] = useState(false)
   const [descriptionDraft, setDescriptionDraft] = useState("")
@@ -529,7 +528,7 @@ export default function ParticipantProfilePage() {
   const [itemBillingCode, setItemBillingCode] = useState("")
   const [itemServiceName, setItemServiceName] = useState("")
   const [itemQuantity, setItemQuantity] = useState("1")
-  const [itemUnit, setItemUnit] = useState<"hour" | "each">("hour")
+  const [itemUnit, setItemUnit] = useState<"hour" | "each" | "km">("hour")
   const [itemPeriod, setItemPeriod] = useState<BudgetPeriod>("per-week")
   const [itemDescription, setItemDescription] = useState("")
 
@@ -800,30 +799,6 @@ export default function ParticipantProfilePage() {
     setInlineSvcEditingId(null)
   }
 
-  const handleDeletePlan = async (planId: string) => {
-    const existingPlans = client.participant.plans || []
-    const updatedPlans = existingPlans.filter((pl) => pl.id !== planId)
-    const latest = updatedPlans.length > 0 ? updatedPlans[updatedPlans.length - 1] : null
-    await updateClient(client.id, {
-      participant: {
-        ...client.participant,
-        plans: updatedPlans,
-        planStartDate: latest?.startDate || "",
-        planEndDate: latest?.endDate || "",
-      },
-    })
-  }
-
-  const applyEndDatePreset = (months: number) => {
-    if (!planStartDate) return
-    const start = new Date(planStartDate + "T00:00:00")
-    start.setMonth(start.getMonth() + months)
-    const y = start.getFullYear()
-    const m = String(start.getMonth() + 1).padStart(2, "0")
-    const d = String(start.getDate()).padStart(2, "0")
-    setPlanEndDate(`${y}-${m}-${d}`)
-  }
-
   const plans = client.participant.plans || []
 
   const resetServiceForm = () => {
@@ -849,7 +824,7 @@ export default function ParticipantProfilePage() {
     }
   }
 
-  const allServiceCharges = enabledCharges.filter((c) => c.category === "support-coordination" || c.category === "psychosocial-recovery")
+  const allServiceCharges = enabledCharges.filter((c) => c.category === "support-coordination" || c.category === "psychosocial-recovery" || c.category === "travel")
 
   const isServiceFormOpen = !!(addingServiceToPlanId || editingServiceId)
 
@@ -996,16 +971,6 @@ export default function ParticipantProfilePage() {
     resetServiceForm()
   }
 
-  const handleDeleteService = async (planId: string, serviceId: string) => {
-    const existingPlans = client.participant.plans || []
-    const updatedPlans = existingPlans.map((pl) =>
-      pl.id === planId ? { ...pl, services: (pl.services || []).filter((s) => s.id !== serviceId) } : pl
-    )
-    await updateClient(client.id, {
-      participant: { ...client.participant, plans: updatedPlans },
-    })
-  }
-
   const budgets = client.participant.budgets || []
 
   const resetBudgetForm = () => {
@@ -1087,7 +1052,6 @@ export default function ParticipantProfilePage() {
       setEditingBudgetId(newId)
       setBudgetName(budgetName.trim())
       setIsBudgetFormOpen(true)
-      setExpandedBudgetId(newId)
       const charge = enabledCharges[0]
       setAddingItemToBudgetId(newId)
       setEditingItemId(null)
@@ -1095,7 +1059,7 @@ export default function ParticipantProfilePage() {
       setItemChargeItemNumber(charge?.itemNumber || "")
       setItemBillingCode(charge?.itemNumber || "")
       setItemServiceName(charge?.shortName || charge?.name || "")
-      setItemUnit((charge?.unit as "hour" | "each") || "hour")
+      setItemUnit((charge?.unit as "hour" | "each" | "km") || "hour")
       setItemQuantity("1")
       setItemPeriod("per-week")
       setItemDescription("")
@@ -1104,29 +1068,6 @@ export default function ParticipantProfilePage() {
     resetBudgetForm()
   }
 
-  const handleDeleteBudget = async (budgetId: string) => {
-    const existingBudgets = client.participant.budgets || []
-    const deleted = existingBudgets.find((b) => b.id === budgetId)
-    const existingLog = client.participant.activityLog || []
-    const updatedBudgets = existingBudgets.filter((b) => b.id !== budgetId)
-    if (deleted) {
-      const entry: ActivityEntry = {
-        id: crypto.randomUUID(),
-        type: "budget_deleted",
-        message: `Deleted the budget **${deleted.name}**`,
-        user: currentUserName,
-        createdAt: new Date().toISOString(),
-      }
-      await updateClient(client.id, {
-        participant: { ...client.participant, budgets: updatedBudgets, activityLog: [entry, ...existingLog] },
-      })
-    } else {
-      await updateClient(client.id, {
-        participant: { ...client.participant, budgets: updatedBudgets },
-      })
-    }
-    if (expandedBudgetId === budgetId) setExpandedBudgetId(null)
-  }
 
   const isItemFormOpen = !!(addingItemToBudgetId || editingItemId)
 
@@ -1150,7 +1091,7 @@ export default function ParticipantProfilePage() {
     setItemChargeItemNumber(charge?.itemNumber || "")
     setItemBillingCode(charge?.itemNumber || "")
     setItemServiceName(charge?.shortName || charge?.name || "")
-    setItemUnit((charge?.unit as "hour" | "each") || "hour")
+    setItemUnit((charge?.unit as "hour" | "each" | "km") || "hour")
     setIsSidebarVisible(true)
   }
 
@@ -1197,19 +1138,6 @@ export default function ParticipantProfilePage() {
       participant: { ...client.participant, budgets: updatedBudgets },
     })
     resetItemForm()
-  }
-
-  const handleDeleteItem = async (budgetId: string, itemId: string) => {
-    const existingBudgets = client.participant.budgets || []
-    const updatedBudgets = existingBudgets.map((b) => {
-      if (b.id !== budgetId) return b
-      const updatedItems = b.lineItems.filter((li) => li.id !== itemId)
-      const updatedChargeItems = [...new Set(updatedItems.map((li) => li.chargeItemNumber).filter(Boolean))]
-      return { ...b, lineItems: updatedItems, chargeItems: updatedChargeItems }
-    })
-    await updateClient(client.id, {
-      participant: { ...client.participant, budgets: updatedBudgets },
-    })
   }
 
   const getBudgetTotal = (budget: Budget) => {
@@ -2421,7 +2349,7 @@ export default function ParticipantProfilePage() {
                             <>
                               <div className="fixed inset-0 z-[59]" onClick={() => setIsChargeDropdownOpen(false)} />
                               <div className="absolute bottom-full left-0 z-[60] mb-[4px] max-h-[240px] w-full overflow-y-auto rounded-[8px] border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-                                {(["support-coordination", "psychosocial-recovery"] as const).map((cat) => {
+                                {(["support-coordination", "psychosocial-recovery", "travel"] as const).map((cat) => {
                                   const catCharges = allServiceCharges.filter((c) => c.category === cat)
                                   if (catCharges.length === 0) return null
                                   return (
@@ -2593,7 +2521,7 @@ export default function ParticipantProfilePage() {
                     <>
                       <div className="fixed inset-0 z-[59]" onClick={() => setIsChargeDropdownOpen(false)} />
                       <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[240px] w-full overflow-y-auto rounded-[8px] border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-                        {(["support-coordination", "psychosocial-recovery"] as const).map((cat) => {
+                        {(["support-coordination", "psychosocial-recovery", "travel"] as const).map((cat) => {
                           const catCharges = allServiceCharges.filter((c) => c.category === cat)
                           if (catCharges.length === 0) return null
                           return (
@@ -2839,7 +2767,7 @@ export default function ParticipantProfilePage() {
                                         setItemChargeItemNumber(ch.itemNumber)
                                         setItemBillingCode(ch.itemNumber)
                                         setItemServiceName(ch.shortName || ch.name)
-                                        setItemUnit((ch.unit as "hour" | "each") || "hour")
+                                        setItemUnit((ch.unit as "hour" | "each" | "km") || "hour")
                                         setIsItemChargeDropdownOpen(false)
                                       }}
                                       className={`flex w-full items-center gap-[10px] px-[12px] py-[7px] text-left transition-colors hover:bg-[#f5f5f5] ${isSelected ? "bg-[#f0f0f0]" : ""}`}
@@ -3030,7 +2958,7 @@ export default function ParticipantProfilePage() {
                                 setItemChargeItemNumber(ch.itemNumber)
                                 setItemBillingCode(ch.itemNumber)
                                 setItemServiceName(ch.shortName || ch.name)
-                                setItemUnit((ch.unit as "hour" | "each") || "hour")
+                                setItemUnit((ch.unit as "hour" | "each" | "km") || "hour")
                                 setIsItemChargeDropdownOpen(false)
                               }}
                               className={`flex w-full items-center gap-[10px] px-[12px] py-[7px] text-left transition-colors hover:bg-[#f5f5f5] ${isSelected ? "bg-[#f0f0f0]" : ""}`}
@@ -3391,7 +3319,6 @@ export default function ParticipantProfilePage() {
                   const isActive = plan === plans[plans.length - 1] && !isExpired
                   const startFmt = plan.startDate ? new Date(plan.startDate + "T00:00:00").toLocaleDateString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—"
                   const endFmt = plan.endDate ? new Date(plan.endDate + "T00:00:00").toLocaleDateString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—"
-                  const services = plan.services || []
                   return (
                     <button
                       key={plan.id}

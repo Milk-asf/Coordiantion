@@ -7,7 +7,7 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 
 function getDefaultItemNumbers(): string[] {
   return ndisCharges
-    .filter((c) => c.category === "support-coordination")
+    .filter((c) => c.category === "support-coordination" || c.category === "travel")
     .map((c) => c.itemNumber)
 }
 

@@ -8,7 +8,7 @@ export interface FundingReleasePeriod {
 export interface PlanService {
   id: string
   name: string
-  category: "support-coordination" | "psychosocial-recovery"
+  category: "support-coordination" | "psychosocial-recovery" | "travel"
   budget: number
   enabledChargeItems: string[]
   releasePeriods: FundingReleasePeriod[]
@@ -22,7 +22,7 @@ export interface BudgetLineItem {
   billingCode: string
   serviceName: string
   quantity: number
-  unit: "hour" | "each"
+  unit: "hour" | "each" | "km"
   period: BudgetPeriod
   description: string
 }
@@ -247,7 +247,7 @@ export interface InvoiceLineItem {
   chargeItemNumber: string
   chargeName: string
   quantity: number
-  unit: "hour" | "each"
+  unit: "hour" | "each" | "km"
   rate: number
   amount: number
   taskId?: string
