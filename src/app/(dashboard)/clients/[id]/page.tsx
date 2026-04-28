@@ -1963,6 +1963,16 @@ export default function ParticipantProfilePage() {
                   setHoveredOverviewDonut({ label, value, x: e.clientX - rect.left, y: e.clientY - rect.top })
                 }
 
+                const startDate = latest.startDate ? new Date(latest.startDate + "T00:00:00") : null
+                const totalDays = startDate && endDate ? Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))) : 0
+                const daysElapsed = startDate ? Math.max(0, Math.ceil((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))) : 0
+                const timePct = totalDays > 0 ? Math.min(100, (daysElapsed / totalDays) * 100) : 0
+                const budgetPct = ovUsedPct
+                const burnDiff = budgetPct - timePct
+                const burnStatus = burnDiff > 10 ? "over" : burnDiff < -10 ? "under" : "on-track"
+                const burnLabel = burnStatus === "over" ? "Spending ahead of schedule" : burnStatus === "under" ? "Spending behind schedule" : "On track"
+                const burnColor = burnStatus === "over" ? "text-red-600 bg-red-50" : burnStatus === "under" ? "text-amber-600 bg-amber-50" : "text-green-600 bg-green-50"
+
                 return (
                   <>
                     <div className="overflow-hidden rounded-[8px] border border-[#e8e8e8] px-[16px] py-[14px]">
@@ -2010,6 +2020,44 @@ export default function ParticipantProfilePage() {
                       </div>
                     </div>
 
+                    {/* Burn rate */}
+                    <div className="mt-[12px] overflow-hidden rounded-[8px] border border-[#e8e8e8] px-[16px] py-[14px]">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[13px] font-semibold text-[#262626]">Burn rate</span>
+                        <span className={`inline-flex rounded-[4px] px-[8px] py-[2px] text-[11px] font-medium ${burnColor}`}>{burnLabel}</span>
+                      </div>
+
+                      <div className="mt-[14px]">
+                        <div className="flex items-center justify-between text-[12px]">
+                          <span className="font-medium text-[#555]">Budget used</span>
+                          <span className="font-semibold text-[#262626]">{Math.round(budgetPct)}%</span>
+                        </div>
+                        <div className="mt-[5px] h-[8px] w-full overflow-hidden rounded-full bg-[#f0f0f0]">
+                          <div
+                            className="h-full rounded-full bg-[#2563EB] transition-all"
+                            style={{ width: `${Math.min(100, budgetPct)}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-[12px]">
+                        <div className="flex items-center justify-between text-[12px]">
+                          <span className="font-medium text-[#555]">Time elapsed</span>
+                          <span className="font-semibold text-[#262626]">{Math.round(timePct)}%</span>
+                        </div>
+                        <div className="mt-[5px] h-[8px] w-full overflow-hidden rounded-full bg-[#f0f0f0]">
+                          <div
+                            className="h-full rounded-full bg-[#BFDBFE] transition-all"
+                            style={{ width: `${Math.min(100, timePct)}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-[12px] flex items-center justify-between text-[11px] text-[#999]">
+                        <span>{daysElapsed} of {totalDays} days</span>
+                        <span>${ovTotalUsed.toLocaleString("en-AU", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} of ${ovTotalBudget.toLocaleString("en-AU", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                      </div>
+                    </div>
                   </>
                 )
               })()}
