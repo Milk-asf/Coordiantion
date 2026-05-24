@@ -46,7 +46,10 @@ export default function SignUpPage() {
         email,
         password,
         options: {
-          data: { full_name: fullName },
+          data: {
+            full_name: fullName,
+            org_name: orgName,
+          },
         },
       })
 
@@ -62,12 +65,8 @@ export default function SignUpPage() {
         return
       }
 
-      const { error: wsError } = await supabase.rpc("create_workspace_for_user", {
-        workspace_name: orgName || `${fullName}'s Workspace`,
-        owner_id: data.user.id,
-      })
-      if (wsError) {
-        setError("Account created but workspace setup failed. Please contact support.")
+      if (data.user.identities && data.user.identities.length === 0) {
+        setError("This email is already registered. Please sign in instead.")
         setIsLoading(false)
         return
       }
@@ -80,8 +79,9 @@ export default function SignUpPage() {
 
       router.push("/tasks")
       router.refresh()
-    } catch {
-      setError("Something went wrong. Please try again.")
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Something went wrong. Please try again."
+      setError(message)
     } finally {
       setIsLoading(false)
     }

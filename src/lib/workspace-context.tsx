@@ -54,12 +54,19 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       }
 
       const fullName = user.user_metadata?.full_name || user.email?.split("@")[0] || "My"
-      const { data: wsId } = await supabase.rpc("create_workspace_for_user", {
-        workspace_name: `${fullName}'s Workspace`,
+      const orgName = user.user_metadata?.org_name as string | undefined
+      const workspaceName = orgName?.trim() || `${fullName}'s Workspace`
+
+      const { data: wsId, error: rpcError } = await supabase.rpc("create_workspace_for_user", {
+        workspace_name: workspaceName,
         owner_id: user.id,
       })
 
       if (cancelled) return
+
+      if (rpcError) {
+        console.error("Failed to create workspace via RPC:", rpcError.message, rpcError)
+      }
 
       if (wsId) {
         await supabase.from("workspace_members").upsert({
