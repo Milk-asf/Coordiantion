@@ -14,20 +14,11 @@ import { usePermissions } from "@/lib/hooks/use-permissions"
 import { useDocuments } from "@/lib/hooks/use-documents"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
-import type { Client, ParticipantDetails, Task, Document, NdisPlan, PlanService, FundingReleasePeriod, Budget, BudgetLineItem, BudgetPeriod, ActivityEntry } from "@/lib/types"
-import { ndisCharges, chargeCategories } from "@/lib/ndis-charges"
-import { EntityIcon } from "@/components/entity-icon"
-import { EditableField } from "@/components/editable-field"
-import { ContactChip } from "@/components/contact-chip"
-import { DetailRow } from "@/components/detail-row"
+import type { ParticipantDetails, Document, NdisPlan, PlanService, FundingReleasePeriod, Budget, BudgetLineItem, BudgetPeriod, ActivityEntry } from "@/lib/types"
 import { DocumentPreview } from "@/components/document-preview"
-import { DatePicker } from "@/components/date-picker"
 import {
   FileText,
   User,
-  PenLine,
-  Hash,
-  CalendarDays,
   Clock,
   ChevronDown,
   Plus,
@@ -37,20 +28,12 @@ import {
   Users,
   ArrowLeft,
   FolderOpen,
-  FilePlus,
   PanelRightOpen,
-  PanelRightClose,
   ListFilter,
   X,
   Building2,
   Tag,
-  Upload,
-  Download,
-  Trash2,
   File,
-  FileImage,
-  FileSpreadsheet,
-  FileVideo,
   ClipboardList,
   DollarSign,
   MoreHorizontal,
@@ -58,19 +41,9 @@ import {
 import {
   type ProfileContact,
   ClientIcon,
-  getDocIcon,
-  formatFileSize,
-  formatDate,
-  SidebarDetailRow,
-  SidebarEditableField,
-  SidebarContactChip,
-  SidebarDiagnosisChip,
-  SidebarSection,
   parseTimeInput,
   getTodayStr,
-  formatTaskDate,
 } from "./_components/client-profile-helpers"
-import { useToast } from "@/components/toast"
 import { useSaveIndicator, SaveIndicator } from "@/components/save-indicator"
 import { ProfileTasksTab } from "./_components/profile-tasks-tab"
 import { FilesTab } from "./_components/files-tab"
@@ -92,14 +65,11 @@ export default function ParticipantProfilePage() {
   const params = useParams()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { toast } = useToast()
   const { isVisible: isSaved, showSaved } = useSaveIndicator()
   const initialTab = searchParams.get("tab") || "overview"
   const [activeTab, setActiveTab] = useState(initialTab)
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false)
   const [isSidebarVisible, setIsSidebarVisible] = useState(true)
   const [sidebarWidth, setSidebarWidth] = useState(404)
-  const [isBudgetsExpanded, setIsBudgetsExpanded] = useState(false)
   const { clients, isLoading, updateParticipantField, updateClient } = useClients()
   const { addContact, getContactsForClient } = useContacts()
   const { tasks: allTasks, updateTask, addTask } = useTasks()

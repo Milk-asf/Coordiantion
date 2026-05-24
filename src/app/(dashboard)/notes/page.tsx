@@ -59,7 +59,7 @@ export default function NotesPage() {
   const { contacts } = useContacts()
   const { staff } = useStaff()
 
-  const [searchQuery, setSearchQuery] = useState("")
+  const [searchQuery] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 

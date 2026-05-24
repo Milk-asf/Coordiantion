@@ -26,7 +26,7 @@ import { useSavedViews } from "@/lib/hooks/use-saved-views"
 import { useTasks } from "@/lib/hooks/use-tasks"
 import { useWorkspace } from "@/lib/workspace-context"
 import { useWorkspaceSettings } from "@/lib/hooks/use-workspace-settings"
-import type { Client, FundingType, InvoiceDeliveryMethod, InvoiceLineItem, Task } from "@/lib/types"
+import type { Client, InvoiceDeliveryMethod, InvoiceLineItem, Task } from "@/lib/types"
 import { PageLoader, PageError } from "@/components/page-state"
 import { useToast } from "@/components/toast"
 import {

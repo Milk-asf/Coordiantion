@@ -247,7 +247,7 @@ export function Sidebar() {
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
                 src={orgSettings.logoUrl}
-                alt=""
+                alt="Organisation logo"
                 className="h-7 w-7 shrink-0 rounded-[6px] object-contain"
               />
             ) : (

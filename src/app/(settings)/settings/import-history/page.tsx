@@ -257,7 +257,6 @@ function rowToStaffDetails(row: StaffCsvRow): Partial<StaffDetails> {
 
 /* ─── Parsed row interface ─── */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface ParsedRow { data: Record<string, string>; errors: string[]; warnings: string[]; rowIndex: number }
 
 /* ─── Entity config ─── */

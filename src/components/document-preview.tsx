@@ -133,6 +133,7 @@ export function DocumentPreview({ doc, getDownloadUrl, onClose }: DocumentPrevie
               </button>
             </div>
           ) : doc.mimeType.startsWith("image/") ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={url}
               alt={doc.name}
