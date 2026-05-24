@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
+import { sanitizeHtml } from "@/lib/sanitize"
 import {
   SquareCheck,
   X,
@@ -124,7 +125,7 @@ export function TaskDetailModal({
   useEffect(() => {
     if (selectedTaskId && selectedTaskId !== prevSelectedTaskIdRef.current && descriptionRef.current) {
       const task = tasks.find((t) => t.id === selectedTaskId)
-      if (task) descriptionRef.current.innerHTML = task.description || ""
+      if (task) descriptionRef.current.innerHTML = sanitizeHtml(task.description || "")
     }
     prevSelectedTaskIdRef.current = selectedTaskId
   }, [selectedTaskId, tasks])
@@ -206,10 +207,10 @@ export function TaskDetailModal({
                 suppressContentEditableWarning
                 data-placeholder="Start typing a description..."
                 onInput={() => {
-                  if (descriptionRef.current) onUpdateTask("description", descriptionRef.current.innerHTML)
+                  if (descriptionRef.current) onUpdateTask("description", sanitizeHtml(descriptionRef.current.innerHTML))
                 }}
                 onContextMenu={handleDescContextMenu}
-                dangerouslySetInnerHTML={!descriptionRef.current ? { __html: selectedTask.description } : undefined}
+                dangerouslySetInnerHTML={!descriptionRef.current ? { __html: sanitizeHtml(selectedTask.description) } : undefined}
                 className="mt-[14px] min-h-[80px] flex-1 overflow-y-auto text-[14px] leading-[1.6] text-[#4b4b4b] outline-none [&:empty]:before:pointer-events-none [&:empty]:before:text-[#b5b5b5] [&:empty]:before:content-[attr(data-placeholder)] [&_ul]:list-disc [&_ul]:pl-[20px] [&_ol]:list-decimal [&_ol]:pl-[20px] [&_li]:my-[2px] [&_h1]:text-[22px] [&_h1]:font-bold [&_h1]:leading-[1.3] [&_h1]:my-[4px] [&_h2]:text-[18px] [&_h2]:font-semibold [&_h2]:leading-[1.4] [&_h2]:my-[3px] [&_h3]:text-[15px] [&_h3]:font-medium [&_h3]:leading-[1.5] [&_h3]:my-[2px]"
               />
 

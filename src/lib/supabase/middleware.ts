@@ -9,7 +9,9 @@ function isConfigured() {
 
 export async function updateSession(request: NextRequest) {
   const authPaths = ["/login", "/signup", "/reset-password", "/update-password"]
+  const publicPaths = ["/auth/callback"]
   const isAuthPage = authPaths.includes(request.nextUrl.pathname)
+  const isPublicPath = publicPaths.includes(request.nextUrl.pathname)
 
   if (!isConfigured()) {
     if (isAuthPage) return NextResponse.next({ request })
@@ -44,7 +46,7 @@ export async function updateSession(request: NextRequest) {
   const { data: { user }, error: userError } = await supabase.auth.getUser()
 
   if (userError || !user) {
-    if (!isAuthPage) {
+    if (!isAuthPage && !isPublicPath) {
       const url = request.nextUrl.clone()
       url.pathname = "/login"
       const redirectResponse = NextResponse.redirect(url)

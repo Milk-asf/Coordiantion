@@ -424,7 +424,7 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
                         <>
                           <div className="fixed inset-0 z-[59]" onClick={() => onSetIsChargeDropdownOpen(false)} />
                           <div className="absolute bottom-full left-0 z-[60] mb-[4px] max-h-[240px] w-full overflow-y-auto rounded-[8px] border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-                            {(["support-coordination", "psychosocial-recovery", "travel"] as const).map((cat) => {
+                            {(["support-coordination", "travel"] as const).map((cat) => {
                               const catCharges = allServiceCharges.filter((c) => c.category === cat)
                               if (catCharges.length === 0) return null
                               return (
@@ -590,7 +590,7 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
                 <>
                   <div className="fixed inset-0 z-[59]" onClick={() => onSetIsChargeDropdownOpen(false)} />
                   <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[240px] w-full overflow-y-auto rounded-[8px] border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-                    {(["support-coordination", "psychosocial-recovery", "travel"] as const).map((cat) => {
+                    {(["support-coordination", "travel"] as const).map((cat) => {
                       const catCharges = allServiceCharges.filter((c) => c.category === cat)
                       if (catCharges.length === 0) return null
                       return (

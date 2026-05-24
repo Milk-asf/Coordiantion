@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { sanitizeHtml } from "@/lib/sanitize"
 import {
   Plus,
   Trash2,
@@ -58,7 +59,7 @@ export function NoteEditorModal({
 
   useEffect(() => {
     if (contentEditableRef.current) {
-      contentEditableRef.current.innerHTML = initialContentRef.current || ""
+      contentEditableRef.current.innerHTML = sanitizeHtml(initialContentRef.current || "")
     }
   }, [])
 
@@ -75,7 +76,7 @@ export function NoteEditorModal({
     contentEditableRef.current?.focus()
     document.execCommand(command, false, value)
     if (contentEditableRef.current) {
-      onEditContent(contentEditableRef.current.innerHTML)
+      onEditContent(sanitizeHtml(contentEditableRef.current.innerHTML))
     }
   }
 
@@ -175,7 +176,7 @@ export function NoteEditorModal({
               ref={contentEditableRef}
               contentEditable
               suppressContentEditableWarning
-              onInput={(e) => onEditContent((e.target as HTMLDivElement).innerHTML)}
+              onInput={(e) => onEditContent(sanitizeHtml((e.target as HTMLDivElement).innerHTML))}
               data-placeholder="Start typing, or create a template"
               className="note-editable min-h-[120px] w-full text-[14px] leading-[1.8] text-[#444] outline-none empty:before:text-[#bbb] empty:before:content-[attr(data-placeholder)]"
             />

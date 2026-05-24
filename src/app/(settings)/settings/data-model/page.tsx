@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Plus, MoreHorizontal, X, Settings2, Check, EyeOff, Eye, Trash2, FileText, Layers, AlignLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { SettingsGuard } from "@/components/settings-guard"
 import { useFieldConfig } from "@/lib/hooks/use-field-config"
 import {
   fieldTypeLabels,
@@ -98,7 +99,7 @@ export default function DataModelSettingsPage() {
   }
 
   return (
-    <>
+    <SettingsGuard requireAdmin>
       <div className="mb-[32px]">
         <h1 className="text-[20px] font-bold text-[#262626]">Data model</h1>
         <p className="mt-[4px] text-[14px] text-[#888]">
@@ -488,7 +489,7 @@ export default function DataModelSettingsPage() {
           </div>
         </div>
       )}
-    </>
+    </SettingsGuard>
   )
 }
 

@@ -39,6 +39,21 @@ export async function POST(request: Request) {
     .single()
 
   if (!membership) return NextResponse.json({ error: "Not a workspace member" }, { status: 403 })
+  if (!["super-admin", "admin"].includes(membership.role)) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 })
+  }
+
+  if (invoice.id) {
+    const { data: dbInvoice } = await supabase
+      .from("invoices")
+      .select("id, workspace_id")
+      .eq("id", invoice.id)
+      .eq("workspace_id", workspaceId)
+      .single()
+    if (!dbInvoice) {
+      return NextResponse.json({ error: "Invoice not found in this workspace" }, { status: 404 })
+    }
+  }
 
   try {
     const { sendEmail } = await import("@/lib/email/send")

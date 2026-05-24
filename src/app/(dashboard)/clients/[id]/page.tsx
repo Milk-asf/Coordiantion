@@ -290,7 +290,7 @@ export default function ParticipantProfilePage() {
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null)
   const [editingServicePlanId, setEditingServicePlanId] = useState<string | null>(null)
   const [svcName, setSvcName] = useState("")
-  const [svcCategory, setSvcCategory] = useState<"support-coordination" | "psychosocial-recovery" | "travel">("support-coordination")
+  const [svcCategory, setSvcCategory] = useState<"support-coordination" | "travel">("support-coordination")
   const [svcBudget, setSvcBudget] = useState("")
   const [svcChargeItems, setSvcChargeItems] = useState<string[]>([])
   const [svcReleasePeriodCount, setSvcReleasePeriodCount] = useState("")
@@ -616,7 +616,7 @@ export default function ParticipantProfilePage() {
     }
   }
 
-  const allServiceCharges = enabledCharges.filter((c) => c.category === "support-coordination" || c.category === "psychosocial-recovery" || c.category === "travel")
+  const allServiceCharges = enabledCharges.filter((c) => c.category === "support-coordination" || c.category === "travel")
 
   const isServiceFormOpen = !!(addingServiceToPlanId || editingServiceId)
 

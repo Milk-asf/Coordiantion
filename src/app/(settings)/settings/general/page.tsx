@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils"
 import { useWorkspaceSettings } from "@/lib/hooks/use-workspace-settings"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
+import { SettingsGuard } from "@/components/settings-guard"
 
 const inputClass = "h-[44px] w-full rounded-[8px] border border-[#f0f0f0] bg-[#fafafa] px-[14px] text-[14px] text-[#262626] outline-none transition-colors placeholder:text-[#c0c0c0] focus:border-[#d0d0d0] focus:ring-2 focus:ring-[#e8e8e8]"
 const labelClass = "mb-[8px] block text-[13px] font-semibold text-[#262626]"
@@ -81,7 +82,7 @@ export default function GeneralSettingsPage() {
   }
 
   return (
-    <>
+    <SettingsGuard requireAdmin>
       <div className="mb-[32px] flex items-start justify-between">
         <div>
           <h1 className="text-[20px] font-bold text-[#262626]">General</h1>
@@ -246,6 +247,6 @@ export default function GeneralSettingsPage() {
           />
         </div>
       </div>
-    </>
+    </SettingsGuard>
   )
 }

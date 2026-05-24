@@ -574,7 +574,7 @@ export default function ImportHistorySettingsPage() {
               "flex cursor-pointer flex-col items-center justify-center rounded-[8px] border-2 border-dashed px-[20px] py-[48px] transition-colors",
               isDragOver
                 ? "border-blue-400 bg-blue-50/50"
-                : "border-[#e0e0e0] bg-white hover:border-[#ccc] hover:bg-[#fafafa]"
+                : "border-[#e0e0e0] bg-[#fafafa] hover:border-[#ccc] hover:bg-[#f5f5f5]"
             )}
             role="button"
             tabIndex={0}

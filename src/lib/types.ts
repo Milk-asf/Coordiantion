@@ -8,7 +8,7 @@ export interface FundingReleasePeriod {
 export interface PlanService {
   id: string
   name: string
-  category: "support-coordination" | "psychosocial-recovery" | "travel"
+  category: "support-coordination" | "travel"
   budget: number
   enabledChargeItems: string[]
   releasePeriods: FundingReleasePeriod[]
