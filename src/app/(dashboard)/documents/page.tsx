@@ -442,7 +442,7 @@ export default function DocumentsPage() {
                     <div className="mt-[4px] border-t border-[#f0f0f0] px-[12px] py-[8px]">
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="flex w-full items-center justify-center gap-[5px] rounded bg-[#262626] px-[10px] py-[6px] text-[12px] font-medium text-white transition-colors hover:bg-[#3d3d3d]"
+                        className="primary-btn flex w-full items-center justify-center gap-[5px] rounded px-[10px] py-[6px] text-[12px] font-medium transition-colors"
                         tabIndex={0}
                       >
                         <Upload className="h-[12px] w-[12px]" strokeWidth={1.5} />
@@ -627,7 +627,7 @@ export default function DocumentsPage() {
             placeholder="File name"
             className="h-[28px] w-[200px] rounded border border-[#dcdcdc] bg-[#fafafa] px-[8px] text-[12px] font-medium text-[#262626] placeholder-[#bbb] outline-none focus:border-[#a3c4f3]"
           />
-          <button onClick={handleCreateFile} disabled={!newFileName.trim()} className="rounded bg-[#262626] px-[10px] py-[4px] text-[11px] font-medium text-white hover:bg-[#3d3d3d] disabled:opacity-40" tabIndex={0}>Create</button>
+          <button onClick={handleCreateFile} disabled={!newFileName.trim()} className="primary-btn rounded px-[10px] py-[4px] text-[11px] font-medium disabled:opacity-40" tabIndex={0}>Create</button>
           <button onClick={() => { setIsNewFileOpen(false); setNewFileName("") }} className="text-[12px] font-medium text-[#888] hover:text-[#262626]" tabIndex={0}>Cancel</button>
         </div>
       )}

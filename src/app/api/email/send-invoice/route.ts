@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import type { Invoice, WorkspaceEmailSettings } from "@/lib/types"
+import { sendInvoiceSchema } from "@/lib/validations"
+import { rateLimit, getRateLimitHeaders } from "@/lib/rate-limit"
+import type { Invoice } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
 
@@ -9,27 +11,24 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const body = await request.json()
-  const {
-    invoice,
-    recipientEmail,
-    recipientName,
-    participantName,
-    ndisNumber,
-    orgSettings,
-    workspaceId,
-  } = body as {
-    invoice: Invoice
-    recipientEmail: string
-    recipientName: string
-    participantName: string
-    ndisNumber: string
-    orgSettings: Partial<WorkspaceEmailSettings>
-    workspaceId?: string
+  const rl = rateLimit(`send-invoice:${user.id}`, { maxRequests: 10, windowMs: 60_000 })
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Too many requests. Please wait before sending another invoice." },
+      { status: 429, headers: getRateLimitHeaders(rl) }
+    )
   }
 
-  if (!workspaceId)
-    return NextResponse.json({ error: "Missing workspace ID" }, { status: 400 })
+  const raw = await request.json()
+  const parsed = sendInvoiceSchema.safeParse(raw)
+
+  if (!parsed.success) {
+    const message = parsed.error.issues.map((i) => i.message).join("; ")
+    return NextResponse.json({ error: message }, { status: 400 })
+  }
+
+  const { invoice: invoiceData, recipientEmail, recipientName, participantName, ndisNumber, orgSettings, workspaceId } = parsed.data
+  const invoice = invoiceData as unknown as Invoice
 
   const { data: membership } = await supabase
     .from("workspace_members")
@@ -40,15 +39,6 @@ export async function POST(request: Request) {
     .single()
 
   if (!membership) return NextResponse.json({ error: "Not a workspace member" }, { status: 403 })
-
-  const invoiceWsId = (invoice as unknown as Record<string, unknown>)?.workspace_id as string | undefined
-  if (invoiceWsId && invoiceWsId !== workspaceId)
-    return NextResponse.json({ error: "Invoice does not belong to this workspace" }, { status: 403 })
-
-  if (!recipientEmail?.includes("@"))
-    return NextResponse.json({ error: "Invalid recipient email" }, { status: 400 })
-  if (!invoice?.invoiceNumber)
-    return NextResponse.json({ error: "Invalid invoice data" }, { status: 400 })
 
   try {
     const { sendEmail } = await import("@/lib/email/send")

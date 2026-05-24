@@ -72,6 +72,7 @@ export const defaultParticipantFields: FieldDefinition[] = [
   { id: "p-external-id", name: "External ID", type: "text", description: "ID from an external system", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
   { id: "p-service-start", name: "Service start date", type: "date", description: "Date services commenced", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
   { id: "p-service-exit", name: "Service exit date", type: "date", description: "Date services ended or are expected to end", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
+  { id: "p-next-check-up", name: "Next check-up", type: "date", description: "Date of the next scheduled check-up, derived from upcoming tasks", editableBy: "system", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
   { id: "p-owner", name: "Owner", type: "text", description: "Staff member responsible for this participant", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
   { id: "p-summary", name: "Summary", type: "markdown", description: "Brief overview of the participant", editableBy: "system", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
   { id: "p-about", name: "About", type: "markdown", description: "Detailed participant background and context", editableBy: "system", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
@@ -140,6 +141,7 @@ export const participantFieldToColumnKey: Record<string, string> = {
   "p-sign-method": "preferredSignMethod",
   "p-service-start": "serviceCommencementDate",
   "p-service-exit": "serviceExitDate",
+  "p-next-check-up": "nextCheckUp",
 }
 
 export const contactFieldToColumnKey: Record<string, string> = {

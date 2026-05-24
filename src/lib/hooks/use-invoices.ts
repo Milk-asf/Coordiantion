@@ -129,6 +129,38 @@ export function useInvoices() {
 
   useEffect(() => { fetchInvoices() }, [fetchInvoices])
 
+  useEffect(() => {
+    if (!activeWorkspace || !isSupabaseConfigured()) return
+    const supabase = createClient()
+    if (!supabase) return
+
+    const channel = supabase
+      .channel(`invoices-${activeWorkspace.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'invoices',
+        filter: `workspace_id=eq.${activeWorkspace.id}`,
+      }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const newInvoice = dbToInvoice(payload.new as InvoiceRow)
+          setInvoices((prev) => {
+            if (prev.some((i) => i.id === newInvoice.id)) return prev
+            return [...prev, newInvoice]
+          })
+        } else if (payload.eventType === 'UPDATE') {
+          const updated = dbToInvoice(payload.new as InvoiceRow)
+          setInvoices((prev) => prev.map((i) => i.id === updated.id ? updated : i))
+        } else if (payload.eventType === 'DELETE') {
+          const oldId = (payload.old as { id: string }).id
+          setInvoices((prev) => prev.filter((i) => i.id !== oldId))
+        }
+      })
+      .subscribe()
+
+    return () => { channel.unsubscribe() }
+  }, [activeWorkspace])
+
   const addInvoice = useCallback(async (input: {
     clientName: string
     clientId: string | null

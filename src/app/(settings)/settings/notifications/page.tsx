@@ -147,7 +147,7 @@ function TimingSelect({ value, options, onChange }: { value: string; options: st
       {isOpen && (
         <>
           <div className="fixed inset-0 z-[59]" onClick={() => setIsOpen(false)} />
-          <div className="absolute left-0 top-full z-[60] mt-[4px] w-[140px] rounded-[8px] border border-[#e5e5e5] bg-white py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+          <div className="absolute left-0 top-full z-[60] mt-[4px] w-[140px] rounded-[8px] border border-[#f0f0f0] bg-white py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
             {options.map((opt) => (
               <button
                 key={opt}
@@ -197,9 +197,9 @@ export default function NotificationsSettingsPage() {
       </div>
 
       {/* Summary */}
-      <div className="mb-[28px] flex items-center justify-between rounded-[14px] border border-[#e5e5e5] bg-[#fafafa] px-[20px] py-[14px]">
+      <div className="mb-[28px] flex items-center justify-between px-[20px] py-[14px]">
         <div className="flex items-center gap-[12px]">
-          <div className="flex h-[36px] w-[36px] items-center justify-center rounded-[10px] bg-white border border-[#e5e5e5]">
+          <div className="flex h-[36px] w-[36px] items-center justify-center rounded-[10px] bg-[#f0f0f0]">
             <Bell className="h-[16px] w-[16px] text-[#888]" strokeWidth={1.75} />
           </div>
           <div>
@@ -218,7 +218,7 @@ export default function NotificationsSettingsPage() {
               <p className="mt-[2px] text-[13px] text-[#888]">{category.description}</p>
             </div>
 
-            <div className="overflow-hidden rounded-[14px] border border-[#e5e5e5] bg-[#fafafa]">
+            <div className="overflow-hidden">
               {category.items.map((item, itemIdx) => {
                 const pref = prefs[item.id] || { enabled: true, email: true, inApp: true }
                 return (

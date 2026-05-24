@@ -22,7 +22,7 @@ export default function ParticipantsSettingsPage() {
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-[14px] border border-[#e5e5e5] bg-[#fafafa]">
+      <div className="overflow-hidden">
         <div className="grid grid-cols-[1fr_100px_80px] items-center border-b border-[#efefef] px-[20px] py-[10px]">
           <span className="text-[12px] font-medium text-[#999]">Name</span>
           <span className="text-[12px] font-medium text-[#999]">Status</span>
@@ -50,7 +50,7 @@ export default function ParticipantsSettingsPage() {
       {archivedClients.length > 0 && (
         <div className="mt-[28px]">
           <h2 className="mb-[10px] text-[13px] font-semibold uppercase tracking-wide text-[#999]">Archived</h2>
-          <div className="overflow-hidden rounded-[14px] border border-[#e5e5e5] bg-[#fafafa]">
+          <div className="overflow-hidden">
             {archivedClients.map((client) => (
               <ParticipantRow
                 key={client.id}

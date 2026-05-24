@@ -85,11 +85,16 @@ function dbToClient(row: ClientRow): Client {
   }
 }
 
+const PAGE_SIZE = 50
+
 interface ClientsContextValue {
   clients: Client[]
   clientNames: string[]
   isLoading: boolean
   fetchError: string | null
+  hasMore: boolean
+  isLoadingMore: boolean
+  loadMore: () => Promise<void>
   addClient: (input: {
     name: string
     iconColor?: string
@@ -98,6 +103,7 @@ interface ClientsContextValue {
     participant?: Partial<ParticipantDetails>
     industry?: string[]
   }) => Promise<Client | null>
+  bulkAddClients: (inputs: { name: string; participant: Partial<ParticipantDetails> }[]) => Promise<Client[]>
   updateClient: (id: string, updates: Partial<Client>) => Promise<void>
   updateParticipantField: (id: string, field: keyof ParticipantDetails, value: string) => Promise<void>
   deleteClient: (id: string) => Promise<void>
@@ -111,15 +117,18 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
+  const [hasMore, setHasMore] = useState(false)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
 
   const fetchClients = useCallback(async () => {
     if (!activeWorkspace || !isSupabaseConfigured()) {
       setClients([])
       setIsLoading(false)
+      setHasMore(false)
       return
     }
     const supabase = createClient()
-    if (!supabase) { setClients([]); setIsLoading(false); return }
+    if (!supabase) { setClients([]); setIsLoading(false); setHasMore(false); return }
 
     setIsLoading(true)
     setFetchError(null)
@@ -129,19 +138,49 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
         .select("*")
         .eq("workspace_id", activeWorkspace.id)
         .order("created_at", { ascending: true })
+        .range(0, PAGE_SIZE - 1)
 
       if (error) {
         setFetchError(error.message)
         setClients([])
+        setHasMore(false)
       } else {
-        setClients((data || []).map(dbToClient))
+        const rows = data || []
+        setClients(rows.map(dbToClient))
+        setHasMore(rows.length === PAGE_SIZE)
       }
     } catch (err) {
       setFetchError(err instanceof Error ? err.message : "Failed to load clients")
       setClients([])
+      setHasMore(false)
     }
     setIsLoading(false)
   }, [activeWorkspace])
+
+  const loadMore = useCallback(async () => {
+    if (!activeWorkspace || !isSupabaseConfigured() || !hasMore || isLoadingMore) return
+    const supabase = createClient()
+    if (!supabase) return
+
+    setIsLoadingMore(true)
+    try {
+      const offset = clients.length
+      const { data, error } = await supabase
+        .from("clients")
+        .select("*")
+        .eq("workspace_id", activeWorkspace.id)
+        .order("created_at", { ascending: true })
+        .range(offset, offset + PAGE_SIZE - 1)
+
+      if (!error && data) {
+        setClients((prev) => [...prev, ...data.map(dbToClient)])
+        setHasMore(data.length === PAGE_SIZE)
+      }
+    } catch {
+      // silently fail on load-more
+    }
+    setIsLoadingMore(false)
+  }, [activeWorkspace, hasMore, isLoadingMore, clients.length])
 
   useEffect(() => { fetchClients() }, [fetchClients])
 
@@ -196,6 +235,43 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
       return newClient
     }
     return null
+  }, [activeWorkspace])
+
+  const bulkAddClients = useCallback(async (inputs: { name: string; participant: Partial<ParticipantDetails> }[]): Promise<Client[]> => {
+    if (!activeWorkspace || !isSupabaseConfigured() || inputs.length === 0) return []
+    const supabase = createClient()
+    if (!supabase) return []
+
+    const rows = inputs.map((input) => {
+      const participant = { ...emptyParticipant, ...(input.participant || {}) }
+      const initials = (() => {
+        const f = participant.firstName?.trim()
+        const l = participant.lastName?.trim()
+        if (f && l) return `${f[0]}${l[0]}`.toUpperCase()
+        if (f) return f[0].toUpperCase()
+        return input.name[0]?.toUpperCase() || "?"
+      })()
+      return {
+        workspace_id: activeWorkspace.id,
+        name: input.name,
+        icon_color: "#6b7280",
+        icon_text: initials,
+        icon_shape: "square" as const,
+        participant,
+        industry: [],
+      }
+    })
+
+    const { data, error } = await supabase.from("clients").insert(rows).select()
+
+    if (error) {
+      console.error("Bulk insert failed:", error.message)
+      return []
+    }
+
+    const newClients = (data || []).map(dbToClient)
+    setClients((prev) => [...prev, ...newClients])
+    return newClients
   }, [activeWorkspace])
 
   const updateClient = useCallback(async (id: string, updates: Partial<Client>) => {
@@ -267,7 +343,7 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
   const clientNames = clients.map((c) => c.name)
 
   return (
-    <ClientsContext.Provider value={{ clients, clientNames, isLoading, fetchError, addClient, updateClient, updateParticipantField, deleteClient, refetch: fetchClients }}>
+    <ClientsContext.Provider value={{ clients, clientNames, isLoading, fetchError, hasMore, isLoadingMore, loadMore, addClient, bulkAddClients, updateClient, updateParticipantField, deleteClient, refetch: fetchClients }}>
       {children}
     </ClientsContext.Provider>
   )

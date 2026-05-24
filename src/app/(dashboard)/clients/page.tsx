@@ -6,8 +6,10 @@ import { useContacts } from "@/lib/hooks/use-contacts"
 import { useClients } from "@/lib/hooks/use-clients"
 import { useFieldConfig } from "@/lib/hooks/use-field-config"
 import { useSavedViews } from "@/lib/hooks/use-saved-views"
+import { useColumnResize } from "@/lib/hooks/use-column-resize"
 import { useStaff } from "@/lib/hooks/use-staff"
 import { usePermissions } from "@/lib/hooks/use-permissions"
+import { useTasks } from "@/lib/tasks-context"
 import type { Client, ParticipantDetails } from "@/lib/types"
 import { EntityIcon } from "@/components/entity-icon"
 import { EditableField } from "@/components/editable-field"
@@ -37,6 +39,7 @@ import {
   Languages,
   Stethoscope,
   ChevronDown,
+  ChevronLeft,
   ArrowUpDown,
   ArrowDown,
   ArrowUp,
@@ -48,11 +51,11 @@ import {
   File,
   UserPlus,
   Info,
+  Clock,
 } from "lucide-react"
 import { CsvDropdown } from "@/components/csv-dropdown"
 import { PageLoader, PageError } from "@/components/page-state"
-
-
+import { useToast } from "@/components/toast"
 
 const allPropertyColumns = [
   { key: "ndisNumber", label: "NDIS Number", icon: Hash, minWidth: 160 },
@@ -70,6 +73,7 @@ const allPropertyColumns = [
   { key: "externalId", label: "External ID", icon: Hash, minWidth: 140 },
   { key: "preferredContactMethod", label: "Contact Method", icon: MessageSquare, minWidth: 160 },
   { key: "preferredSignMethod", label: "Sign Method", icon: PenLine, minWidth: 150 },
+  { key: "nextCheckUp", label: "Next Check-up", icon: Clock, minWidth: 160 },
   { key: "serviceCommencementDate", label: "Service Start", icon: CalendarDays, minWidth: 150 },
   { key: "serviceExitDate", label: "Service Exit", icon: CalendarDays, minWidth: 150 },
   { key: "contact-support-coordinator", label: "Support Coordinator", icon: Users, minWidth: 180 },
@@ -85,7 +89,7 @@ const allPropertyColumns = [
   { key: "contact-sil-provider", label: "SIL Provider", icon: Users, minWidth: 160 },
 ]
 
-const defaultVisibleKeys = ["ndisNumber", "diagnosis", "email", "phone", "dob", "contact-support-coordinator"]
+const defaultVisibleKeys = allPropertyColumns.map((col) => col.key)
 
 
 interface ActivityItem {
@@ -332,7 +336,7 @@ function ClientProfile({
                           role="option"
                           aria-selected={client.owner === name}
                         >
-                          <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[4px] bg-[#d4d4d4] text-[9px] font-semibold text-[#555]">
+                          <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[6px] bg-[#DBEAFE] text-[9px] font-semibold text-[#2563EB]">
                             {name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
                           </div>
                           {name}
@@ -497,12 +501,14 @@ interface SavedView {
 }
 
 export default function ClientsPage() {
+  const { toast } = useToast()
   const router = useRouter()
-  const { clients, isLoading, fetchError, addClient, updateClient, updateParticipantField, refetch } = useClients()
+  const { clients, isLoading, fetchError, hasMore, isLoadingMore, loadMore, addClient, updateClient, updateParticipantField, refetch } = useClients()
   const { getContactsForClient } = useContacts()
   const { participantDisabled } = useFieldConfig()
   const { staffNames } = useStaff()
   const { canManageClients, canAssignClients } = usePermissions()
+  const { tasks: allTasks } = useTasks()
 
   const availablePropertyColumns = useMemo(
     () => allPropertyColumns.filter((col) => !participantDisabled.has(col.key)),
@@ -521,6 +527,12 @@ export default function ClientsPage() {
   const [newClientName, setNewClientName] = useState("")
   const [viewContextMenu, setViewContextMenu] = useState<{ viewId: string; x: number; y: number } | null>(null)
   const [deleteViewConfirm, setDeleteViewConfirm] = useState<SavedView | null>(null)
+  const [statusFilter, setStatusFilter] = useState<string[]>([])
+  const [coordinatorFilter, setCoordinatorFilter] = useState<string[]>([])
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false)
+  const [activeFilterDropdown, setActiveFilterDropdown] = useState<string | null>(null)
+  const filterBtnRef = useRef<HTMLButtonElement>(null)
+  const filterPillRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const displayBtnRef = useRef<HTMLButtonElement>(null)
   const viewNameInputRef = useRef<HTMLInputElement>(null)
 
@@ -572,6 +584,11 @@ export default function ClientsPage() {
     .filter((key) => !participantDisabled.has(key))
     .map((key) => allPropertyColumns.find((col) => col.key === key))
     .filter(Boolean) as typeof allPropertyColumns
+
+  const { getWidth, handleMouseDown: handleColResize } = useColumnResize(
+    visibleColumns.map((c) => c.key),
+    { minWidth: 80, maxWidth: 500, defaultWidth: 200 }
+  )
 
   const handleToggleColumn = (key: string) => {
     setVisibleColumnKeys((prev) =>
@@ -629,11 +646,12 @@ export default function ClientsPage() {
     const firstName = names[0] || ""
     const lastName = names.length > 1 ? names[names.length - 1] : ""
 
-    await addClient({
+    const result = await addClient({
       name,
       iconText: name[0]?.toUpperCase() || "?",
       participant: { firstName, lastName },
     })
+    if (result) toast("Client created", "success")
 
     setNewClientName("")
     setIsCreateClientOpen(false)
@@ -677,30 +695,92 @@ export default function ClientsPage() {
     serviceCommencementDate: "serviceCommencementDate", serviceExitDate: "serviceExitDate",
   }), [])
 
-  const exportCsvColumns = useMemo(() => {
-    const cols: { key: string; label: string }[] = [{ key: "name", label: "Name" }]
-    for (const vk of visibleColumnKeys) {
-      const tableDef = allPropertyColumns.find((c) => c.key === vk)
-      if (!tableDef) continue
-      const csvKey = tableKeyToCsvKey[vk] || vk
-      cols.push({ key: csvKey, label: tableDef.label })
-    }
-    return cols
-  }, [visibleColumnKeys, tableKeyToCsvKey])
+  const exportCsvColumns = useMemo(() => [
+    { key: "firstName", label: "First Name" },
+    { key: "lastName", label: "Last Name" },
+    { key: "middleName", label: "Middle Name" },
+    { key: "dateOfBirth", label: "Date of Birth" },
+    { key: "gender", label: "Gender" },
+    { key: "pronouns", label: "Pronouns" },
+    { key: "email", label: "Email" },
+    { key: "mobile", label: "Mobile" },
+    { key: "phone", label: "Phone" },
+    { key: "ndisNumber", label: "NDIS Number" },
+    { key: "fundingType", label: "Funding Type" },
+    { key: "primaryDiagnosis", label: "Primary Diagnosis" },
+    { key: "secondaryDiagnosis", label: "Secondary Diagnosis" },
+    { key: "language", label: "Language" },
+    { key: "ethnicity", label: "Ethnicity" },
+    { key: "preferredContactMethod", label: "Preferred Contact Method" },
+    { key: "medicareNumber", label: "Medicare Number" },
+    { key: "centrelinkNumber", label: "Centrelink Number" },
+    { key: "externalId", label: "External ID" },
+    { key: "planManagerName", label: "Plan Manager Name" },
+    { key: "planManagerEmail", label: "Plan Manager Email" },
+    { key: "planManagerOrg", label: "Plan Manager Organisation" },
+    { key: "checkInPeriod", label: "Check-in Period" },
+    { key: "coordinator", label: "Coordinator" },
+  ], [])
+
+  const getNextCheckUp = useCallback((clientId: string, clientName: string): string | null => {
+    const now = new Date()
+    now.setHours(0, 0, 0, 0)
+    const upcoming = allTasks
+      .filter((t) => t.isCheckUp && (t.clientId === clientId || t.client === clientName) && t.status !== "done" && t.dueDate)
+      .map((t) => ({ ...t, due: new Date(t.dueDate! + "T00:00:00") }))
+      .filter((t) => t.due >= now)
+      .sort((a, b) => a.due.getTime() - b.due.getTime())
+    return upcoming.length > 0 ? upcoming[0].dueDate : null
+  }, [allTasks])
 
   const activeClients = clients.filter((c) => c.status !== "archived")
+
+  const uniqueStatuses = useMemo(() => [...new Set(clients.map((c) => c.status))].sort(), [clients])
+  const uniqueCoordinators = useMemo(() => [...new Set(clients.map((c) => c.owner).filter(Boolean))].sort(), [clients])
+
+  const filteredClients = useMemo(() => {
+    return clients.filter((c) => {
+      if (statusFilter.length > 0) {
+        if (!statusFilter.includes(c.status)) return false
+      } else {
+        if (c.status === "archived") return false
+      }
+      if (coordinatorFilter.length > 0 && !coordinatorFilter.includes(c.owner)) return false
+      return true
+    })
+  }, [clients, statusFilter, coordinatorFilter])
 
   const exportCsvData = useMemo(() =>
     activeClients.map((c) => {
       const p = c.participant
-      const row: Record<string, string> = { name: c.displayName }
-      for (const vk of visibleColumnKeys) {
-        const csvKey = tableKeyToCsvKey[vk] || vk
-        row[csvKey] = (p as unknown as Record<string, string>)[csvKey] || ""
+      return {
+        firstName: p.firstName || "",
+        lastName: p.lastName || "",
+        middleName: p.middleName || "",
+        dateOfBirth: p.dateOfBirth || "",
+        gender: p.gender || "",
+        pronouns: p.pronouns || "",
+        email: p.email || "",
+        mobile: p.mobile || "",
+        phone: p.phone || "",
+        ndisNumber: p.ndisNumber || "",
+        fundingType: p.fundingType || "",
+        primaryDiagnosis: p.primaryDiagnosis || "",
+        secondaryDiagnosis: p.secondaryDiagnosis || "",
+        language: p.language || "",
+        ethnicity: p.ethnicity || "",
+        preferredContactMethod: p.preferredContactMethod || "",
+        medicareNumber: p.medicareNumber || "",
+        centrelinkNumber: p.centrelinkNumber || "",
+        externalId: p.externalId || "",
+        planManagerName: p.planManagerName || "",
+        planManagerEmail: p.planManagerEmail || "",
+        planManagerOrg: p.planManagerOrg || "",
+        checkInPeriod: p.checkInPeriod || "",
+        coordinator: c.owner || "",
       }
-      return row
     }),
-    [activeClients, visibleColumnKeys, tableKeyToCsvKey]
+    [activeClients]
   )
 
   const handleCsvImport = useCallback(async (rows: Record<string, string>[]) => {
@@ -739,11 +819,12 @@ export default function ClientsPage() {
         },
       })
     }
-  }, [addClient])
+    toast(`${rows.length} client${rows.length > 1 ? "s" : ""} imported`, "success")
+  }, [addClient, toast])
 
   const sortedClients = (() => {
-    if (!sortKey) return activeClients
-    return [...activeClients].sort((a, b) => {
+    if (!sortKey) return filteredClients
+    return [...filteredClients].sort((a, b) => {
       const pA = getParticipantData(a)
       const pB = getParticipantData(b)
       let valA = ""
@@ -767,6 +848,7 @@ export default function ClientsPage() {
         case "preferredSignMethod": valA = pA.preferredSignMethod; valB = pB.preferredSignMethod; break
         case "serviceCommencementDate": valA = pA.serviceCommencementDate; valB = pB.serviceCommencementDate; break
         case "serviceExitDate": valA = pA.serviceExitDate; valB = pB.serviceExitDate; break
+        case "nextCheckUp": valA = getNextCheckUp(a.id, a.name) || "9999"; valB = getNextCheckUp(b.id, b.name) || "9999"; break
         default: {
           if (sortKey.startsWith("contact-")) {
             const relKey = sortKey.replace("contact-", "")
@@ -788,9 +870,9 @@ export default function ClientsPage() {
   return (
     <div className="relative flex h-full">
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-[#f0f0f0] px-[16px]">
-          <div className="flex items-center gap-[8px]">
-            <span className="text-[13px] font-medium text-[#262626]">Clients</span>
+        <div className="flex h-[44px] shrink-0 items-center justify-between gap-[8px] border-b border-[#f0f0f0] px-[16px]">
+          <div className="flex min-w-0 flex-1 items-center gap-[8px] overflow-x-auto">
+            <span className="shrink-0 text-[13px] font-medium text-[#262626]">Clients</span>
             <div className="h-[16px] w-px bg-[#e5e5e5]" />
             <button
               onClick={handleSelectAllView}
@@ -847,14 +929,61 @@ export default function ClientsPage() {
         </div>
 
         
-        <div className="flex h-[41px] shrink-0 items-center border-b border-[#dcdcdc] px-[16px]">
-          <button
-            className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-            tabIndex={0}
-          >
-            <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
-            <span>Filter</span>
-          </button>
+        <div className="flex h-[41px] shrink-0 items-center gap-[8px] border-b border-[#dcdcdc] px-[16px]">
+          <div className="relative">
+            <button
+              ref={filterBtnRef}
+              onClick={() => { setIsFilterMenuOpen(!isFilterMenuOpen); setActiveFilterDropdown(null) }}
+              className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+              tabIndex={0}
+            >
+              <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
+              <span>Filter</span>
+            </button>
+            {isFilterMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-[55]" onClick={() => setIsFilterMenuOpen(false)} />
+                <div className="absolute left-0 top-full z-[60] mt-[4px] w-[180px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                  <p className="px-[16px] py-[6px] text-[11px] font-medium text-[#888]">Filter by</p>
+                  {[
+                    { key: "status", label: "Status", icon: ListFilter },
+                    { key: "coordinator", label: "Coordinator", icon: User },
+                  ].map((item) => {
+                    const Icon = item.icon
+                    return (
+                      <button
+                        key={item.key}
+                        onClick={() => { setActiveFilterDropdown(item.key); setIsFilterMenuOpen(false) }}
+                        className="flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                        tabIndex={0}
+                      >
+                        <Icon className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+                        {item.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+          {statusFilter.length > 0 && (
+            <div className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626]">
+              <ListFilter className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+              <button ref={(el) => { filterPillRefs.current["status"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "status" ? null : "status")} className="hover:underline" tabIndex={0}>Status</button>
+              <span className="text-[#888]">is</span>
+              <span>{statusFilter.length} {statusFilter.length === 1 ? "value" : "values"}</span>
+              <button onClick={() => setStatusFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded text-[#888] transition-colors hover:text-[#262626]" tabIndex={0} aria-label="Clear status filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
+            </div>
+          )}
+          {coordinatorFilter.length > 0 && (
+            <div className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626]">
+              <User className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+              <button ref={(el) => { filterPillRefs.current["coordinator"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "coordinator" ? null : "coordinator")} className="hover:underline" tabIndex={0}>Coordinator</button>
+              <span className="text-[#888]">is</span>
+              <span>{coordinatorFilter.length} {coordinatorFilter.length === 1 ? "value" : "values"}</span>
+              <button onClick={() => setCoordinatorFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded text-[#888] transition-colors hover:text-[#262626]" tabIndex={0} aria-label="Clear coordinator filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
+            </div>
+          )}
           <div className="ml-auto flex items-center">
             <button
               ref={displayBtnRef}
@@ -933,11 +1062,12 @@ export default function ClientsPage() {
         </div>
 
         <div className="flex-1 overflow-auto bg-[#fafafa]">
-          <table className="w-full border-separate border-spacing-0 text-left" style={{ tableLayout: "fixed", minWidth: (visibleColumns.length + 1) * 200 }}>
+          <table className="w-full border-separate border-spacing-0 text-left" style={{ tableLayout: "fixed", minWidth: visibleColumns.reduce((sum, col) => sum + getWidth(col.key, col.minWidth), 240) }}>
             <thead>
               <tr>
                 <th
                   className="sticky left-0 top-0 z-30 h-[44px] overflow-hidden whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]"
+                  style={{ width: 240 }}
                 >
                   <div className="flex items-center gap-[6px]">
                     <UserRound className="h-[13px] w-[13px] shrink-0 text-[#999]" strokeWidth={1.5} />
@@ -952,7 +1082,8 @@ export default function ClientsPage() {
                   return (
                     <th
                       key={col.key}
-                      className={`group/col sticky top-0 z-20 h-[44px] overflow-hidden whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888] ${isLast ? "" : "border-r"}`}
+                      className={`group/col relative sticky top-0 z-20 h-[44px] overflow-hidden whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888] ${isLast ? "" : "border-r"}`}
+                      style={{ width: getWidth(col.key, col.minWidth) }}
                     >
                       <div className="flex items-center gap-[6px]">
                         <ColIcon className="h-[13px] w-[13px] shrink-0 text-[#999]" strokeWidth={1.5} />
@@ -1029,6 +1160,10 @@ export default function ClientsPage() {
                           </div>
                         </>
                       )}
+                      <div
+                        onMouseDown={(e) => handleColResize(col.key, e)}
+                        className="absolute right-0 top-0 z-10 h-full w-[4px] cursor-col-resize opacity-0 transition-opacity hover:bg-[#2563EB]/30 hover:opacity-100 group-hover/col:opacity-100"
+                      />
                     </th>
                   )
                 })}
@@ -1094,6 +1229,36 @@ export default function ClientsPage() {
                       return <td key={key} className={textCls}>{p.preferredContactMethod || dash}</td>
                     case "preferredSignMethod":
                       return <td key={key} className={textCls}>{p.preferredSignMethod || dash}</td>
+                    case "nextCheckUp": {
+                      const nextDate = getNextCheckUp(client.id, client.name)
+                      if (!nextDate) return <td key={key} className={textCls}>{dash}</td>
+                      const checkUpDate = new Date(nextDate + "T00:00:00")
+                      const today = new Date(); today.setHours(0, 0, 0, 0)
+                      const daysUntil = Math.ceil((checkUpDate.getTime() - today.getTime()) / 86400000)
+                      const isOverdue = daysUntil < 0
+                      const absDays = Math.abs(daysUntil)
+                      const daysLabel = isOverdue
+                        ? `${absDays}d overdue`
+                        : daysUntil === 0
+                          ? "Today"
+                          : `${absDays}d left`
+                      const chipColor = isOverdue
+                        ? "bg-red-100 text-red-700"
+                        : daysUntil <= 3
+                          ? "bg-red-50 text-red-600"
+                          : daysUntil <= 7
+                            ? "bg-amber-50 text-amber-600"
+                            : daysUntil <= 14
+                              ? "bg-amber-50 text-amber-500"
+                              : "bg-green-50 text-green-600"
+                      return (
+                        <td key={key} className={cls}>
+                          <span className={`inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] px-[12px] text-[12px] font-medium ${chipColor}`}>
+                            {daysLabel}
+                          </span>
+                        </td>
+                      )
+                    }
                     case "serviceCommencementDate":
                       return (
                         <td key={key} className={textCls}>
@@ -1150,14 +1315,91 @@ export default function ClientsPage() {
               })}
             </tbody>
           </table>
+          {hasMore && (
+            <div className="flex justify-center py-[16px]">
+              <button
+                type="button"
+                onClick={loadMore}
+                disabled={isLoadingMore}
+                className="text-[13px] font-medium text-[#888] transition-colors hover:text-[#262626] disabled:opacity-50"
+                tabIndex={0}
+              >
+                {isLoadingMore ? "Loading..." : "Load more"}
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="shrink-0 border-t border-[#dcdcdc] px-[20px] py-[10px]">
           <span className="text-[12px] font-medium text-[#999]">
-            {activeClients.length} clients
+            {filteredClients.length} clients
           </span>
         </div>
       </div>
+
+      {activeFilterDropdown && (
+        <>
+          <div className="fixed inset-0 z-[55]" onClick={() => setActiveFilterDropdown(null)} />
+          {(() => {
+            const anchor = filterPillRefs.current[activeFilterDropdown] || filterBtnRef.current
+            const rect = anchor?.getBoundingClientRect()
+            if (!rect) return null
+            const dropdownStyle = { top: rect.bottom + 4, left: rect.left, minWidth: 200 }
+
+            if (activeFilterDropdown === "status") return (
+              <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={dropdownStyle}>
+                <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+                  <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
+                  <span>Back</span>
+                </button>
+                <p className="px-[16px] py-[4px] text-[11px] font-medium text-[#888]">Filter by status</p>
+                {uniqueStatuses.map((val) => {
+                  const isActive = statusFilter.includes(val)
+                  return (
+                    <button key={val} onClick={() => setStatusFilter((prev) => isActive ? prev.filter((f) => f !== val) : [...prev, val])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
+                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
+                        {isActive && <span className="text-[10px] text-white">✓</span>}
+                      </div>
+                      <span className="text-[#262626] capitalize">{val}</span>
+                    </button>
+                  )
+                })}
+                {uniqueStatuses.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-[#888]">No statuses</p>}
+                <div className="border-t border-[#f0f0f0] px-[8px] py-[4px]">
+                  <button onClick={() => { setStatusFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded px-[8px] py-[6px] text-left text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0}>Clear</button>
+                </div>
+              </div>
+            )
+
+            if (activeFilterDropdown === "coordinator") return (
+              <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={dropdownStyle}>
+                <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+                  <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
+                  <span>Back</span>
+                </button>
+                <p className="px-[16px] py-[4px] text-[11px] font-medium text-[#888]">Filter by coordinator</p>
+                {uniqueCoordinators.map((name) => {
+                  const isActive = coordinatorFilter.includes(name)
+                  return (
+                    <button key={name} onClick={() => setCoordinatorFilter((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
+                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
+                        {isActive && <span className="text-[10px] text-white">✓</span>}
+                      </div>
+                      <span className="text-[#262626]">{name}</span>
+                    </button>
+                  )
+                })}
+                {uniqueCoordinators.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-[#888]">No coordinators</p>}
+                <div className="border-t border-[#f0f0f0] px-[8px] py-[4px]">
+                  <button onClick={() => { setCoordinatorFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded px-[8px] py-[6px] text-left text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0}>Clear</button>
+                </div>
+              </div>
+            )
+
+            return null
+          })()}
+        </>
+      )}
 
       {selectedClient && (
         <div className="absolute right-0 top-0 z-40 h-full overflow-hidden">
@@ -1210,7 +1452,7 @@ export default function ClientsPage() {
               <button
                 onClick={handleCreateView}
                 disabled={!newViewName.trim()}
-                className={`rounded-[4px] border px-[16px] py-[6px] text-[13px] font-medium transition-colors ${newViewName.trim() ? "border-[#262626] bg-[#262626] text-white hover:bg-[#333]" : "border-[#dcdcdc] text-[#bbb]"}`}
+                className={`rounded-[4px] px-[16px] py-[6px] text-[13px] font-medium transition-colors ${newViewName.trim() ? "primary-btn" : "border border-[#dcdcdc] text-[#bbb]"}`}
                 tabIndex={0}
               >
                 Create

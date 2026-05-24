@@ -107,7 +107,7 @@ export default function DataModelSettingsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="mb-[20px] flex items-center gap-[4px] border-b border-[#e5e5e5]">
+      <div className="mb-[20px] flex items-center gap-[4px] border-b border-[#f0f0f0]">
         {entityTabs.map((tab) => (
           <button
             key={tab}
@@ -130,7 +130,7 @@ export default function DataModelSettingsPage() {
       <div className="mb-[16px]">
         <button
           onClick={() => setIsCreateOpen(true)}
-          className="flex items-center gap-[6px] rounded-[8px] border border-[#e0e0e0] bg-white px-[14px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+          className="flex items-center gap-[6px] rounded-[8px] bg-[#f0f0f0] px-[14px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#e8e8e8]"
           tabIndex={0}
         >
           <Plus className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -139,7 +139,7 @@ export default function DataModelSettingsPage() {
       </div>
 
       {/* Fields table */}
-      <div className="overflow-hidden rounded-[14px] border border-[#e5e5e5] bg-[#fafafa]">
+      <div className="overflow-hidden">
         <div className="grid grid-cols-[35%_20%_20%_15%_10%] items-center border-b border-[#efefef] px-[20px] py-[10px]">
           <span className="text-[12px] font-medium text-[#999]">Name</span>
           <span className="text-[12px] font-medium text-[#999]">Type</span>
@@ -193,7 +193,7 @@ export default function DataModelSettingsPage() {
       {isCreateOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-[120px]">
           <div className="absolute inset-0 bg-black/20" onClick={() => { setIsCreateOpen(false); setIsTypeOpen(false) }} />
-          <div className="relative z-10 w-[480px] rounded-[10px] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+          <div className="relative z-10 w-[480px] rounded-[8px] border border-[#f0f0f0] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
             <div className="flex items-center justify-between px-[24px] pt-[20px]">
               <div className="flex items-center gap-[8px]">
                 <Settings2 className="h-[16px] w-[16px] text-[#555]" strokeWidth={1.5} />
@@ -284,7 +284,7 @@ export default function DataModelSettingsPage() {
                   className={cn(
                     "rounded-[4px] px-[16px] py-[7px] text-[13px] font-medium transition-colors",
                     newName.trim()
-                      ? "bg-[#262626] text-white hover:bg-[#3d3d3d]"
+                      ? "primary-btn"
                       : "cursor-not-allowed bg-[#e8e8e8] text-[#bbb]"
                   )}
                   tabIndex={0}
@@ -301,7 +301,7 @@ export default function DataModelSettingsPage() {
       {editingField && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-[120px]">
           <div className="absolute inset-0 bg-black/20" onClick={handleCloseEdit} />
-          <div className="relative z-10 w-[480px] rounded-[10px] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+          <div className="relative z-10 w-[480px] rounded-[8px] border border-[#f0f0f0] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
             <div className="flex items-center justify-between px-[24px] pt-[20px]">
               <div className="flex items-center gap-[8px]">
                 <Settings2 className="h-[16px] w-[16px] text-[#555]" strokeWidth={1.5} />
@@ -457,7 +457,7 @@ export default function DataModelSettingsPage() {
                     className={cn(
                       "rounded-[4px] px-[16px] py-[7px] text-[13px] font-medium transition-colors",
                       editName.trim()
-                        ? "bg-[#262626] text-white hover:bg-[#3d3d3d]"
+                        ? "primary-btn"
                         : "cursor-not-allowed bg-[#e8e8e8] text-[#bbb]"
                     )}
                     tabIndex={0}
@@ -482,7 +482,7 @@ export default function DataModelSettingsPage() {
       {/* Toast */}
       {toast && (
         <div className="fixed bottom-[24px] left-1/2 z-50 -translate-x-1/2">
-          <div className="flex items-center gap-[8px] rounded-[10px] border border-[#e5e5e5] bg-white px-[16px] py-[10px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+          <div className="flex items-center gap-[8px] rounded-[8px] border border-[#f0f0f0] bg-white px-[16px] py-[10px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
             <Check className="h-[14px] w-[14px] text-green-500" strokeWidth={2} />
             <span className="text-[13px] font-medium text-[#262626]">{toast}</span>
           </div>
@@ -532,7 +532,7 @@ function FieldRow({
             type="button"
             onClick={onToggleEnabled}
             className="relative h-[22px] w-[40px] rounded-full transition-colors"
-            style={{ backgroundColor: field.isEnabled ? "#262626" : "#d4d4d4" }}
+            style={{ backgroundColor: field.isEnabled ? "#2563EB" : "#d4d4d4" }}
             tabIndex={0}
             aria-label={field.isEnabled ? "Disable field" : "Enable field"}
             aria-checked={field.isEnabled}
@@ -549,7 +549,7 @@ function FieldRow({
           <button
             type="button"
             className="relative h-[22px] w-[40px] cursor-not-allowed rounded-full opacity-50"
-            style={{ backgroundColor: "#262626" }}
+            style={{ backgroundColor: "#2563EB" }}
             disabled
             tabIndex={-1}
             aria-label="System field — always enabled"
@@ -574,7 +574,7 @@ function FieldRow({
             </button>
 
             {isMenuOpen && (
-              <div className="absolute right-0 top-full z-20 mt-[4px] w-[160px] rounded-[10px] border border-[#e5e5e5] bg-white py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+              <div className="absolute right-0 top-full z-20 mt-[4px] w-[160px] rounded-[8px] border border-[#f0f0f0] bg-white py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
                 <button
                   onClick={onDelete}
                   className="flex w-full items-center gap-[8px] px-[14px] py-[8px] text-[13px] font-medium text-red-500 transition-colors hover:bg-red-50"

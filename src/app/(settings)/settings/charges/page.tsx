@@ -172,7 +172,7 @@ export default function ChargesSettingsPage() {
 
       <button
         onClick={() => setIsAdding(true)}
-        className="mb-[20px] flex items-center gap-[6px] rounded-[8px] border border-[#e0e0e0] bg-white px-[14px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+        className="mb-[20px] flex items-center gap-[6px] rounded-[8px] bg-[#f0f0f0] px-[14px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#e8e8e8]"
         tabIndex={0}
       >
         <Plus className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -183,7 +183,7 @@ export default function ChargesSettingsPage() {
       {isAdding && (
         <>
           <div className="fixed inset-0 z-50 bg-black/20" onClick={() => handleCancel()} />
-          <div className="fixed left-1/2 top-1/2 z-50 w-[540px] max-w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 rounded-[20px] border border-[#e7e7e7] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+          <div className="fixed left-1/2 top-1/2 z-50 w-[540px] max-w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 rounded-[8px] border border-[#f0f0f0] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-[#f0f0f0] px-[24px] py-[16px]">
               <h2 className="text-[15px] font-semibold text-[#262626]">Add charge item</h2>
@@ -366,7 +366,7 @@ export default function ChargesSettingsPage() {
               <button
                 onClick={handleAdd}
                 disabled={!form.name.trim() || !form.itemNumber.trim()}
-                className="rounded-[4px] bg-[#262626] px-[14px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-[#333] disabled:opacity-30"
+                className="primary-btn rounded-[4px] px-[14px] py-[7px] text-[13px] font-medium transition-colors disabled:opacity-30"
                 tabIndex={0}
               >
                 Add
@@ -378,45 +378,53 @@ export default function ChargesSettingsPage() {
 
       {/* Charge items table */}
       {chargeItems.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-[14px] border border-[#e5e5e5] bg-[#fafafa] px-[20px] py-[48px] text-center">
+        <div className="flex flex-col items-center justify-center px-[20px] py-[48px] text-center">
           <Tag className="h-[24px] w-[24px] text-[#d4d4d4]" strokeWidth={1.5} />
           <p className="mt-[10px] text-[14px] font-medium text-[#888]">No charge items added</p>
           <p className="mt-[2px] text-[13px] text-[#bbb]">Add charge items to use when logging time against tasks</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-[14px] border border-[#e5e5e5] bg-[#fafafa]">
-          <div className="grid grid-cols-[1fr_100px_110px_80px_60px_50px_40px] items-center border-b border-[#efefef] px-[20px] py-[10px]">
-            <span className="text-[12px] font-medium text-[#999]">Reference</span>
-            <span className="text-[12px] font-medium text-[#999]">Item Number</span>
-            <span className="text-[12px] font-medium text-[#999]">Claim Type</span>
-            <span className="text-right text-[12px] font-medium text-[#999]">Price</span>
-            <span className="text-[12px] font-medium text-[#999]">Unit</span>
-            <span className="text-[12px] font-medium text-[#999]">GST</span>
-            <span />
-          </div>
+        <div className="overflow-hidden">
+          <table className="w-full border-separate border-spacing-0">
+            <thead>
+              <tr>
+                <th className="border-b border-[#efefef] px-[16px] py-[10px] text-left text-[12px] font-medium text-[#999]">Reference</th>
+                <th className="border-b border-[#efefef] px-[16px] py-[10px] text-left text-[12px] font-medium text-[#999]" style={{ width: "25%" }}>Item Number</th>
+                <th className="border-b border-[#efefef] px-[16px] py-[10px] text-left text-[12px] font-medium text-[#999]" style={{ width: "18%" }}>Claim Type</th>
+                <th className="border-b border-[#efefef] px-[16px] py-[10px] text-right text-[12px] font-medium text-[#999]" style={{ width: "12%" }}>Price</th>
+                <th className="border-b border-[#efefef] px-[16px] py-[10px] text-left text-[12px] font-medium text-[#999]" style={{ width: "10%" }}>Unit</th>
+                <th className="border-b border-[#efefef] px-[16px] py-[10px] text-left text-[12px] font-medium text-[#999]" style={{ width: "8%" }}>GST</th>
+                <th className="border-b border-[#efefef] w-[40px]" />
+              </tr>
+            </thead>
+            <tbody>
           {chargeItems.map((item) => (
-            <div
+            <tr
               key={item.id}
-              className="group grid grid-cols-[1fr_100px_110px_80px_60px_50px_40px] items-center border-b border-[#efefef] px-[20px] py-[14px] transition-colors last:border-b-0 hover:bg-[#f5f5f5]"
+              className="group transition-colors last:border-b-0 hover:bg-[#f5f5f5]"
             >
-              <span className="text-[13px] font-medium text-[#262626]">{item.reference || item.name}</span>
-              <span className="text-[13px] text-[#888]">{item.itemNumber}</span>
-              <span className="text-[13px] text-[#888]">{claimLabel(item.claimType)}</span>
-              <span className="text-right text-[13px] font-medium text-[#262626]">${item.price.toFixed(2)}</span>
-              <span className="text-[13px] text-[#888]">{item.unit === "hour" ? "Hour" : "Each"}</span>
-              <span className="text-[13px] text-[#888]">{item.gstCode}</span>
-              <div className="flex justify-end">
-                <button
-                  onClick={() => handleRemove(item)}
-                  className="flex h-[26px] w-[26px] items-center justify-center rounded-[6px] text-[#d4d4d4] opacity-0 transition-all group-hover:opacity-100 hover:bg-red-50 hover:text-red-400"
-                  tabIndex={0}
-                  aria-label={`Remove ${item.reference || item.name}`}
-                >
-                  <Trash2 className="h-[13px] w-[13px]" strokeWidth={1.75} />
-                </button>
-              </div>
-            </div>
+              <td className="border-b border-[#efefef] px-[16px] py-[14px] text-[13px] font-medium text-[#262626]">{item.reference || item.name}</td>
+              <td className="border-b border-[#efefef] px-[16px] py-[14px] text-[13px] text-[#888]">{item.itemNumber}</td>
+              <td className="border-b border-[#efefef] px-[16px] py-[14px] text-[13px] text-[#888]">{claimLabel(item.claimType)}</td>
+              <td className="border-b border-[#efefef] px-[16px] py-[14px] text-right text-[13px] font-medium text-[#262626]">${item.price.toFixed(2)}</td>
+              <td className="border-b border-[#efefef] px-[16px] py-[14px] text-[13px] text-[#888]">{item.unit === "hour" ? "Hour" : item.unit === "km" ? "Km" : "Each"}</td>
+              <td className="border-b border-[#efefef] px-[16px] py-[14px] text-[13px] text-[#888]">{item.gstCode}</td>
+              <td className="border-b border-[#efefef] px-[16px] py-[14px]">
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => handleRemove(item)}
+                    className="flex h-[26px] w-[26px] items-center justify-center rounded-[6px] text-[#d4d4d4] opacity-0 transition-all group-hover:opacity-100 hover:bg-red-50 hover:text-red-400"
+                    tabIndex={0}
+                    aria-label={`Remove ${item.reference || item.name}`}
+                  >
+                    <Trash2 className="h-[13px] w-[13px]" strokeWidth={1.75} />
+                  </button>
+                </div>
+              </td>
+            </tr>
           ))}
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -425,7 +433,7 @@ export default function ChargesSettingsPage() {
       </p>
 
       {toast && (
-        <div className="fixed bottom-[24px] left-1/2 z-50 -translate-x-1/2 rounded-[10px] border border-[#e5e5e5] bg-white px-[16px] py-[10px] text-[13px] font-medium text-[#262626] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+        <div className="fixed bottom-[24px] left-1/2 z-50 -translate-x-1/2 rounded-[8px] border border-[#f0f0f0] bg-white px-[16px] py-[10px] text-[13px] font-medium text-[#262626] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
           {toast}
         </div>
       )}

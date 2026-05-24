@@ -1,15 +1,31 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { inviteMemberSchema } from "@/lib/validations"
+import { rateLimit, getRateLimitHeaders } from "@/lib/rate-limit"
 
 export async function POST(request: Request) {
   const supabase = await createClient()
   const { data: { user: caller } } = await supabase.auth.getUser()
   if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { email, workspaceId, role } = await request.json()
-  if (!email?.includes("@")) return NextResponse.json({ error: "Invalid email" }, { status: 400 })
-  if (!workspaceId) return NextResponse.json({ error: "Missing workspaceId" }, { status: 400 })
+  const rl = rateLimit(`invite:${caller.id}`, { maxRequests: 5, windowMs: 60_000 })
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Too many invite requests. Please wait a moment." },
+      { status: 429, headers: getRateLimitHeaders(rl) }
+    )
+  }
+
+  const raw = await request.json()
+  const parsed = inviteMemberSchema.safeParse(raw)
+
+  if (!parsed.success) {
+    const message = parsed.error.issues.map((i) => i.message).join("; ")
+    return NextResponse.json({ error: message }, { status: 400 })
+  }
+
+  const { email, workspaceId, role } = parsed.data
 
   const adminClient = createAdminClient()
   if (!adminClient) return NextResponse.json({ error: "Server not configured for invites. Add SUPABASE_SERVICE_ROLE_KEY to environment." }, { status: 500 })
@@ -40,7 +56,7 @@ export async function POST(request: Request) {
       .insert({
         workspace_id: workspaceId,
         invited_email: email,
-        role: role || "coordinator",
+        role,
         status: "invited",
       })
       .select()

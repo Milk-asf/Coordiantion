@@ -154,6 +154,7 @@ export interface Task {
   timeSpent: number
   secondaryChargeType: string
   secondaryTimeSpent: number
+  isCheckUp?: boolean
 }
 
 export interface Attachment {

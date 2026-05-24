@@ -99,7 +99,7 @@ export default function MembersSettingsPage() {
   }
 
   if (!canManageMembers) return (
-    <div className="flex items-center justify-center rounded-[14px] border border-[#e5e5e5] bg-[#fafafa] py-[48px]">
+    <div className="flex items-center justify-center py-[48px]">
       <p className="text-[14px] text-[#888]">You don&apos;t have permission to manage members.</p>
     </div>
   )
@@ -144,7 +144,7 @@ export default function MembersSettingsPage() {
         <>
           <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setIsInviteOpen(false)} />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-[16px]">
-            <div className="w-full max-w-[420px] rounded-[14px] border border-[#e5e5e5] bg-white p-[24px] shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+            <div className="w-full max-w-[420px] rounded-[8px] border border-[#f0f0f0] bg-white p-[24px] shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
               <div className="mb-[16px] flex items-center justify-between">
                 <h2 className="text-[16px] font-bold text-[#262626]">Invite a member</h2>
                 <button onClick={() => setIsInviteOpen(false)} className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-[#999] transition-colors hover:bg-[#f5f5f5]" tabIndex={0} aria-label="Close">
@@ -191,7 +191,7 @@ export default function MembersSettingsPage() {
       )}
 
       {/* Active members */}
-      <div className="overflow-hidden rounded-[14px] border border-[#e5e5e5] bg-[#fafafa]">
+      <div className="overflow-hidden">
         <div className="grid grid-cols-[1fr_120px_80px_48px] items-center border-b border-[#efefef] px-[20px] py-[10px]">
           <span className="text-[12px] font-medium text-[#999]">Name</span>
           <span className="text-[12px] font-medium text-[#999]">Role</span>
@@ -228,7 +228,7 @@ export default function MembersSettingsPage() {
       {deactivatedMembers.length > 0 && (
         <div className="mt-[28px]">
           <h2 className="mb-[10px] text-[13px] font-semibold uppercase tracking-wide text-[#999]">Deactivated</h2>
-          <div className="overflow-hidden rounded-[14px] border border-[#e5e5e5] bg-[#fafafa]">
+          <div className="overflow-hidden">
             {deactivatedMembers.map((member) => (
               <MemberRow
                 key={member.id}
@@ -296,7 +296,7 @@ function MemberRow({
       <div className="flex items-center gap-[12px]">
         <div className={cn(
           "flex h-[32px] w-[32px] shrink-0 items-center justify-center rounded-[8px] text-[12px] font-semibold",
-          isDisabledRow ? "bg-[#e8e8e8] text-[#bbb]" : "bg-[#e8e8e8] text-[#666]"
+          isDisabledRow ? "bg-[#DBEAFE]/50 text-[#2563EB]/40" : "bg-[#DBEAFE] text-[#2563EB]"
         )}>
           {displayName.charAt(0).toUpperCase()}
         </div>
@@ -340,7 +340,7 @@ function MemberRow({
         {isRoleOpen && canEditRole && (
           <>
             <div className="fixed inset-0 z-[9]" onClick={onRoleToggle} />
-            <div className="absolute left-0 top-full z-10 mt-[4px] w-[260px] rounded-[10px] border border-[#e5e5e5] bg-white py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+            <div className="absolute left-0 top-full z-10 mt-[4px] w-[260px] rounded-[8px] border border-[#f0f0f0] bg-white py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
               {availableRoles.map((role) => (
                 <button
                   key={role}
@@ -369,7 +369,7 @@ function MemberRow({
             type="button"
             onClick={onToggleStatus}
             className="relative h-[22px] w-[40px] rounded-full transition-colors"
-            style={{ backgroundColor: isActive ? "#262626" : "#d4d4d4" }}
+            style={{ backgroundColor: isActive ? "#2563EB" : "#d4d4d4" }}
             tabIndex={0}
             aria-label={isActive ? "Deactivate member" : "Activate member"}
             aria-checked={isActive}
@@ -386,7 +386,7 @@ function MemberRow({
           <button
             type="button"
             className="relative h-[22px] w-[40px] cursor-not-allowed rounded-full opacity-50"
-            style={{ backgroundColor: "#262626" }}
+            style={{ backgroundColor: "#2563EB" }}
             disabled
             tabIndex={-1}
             aria-label="Super admin — always active"
@@ -413,7 +413,7 @@ function MemberRow({
             {isMenuOpen && (
               <>
                 <div className="fixed inset-0 z-[9]" onClick={onMenuToggle} />
-                <div className="absolute right-0 top-full z-10 mt-[4px] w-[160px] rounded-[10px] border border-[#e5e5e5] bg-white py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+                <div className="absolute right-0 top-full z-10 mt-[4px] w-[160px] rounded-[8px] border border-[#f0f0f0] bg-white py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
                   {(member.status === "pending" || member.status === "invited") && (
                     <button
                       onClick={async () => {

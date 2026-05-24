@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
+import { useClients } from "@/lib/hooks/use-clients"
 import type { Task, Attachment } from "@/lib/types"
 
 interface TaskRow {
@@ -19,6 +20,7 @@ interface TaskRow {
   time_spent: number | null
   secondary_charge_type: string | null
   secondary_time_spent: number | null
+  is_check_up: boolean | null
 }
 
 interface TaskRowUpdate {
@@ -35,6 +37,7 @@ interface TaskRowUpdate {
   time_spent?: number
   secondary_charge_type?: string
   secondary_time_spent?: number
+  is_check_up?: boolean
 }
 
 function dbToTask(row: TaskRow): Task {
@@ -52,14 +55,33 @@ function dbToTask(row: TaskRow): Task {
     timeSpent: row.time_spent || 0,
     secondaryChargeType: row.secondary_charge_type || "",
     secondaryTimeSpent: row.secondary_time_spent || 0,
+    isCheckUp: row.is_check_up || false,
   }
 }
+
+function getNextCheckUpDate(currentDue: string | null, period: string): string {
+  const base = currentDue ? new Date(currentDue + "T00:00:00") : new Date()
+  const next = new Date(base)
+  switch (period) {
+    case "Weekly": next.setDate(next.getDate() + 7); break
+    case "Fortnightly": next.setDate(next.getDate() + 14); break
+    case "Monthly": next.setMonth(next.getMonth() + 1); break
+    case "Quarterly": next.setMonth(next.getMonth() + 3); break
+    default: next.setMonth(next.getMonth() + 1); break
+  }
+  return next.toISOString().split("T")[0]
+}
+
+const PAGE_SIZE = 50
 
 interface TasksContextValue {
   tasks: Task[]
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>
   isLoading: boolean
   fetchError: string | null
+  hasMore: boolean
+  isLoadingMore: boolean
+  loadMore: () => Promise<void>
   addTask: (input: {
     title: string
     description?: string
@@ -73,6 +95,7 @@ interface TasksContextValue {
     timeSpent?: number
     secondaryChargeType?: string
     secondaryTimeSpent?: number
+    isCheckUp?: boolean
   }) => Promise<Task | null>
   updateTask: (id: string, updates: Partial<Task>) => Promise<void>
   deleteTask: (id: string) => Promise<void>
@@ -83,18 +106,22 @@ const TasksContext = createContext<TasksContextValue | null>(null)
 
 export function TasksProvider({ children }: { children: ReactNode }) {
   const { activeWorkspace } = useWorkspace()
+  const { clients } = useClients()
   const [tasks, setTasks] = useState<Task[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
+  const [hasMore, setHasMore] = useState(false)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
 
   const fetchTasks = useCallback(async () => {
     if (!activeWorkspace || !isSupabaseConfigured()) {
       setTasks([])
       setIsLoading(false)
+      setHasMore(false)
       return
     }
     const supabase = createClient()
-    if (!supabase) { setTasks([]); setIsLoading(false); return }
+    if (!supabase) { setTasks([]); setIsLoading(false); setHasMore(false); return }
 
     setIsLoading(true)
     setFetchError(null)
@@ -104,21 +131,83 @@ export function TasksProvider({ children }: { children: ReactNode }) {
         .select("*")
         .eq("workspace_id", activeWorkspace.id)
         .order("created_at", { ascending: true })
+        .range(0, PAGE_SIZE - 1)
 
       if (error) {
         setFetchError(error.message)
         setTasks([])
+        setHasMore(false)
       } else {
-        setTasks((data || []).map(dbToTask))
+        const rows = data || []
+        setTasks(rows.map(dbToTask))
+        setHasMore(rows.length === PAGE_SIZE)
       }
     } catch (err) {
       setFetchError(err instanceof Error ? err.message : "Failed to load tasks")
       setTasks([])
+      setHasMore(false)
     }
     setIsLoading(false)
   }, [activeWorkspace])
 
+  const loadMore = useCallback(async () => {
+    if (!activeWorkspace || !isSupabaseConfigured() || !hasMore || isLoadingMore) return
+    const supabase = createClient()
+    if (!supabase) return
+
+    setIsLoadingMore(true)
+    try {
+      const offset = tasks.length
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("workspace_id", activeWorkspace.id)
+        .order("created_at", { ascending: true })
+        .range(offset, offset + PAGE_SIZE - 1)
+
+      if (!error && data) {
+        setTasks((prev) => [...prev, ...data.map(dbToTask)])
+        setHasMore(data.length === PAGE_SIZE)
+      }
+    } catch {
+      // silently fail on load-more
+    }
+    setIsLoadingMore(false)
+  }, [activeWorkspace, hasMore, isLoadingMore, tasks.length])
+
   useEffect(() => { fetchTasks() }, [fetchTasks])
+
+  useEffect(() => {
+    if (!activeWorkspace || !isSupabaseConfigured()) return
+    const supabase = createClient()
+    if (!supabase) return
+
+    const channel = supabase
+      .channel(`tasks-${activeWorkspace.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'tasks',
+        filter: `workspace_id=eq.${activeWorkspace.id}`,
+      }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const newTask = dbToTask(payload.new as TaskRow)
+          setTasks((prev) => {
+            if (prev.some((t) => t.id === newTask.id)) return prev
+            return [...prev, newTask]
+          })
+        } else if (payload.eventType === 'UPDATE') {
+          const updated = dbToTask(payload.new as TaskRow)
+          setTasks((prev) => prev.map((t) => t.id === updated.id ? updated : t))
+        } else if (payload.eventType === 'DELETE') {
+          const oldId = (payload.old as { id: string }).id
+          setTasks((prev) => prev.filter((t) => t.id !== oldId))
+        }
+      })
+      .subscribe()
+
+    return () => { channel.unsubscribe() }
+  }, [activeWorkspace])
 
   const addTask = useCallback(async (input: {
     title: string
@@ -133,6 +222,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     timeSpent?: number
     secondaryChargeType?: string
     secondaryTimeSpent?: number
+    isCheckUp?: boolean
   }) => {
     if (!activeWorkspace || !isSupabaseConfigured()) return null
     const supabase = createClient()
@@ -154,6 +244,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
         time_spent: input.timeSpent || 0,
         secondary_charge_type: input.secondaryChargeType || "",
         secondary_time_spent: input.secondaryTimeSpent || 0,
+        is_check_up: input.isCheckUp || false,
       })
       .select()
       .single()
@@ -165,6 +256,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   }, [activeWorkspace])
 
   const updateTask = useCallback(async (id: string, updates: Partial<Task>) => {
+    const prevTask = tasks.find((t) => t.id === id)
     setTasks((prev) => prev.map((t) => t.id === id ? { ...t, ...updates } : t))
 
     if (!isSupabaseConfigured()) return
@@ -184,9 +276,44 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     if (updates.timeSpent !== undefined) dbUpdates.time_spent = updates.timeSpent
     if (updates.secondaryChargeType !== undefined) dbUpdates.secondary_charge_type = updates.secondaryChargeType
     if (updates.secondaryTimeSpent !== undefined) dbUpdates.secondary_time_spent = updates.secondaryTimeSpent
+    if (updates.isCheckUp !== undefined) dbUpdates.is_check_up = updates.isCheckUp
 
     await supabase.from("tasks").update(dbUpdates).eq("id", id)
-  }, [])
+
+    if (updates.status === "done" && prevTask?.status !== "done" && (prevTask?.isCheckUp || updates.isCheckUp) && activeWorkspace) {
+      const task = { ...prevTask!, ...updates }
+      const client = clients.find((c) => c.id === task.clientId || c.name === task.client || c.displayName === task.client)
+      const period = client?.participant?.checkInPeriod || "Monthly"
+      if (period !== "As needed") {
+        const nextDue = getNextCheckUpDate(task.dueDate, period)
+        const { data: newRow } = await supabase
+          .from("tasks")
+          .insert({
+            workspace_id: activeWorkspace.id,
+            title: task.title || "Check-up",
+            description: "",
+            status: "todo",
+            assignee: task.assignee || "",
+            client_name: task.client || "",
+            client_id: task.clientId || null,
+            due_date: nextDue,
+            attachments: [],
+            charge_type: task.chargeType || "",
+            time_spent: 0,
+            secondary_charge_type: "",
+            secondary_time_spent: 0,
+            is_check_up: true,
+          })
+          .select()
+          .single()
+
+        if (newRow) {
+          const nextTask = dbToTask(newRow)
+          setTasks((prev) => [...prev, nextTask])
+        }
+      }
+    }
+  }, [tasks, clients, activeWorkspace])
 
   const deleteTask = useCallback(async (id: string) => {
     if (!isSupabaseConfigured()) return
@@ -197,7 +324,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <TasksContext.Provider value={{ tasks, setTasks, isLoading, fetchError, addTask, updateTask, deleteTask, refetch: fetchTasks }}>
+    <TasksContext.Provider value={{ tasks, setTasks, isLoading, fetchError, hasMore, isLoadingMore, loadMore, addTask, updateTask, deleteTask, refetch: fetchTasks }}>
       {children}
     </TasksContext.Provider>
   )

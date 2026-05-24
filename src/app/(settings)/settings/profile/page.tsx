@@ -31,7 +31,7 @@ const timezoneOptions = [
   "(UTC-10) Hawaii-Aleutian Standard Time",
 ]
 
-const inputClass = "h-[44px] w-full rounded-[10px] border border-[#e5e5e5] bg-[#fafafa] px-[14px] text-[14px] text-[#262626] outline-none transition-colors placeholder:text-[#c0c0c0] focus:border-[#c0c0c0] focus:ring-2 focus:ring-[#e8e8e8]"
+const inputClass = "h-[44px] w-full rounded-[8px] border border-[#f0f0f0] bg-[#fafafa] px-[14px] text-[14px] text-[#262626] outline-none transition-colors placeholder:text-[#c0c0c0] focus:border-[#d0d0d0] focus:ring-2 focus:ring-[#e8e8e8]"
 const labelClass = "mb-[8px] block text-[13px] font-semibold text-[#262626]"
 
 function ProfileSelect({ label, value, options, onChange, icon }: { label: string; value: string; options: readonly string[]; onChange: (v: string) => void; icon?: React.ReactNode }) {
@@ -63,7 +63,7 @@ function ProfileSelect({ label, value, options, onChange, icon }: { label: strin
         {isOpen && (
           <>
             <div className="fixed inset-0 z-[59]" onClick={() => setIsOpen(false)} />
-            <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[220px] w-full overflow-y-auto rounded-[10px] border border-[#e5e5e5] bg-white py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+            <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[220px] w-full overflow-y-auto rounded-[8px] border border-[#f0f0f0] bg-white py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
               {options.map((opt) => (
                 <button
                   key={opt}
@@ -235,7 +235,7 @@ export default function ProfileSettingsPage() {
         </p>
       </div>
 
-      <div className="rounded-[14px] border border-[#e5e5e5] bg-[#fafafa] p-[24px]">
+      <div>
         <div className="grid gap-[16px] sm:grid-cols-2">
           <div>
             <label className={labelClass}>First name</label>
@@ -279,7 +279,7 @@ export default function ProfileSettingsPage() {
             className={cn(
               "h-[38px] rounded-[8px] px-[20px] text-[13px] font-semibold transition-colors",
               hasChanges
-                ? "bg-[#262626] text-white hover:bg-[#3d3d3d]"
+                ? "primary-btn"
                 : "bg-[#e8e8e8] text-[#c0c0c0] cursor-not-allowed"
             )}
           >
@@ -292,7 +292,7 @@ export default function ProfileSettingsPage() {
       </div>
 
       {/* Divider */}
-      <div className="my-[36px] h-px bg-[#e5e5e5]" />
+      <div className="my-[36px] h-px bg-[#f0f0f0]" />
 
       {/* Change email section */}
       <div className="mb-[20px]">
@@ -327,7 +327,7 @@ export default function ProfileSettingsPage() {
           className={cn(
             "h-[38px] rounded-[8px] px-[20px] text-[13px] font-semibold transition-colors",
             isEmailFormValid
-              ? "bg-[#262626] text-white hover:bg-[#3d3d3d]"
+              ? "primary-btn"
               : "bg-[#e8e8e8] text-[#c0c0c0] cursor-not-allowed"
           )}
         >
@@ -336,7 +336,7 @@ export default function ProfileSettingsPage() {
       </div>
 
       {/* Divider */}
-      <div className="my-[36px] h-px bg-[#e5e5e5]" />
+      <div className="my-[36px] h-px bg-[#f0f0f0]" />
 
       {/* Change password section */}
       <div className="mb-[20px]">
@@ -435,7 +435,7 @@ export default function ProfileSettingsPage() {
           className={cn(
             "h-[38px] rounded-[8px] px-[20px] text-[13px] font-semibold transition-colors",
             isPasswordFormValid
-              ? "bg-[#262626] text-white hover:bg-[#3d3d3d]"
+              ? "primary-btn"
               : "bg-[#e8e8e8] text-[#c0c0c0] cursor-not-allowed"
           )}
         >

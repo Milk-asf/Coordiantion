@@ -24,41 +24,44 @@ export function useSavedViews<TView extends SavedViewBase>({
   resetState,
   syncView,
 }: UseSavedViewsParams<TView>) {
-  const [savedViews, setSavedViews] = useState<TView[]>([])
-  const [activeViewId, setActiveViewId] = useState<string | null>(null)
+  const [savedViews, setSavedViews] = useState<TView[]>(() => {
+    if (typeof window === "undefined") return []
+    try {
+      return JSON.parse(localStorage.getItem(viewsStorageKey) || "[]") as TView[]
+    } catch { return [] }
+  })
+  const [activeViewId, setActiveViewId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null
+    return localStorage.getItem(activeViewStorageKey) || null
+  })
   const isInitialMount = useRef(true)
 
+  const syncViewRef = useRef(syncView)
+  syncViewRef.current = syncView
+  const buildViewRef = useRef(buildView)
+  buildViewRef.current = buildView
+  const applyViewRef = useRef(applyView)
+  applyViewRef.current = applyView
+  const resetStateRef = useRef(resetState)
+  resetStateRef.current = resetState
+
   useEffect(() => {
-    try {
-      const storedViews = JSON.parse(localStorage.getItem(viewsStorageKey) || "[]") as TView[]
-      setSavedViews(storedViews)
-
-      const storedActiveViewId = localStorage.getItem(activeViewStorageKey) || null
-      setActiveViewId(storedActiveViewId)
-
-      if (storedActiveViewId) {
-        const activeView = storedViews.find((view) => view.id === storedActiveViewId)
-        if (activeView) applyView(activeView)
-      }
-    } catch {
-      setSavedViews([])
-      setActiveViewId(null)
+    if (activeViewId) {
+      const activeView = savedViews.find((view) => view.id === activeViewId)
+      if (activeView) applyViewRef.current(activeView)
     }
-
     isInitialMount.current = false
-    hasHydrated.current = true
-  }, [activeViewStorageKey, applyView, viewsStorageKey])
-
-  const hasHydrated = useRef(false)
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
-    if (!hasHydrated.current) return
+    if (isInitialMount.current) return
     localStorage.setItem(viewsStorageKey, JSON.stringify(savedViews))
   }, [savedViews, viewsStorageKey])
 
   useEffect(() => {
     if (isInitialMount.current) return
-
     if (activeViewId) localStorage.setItem(activeViewStorageKey, activeViewId)
     else localStorage.removeItem(activeViewStorageKey)
   }, [activeViewId, activeViewStorageKey])
@@ -67,15 +70,15 @@ export function useSavedViews<TView extends SavedViewBase>({
     if (!activeViewId || isInitialMount.current) return
 
     setSavedViews((previousViews) =>
-      previousViews.map((view) => view.id === activeViewId ? syncView(view) : view)
+      previousViews.map((view) => view.id === activeViewId ? syncViewRef.current(view) : view)
     )
-  }, [activeViewId, syncView])
+  }, [activeViewId])
 
   const createView = useCallback((name: string) => {
     const trimmedName = name.trim()
     if (!trimmedName) return null
 
-    const view = buildView({
+    const view = buildViewRef.current({
       id: Date.now().toString(),
       name: trimmedName,
     })
@@ -84,26 +87,28 @@ export function useSavedViews<TView extends SavedViewBase>({
     setActiveViewId(view.id)
 
     return view
-  }, [buildView])
+  }, [])
 
   const selectView = useCallback((view: TView) => {
     setActiveViewId(view.id)
-    applyView(view)
-  }, [applyView])
+    applyViewRef.current(view)
+  }, [])
 
   const selectDefaultView = useCallback(() => {
     setActiveViewId(null)
-    resetState()
-  }, [resetState])
+    resetStateRef.current()
+  }, [])
 
   const deleteView = useCallback((viewId: string) => {
     setSavedViews((previousViews) => previousViews.filter((view) => view.id !== viewId))
-
-    if (activeViewId === viewId) {
-      setActiveViewId(null)
-      resetState()
-    }
-  }, [activeViewId, resetState])
+    setActiveViewId((prev) => {
+      if (prev === viewId) {
+        resetStateRef.current()
+        return null
+      }
+      return prev
+    })
+  }, [])
 
   const activeView = useMemo(
     () => savedViews.find((view) => view.id === activeViewId) || null,

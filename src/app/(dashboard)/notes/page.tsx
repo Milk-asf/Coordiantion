@@ -2,30 +2,37 @@
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import {
-  StickyNote,
   Plus,
   Trash2,
   X,
-  Search,
   FileText,
   ChevronDown,
+  Star,
+  LayoutGrid,
+  List,
+  ListFilter,
+  SlidersHorizontal,
+  ChevronLeft,
+  User,
+  Users,
 } from "lucide-react"
 import { useNotes } from "@/lib/hooks/use-notes"
 import { useClients } from "@/lib/hooks/use-clients"
+import { useContacts } from "@/lib/hooks/use-contacts"
+import { useStaff } from "@/lib/hooks/use-staff"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { PageLoader, PageError } from "@/components/page-state"
+import { useToast } from "@/components/toast"
+import { ConfirmDialog } from "@/components/confirm-dialog"
+import { RecordPickerModal } from "./_components/record-picker-modal"
+import { NoteEditorModal } from "./_components/note-editor-modal"
+import type { RecordItem } from "./_components/record-picker-modal"
 import type { Note } from "@/lib/types"
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return ""
   const d = new Date(dateStr)
-  return d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
-}
-
-function formatTime(dateStr: string): string {
-  if (!dateStr) return ""
-  const d = new Date(dateStr)
-  return d.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" })
+  return d.toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })
 }
 
 function truncate(text: string, max: number) {
@@ -33,23 +40,56 @@ function truncate(text: string, max: number) {
   return text.slice(0, max) + "…"
 }
 
+type SortOption = "created" | "updated" | "title"
+
+function getTimeGroup(dateStr: string): string {
+  const d = new Date(dateStr)
+  const now = new Date()
+  const thisYear = now.getFullYear()
+  const noteYear = d.getFullYear()
+  if (noteYear === thisYear) return "Created this year"
+  if (noteYear === thisYear - 1) return "Created last year"
+  return `Created in ${noteYear}`
+}
+
 export default function NotesPage() {
+  const { toast } = useToast()
   const { notes, isLoading, fetchError, addNote, updateNote, deleteNote, refetch } = useNotes()
   const { clients } = useClients()
+  const { contacts } = useContacts()
+  const { staff } = useStaff()
 
   const [searchQuery, setSearchQuery] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [newTitle, setNewTitle] = useState("")
-  const [newContent, setNewContent] = useState("")
-  const [newClientId, setNewClientId] = useState<string | null>(null)
-  const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false)
-  const [clientSearch, setClientSearch] = useState("")
-  const clientSearchRef = useRef<HTMLInputElement>(null)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState("")
   const [editContent, setEditContent] = useState("")
   const [currentUserName, setCurrentUserName] = useState("")
+  const [sortBy, setSortBy] = useState<SortOption>("created")
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
+  const [isSortOpen, setIsSortOpen] = useState(false)
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [isDisplayOpen, setIsDisplayOpen] = useState(false)
+  const displayBtnRef = useRef<HTMLButtonElement>(null)
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false)
+  const [activeFilterDropdown, setActiveFilterDropdown] = useState<string | null>(null)
+  const [clientFilter, setClientFilter] = useState<string[]>([])
+  const [creatorFilter, setCreatorFilter] = useState<string[]>([])
+  const filterBtnRef = useRef<HTMLButtonElement>(null)
+  const filterPillRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    if (typeof window === "undefined") return []
+    try { return JSON.parse(localStorage.getItem("note-favorites") || "[]") } catch { return [] }
+  })
+
+  const sortRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    localStorage.setItem("note-favorites", JSON.stringify(favorites))
+  }, [favorites])
 
   useEffect(() => {
     if (!isSupabaseConfigured()) return
@@ -60,40 +100,101 @@ export default function NotesPage() {
     })
   }, [])
 
-  const filteredNotes = useMemo(() => {
-    if (!searchQuery.trim()) return notes
-    const q = searchQuery.toLowerCase()
-    return notes.filter((n) =>
-      n.title.toLowerCase().includes(q) ||
-      n.content.toLowerCase().includes(q) ||
-      n.clientName.toLowerCase().includes(q)
-    )
-  }, [notes, searchQuery])
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) setIsSortOpen(false)
+    }
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [])
+
+  const perPageOptions = [10, 25, 50]
+  const [perPage, setPerPage] = useState(10)
+
+  const toggleFavorite = (id: string) => {
+    setFavorites((prev) => prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id])
+  }
+
+  const uniqueNoteClients = useMemo(() => Array.from(new Set(notes.map((n) => n.clientName).filter(Boolean))).sort(), [notes])
+  const uniqueNoteCreators = useMemo(() => Array.from(new Set(notes.map((n) => n.createdBy).filter(Boolean))).sort(), [notes])
+
+  const sortedNotes = useMemo(() => {
+    let filtered = notes
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      filtered = filtered.filter((n) =>
+        n.title.toLowerCase().includes(q) ||
+        n.content.toLowerCase().includes(q) ||
+        n.clientName.toLowerCase().includes(q)
+      )
+    }
+    if (clientFilter.length > 0) filtered = filtered.filter((n) => clientFilter.includes(n.clientName))
+    if (creatorFilter.length > 0) filtered = filtered.filter((n) => creatorFilter.includes(n.createdBy))
+    const sorted = [...filtered]
+    const dir = sortDirection === "asc" ? 1 : -1
+    if (sortBy === "created") sorted.sort((a, b) => dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()))
+    else if (sortBy === "updated") sorted.sort((a, b) => dir * (new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()))
+    else sorted.sort((a, b) => dir * a.title.localeCompare(b.title))
+    return sorted
+  }, [notes, searchQuery, sortBy, sortDirection, clientFilter, creatorFilter])
+
+  const favoriteNotes = useMemo(() => sortedNotes.filter((n) => favorites.includes(n.id)), [sortedNotes, favorites])
+  const nonFavoriteNotes = useMemo(() => sortedNotes.filter((n) => !favorites.includes(n.id)), [sortedNotes, favorites])
+
+  const groupedNotes = useMemo(() => {
+    const groups: { label: string; notes: Note[] }[] = []
+    const map = new Map<string, Note[]>()
+    nonFavoriteNotes.forEach((n) => {
+      const group = getTimeGroup(n.createdAt)
+      if (!map.has(group)) map.set(group, [])
+      map.get(group)!.push(n)
+    })
+    map.forEach((notes, label) => groups.push({ label, notes }))
+    return groups
+  }, [nonFavoriteNotes])
 
   const selectedNote = useMemo(() => notes.find((n) => n.id === selectedNoteId) ?? null, [notes, selectedNoteId])
-
   const activeClients = useMemo(() => clients.filter((c) => c.status === "active"), [clients])
 
-  const filteredClients = useMemo(() => {
-    if (!clientSearch.trim()) return activeClients
-    const q = clientSearch.toLowerCase()
-    return activeClients.filter((c) => c.name.toLowerCase().includes(q))
-  }, [activeClients, clientSearch])
+  const allRecords: RecordItem[] = useMemo(() => {
+    const records: RecordItem[] = []
+    activeClients.forEach((c) => records.push({
+      id: c.id,
+      name: c.name,
+      subtitle: c.participant?.email || "",
+      type: "Client",
+      iconText: c.iconText,
+    }))
+    contacts.forEach((c) => records.push({
+      id: c.id,
+      name: c.name,
+      subtitle: c.email || c.phone || "",
+      type: "Contact",
+      iconText: c.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase(),
+    }))
+    staff.forEach((s) => records.push({
+      id: s.id,
+      name: s.name,
+      subtitle: s.details?.email || s.invitedEmail || "",
+      type: "Staff",
+      iconText: s.iconText,
+    }))
+    return records
+  }, [activeClients, contacts, staff])
 
-  const handleCreateNote = async () => {
-    if (!newTitle.trim()) return
-    const selectedClient = activeClients.find((c) => c.id === newClientId)
+  const handleSelectRecord = async (record: RecordItem) => {
+    const clientId = record.type === "Client" ? record.id : null
     await addNote({
-      title: newTitle.trim(),
-      content: newContent,
-      clientId: newClientId,
-      clientName: selectedClient?.name ?? "",
+      title: "Untitled",
+      content: "",
+      clientId,
+      clientName: record.name,
       createdBy: currentUserName,
     })
     setIsModalOpen(false)
-    setNewTitle("")
-    setNewContent("")
-    setNewClientId(null)
+    await refetch()
+    const latest = notes[0]
+    if (latest) handleSelectNote(latest)
   }
 
   const handleSelectNote = (note: Note) => {
@@ -102,18 +203,31 @@ export default function NotesPage() {
     setEditContent(note.content)
   }
 
+  const handleCloseEditor = () => {
+    setSelectedNoteId(null)
+    setEditTitle("")
+    setEditContent("")
+  }
+
   const handleSaveNote = useCallback(async () => {
     if (!selectedNoteId) return
     await updateNote(selectedNoteId, { title: editTitle, content: editContent })
   }, [selectedNoteId, editTitle, editContent, updateNote])
 
-  const handleDeleteNote = async (id: string) => {
-    await deleteNote(id)
-    if (selectedNoteId === id) {
+  const handleDeleteNote = (id: string) => {
+    setDeleteConfirmId(id)
+  }
+
+  const confirmDeleteNote = async () => {
+    if (!deleteConfirmId) return
+    await deleteNote(deleteConfirmId)
+    toast("Note deleted", "success")
+    if (selectedNoteId === deleteConfirmId) {
       setSelectedNoteId(null)
       setEditTitle("")
       setEditContent("")
     }
+    setDeleteConfirmId(null)
   }
 
   useEffect(() => {
@@ -125,255 +239,453 @@ export default function NotesPage() {
   if (isLoading) return <PageLoader label="Loading notes…" />
   if (fetchError) return <PageError message={fetchError} onRetry={refetch} />
 
+  const getClientIcon = (note: Note) => {
+    const client = clients.find((c) => c.id === note.clientId)
+    if (!client) return null
+    return (
+      <div className="flex items-center gap-[6px]">
+        <div className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] bg-[#DBEAFE] text-[7px] font-semibold text-[#2563EB]">
+          {client.iconText}
+        </div>
+        <span className="truncate text-[12px] text-[#555]">{client.name}</span>
+      </div>
+    )
+  }
+
+  if (selectedNoteId && selectedNote) {
+    const noteRecordIcon = (() => {
+      const client = clients.find((c) => c.id === selectedNote.clientId)
+      if (client) return { iconText: client.iconText, name: client.name }
+      return { iconText: selectedNote.clientName?.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "?", name: selectedNote.clientName || "Unknown" }
+    })()
+
+    return (
+      <NoteEditorModal
+        note={selectedNote}
+        editTitle={editTitle}
+        editContent={editContent}
+        onEditTitle={setEditTitle}
+        onEditContent={setEditContent}
+        onClose={handleCloseEditor}
+        onDelete={handleDeleteNote}
+        onToggleFavorite={toggleFavorite}
+        isFavorite={favorites.includes(selectedNote.id)}
+        currentUserName={currentUserName}
+        recordIcon={noteRecordIcon}
+      />
+    )
+  }
+
   return (
     <div className="flex h-full flex-col">
-      {/* Header bar */}
-      <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-[#f0f0f0] px-[16px]">
+      {/* Header row */}
+      <div className="flex shrink-0 items-center justify-between border-b border-[#f0f0f0] px-[20px] py-[10px]">
         <div className="flex items-center gap-[8px]">
-          <StickyNote className="h-[15px] w-[15px] text-[#888]" strokeWidth={1.75} />
-          <span className="text-[13px] font-medium text-[#262626]">Notes</span>
-          <div className="h-[16px] w-px bg-[#e5e5e5]" />
-          <span className="text-[12px] font-medium text-[#888]">{notes.length} {notes.length === 1 ? "note" : "notes"}</span>
-        </div>
-        <div className="flex items-center gap-[8px]">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-[8px] top-1/2 h-[13px] w-[13px] -translate-y-1/2 text-[#bbb]" strokeWidth={1.5} />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search notes…"
-              className="h-[30px] w-[180px] rounded-[6px] border border-[#e0e0e0] bg-[#fafafa] pl-[28px] pr-[8px] text-[12px] font-medium text-[#262626] outline-none placeholder:text-[#bbb] hover:border-[#ccc] focus:border-[#a3c4f3] focus:bg-white"
-            />
+          <span className="text-[14px] font-medium text-[#262626]">Notes</span>
+          <div className="flex items-center gap-[4px] rounded-[4px] border border-[#e8e8e8] bg-[#fafafa] px-[8px] py-[4px] text-[12px] font-medium text-[#262626]">
+            All
           </div>
           <button
-            onClick={() => setIsModalOpen(true)}
-            className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
+            className="flex h-[24px] w-[24px] items-center justify-center rounded-[4px] text-[#999] transition-colors hover:bg-[#f0f0f0] hover:text-[#555]"
             tabIndex={0}
+            aria-label="Add view"
           >
             <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-            <span className="hidden sm:inline">New note</span>
           </button>
+        </div>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="primary-btn flex items-center gap-[5px] rounded-[6px] px-[12px] py-[6px] text-[13px] font-medium transition-colors"
+          tabIndex={0}
+        >
+          <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+          Add new
+        </button>
+      </div>
+
+      {/* Filter / display bar */}
+      <div className="flex shrink-0 items-center justify-between border-b border-[#f0f0f0] px-[20px] py-[8px]">
+        <div className="flex items-center gap-[8px]">
+          <div className="relative">
+            <button
+              ref={filterBtnRef}
+              onClick={() => { setIsFilterMenuOpen(!isFilterMenuOpen); setActiveFilterDropdown(null) }}
+              className="flex h-[30px] items-center gap-[5px] rounded-[6px] border border-[#e8e8e8] px-[10px] text-[12px] font-medium text-[#555] transition-colors hover:bg-[#f5f5f5]"
+              tabIndex={0}
+            >
+              <ListFilter className="h-[12px] w-[12px]" strokeWidth={1.5} />
+              Filter
+            </button>
+            {isFilterMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-[55]" onClick={() => setIsFilterMenuOpen(false)} />
+                <div className="absolute left-0 top-full z-[60] mt-[4px] w-[180px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                  <p className="px-[16px] py-[6px] text-[11px] font-medium text-[#888]">Filter by</p>
+                  <button
+                    onClick={() => { setActiveFilterDropdown("client"); setIsFilterMenuOpen(false) }}
+                    className="flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                    tabIndex={0}
+                  >
+                    <Users className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+                    Client
+                  </button>
+                  <button
+                    onClick={() => { setActiveFilterDropdown("creator"); setIsFilterMenuOpen(false) }}
+                    className="flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                    tabIndex={0}
+                  >
+                    <User className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+                    Created by
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+          {clientFilter.length > 0 && (
+            <div className="flex items-center gap-[6px] rounded-[6px] border border-[#e8e8e8] px-[8px] py-[4px] text-[12px] font-medium text-[#555]">
+              <Users className="h-[12px] w-[12px] text-[#888]" strokeWidth={1.5} />
+              <button ref={(el) => { filterPillRefs.current["client"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "client" ? null : "client")} className="hover:underline" tabIndex={0}>Client</button>
+              <span className="text-[#888]">is</span>
+              <span>{clientFilter.length} {clientFilter.length === 1 ? "value" : "values"}</span>
+              <button onClick={() => setClientFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded text-[#888] transition-colors hover:text-[#262626]" tabIndex={0} aria-label="Clear client filter"><X className="h-[11px] w-[11px]" strokeWidth={1.5} /></button>
+            </div>
+          )}
+          {creatorFilter.length > 0 && (
+            <div className="flex items-center gap-[6px] rounded-[6px] border border-[#e8e8e8] px-[8px] py-[4px] text-[12px] font-medium text-[#555]">
+              <User className="h-[12px] w-[12px] text-[#888]" strokeWidth={1.5} />
+              <button ref={(el) => { filterPillRefs.current["creator"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "creator" ? null : "creator")} className="hover:underline" tabIndex={0}>Created by</button>
+              <span className="text-[#888]">is</span>
+              <span>{creatorFilter.length} {creatorFilter.length === 1 ? "value" : "values"}</span>
+              <button onClick={() => setCreatorFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded text-[#888] transition-colors hover:text-[#262626]" tabIndex={0} aria-label="Clear creator filter"><X className="h-[11px] w-[11px]" strokeWidth={1.5} /></button>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-[8px]">
+          <div className="relative" ref={sortRef}>
+            <button
+              onClick={() => setIsSortOpen(!isSortOpen)}
+              className="flex h-[30px] items-center gap-[4px] rounded-[6px] border border-[#e8e8e8] px-[10px] text-[12px] font-medium text-[#555] transition-colors hover:bg-[#f5f5f5]"
+              tabIndex={0}
+            >
+              {perPage} per page
+              <ChevronDown className="h-[11px] w-[11px] text-[#999]" strokeWidth={1.5} />
+            </button>
+            {isSortOpen && (
+              <div className="absolute right-0 top-full z-50 mt-[4px] w-[120px] rounded-[8px] border border-[#e8e8e8] bg-white py-[4px] shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
+                {perPageOptions.map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => { setPerPage(opt); setIsSortOpen(false) }}
+                    className={`flex w-full items-center px-[12px] py-[8px] text-[12px] font-medium transition-colors hover:bg-[#f5f5f5] ${perPage === opt ? "text-[#2563EB]" : "text-[#555]"}`}
+                    tabIndex={0}
+                  >
+                    {opt} per page
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="relative">
+            <button
+              ref={displayBtnRef}
+              onClick={() => setIsDisplayOpen(!isDisplayOpen)}
+              className="flex h-[30px] items-center gap-[5px] rounded-[6px] border border-[#e8e8e8] px-[10px] text-[12px] font-medium text-[#555] transition-colors hover:bg-[#f5f5f5]"
+              tabIndex={0}
+            >
+              <SlidersHorizontal className="h-[12px] w-[12px]" strokeWidth={1.5} />
+              Display
+            </button>
+            {isDisplayOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsDisplayOpen(false)} />
+                <div
+                  className="fixed z-50 w-[380px] rounded-[10px] border border-[#e8e8e8] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+                  style={(() => {
+                    const rect = displayBtnRef.current?.getBoundingClientRect()
+                    if (!rect) return {}
+                    return { top: rect.bottom + 4, right: window.innerWidth - rect.right }
+                  })()}
+                >
+                  <div className="border-b border-[#f0f0f0] px-[20px] py-[14px]">
+                    <div className="flex items-center gap-[8px]">
+                      <button
+                        onClick={() => setViewMode("list")}
+                        className={`flex flex-1 flex-col items-center gap-[8px] rounded-[12px] border py-[16px] transition-colors ${viewMode === "list" ? "border-[#c0c0c0] bg-white text-[#262626]" : "border-[#e8e8e8] bg-[#fafafa] text-[#bbb] hover:border-[#d0d0d0]"}`}
+                        tabIndex={0}
+                        aria-label="List view"
+                      >
+                        <List className="h-[20px] w-[20px]" strokeWidth={1.5} />
+                        <span className="text-[13px] font-medium">List</span>
+                      </button>
+                      <button
+                        onClick={() => setViewMode("grid")}
+                        className={`flex flex-1 flex-col items-center gap-[8px] rounded-[12px] border py-[16px] transition-colors ${viewMode === "grid" ? "border-[#c0c0c0] bg-white text-[#262626]" : "border-[#e8e8e8] bg-[#fafafa] text-[#bbb] hover:border-[#d0d0d0]"}`}
+                        tabIndex={0}
+                        aria-label="Card view"
+                      >
+                        <LayoutGrid className="h-[20px] w-[20px]" strokeWidth={1.5} />
+                        <span className="text-[13px] font-medium">Card</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center px-[20px] py-[12px]">
+                    <button
+                      onClick={() => { setSortBy("created"); setSortDirection("desc"); setViewMode("grid"); setPerPage(10) }}
+                      className="text-[13px] font-medium text-[#bbb] transition-colors hover:text-[#262626]"
+                      tabIndex={0}
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Note list */}
-        <div className="flex w-[320px] shrink-0 flex-col border-r border-[#ebebeb] bg-[#fafafa]">
-          <div className="flex-1 overflow-y-auto">
-            {filteredNotes.length === 0 ? (
-              <div className="flex h-full items-center justify-center">
-                <p className="text-[13px] text-[#bbb]">{searchQuery ? "No notes found" : "No notes yet"}</p>
+      <div className="flex-1 overflow-y-auto px-[24px] py-[20px]">
+        <div className="mb-[24px]">
+          <p className="mb-[8px] text-[12px] font-medium text-[#888]">Favorites</p>
+          {favoriteNotes.length === 0 ? (
+            <div className="flex items-center justify-center rounded-[8px] border border-dashed border-[#dcdcdc] py-[32px]">
+              <div className="text-center">
+                <p className="text-[14px] font-semibold text-[#262626]">Favorites</p>
+                <p className="mt-[4px] text-[12px] text-[#999]">Notes that you favorite will appear here</p>
               </div>
-            ) : (
-              <div className="divide-y divide-[#f0f0f0]">
-                {filteredNotes.map((note) => {
-                  const isActive = selectedNoteId === note.id
-                  return (
-                    <button
-                      key={note.id}
-                      onClick={() => handleSelectNote(note)}
-                      className={`flex w-full flex-col gap-[4px] px-[16px] py-[12px] text-left transition-colors ${isActive ? "bg-white" : "hover:bg-[#f5f5f5]"}`}
-                      tabIndex={0}
-                    >
-                      <div className="flex items-start justify-between gap-[8px]">
-                        <span className={`truncate text-[13px] font-medium ${isActive ? "text-[#262626]" : "text-[#555]"}`}>{note.title || "Untitled"}</span>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDeleteNote(note.id) }}
-                          className="mt-[1px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[3px] text-[#ccc] opacity-0 transition-all hover:bg-[#fee2e2] hover:text-red-400 group-hover:opacity-100 [button:hover>&]:opacity-100"
-                          tabIndex={-1}
-                          aria-label="Delete note"
-                        >
-                          <Trash2 className="h-[11px] w-[11px]" strokeWidth={1.5} />
-                        </button>
-                      </div>
-                      <span className="truncate text-[11px] text-[#999]">
-                        {truncate(note.content || "No content", 60)}
-                      </span>
-                      <div className="flex items-center gap-[6px]">
-                        <span className="text-[10px] text-[#bbb]">{formatDate(note.updatedAt)}</span>
-                        {note.clientName && (
-                          <>
-                            <span className="text-[10px] text-[#ddd]">·</span>
-                            <span className="truncate text-[10px] text-[#bbb]">{note.clientName}</span>
-                          </>
-                        )}
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Note editor */}
-        <div className="flex flex-1 flex-col overflow-hidden bg-white">
-          {selectedNote ? (
-            <>
-              <div className="flex items-center justify-between border-b border-[#f0f0f0] px-[24px] py-[12px]">
-                <div className="flex items-center gap-[8px] text-[11px] text-[#bbb]">
-                  <span>{formatDate(selectedNote.updatedAt)} at {formatTime(selectedNote.updatedAt)}</span>
-                  {selectedNote.clientName && (
-                    <>
-                      <span>·</span>
-                      <span className="inline-flex h-[22px] items-center rounded border border-[#dcdcdc] px-[6px] text-[11px] font-medium text-[#888]">{selectedNote.clientName}</span>
-                    </>
-                  )}
-                </div>
-                <button
-                  onClick={() => handleDeleteNote(selectedNote.id)}
-                  className="flex h-[24px] w-[24px] items-center justify-center rounded-[4px] text-[#ccc] transition-colors hover:bg-[#fee2e2] hover:text-red-400"
-                  tabIndex={0}
-                  aria-label="Delete note"
-                >
-                  <Trash2 className="h-[13px] w-[13px]" strokeWidth={1.5} />
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto px-[24px] py-[16px]">
-                <input
-                  type="text"
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  placeholder="Note title"
-                  className="mb-[12px] w-full text-[20px] font-semibold text-[#262626] outline-none placeholder:text-[#ccc]"
-                />
-                <textarea
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  placeholder="Start writing…"
-                  className="min-h-[300px] w-full resize-none text-[14px] leading-[1.7] text-[#444] outline-none placeholder:text-[#ccc]"
-                />
-              </div>
-            </>
+            </div>
           ) : (
-            <div className="flex h-full items-center justify-center">
-              <div className="flex flex-col items-center gap-[8px] text-center">
-                <FileText className="h-[28px] w-[28px] text-[#ddd]" strokeWidth={1.5} />
-                <p className="text-[13px] text-[#bbb]">Select a note or create a new one</p>
-              </div>
+            <div className={viewMode === "grid" ? "grid grid-cols-4 gap-[16px]" : "space-y-[8px]"}>
+              {favoriteNotes.map((note) => (
+                <NoteCard
+                  key={note.id}
+                  note={note}
+                  viewMode={viewMode}
+                  isFavorite={true}
+                  onSelect={handleSelectNote}
+                  onToggleFavorite={toggleFavorite}
+                  onDelete={handleDeleteNote}
+                  getClientIcon={getClientIcon}
+                />
+              ))}
             </div>
           )}
         </div>
-      </div>
 
-      {/* Create note modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/20" onClick={() => { setIsModalOpen(false); setNewTitle(""); setNewContent(""); setNewClientId(null); setIsClientDropdownOpen(false) }} />
-          <div className="relative z-10 w-[480px] rounded-lg bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
-            <div className="flex items-center justify-between px-[24px] pt-[20px]">
-              <div className="flex items-center gap-[8px]">
-                <StickyNote className="h-[16px] w-[16px] text-[#555]" strokeWidth={1.5} />
-                <h2 className="text-[15px] font-semibold text-[#262626]">New note</h2>
-              </div>
-              <button
-                onClick={() => { setIsModalOpen(false); setNewTitle(""); setNewContent(""); setNewClientId(null); setIsClientDropdownOpen(false) }}
-                className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
-                tabIndex={0}
-                aria-label="Close"
-              >
-                <X className="h-[14px] w-[14px]" strokeWidth={1.5} />
-              </button>
+        {groupedNotes.map((group) => (
+          <div key={group.label} className="mb-[24px]">
+            <div className="mb-[12px] flex items-center gap-[8px]">
+              <p className="text-[12px] font-medium text-[#888]">{group.label}</p>
+              <span className="text-[12px] text-[#bbb]">{group.notes.length}</span>
             </div>
-
-            <div className="space-y-[14px] px-[24px] py-[20px]">
-              <div>
-                <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Title *</label>
-                <input
-                  type="text"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="Note title"
-                  className="h-[36px] w-full rounded-[8px] border border-[#e0e0e0] bg-[#fafafa] px-[12px] text-[13px] font-medium text-[#262626] outline-none placeholder:text-[#bbb] hover:border-[#ccc] focus:border-[#a3c4f3]"
-                  autoFocus
+            <div className={viewMode === "grid" ? "grid grid-cols-4 gap-[16px]" : "space-y-[8px]"}>
+              {group.notes.map((note) => (
+                <NoteCard
+                  key={note.id}
+                  note={note}
+                  viewMode={viewMode}
+                  isFavorite={favorites.includes(note.id)}
+                  onSelect={handleSelectNote}
+                  onToggleFavorite={toggleFavorite}
+                  onDelete={handleDeleteNote}
+                  getClientIcon={getClientIcon}
                 />
-              </div>
-
-              <div>
-                <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Content</label>
-                <textarea
-                  value={newContent}
-                  onChange={(e) => setNewContent(e.target.value)}
-                  placeholder="Write something…"
-                  rows={4}
-                  className="w-full resize-none rounded-[8px] border border-[#e0e0e0] bg-[#fafafa] px-[12px] py-[10px] text-[13px] font-medium text-[#262626] outline-none placeholder:text-[#bbb] hover:border-[#ccc] focus:border-[#a3c4f3]"
-                />
-              </div>
-
-              <div className="relative">
-                <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Link to client (optional)</label>
-                <button
-                  onClick={() => { setIsClientDropdownOpen(!isClientDropdownOpen); setTimeout(() => clientSearchRef.current?.focus(), 50) }}
-                  className="flex h-[36px] w-full items-center justify-between rounded-[8px] border border-[#e0e0e0] bg-[#fafafa] px-[12px] text-[13px] font-medium text-[#262626] transition-colors hover:border-[#ccc]"
-                  tabIndex={0}
-                >
-                  <span className={newClientId ? "text-[#262626]" : "text-[#bbb]"}>
-                    {newClientId ? activeClients.find((c) => c.id === newClientId)?.name ?? "Select client" : "Select client"}
-                  </span>
-                  <ChevronDown className="h-[12px] w-[12px] text-[#999]" strokeWidth={1.5} />
-                </button>
-                {isClientDropdownOpen && (
-                  <>
-                    <div className="fixed inset-0 z-[59]" onClick={() => setIsClientDropdownOpen(false)} />
-                    <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[200px] w-full overflow-y-auto rounded-[8px] border border-[#e0e0e0] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-                      <div className="sticky top-0 border-b border-[#f0f0f0] bg-white px-[10px] py-[6px]">
-                        <input
-                          ref={clientSearchRef}
-                          type="text"
-                          value={clientSearch}
-                          onChange={(e) => setClientSearch(e.target.value)}
-                          placeholder="Search clients…"
-                          className="w-full text-[12px] text-[#262626] outline-none placeholder:text-[#bbb]"
-                        />
-                      </div>
-                      {newClientId && (
-                        <button
-                          onClick={() => { setNewClientId(null); setIsClientDropdownOpen(false); setClientSearch("") }}
-                          className="flex w-full items-center px-[12px] py-[7px] text-[12px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5]"
-                          tabIndex={0}
-                        >
-                          No client
-                        </button>
-                      )}
-                      {filteredClients.map((c) => (
-                        <button
-                          key={c.id}
-                          onClick={() => { setNewClientId(c.id); setIsClientDropdownOpen(false); setClientSearch("") }}
-                          className={`flex w-full items-center gap-[8px] px-[12px] py-[7px] text-[12px] font-medium transition-colors hover:bg-[#f5f5f5] ${newClientId === c.id ? "bg-[#f0f0f0] text-[#262626]" : "text-[#555]"}`}
-                          tabIndex={0}
-                        >
-                          <div className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[3px] text-[8px] font-semibold text-white" style={{ backgroundColor: c.iconColor }}>{c.iconText}</div>
-                          <span className="truncate">{c.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-[8px] border-t border-[#f0f0f0] px-[24px] py-[14px]">
-              <button
-                onClick={() => { setIsModalOpen(false); setNewTitle(""); setNewContent(""); setNewClientId(null); setIsClientDropdownOpen(false) }}
-                className="rounded-[8px] border border-[#e0e0e0] bg-white px-[16px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                tabIndex={0}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreateNote}
-                disabled={!newTitle.trim()}
-                className="primary-btn rounded-[8px] px-[16px] py-[7px] text-[13px] font-medium text-white transition-colors disabled:opacity-40"
-                tabIndex={0}
-              >
-                Create note
-              </button>
+              ))}
             </div>
           </div>
-        </div>
+        ))}
+
+        {sortedNotes.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-[80px]">
+            <FileText className="h-[32px] w-[32px] text-[#ddd]" strokeWidth={1.5} />
+            <p className="mt-[12px] text-[14px] font-medium text-[#999]">
+              {searchQuery ? "No notes found" : "No notes yet"}
+            </p>
+            <p className="mt-[4px] text-[12px] text-[#bbb]">
+              {searchQuery ? "Try a different search term" : "Create a note to get started"}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Filter value dropdowns */}
+      {activeFilterDropdown && (
+        <>
+          <div className="fixed inset-0 z-[55]" onClick={() => setActiveFilterDropdown(null)} />
+          {(() => {
+            const anchor = filterPillRefs.current[activeFilterDropdown] || filterBtnRef.current
+            const rect = anchor?.getBoundingClientRect()
+            if (!rect) return null
+            const dropdownStyle = { top: rect.bottom + 4, left: rect.left, minWidth: 200 }
+
+            if (activeFilterDropdown === "client") return (
+              <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={dropdownStyle}>
+                <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+                  <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
+                  <span>Back</span>
+                </button>
+                <p className="px-[16px] py-[4px] text-[11px] font-medium text-[#888]">Filter by client</p>
+                {uniqueNoteClients.map((name) => {
+                  const isActive = clientFilter.includes(name)
+                  return (
+                    <button key={name} onClick={() => setClientFilter((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
+                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
+                        {isActive && <span className="text-[10px] text-white">✓</span>}
+                      </div>
+                      <span className="text-[#262626]">{name}</span>
+                    </button>
+                  )
+                })}
+                {uniqueNoteClients.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-[#888]">No clients</p>}
+                <div className="border-t border-[#f0f0f0] px-[8px] py-[4px]">
+                  <button onClick={() => { setClientFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded px-[8px] py-[6px] text-left text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0}>Clear</button>
+                </div>
+              </div>
+            )
+
+            if (activeFilterDropdown === "creator") return (
+              <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={dropdownStyle}>
+                <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+                  <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
+                  <span>Back</span>
+                </button>
+                <p className="px-[16px] py-[4px] text-[11px] font-medium text-[#888]">Filter by creator</p>
+                {uniqueNoteCreators.map((name) => {
+                  const isActive = creatorFilter.includes(name)
+                  return (
+                    <button key={name} onClick={() => setCreatorFilter((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
+                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
+                        {isActive && <span className="text-[10px] text-white">✓</span>}
+                      </div>
+                      <span className="text-[#262626]">{name}</span>
+                    </button>
+                  )
+                })}
+                {uniqueNoteCreators.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-[#888]">No creators</p>}
+                <div className="border-t border-[#f0f0f0] px-[8px] py-[4px]">
+                  <button onClick={() => { setCreatorFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded px-[8px] py-[6px] text-left text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0}>Clear</button>
+                </div>
+              </div>
+            )
+
+            return null
+          })()}
+        </>
       )}
+
+      {isModalOpen && (
+        <RecordPickerModal
+          records={allRecords}
+          onSelect={handleSelectRecord}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
+      <ConfirmDialog
+        isOpen={!!deleteConfirmId}
+        title="Delete note"
+        description="This note will be permanently deleted. This action cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={confirmDeleteNote}
+        onCancel={() => setDeleteConfirmId(null)}
+      />
     </div>
+  )
+}
+
+function NoteCard({ note, viewMode, isFavorite, onSelect, onToggleFavorite, onDelete, getClientIcon }: {
+  note: Note
+  viewMode: "grid" | "list"
+  isFavorite: boolean
+  onSelect: (note: Note) => void
+  onToggleFavorite: (id: string) => void
+  onDelete: (id: string) => void
+  getClientIcon: (note: Note) => React.ReactNode
+}) {
+  if (viewMode === "list") {
+    return (
+      <button
+        onClick={() => onSelect(note)}
+        className="group flex w-full items-center gap-[16px] rounded-[8px] border border-[#f0f0f0] bg-white px-[16px] py-[12px] text-left transition-all hover:border-[#e0e0e0] hover:shadow-sm"
+        tabIndex={0}
+      >
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-[8px]">
+            {getClientIcon(note)}
+          </div>
+          <p className="mt-[4px] truncate text-[13px] font-semibold text-[#262626]">{note.title || "Untitled note"}</p>
+          <p className="mt-[2px] truncate text-[12px] text-[#999]">{note.content || "This note has no content."}</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-[12px]">
+          <div className="flex items-center gap-[6px]">
+            <div className="h-[6px] w-[6px] rounded-full bg-[#34d399]" />
+            <span className="text-[11px] text-[#888]">{note.createdBy || "Unknown"}</span>
+          </div>
+          <span className="text-[11px] text-[#bbb]">{formatDate(note.createdAt)}</span>
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleFavorite(note.id) }}
+            className={`flex h-[24px] w-[24px] items-center justify-center rounded-[4px] transition-colors ${isFavorite ? "text-amber-400" : "text-[#ddd] opacity-0 group-hover:opacity-100"} hover:text-amber-400`}
+            tabIndex={-1}
+            aria-label="Toggle favorite"
+          >
+            <Star className="h-[12px] w-[12px]" strokeWidth={1.5} fill={isFavorite ? "#fbbf24" : "none"} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(note.id) }}
+            className="flex h-[24px] w-[24px] items-center justify-center rounded-[4px] text-[#ddd] opacity-0 transition-colors hover:text-red-400 group-hover:opacity-100"
+            tabIndex={-1}
+            aria-label="Delete note"
+          >
+            <Trash2 className="h-[12px] w-[12px]" strokeWidth={1.5} />
+          </button>
+        </div>
+      </button>
+    )
+  }
+
+  return (
+    <button
+      onClick={() => onSelect(note)}
+      className="group flex w-full flex-col rounded-[8px] border border-[#f0f0f0] bg-white p-[16px] text-left transition-all hover:border-[#e0e0e0] hover:shadow-sm"
+      tabIndex={0}
+    >
+      <div className="mb-[10px] flex items-center justify-between">
+        <div className="min-w-0 flex-1">
+          {getClientIcon(note) || <div className="h-[18px]" />}
+        </div>
+        <div className="flex items-center gap-[2px]">
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleFavorite(note.id) }}
+            className={`flex h-[22px] w-[22px] items-center justify-center rounded-[4px] transition-colors ${isFavorite ? "text-amber-400" : "text-[#ddd] opacity-0 group-hover:opacity-100"} hover:text-amber-400`}
+            tabIndex={-1}
+            aria-label="Toggle favorite"
+          >
+            <Star className="h-[11px] w-[11px]" strokeWidth={1.5} fill={isFavorite ? "#fbbf24" : "none"} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(note.id) }}
+            className="flex h-[22px] w-[22px] items-center justify-center rounded-[4px] text-[#ddd] opacity-0 transition-colors hover:text-red-400 group-hover:opacity-100"
+            tabIndex={-1}
+            aria-label="Delete note"
+          >
+            <Trash2 className="h-[11px] w-[11px]" strokeWidth={1.5} />
+          </button>
+        </div>
+      </div>
+
+      <p className="text-[13px] font-semibold text-[#262626]">{note.title || "Untitled note"}</p>
+      <p className="mt-[4px] text-[12px] leading-[1.5] text-[#999]">
+        {truncate(note.content || "This note has no content.", 80)}
+      </p>
+
+      <div className="mt-auto flex items-center justify-between pt-[14px]">
+        <div className="flex items-center gap-[6px]">
+          <div className="h-[6px] w-[6px] rounded-full bg-[#34d399]" />
+          <span className="text-[11px] text-[#888]">{note.createdBy || "Unknown"}</span>
+        </div>
+        <span className="text-[11px] text-[#bbb]">{formatDate(note.createdAt)}</span>
+      </div>
+    </button>
   )
 }

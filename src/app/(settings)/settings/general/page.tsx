@@ -13,7 +13,7 @@ import { useWorkspaceSettings } from "@/lib/hooks/use-workspace-settings"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
 
-const inputClass = "h-[44px] w-full rounded-[10px] border border-[#e5e5e5] bg-[#fafafa] px-[14px] text-[14px] text-[#262626] outline-none transition-colors placeholder:text-[#c0c0c0] focus:border-[#c0c0c0] focus:ring-2 focus:ring-[#e8e8e8]"
+const inputClass = "h-[44px] w-full rounded-[8px] border border-[#f0f0f0] bg-[#fafafa] px-[14px] text-[14px] text-[#262626] outline-none transition-colors placeholder:text-[#c0c0c0] focus:border-[#d0d0d0] focus:ring-2 focus:ring-[#e8e8e8]"
 const labelClass = "mb-[8px] block text-[13px] font-semibold text-[#262626]"
 
 export default function GeneralSettingsPage() {
@@ -99,7 +99,7 @@ export default function GeneralSettingsPage() {
           {isDirty && (
             <button
               onClick={handleSave}
-              className="flex items-center gap-[6px] rounded-[8px] border border-[#e0e0e0] bg-white px-[16px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+              className="flex items-center gap-[6px] rounded-[8px] bg-[#f0f0f0] px-[16px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#e8e8e8]"
               tabIndex={0}
               aria-label="Save changes"
             >
@@ -114,7 +114,7 @@ export default function GeneralSettingsPage() {
       <div className="mb-[28px]">
         <h2 className="mb-[8px] text-[15px] font-bold text-[#262626]">Logo</h2>
         <p className="mb-[12px] text-[13px] text-[#888]">Displayed in the sidebar and on invoices.</p>
-        <div className="rounded-[14px] border border-[#e5e5e5] bg-[#fafafa] p-[20px]">
+        <div className="p-[20px]">
           <div className="flex items-center gap-[16px]">
             {local.logoUrl ? (
               <div className="relative">
@@ -122,7 +122,7 @@ export default function GeneralSettingsPage() {
                 <img
                   src={local.logoUrl}
                   alt="Organisation logo"
-                  className="h-[64px] w-[64px] rounded-[10px] border border-[#e5e5e5] object-contain bg-white"
+                  className="h-[64px] w-[64px] rounded-[8px] border border-[#f0f0f0] object-contain bg-[#fafafa]"
                 />
                 <button
                   onClick={handleRemoveLogo}
@@ -134,7 +134,7 @@ export default function GeneralSettingsPage() {
                 </button>
               </div>
             ) : (
-              <div className="flex h-[64px] w-[64px] items-center justify-center rounded-[10px] border border-dashed border-[#d4d4d4] bg-white">
+              <div className="flex h-[64px] w-[64px] items-center justify-center rounded-[8px] border border-dashed border-[#e0e0e0] bg-[#fafafa]">
                 <ImageIcon className="h-[20px] w-[20px] text-[#ccc]" strokeWidth={1.5} />
               </div>
             )}
@@ -142,7 +142,7 @@ export default function GeneralSettingsPage() {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                className="flex items-center gap-[6px] rounded-[8px] border border-[#e0e0e0] bg-white px-[14px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] disabled:opacity-50"
+                className="flex items-center gap-[6px] rounded-[8px] bg-[#f0f0f0] px-[14px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#e8e8e8] disabled:opacity-50"
                 tabIndex={0}
               >
                 <Upload className="h-[13px] w-[13px]" strokeWidth={1.75} />
@@ -171,7 +171,7 @@ export default function GeneralSettingsPage() {
       <div className="mb-[28px]">
         <h2 className="mb-[8px] text-[15px] font-bold text-[#262626]">Organisation Details</h2>
         <p className="mb-[12px] text-[13px] text-[#888]">This information appears on your invoices and emails.</p>
-        <div className="space-y-[16px] rounded-[14px] border border-[#e5e5e5] bg-[#fafafa] p-[24px]">
+        <div className="space-y-[16px]">
           <div>
             <label className={labelClass}>Organisation name</label>
             <input type="text" value={local.orgName} onChange={(e) => update("orgName")(e.target.value)} placeholder="Your organisation name" className={inputClass} />
@@ -210,7 +210,7 @@ export default function GeneralSettingsPage() {
       <div className="mb-[28px]">
         <h2 className="mb-[8px] text-[15px] font-bold text-[#262626]">Bank Details</h2>
         <p className="mb-[12px] text-[13px] text-[#888]">Included on invoices so plan managers can process payment.</p>
-        <div className="space-y-[16px] rounded-[14px] border border-[#e5e5e5] bg-[#fafafa] p-[24px]">
+        <div className="space-y-[16px]">
           <div>
             <label className={labelClass}>Bank</label>
             <input type="text" value={local.bankName} onChange={(e) => update("bankName")(e.target.value)} placeholder="Commonwealth Bank" className={inputClass} />
@@ -236,7 +236,7 @@ export default function GeneralSettingsPage() {
       <div className="mb-[28px]">
         <h2 className="mb-[8px] text-[15px] font-bold text-[#262626]">Email Footer</h2>
         <p className="mb-[12px] text-[13px] text-[#888]">Optional footer text added to all outgoing emails.</p>
-        <div className="rounded-[14px] border border-[#e5e5e5] bg-[#fafafa] p-[24px]">
+        <div>
           <textarea
             value={local.emailFooter}
             onChange={(e) => setLocal((prev) => ({ ...prev, emailFooter: e.target.value }))}

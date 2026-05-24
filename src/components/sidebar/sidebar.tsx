@@ -6,7 +6,6 @@ import Link from "next/link"
 import {
   Bell,
   SquareCheck,
-
   BookOpen,
   User,
   Package,
@@ -55,6 +54,7 @@ const navigation: NavSection[] = [
     title: "Finance",
     items: [
       { label: "Invoicing", href: "/invoicing", icon: CircleDollarSign },
+      { label: "NDIS Plans", href: "/ndis-plans", icon: FileCheck },
     ],
   },
   {

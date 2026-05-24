@@ -6,6 +6,7 @@ import { useStaff } from "@/lib/hooks/use-staff"
 import { useClients } from "@/lib/hooks/use-clients"
 import { useFieldConfig } from "@/lib/hooks/use-field-config"
 import { useSavedViews } from "@/lib/hooks/use-saved-views"
+import { useColumnResize } from "@/lib/hooks/use-column-resize"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import type { StaffMember, StaffDetails } from "@/lib/types"
 import { EntityIcon } from "@/components/entity-icon"
@@ -32,6 +33,7 @@ import {
   ArrowUp,
   ArrowRight,
   ArrowLeft,
+  ChevronLeft,
   EyeOff,
   Briefcase,
   Building2,
@@ -63,7 +65,7 @@ const allPropertyColumns = [
   { key: "emergencyContactPhone", label: "Emergency Phone", icon: Phone, minWidth: 160 },
 ]
 
-const defaultVisibleKeys = ["clients", "email", "role", "department", "employmentType", "phone", "status"]
+const defaultVisibleKeys = allPropertyColumns.map((col) => col.key)
 
 function StaffProfile({ member, onUpdateField, onClose }: { member: StaffMember; onUpdateField: (field: keyof StaffDetails, value: string) => void; onClose: () => void }) {
   const { isFieldEnabled } = useFieldConfig()
@@ -215,6 +217,11 @@ export default function StaffPage() {
   const [newViewName, setNewViewName] = useState("")
   const [viewContextMenu, setViewContextMenu] = useState<{ viewId: string; x: number; y: number } | null>(null)
   const [deleteViewConfirm, setDeleteViewConfirm] = useState<SavedView | null>(null)
+  const [statusFilter, setStatusFilter] = useState<string[]>([])
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false)
+  const [activeFilterDropdown, setActiveFilterDropdown] = useState<string | null>(null)
+  const filterBtnRef = useRef<HTMLButtonElement>(null)
+  const filterPillRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const displayBtnRef = useRef<HTMLButtonElement>(null)
   const viewNameInputRef = useRef<HTMLInputElement>(null)
 
@@ -266,6 +273,11 @@ export default function StaffPage() {
     .filter((key) => !staffDisabled.has(key))
     .map((key) => allPropertyColumns.find((col) => col.key === key))
     .filter(Boolean) as typeof allPropertyColumns
+
+  const { getWidth, handleMouseDown: handleColResize } = useColumnResize(
+    visibleColumns.map((c) => c.key),
+    { minWidth: 80, maxWidth: 500, defaultWidth: 200 }
+  )
 
   const handleToggleColumn = (key: string) => setVisibleColumnKeys((prev) => prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key])
 
@@ -336,7 +348,16 @@ export default function StaffPage() {
     return cols
   }, [visibleColumnKeys, staffTableKeyMap])
 
-  const activeStaff = staff.filter((s) => s.status !== "inactive")
+  const activeStaff = (() => {
+    let filtered = staff.filter((s) => s.status !== "inactive")
+    if (statusFilter.length > 0) filtered = filtered.filter((s) => statusFilter.includes(s.status))
+    return filtered
+  })()
+
+  const uniqueStatuses = useMemo(() => {
+    const set = new Set(staff.filter((s) => s.status !== "inactive").map((s) => s.status))
+    return Array.from(set).sort()
+  }, [staff])
 
   const exportCsvData = useMemo(() =>
     activeStaff.map((s) => {
@@ -420,9 +441,9 @@ export default function StaffPage() {
   return (
     <div className="relative flex h-full">
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-[#f0f0f0] px-[16px]">
-          <div className="flex items-center gap-[8px]">
-            <span className="text-[13px] font-medium text-[#262626]">Staff</span>
+        <div className="flex h-[44px] shrink-0 items-center justify-between gap-[8px] border-b border-[#f0f0f0] px-[16px]">
+          <div className="flex min-w-0 flex-1 items-center gap-[8px] overflow-x-auto">
+            <span className="shrink-0 text-[13px] font-medium text-[#262626]">Staff</span>
             <div className="h-[16px] w-px bg-[#e5e5e5]" />
             <button onClick={handleSelectAllView} className={`flex items-center gap-[6px] rounded-[4px] border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === null ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`} tabIndex={0}>
               <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -462,11 +483,51 @@ export default function StaffPage() {
           )}
         </div>
 
-        <div className="flex h-[41px] shrink-0 items-center border-b border-[#dcdcdc] px-[16px]">
-          <button className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
-            <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
-            <span>Filter</span>
-          </button>
+        <div className="flex h-[41px] shrink-0 items-center gap-[8px] border-b border-[#dcdcdc] px-[16px]">
+          <div className="relative">
+            <button
+              ref={filterBtnRef}
+              onClick={() => { setIsFilterMenuOpen(!isFilterMenuOpen); setActiveFilterDropdown(null) }}
+              className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+              tabIndex={0}
+            >
+              <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
+              <span>Filter</span>
+            </button>
+            {isFilterMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-[55]" onClick={() => setIsFilterMenuOpen(false)} />
+                <div className="absolute left-0 top-full z-[60] mt-[4px] w-[180px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                  <p className="px-[16px] py-[6px] text-[11px] font-medium text-[#888]">Filter by</p>
+                  {[
+                    { key: "status", label: "Status", icon: Shield },
+                  ].map((item) => {
+                    const Icon = item.icon
+                    return (
+                      <button
+                        key={item.key}
+                        onClick={() => { setActiveFilterDropdown(item.key); setIsFilterMenuOpen(false) }}
+                        className="flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                        tabIndex={0}
+                      >
+                        <Icon className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+                        {item.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+          {statusFilter.length > 0 && (
+            <div className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626]">
+              <Shield className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+              <button ref={(el) => { filterPillRefs.current["status"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "status" ? null : "status")} className="hover:underline" tabIndex={0}>Status</button>
+              <span className="text-[#888]">is</span>
+              <span>{statusFilter.length} {statusFilter.length === 1 ? "value" : "values"}</span>
+              <button onClick={() => setStatusFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded text-[#888] transition-colors hover:text-[#262626]" tabIndex={0} aria-label="Clear status filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
+            </div>
+          )}
           <div className="ml-auto flex items-center">
             <button ref={displayBtnRef} onClick={() => setIsDisplayOpen(!isDisplayOpen)} className="flex items-center gap-[5px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
               <SlidersHorizontal className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -504,11 +565,50 @@ export default function StaffPage() {
           </div>
         </div>
 
+        {activeFilterDropdown && (
+          <>
+            <div className="fixed inset-0 z-[55]" onClick={() => setActiveFilterDropdown(null)} />
+            {(() => {
+              const anchor = filterPillRefs.current[activeFilterDropdown] || filterBtnRef.current
+              const rect = anchor?.getBoundingClientRect()
+              if (!rect) return null
+              const dropdownStyle = { top: rect.bottom + 4, left: rect.left, minWidth: 200 }
+
+              if (activeFilterDropdown === "status") return (
+                <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={dropdownStyle}>
+                  <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+                    <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
+                    <span>Back</span>
+                  </button>
+                  <p className="px-[16px] py-[4px] text-[11px] font-medium text-[#888]">Filter by status</p>
+                  {uniqueStatuses.map((val) => {
+                    const isActive = statusFilter.includes(val)
+                    return (
+                      <button key={val} onClick={() => setStatusFilter((prev) => isActive ? prev.filter((f) => f !== val) : [...prev, val])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
+                        <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
+                          {isActive && <span className="text-[10px] text-white">&#10003;</span>}
+                        </div>
+                        <span className="text-[#262626]">{val.charAt(0).toUpperCase() + val.slice(1)}</span>
+                      </button>
+                    )
+                  })}
+                  {uniqueStatuses.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-[#888]">No statuses</p>}
+                  <div className="border-t border-[#f0f0f0] px-[8px] py-[4px]">
+                    <button onClick={() => { setStatusFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded px-[8px] py-[6px] text-left text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0}>Clear</button>
+                  </div>
+                </div>
+              )
+
+              return null
+            })()}
+          </>
+        )}
+
         <div className="flex-1 overflow-auto bg-[#fafafa]">
-          <table className="w-full border-separate border-spacing-0 text-left" style={{ tableLayout: "fixed", minWidth: (visibleColumns.length + 1) * 200 }}>
+          <table className="w-full border-separate border-spacing-0 text-left" style={{ tableLayout: "fixed", minWidth: visibleColumns.reduce((sum, col) => sum + getWidth(col.key, col.minWidth), 240) }}>
             <thead>
               <tr>
-                <th className="sticky left-0 top-0 z-30 h-[44px] overflow-hidden whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">
+                <th className="sticky left-0 top-0 z-30 h-[44px] overflow-hidden whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]" style={{ width: 240 }}>
                   <div className="flex items-center gap-[6px]">
                     <Users className="h-[13px] w-[13px] shrink-0 text-[#999]" strokeWidth={1.5} />
                     <span className="truncate">Staff member</span>
@@ -520,7 +620,7 @@ export default function StaffPage() {
                   const isFirst = i === 0
                   const isMenuOpen = columnMenuKey === col.key
                   return (
-                    <th key={col.key} className={`group/col sticky top-0 z-20 h-[44px] overflow-hidden whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888] ${isLast ? "" : "border-r"}`}>
+                    <th key={col.key} className={`group/col relative sticky top-0 z-20 h-[44px] overflow-hidden whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888] ${isLast ? "" : "border-r"}`} style={{ width: getWidth(col.key, col.minWidth) }}>
                       <div className="flex items-center gap-[6px]">
                         <ColIcon className="h-[13px] w-[13px] shrink-0 text-[#999]" strokeWidth={1.5} />
                         <span className="truncate">{col.label}</span>
@@ -551,6 +651,10 @@ export default function StaffPage() {
                           </div>
                         </>
                       )}
+                      <div
+                        onMouseDown={(e) => handleColResize(col.key, e)}
+                        className="absolute right-0 top-0 z-10 h-full w-[4px] cursor-col-resize opacity-0 transition-opacity hover:bg-[#2563EB]/30 hover:opacity-100 group-hover/col:opacity-100"
+                      />
                     </th>
                   )
                 })}
@@ -655,7 +759,7 @@ export default function StaffPage() {
             </div>
             <div className="mt-[20px] flex items-center justify-end gap-[12px]">
               <button onClick={() => { setIsCreateViewOpen(false); setNewViewName("") }} className="px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:text-[#888]" tabIndex={0}>Cancel</button>
-              <button onClick={handleCreateView} disabled={!newViewName.trim()} className={`rounded-[4px] border px-[16px] py-[6px] text-[13px] font-medium transition-colors ${newViewName.trim() ? "border-[#262626] bg-[#262626] text-white hover:bg-[#333]" : "border-[#dcdcdc] text-[#bbb]"}`} tabIndex={0}>Create</button>
+              <button onClick={handleCreateView} disabled={!newViewName.trim()} className={`rounded-[4px] px-[16px] py-[6px] text-[13px] font-medium transition-colors ${newViewName.trim() ? "primary-btn" : "border border-[#dcdcdc] text-[#bbb]"}`} tabIndex={0}>Create</button>
             </div>
           </div>
         </>

@@ -77,10 +77,10 @@ function getInvoiceStatusLabel(value: string | Invoice): string {
 }
 
 function getInvoiceStatusClasses(invoice: Invoice): string {
-  if (invoice.deliveryMethod === "ndia-portal") return "border-[#d7e6ff] bg-[#eef5ff] text-[#2563eb]"
-  if (invoice.status === "paid") return "border-[#d7eadf] bg-[#f3faf6] text-[#286847]"
-  if (invoice.status === "overdue") return "border-[#f0d4d4] bg-[#fff7f7] text-[#a54848]"
-  return "border-[#dcdcdc] bg-[#f7f7f7] text-[#262626]"
+  if (invoice.deliveryMethod === "ndia-portal") return "bg-[#e8edf2] text-[#334155]"
+  if (invoice.status === "paid") return "bg-green-100 text-green-700"
+  if (invoice.status === "overdue") return "bg-red-50 text-red-600"
+  return "bg-[#f0f0f0] text-[#555]"
 }
 
 function getInvoiceActivityDate(invoice: Invoice): Date | null {
@@ -277,9 +277,7 @@ export default function InvoicesPage() {
   }, [filteredInvoices])
 
   const hasDisplayFilters = displayParticipants.length > 0 || displayEmails.length > 0 || displayStatuses.length > 0
-  const isColumnVisible = (key: string) => visibleColumnKeys.includes(key)
   const visibleColumns = invoiceColumnDefs.filter((column) => visibleColumnKeys.includes(column.key))
-  const gridTemplateColumns = visibleColumns.map((column) => column.width).join(" ")
 
   const handleToggleDisplayItem = (items: string[], setItems: (value: string[]) => void, value: string) => {
     setItems(items.includes(value) ? items.filter((item) => item !== value) : [...items, value])
@@ -289,58 +287,67 @@ export default function InvoicesPage() {
 
 
   const renderInvoiceRow = (invoice: Invoice) => {
+    const cols = visibleColumns
     return (
-      <div
+      <tr
         key={invoice.id}
-        className="grid cursor-pointer items-center border-b border-[#f0f0f0] px-[24px] transition-colors hover:bg-[#f5f5f5]"
-        style={{ gridTemplateColumns: gridTemplateColumns }}
+        className="group cursor-pointer transition-colors hover:bg-[#f5f5f5]"
         onClick={() => setSelectedInvoiceId(invoice.id)}
-        role="button"
         tabIndex={0}
         onKeyDown={(e) => { if (e.key === "Enter") setSelectedInvoiceId(invoice.id) }}
       >
-        {isColumnVisible("invoice") && (
-          <div className="whitespace-nowrap py-[12px] text-[13px] font-medium text-[#262626]">
-            {invoice.invoiceNumber}
-          </div>
-        )}
-        {isColumnVisible("participant") && (
-          <div className="min-w-0 whitespace-nowrap py-[12px]">
-            <span className="inline-flex max-w-full items-center rounded-[4px] border border-[#e2e2e2] bg-[#f7f7f7] px-[10px] py-[4px] text-[12px] font-medium text-[#262626] whitespace-nowrap">
-              <span className="truncate">{invoice.clientName}</span>
-            </span>
-          </div>
-        )}
-        {isColumnVisible("email") && (
-          <div className="truncate whitespace-nowrap py-[12px] text-[13px] text-[#666]">
-            {invoice.deliveryMethod === "ndia-portal"
-              ? (invoice.sentTo || "NDIA myplace provider portal")
-              : (invoice.sentTo || <span className="text-[#ccc]">—</span>)}
-          </div>
-        )}
-        {isColumnVisible("issued") && (
-          <div className="whitespace-nowrap py-[12px] text-[13px] text-[#666]">
-            {formatDate(invoice.issueDate) || <span className="text-[#ccc]">—</span>}
-          </div>
-        )}
-        {isColumnVisible("sent") && (
-          <div className="whitespace-nowrap py-[12px] text-[13px] text-[#666]">
-            {formatDate(invoice.sentAt) || <span className="text-[#ccc]">—</span>}
-          </div>
-        )}
-        {isColumnVisible("amount") && (
-          <div className="whitespace-nowrap py-[12px] text-[13px] text-[#666]">
-            <span className="font-medium text-[#262626]">{formatCurrency(invoice.total)}</span>
-          </div>
-        )}
-        {isColumnVisible("status") && (
-          <div className="whitespace-nowrap py-[12px]">
-            <span className={`inline-flex items-center rounded-[4px] border px-[10px] py-[4px] text-[12px] font-medium ${getInvoiceStatusClasses(invoice)}`}>
-              {getInvoiceStatusLabel(invoice)}
-            </span>
-          </div>
-        )}
-      </div>
+        {cols.map((column, colIndex) => {
+          const isLast = colIndex === cols.length - 1
+          const baseTd = `h-[44px] overflow-hidden whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626] group-hover:bg-[#f5f5f5]${isLast ? "" : " border-r"}`
+
+          if (column.key === "invoice") {
+            return <td key={column.key} className={baseTd}>{invoice.invoiceNumber}</td>
+          }
+          if (column.key === "participant") {
+            return <td key={column.key} className={baseTd}><span className="truncate">{invoice.clientName}</span></td>
+          }
+          if (column.key === "email") {
+            return (
+              <td key={column.key} className={`${baseTd} !text-[#666]`}>
+                {invoice.deliveryMethod === "ndia-portal"
+                  ? (invoice.sentTo || "NDIA myplace provider portal")
+                  : (invoice.sentTo || <span className="text-[#ccc]">—</span>)}
+              </td>
+            )
+          }
+          if (column.key === "issued") {
+            return (
+              <td key={column.key} className={`${baseTd} !text-[#666]`}>
+                {formatDate(invoice.issueDate) || <span className="text-[#ccc]">—</span>}
+              </td>
+            )
+          }
+          if (column.key === "sent") {
+            return (
+              <td key={column.key} className={`${baseTd} !text-[#666]`}>
+                {formatDate(invoice.sentAt) || <span className="text-[#ccc]">—</span>}
+              </td>
+            )
+          }
+          if (column.key === "amount") {
+            return (
+              <td key={column.key} className={baseTd}>
+                <span className="inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] bg-green-50 px-[10px] text-[12px] font-medium text-green-700">{formatCurrency(invoice.total)}</span>
+              </td>
+            )
+          }
+          if (column.key === "status") {
+            return (
+              <td key={column.key} className={baseTd}>
+                <span className={`inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] px-[10px] text-[12px] font-medium ${getInvoiceStatusClasses(invoice)}`}>
+                  {getInvoiceStatusLabel(invoice)}
+                </span>
+              </td>
+            )
+          }
+          return null
+        })}
+      </tr>
     )
   }
 
@@ -349,9 +356,9 @@ export default function InvoicesPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-[#f0f0f0] px-[16px]">
-        <div className="flex items-center gap-[8px]">
-          <span className="text-[13px] font-medium text-[#262626]">Invoicing</span>
+      <div className="flex h-[44px] shrink-0 items-center justify-between gap-[8px] border-b border-[#f0f0f0] px-[16px]">
+        <div className="flex min-w-0 flex-1 items-center gap-[8px] overflow-x-auto">
+          <span className="shrink-0 text-[13px] font-medium text-[#262626]">Invoicing</span>
           <div className="h-[16px] w-px bg-[#e5e5e5]" />
           <Link
             href="/invoicing"
@@ -524,7 +531,7 @@ export default function InvoicesPage() {
           <SlidersHorizontal className="h-[13px] w-[13px]" strokeWidth={1.5} />
           <span className="hidden sm:inline">Display</span>
           {hasDisplayFilters && (
-            <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded-[4px] px-[4px] text-[10px] font-bold" style={{ backgroundColor: "var(--primary-color)", color: "var(--primary-btn-text)" }}>
+            <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded-[4px] bg-[#e8edf2] px-[4px] text-[10px] font-bold text-[#334155]">
               {displayParticipants.length + displayEmails.length + displayStatuses.length}
             </span>
           )}
@@ -669,22 +676,24 @@ export default function InvoicesPage() {
         </>
       )}
 
-      <div className="flex-1 overflow-y-auto bg-[#fafafa]">
-        <div
-          className="sticky top-0 z-[1] grid items-center border-b border-[#e0e0e0] bg-[#fafafa] px-[24px]"
-          style={{ gridTemplateColumns: gridTemplateColumns }}
-        >
-          {visibleColumns.map((column) => (
-            <div
-              key={column.key}
-              className="whitespace-nowrap py-[11px] text-[12px] font-medium text-[#666]"
-            >
-              {column.label}
-            </div>
-          ))}
-        </div>
-
-        {sortedInvoices.slice(0, visibleCount).map(renderInvoiceRow)}
+      <div className="flex-1 overflow-auto bg-[#fafafa]">
+        <table className="w-full border-separate border-spacing-0 text-left">
+          <thead>
+            <tr>
+              {visibleColumns.map((column, colIndex) => (
+                <th
+                  key={column.key}
+                  className={`sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]${colIndex < visibleColumns.length - 1 ? " border-r" : ""}`}
+                >
+                  {column.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sortedInvoices.slice(0, visibleCount).map(renderInvoiceRow)}
+          </tbody>
+        </table>
 
         {sortedInvoices.length === 0 && (
           <EmptyState />
@@ -742,22 +751,24 @@ export default function InvoicesPage() {
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-[16px]">
             <div className="absolute inset-0 bg-black/20" onClick={() => setSelectedInvoiceId(null)} />
-            <div className="relative z-10 flex h-[680px] max-h-[calc(100vh-32px)] w-[960px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[20px] border border-[#e7e7e7] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
-              <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_320px]">
+            <div className="relative z-10 flex h-[680px] max-h-[calc(100vh-32px)] w-[960px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[20px] border border-[#e7e7e7] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.12)] max-md:h-full max-md:max-h-full max-md:w-full max-md:max-w-full max-md:rounded-none">
+              <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[minmax(0,1fr)_320px]">
                 <div className="flex min-h-0 flex-col px-[28px] py-[22px]">
                   <div className="flex items-center gap-[6px] text-[11px] font-medium uppercase tracking-[0.03em] text-[#a3a3a3]">
                     <Receipt className="h-[12px] w-[12px]" strokeWidth={1.5} />
                     <span>Invoice</span>
                   </div>
 
-                  <div className="mt-[14px] flex items-center gap-[10px]">
-                    <h3 className="text-[18px] font-semibold text-[#262626]">{invoice.invoiceNumber}</h3>
-                    <span className={`inline-flex rounded-[4px] border px-[10px] py-[3px] text-[12px] font-medium ${getInvoiceStatusClasses(invoice)}`}>
-                      {getInvoiceStatusLabel(invoice)}
-                    </span>
+                  <div className="mt-[14px] rounded-[10px] bg-[#f7f7f7] px-[12px] py-[10px]">
+                    <div className="flex items-center gap-[10px]">
+                      <span className="text-[18px] font-semibold text-[#262626]">{invoice.invoiceNumber}</span>
+                      <span className={`inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] px-[10px] text-[12px] font-medium ${getInvoiceStatusClasses(invoice)}`}>
+                        {getInvoiceStatusLabel(invoice)}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="mt-[20px] flex-1 overflow-y-auto">
+                  <div className="mt-[14px] flex-1 overflow-y-auto text-[14px] leading-[1.6] text-[#4b4b4b]">
                     <div className="rounded-[10px] border border-[#e5e5e5]">
                       <div className="grid grid-cols-[1fr_80px_80px_90px] border-b border-[#e5e5e5] px-[12px] py-[8px]">
                         <span className="text-[11px] font-medium uppercase tracking-wide text-[#888]">Item</span>
@@ -823,7 +834,7 @@ export default function InvoicesPage() {
                   </div>
                 </div>
 
-                <div className="flex min-h-0 flex-col border-l border-[#ececec] px-[20px] py-[18px]">
+                <div className="flex min-h-0 flex-col border-t border-[#ececec] px-[20px] py-[18px] md:border-l md:border-t-0">
                   <div className="flex justify-end gap-[4px]">
                     <button
                       type="button"

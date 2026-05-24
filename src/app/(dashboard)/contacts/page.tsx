@@ -13,6 +13,7 @@ import {
   Mail,
   Phone,
   ChevronDown,
+  ChevronLeft,
   X,
   UserPlus,
   SlidersHorizontal,
@@ -21,9 +22,11 @@ import { useContacts } from "@/lib/hooks/use-contacts"
 import { useClients } from "@/lib/hooks/use-clients"
 import { useFieldConfig } from "@/lib/hooks/use-field-config"
 import { useSavedViews } from "@/lib/hooks/use-saved-views"
+import { useColumnResize } from "@/lib/hooks/use-column-resize"
 import { relationshipConfig } from "@/lib/types"
 import { CsvDropdown } from "@/components/csv-dropdown"
 import { PageLoader, PageError } from "@/components/page-state"
+import { useToast } from "@/components/toast"
 
 const allColumns = [
   { key: "name", label: "Name", icon: UserRound, isSystem: true },
@@ -45,7 +48,8 @@ interface SavedView {
 }
 
 export default function ContactsPage() {
-  const { contacts, isLoading, fetchError, addContact, refetch } = useContacts()
+  const { toast } = useToast()
+  const { contacts, isLoading, fetchError, hasMore, isLoadingMore, loadMore, addContact, refetch } = useContacts()
   const { clients, clientNames } = useClients()
   const { contactDisabled } = useFieldConfig()
 
@@ -66,6 +70,13 @@ export default function ContactsPage() {
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
   const [displayRelationships, setDisplayRelationships] = useState<string[]>([])
+
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false)
+  const [activeFilterDropdown, setActiveFilterDropdown] = useState<string | null>(null)
+  const [filterClients, setFilterClients] = useState<string[]>([])
+  const [filterRelationships, setFilterRelationships] = useState<string[]>([])
+  const filterBtnRef = useRef<HTMLButtonElement>(null)
+  const filterPillRefs = useRef<Record<string, HTMLButtonElement | null>>({})
 
   const [isCreateViewOpen, setIsCreateViewOpen] = useState(false)
   const [newViewName, setNewViewName] = useState("")
@@ -128,6 +139,11 @@ export default function ContactsPage() {
     .map((key) => allColumns.find((col) => col.key === key))
     .filter(Boolean) as typeof allColumns
 
+  const { getWidth, handleMouseDown: handleColResize } = useColumnResize(
+    visibleColumns.map((c) => c.key),
+    { minWidth: 80, maxWidth: 500, defaultWidth: 200 }
+  )
+
   const handleToggleColumn = useCallback((key: string) => {
     setVisibleColumnKeys((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
@@ -140,10 +156,16 @@ export default function ContactsPage() {
     )
   }, [])
 
+  const uniqueClientNames = useMemo(() => [...new Set(contacts.map((c) => c.clientName).filter(Boolean))].sort(), [contacts])
+  const uniqueRelationships = useMemo(() => [...new Set(contacts.map((c) => c.relationship).filter(Boolean))].sort(), [contacts])
+
   const filteredContacts = useMemo(() => {
-    if (displayRelationships.length === 0) return contacts
-    return contacts.filter((c) => displayRelationships.includes(c.relationship))
-  }, [contacts, displayRelationships])
+    let result = contacts
+    if (displayRelationships.length > 0) result = result.filter((c) => displayRelationships.includes(c.relationship))
+    if (filterClients.length > 0) result = result.filter((c) => filterClients.includes(c.clientName))
+    if (filterRelationships.length > 0) result = result.filter((c) => filterRelationships.includes(c.relationship))
+    return result
+  }, [contacts, displayRelationships, filterClients, filterRelationships])
 
   const handleCreateView = () => {
     const createdView = createView(newViewName)
@@ -167,7 +189,8 @@ export default function ContactsPage() {
 
   const handleCreate = async () => {
     if (!newContact.name) return
-    await addContact({ ...newContact, clientId: newContact.clientId })
+    const result = await addContact({ ...newContact, clientId: newContact.clientId })
+    if (result) toast("Contact created", "success")
     setNewContact({ name: "", clientName: "", clientId: null, relationship: "", email: "", phone: "" })
     setIsModalOpen(false)
     setIsRelationshipOpen(false)
@@ -223,7 +246,8 @@ export default function ContactsPage() {
         phone: row.phone || "",
       })
     }
-  }, [addContact, clients])
+    toast(`${rows.length} contact${rows.length > 1 ? "s" : ""} imported`, "success")
+  }, [addContact, clients, toast])
 
   if (isLoading) return <PageLoader label="Loading contacts…" />
   if (fetchError) return <PageError message="Failed to load contacts" onRetry={refetch} />
@@ -231,9 +255,9 @@ export default function ContactsPage() {
   return (
     <div className="flex h-full flex-col">
       {/* View tabs */}
-      <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-[#f0f0f0] px-[16px]">
-        <div className="flex items-center gap-[8px]">
-          <span className="text-[13px] font-medium text-[#262626]">Contacts</span>
+      <div className="flex h-[44px] shrink-0 items-center justify-between gap-[8px] border-b border-[#f0f0f0] px-[16px]">
+        <div className="flex min-w-0 flex-1 items-center gap-[8px] overflow-x-auto">
+          <span className="shrink-0 text-[13px] font-medium text-[#262626]">Contacts</span>
           <div className="h-[16px] w-px bg-[#e5e5e5]" />
           <button
             onClick={handleSelectAllView}
@@ -288,14 +312,61 @@ export default function ContactsPage() {
       </div>
 
       {/* Filter & display bar */}
-      <div className="flex h-[41px] shrink-0 items-center border-b border-[#dcdcdc] px-[16px]">
-        <button
-          className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-          tabIndex={0}
-        >
-          <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
-          <span>Filter</span>
-        </button>
+      <div className="flex h-[41px] shrink-0 items-center gap-[8px] border-b border-[#dcdcdc] px-[16px]">
+        <div className="relative">
+          <button
+            ref={filterBtnRef}
+            onClick={() => { setIsFilterMenuOpen(!isFilterMenuOpen); setActiveFilterDropdown(null) }}
+            className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+            tabIndex={0}
+          >
+            <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
+            <span>Filter</span>
+          </button>
+          {isFilterMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-[55]" onClick={() => setIsFilterMenuOpen(false)} />
+              <div className="absolute left-0 top-full z-[60] mt-[4px] w-[180px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                <p className="px-[16px] py-[6px] text-[11px] font-medium text-[#888]">Filter by</p>
+                {[
+                  { key: "client", label: "Client", icon: Building2 },
+                  { key: "relationship", label: "Relationship", icon: Handshake },
+                ].map((item) => {
+                  const Icon = item.icon
+                  return (
+                    <button
+                      key={item.key}
+                      onClick={() => { setActiveFilterDropdown(item.key); setIsFilterMenuOpen(false) }}
+                      className="flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                      tabIndex={0}
+                    >
+                      <Icon className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+                      {item.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </>
+          )}
+        </div>
+        {filterClients.length > 0 && (
+          <div className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626]">
+            <Building2 className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+            <button ref={(el) => { filterPillRefs.current["client"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "client" ? null : "client")} className="hover:underline" tabIndex={0}>Client</button>
+            <span className="text-[#888]">is</span>
+            <span>{filterClients.length} {filterClients.length === 1 ? "value" : "values"}</span>
+            <button onClick={() => setFilterClients([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded text-[#888] transition-colors hover:text-[#262626]" tabIndex={0} aria-label="Clear client filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
+          </div>
+        )}
+        {filterRelationships.length > 0 && (
+          <div className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626]">
+            <Handshake className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+            <button ref={(el) => { filterPillRefs.current["relationship"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "relationship" ? null : "relationship")} className="hover:underline" tabIndex={0}>Relationship</button>
+            <span className="text-[#888]">is</span>
+            <span>{filterRelationships.length} {filterRelationships.length === 1 ? "value" : "values"}</span>
+            <button onClick={() => setFilterRelationships([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded text-[#888] transition-colors hover:text-[#262626]" tabIndex={0} aria-label="Clear relationship filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
+          </div>
+        )}
         <div className="ml-auto flex items-center">
           <button
             ref={displayBtnRef}
@@ -392,9 +463,75 @@ export default function ContactsPage() {
         </div>
       </div>
 
+      {/* Filter value dropdowns */}
+      {activeFilterDropdown && (
+        <>
+          <div className="fixed inset-0 z-[55]" onClick={() => setActiveFilterDropdown(null)} />
+          {(() => {
+            const anchor = filterPillRefs.current[activeFilterDropdown] || filterBtnRef.current
+            const rect = anchor?.getBoundingClientRect()
+            if (!rect) return null
+            const dropdownStyle = { top: rect.bottom + 4, left: rect.left, minWidth: 200 }
+
+            if (activeFilterDropdown === "client") return (
+              <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={dropdownStyle}>
+                <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+                  <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
+                  <span>Back</span>
+                </button>
+                <p className="px-[16px] py-[4px] text-[11px] font-medium text-[#888]">Filter by client</p>
+                {uniqueClientNames.map((name) => {
+                  const isActive = filterClients.includes(name)
+                  return (
+                    <button key={name} onClick={() => setFilterClients((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
+                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
+                        {isActive && <span className="text-[10px] text-white">✓</span>}
+                      </div>
+                      <span className="text-[#262626]">{name}</span>
+                    </button>
+                  )
+                })}
+                {uniqueClientNames.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-[#888]">No clients</p>}
+                <div className="border-t border-[#f0f0f0] px-[8px] py-[4px]">
+                  <button onClick={() => { setFilterClients([]); setActiveFilterDropdown(null) }} className="w-full rounded px-[8px] py-[6px] text-left text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0}>Clear</button>
+                </div>
+              </div>
+            )
+
+            if (activeFilterDropdown === "relationship") return (
+              <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={dropdownStyle}>
+                <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+                  <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
+                  <span>Back</span>
+                </button>
+                <p className="px-[16px] py-[4px] text-[11px] font-medium text-[#888]">Filter by relationship</p>
+                {uniqueRelationships.map((key) => {
+                  const isActive = filterRelationships.includes(key)
+                  const label = relationshipConfig[key]?.label || key
+                  return (
+                    <button key={key} onClick={() => setFilterRelationships((prev) => isActive ? prev.filter((f) => f !== key) : [...prev, key])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
+                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
+                        {isActive && <span className="text-[10px] text-white">✓</span>}
+                      </div>
+                      <span className="text-[#262626]">{label}</span>
+                    </button>
+                  )
+                })}
+                {uniqueRelationships.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-[#888]">No relationships</p>}
+                <div className="border-t border-[#f0f0f0] px-[8px] py-[4px]">
+                  <button onClick={() => { setFilterRelationships([]); setActiveFilterDropdown(null) }} className="w-full rounded px-[8px] py-[6px] text-left text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0}>Clear</button>
+                </div>
+              </div>
+            )
+
+            return null
+          })()}
+        </>
+      )}
+
       {/* Table */}
       <div className="flex-1 overflow-auto bg-[#fafafa]">
-        <table className="w-full border-separate border-spacing-0 text-left" style={{ tableLayout: "fixed", minWidth: visibleColumns.length * 200 }}>
+        <table className="w-full border-separate border-spacing-0 text-left" style={{ tableLayout: "fixed", minWidth: visibleColumns.reduce((sum, col) => sum + getWidth(col.key, 200), 0) }}>
           <thead>
             <tr>
               {visibleColumns.map((col, i) => {
@@ -402,12 +539,17 @@ export default function ContactsPage() {
                 return (
                   <th
                     key={col.key}
-                    className={`sticky top-0 z-20 h-[44px] overflow-hidden whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888] ${i < visibleColumns.length - 1 ? "border-r border-[#dcdcdc]" : ""}`}
+                    className={`group/col relative sticky top-0 z-20 h-[44px] overflow-hidden whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888] ${i < visibleColumns.length - 1 ? "border-r border-[#dcdcdc]" : ""}`}
+                    style={{ width: getWidth(col.key, 200) }}
                   >
                     <div className="flex items-center gap-[6px]">
                       <ColIcon className="h-[13px] w-[13px] shrink-0 text-[#999]" strokeWidth={1.5} />
                       <span className="truncate">{col.label}</span>
                     </div>
+                    <div
+                      onMouseDown={(e) => handleColResize(col.key, e)}
+                      className="absolute right-0 top-0 z-10 h-full w-[4px] cursor-col-resize opacity-0 transition-opacity hover:bg-[#2563EB]/30 hover:opacity-100 group-hover/col:opacity-100"
+                    />
                   </th>
                 )
               })}
@@ -428,7 +570,7 @@ export default function ContactsPage() {
                     return (
                       <td key={key} className={textCls}>
                         <div className="flex items-center gap-[10px]">
-                          <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[4px] bg-[#d4d4d4] text-[9px] font-semibold text-[#555]">{initials}</div>
+                          <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[6px] bg-[#DBEAFE] text-[9px] font-semibold text-[#2563EB]">{initials}</div>
                           <span className="truncate">{contact.name}</span>
                         </div>
                       </td>
@@ -454,6 +596,19 @@ export default function ContactsPage() {
             })}
           </tbody>
         </table>
+        {hasMore && (
+          <div className="flex justify-center py-[16px]">
+            <button
+              type="button"
+              onClick={loadMore}
+              disabled={isLoadingMore}
+              className="text-[13px] font-medium text-[#888] transition-colors hover:text-[#262626] disabled:opacity-50"
+              tabIndex={0}
+            >
+              {isLoadingMore ? "Loading..." : "Load more"}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Footer */}
@@ -559,7 +714,7 @@ export default function ContactsPage() {
               <div className="flex justify-end">
                 <button
                   onClick={handleCreate}
-                  className="rounded-[4px] bg-[#262626] px-[16px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-[#333]"
+                  className="primary-btn rounded-[4px] px-[16px] py-[7px] text-[13px] font-medium transition-colors"
                   tabIndex={0}
                 >
                   Create
@@ -659,7 +814,7 @@ export default function ContactsPage() {
               <button
                 onClick={handleCreateView}
                 disabled={!newViewName.trim()}
-                className={`rounded-[4px] border px-[16px] py-[6px] text-[13px] font-medium transition-colors ${newViewName.trim() ? "border-[#262626] bg-[#262626] text-white hover:bg-[#333]" : "border-[#dcdcdc] text-[#bbb]"}`}
+                className={`rounded-[4px] px-[16px] py-[6px] text-[13px] font-medium transition-colors ${newViewName.trim() ? "primary-btn" : "border border-[#dcdcdc] text-[#bbb]"}`}
                 tabIndex={0}
               >
                 Create

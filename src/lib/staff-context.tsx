@@ -30,6 +30,7 @@ interface StaffContextValue {
     status?: string
     invitedEmail?: string
   }) => Promise<StaffMember | null>
+  bulkAddStaff: (inputs: { name: string; details: Partial<StaffDetails> }[]) => Promise<StaffMember[]>
   updateStaff: (id: string, updates: Partial<StaffMember>) => Promise<void>
   deleteStaff: (id: string) => Promise<void>
   refetch: () => Promise<void>
@@ -117,6 +118,34 @@ export function StaffProvider({ children }: { children: ReactNode }) {
     return null
   }, [activeWorkspace])
 
+  const bulkAddStaff = useCallback(async (inputs: { name: string; details: Partial<StaffDetails> }[]): Promise<StaffMember[]> => {
+    if (!activeWorkspace || !isSupabaseConfigured() || inputs.length === 0) return []
+    const supabase = createClient()
+    if (!supabase) return []
+
+    const rows = inputs.map((input) => {
+      const details = { ...emptyStaffDetails, ...(input.details || {}) }
+      return {
+        workspace_id: activeWorkspace.id,
+        name: input.name,
+        icon_text: input.name[0]?.toUpperCase() || "?",
+        details,
+        status: "active",
+        invited_email: details.email || "",
+      }
+    })
+
+    const { data, error } = await supabase.from("staff").insert(rows).select()
+    if (error) {
+      console.error("Bulk insert staff failed:", error.message)
+      return []
+    }
+
+    const newStaff = (data || []).map(dbToStaff)
+    setStaff((prev) => [...prev, ...newStaff])
+    return newStaff
+  }, [activeWorkspace])
+
   const updateStaff = useCallback(async (id: string, updates: Partial<StaffMember>) => {
     setStaff((prev) => prev.map((s) => s.id === id ? { ...s, ...updates } : s))
 
@@ -152,7 +181,7 @@ export function StaffProvider({ children }: { children: ReactNode }) {
   const staffNames = staff.map((s) => s.name)
 
   return (
-    <StaffContext.Provider value={{ staff, staffNames, isLoading, fetchError, addStaff, updateStaff, deleteStaff, refetch: fetchStaff }}>
+    <StaffContext.Provider value={{ staff, staffNames, isLoading, fetchError, addStaff, bulkAddStaff, updateStaff, deleteStaff, refetch: fetchStaff }}>
       {children}
     </StaffContext.Provider>
   )

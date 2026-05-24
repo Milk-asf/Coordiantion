@@ -48,7 +48,7 @@ const settingsNav: SettingsNavSection[] = [
       { label: "Participants", href: "/settings/participants", icon: UserRound, requiredPermission: "canManageWorkspaceSettings" },
       { label: "Data model", href: "/settings/data-model", icon: Database, requiredPermission: "canManageWorkspaceSettings" },
       { label: "Charges", href: "/settings/charges", icon: Tag, requiredPermission: "canManageWorkspaceSettings" },
-      { label: "Import history", href: "/settings/import-history", icon: Upload, requiredPermission: "canManageWorkspaceSettings" },
+      { label: "Import", href: "/settings/import-history", icon: Upload, requiredPermission: "canManageWorkspaceSettings" },
       { label: "Billing", href: "/settings/billing", icon: CreditCard, requiredPermission: "canAccessBilling" },
     ],
   },
@@ -76,8 +76,19 @@ export default function SettingsLayout({
   )
 
   return (
-    <div className="flex h-full w-full">
-      <aside className="flex h-full w-[240px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar-bg">
+    <div className="flex h-full w-full flex-col md:flex-row">
+      <div className="flex h-[52px] shrink-0 items-center border-b border-[#f0f0f0] bg-white px-[16px] md:hidden">
+        <Link
+          href="/tasks"
+          className="flex items-center gap-[6px] text-[13px] font-medium text-[#555] transition-colors hover:text-[#262626]"
+          tabIndex={0}
+        >
+          <ArrowLeft className="h-[14px] w-[14px]" strokeWidth={1.75} />
+          Back
+        </Link>
+        <span className="ml-[12px] text-[14px] font-semibold text-[#262626]">Settings</span>
+      </div>
+      <aside className="hidden h-full w-[240px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar-bg md:flex">
         <div className="flex items-center px-3 pb-2 pt-3">
           <Link
             href="/clients"
@@ -124,10 +135,10 @@ export default function SettingsLayout({
         </nav>
       </aside>
 
-      <div className="flex-1 overflow-y-auto bg-white px-[40px] pt-[32px]">
+      <div className="flex-1 overflow-y-auto bg-[#fafafa] px-[16px] pt-[24px] md:px-[40px] md:pt-[32px]">
         <div className={cn(
           "mx-auto w-full pb-[80px]",
-          pathname === "/settings/data-model" || pathname === "/settings/charges" || pathname === "/settings/participants" || pathname === "/settings/members" ? "max-w-[720px]" : "max-w-[560px]"
+          pathname === "/settings/data-model" || pathname === "/settings/charges" || pathname === "/settings/participants" || pathname === "/settings/members" || pathname === "/settings/import-history" ? "max-w-[720px]" : "max-w-[560px]"
         )}>
           {children}
         </div>

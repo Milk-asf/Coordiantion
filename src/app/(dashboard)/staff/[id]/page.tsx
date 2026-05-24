@@ -601,11 +601,12 @@ export default function StaffProfilePage() {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`flex shrink-0 items-center gap-[4px] rounded-[5px] px-[8px] py-[4px] text-[12px] font-medium transition-colors ${isActive ? "bg-[#ebebeb] text-[#262626]" : "text-[#888] hover:bg-[#ebebeb] hover:text-[#262626]"}`}
+                  className={`relative flex shrink-0 items-center gap-[4px] px-[8px] py-[4px] text-[12px] font-medium transition-colors ${isActive ? "text-[#262626]" : "text-[#888] hover:text-[#262626]"}`}
                   tabIndex={0}
                 >
                   <TabIcon className="h-[12px] w-[12px]" strokeWidth={1.5} />
                   <span>{tab.label}</span>
+                  {isActive && <span className="absolute -bottom-[12px] left-[8px] right-[8px] h-[2px] rounded-full bg-[#262626]" />}
                 </button>
               )
             })}
@@ -614,7 +615,7 @@ export default function StaffProfilePage() {
                 <button
                   ref={overflowBtnRef}
                   onClick={() => setIsTabOverflowOpen(!isTabOverflowOpen)}
-                  className={`flex shrink-0 items-center gap-[3px] rounded-[5px] px-[6px] py-[4px] text-[12px] font-medium transition-colors ${isTabOverflowOpen ? "bg-[#ebebeb] text-[#262626]" : "text-[#888] hover:bg-[#ebebeb] hover:text-[#262626]"}`}
+                  className={`relative flex shrink-0 items-center gap-[3px] px-[6px] py-[4px] text-[12px] font-medium transition-colors ${isTabOverflowOpen ? "text-[#262626]" : "text-[#888] hover:text-[#262626]"}`}
                   tabIndex={0}
                   aria-label="More tabs"
                 >
@@ -760,7 +761,7 @@ export default function StaffProfilePage() {
                                   role="option"
                                   aria-selected={quickClientIdx === i}
                                 >
-                                  <div className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-[4px] bg-[#d4d4d4] text-[8px] font-semibold text-[#555]">
+                                  <div className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-[6px] bg-[#DBEAFE] text-[8px] font-semibold text-[#2563EB]">
                                     {name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
                                   </div>
                                   {name}
@@ -926,7 +927,7 @@ export default function StaffProfilePage() {
                                 className="flex w-full items-center gap-[8px] px-[12px] py-[8px] text-left text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
                                 tabIndex={0}
                               >
-                                <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[4px] bg-[#d4d4d4] text-[9px] font-semibold text-[#555]">
+                                <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[6px] bg-[#DBEAFE] text-[9px] font-semibold text-[#2563EB]">
                                   {c.iconText}
                                 </div>
                                 <span className="truncate">{c.displayName}</span>
@@ -969,7 +970,7 @@ export default function StaffProfilePage() {
                         >
                           <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626]">
                             <div className="flex items-center gap-[8px]">
-                              <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[4px] bg-[#d4d4d4] text-[9px] font-semibold text-[#555]">
+                              <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[6px] bg-[#DBEAFE] text-[9px] font-semibold text-[#2563EB]">
                                 {initials}
                               </div>
                               {client.displayName}
@@ -1069,7 +1070,7 @@ export default function StaffProfilePage() {
                         setIsNewSubfileOpen(false)
                       }
                     }}
-                    className="rounded bg-[#262626] px-[10px] py-[4px] text-[12px] font-medium text-white transition-colors hover:bg-[#3d3d3d]"
+                    className="primary-btn rounded px-[10px] py-[4px] text-[12px] font-medium transition-colors"
                     tabIndex={0}
                   >
                     Create
@@ -1179,7 +1180,7 @@ export default function StaffProfilePage() {
                       tabIndex={0}
                       onKeyDown={(e) => { if (e.key === "Enter") router.push(`/clients/${client.id}`) }}
                     >
-                      <div className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-[4px] bg-[#d4d4d4] text-[9px] font-semibold text-[#555]">
+                      <div className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-[6px] bg-[#DBEAFE] text-[9px] font-semibold text-[#2563EB]">
                         {client.iconText}
                       </div>
                       <span className="text-[13px] font-medium text-[#262626]">{client.displayName}</span>

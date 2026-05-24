@@ -29,7 +29,6 @@ export function CsvDropdown({ entityType, columns, exportColumns, data, onImport
   const [isOpen, setIsOpen] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const btnRef = useRef<HTMLButtonElement>(null)
 
   const escapeCsvField = (value: string) => {
     if (value.includes(",") || value.includes('"') || value.includes("\n"))
@@ -131,17 +130,23 @@ export function CsvDropdown({ entityType, columns, exportColumns, data, onImport
   }, [])
 
   return (
-    <div className="relative">
+    <div className="relative flex">
       <button
-        ref={btnRef}
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-[5px] rounded-[4px] border border-[#dcdcdc] bg-transparent px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+        onClick={handleExport}
+        className="flex items-center gap-[5px] rounded-l-[4px] border border-[#dcdcdc] bg-transparent px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
         tabIndex={0}
-        aria-label={`CSV options for ${entityLabels[entityType]}`}
+        aria-label={`Export ${entityLabels[entityType]} as CSV`}
       >
         <Download className="h-[13px] w-[13px]" strokeWidth={1.5} />
         <span className="hidden sm:inline">CSV</span>
-        <ChevronDown className="h-[10px] w-[10px] text-[#999]" strokeWidth={1.5} />
+      </button>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center rounded-r-[4px] border border-l-0 border-[#dcdcdc] bg-transparent px-[4px] py-[4px] text-[#999] transition-colors hover:bg-[#f5f5f5]"
+        tabIndex={0}
+        aria-label="More export options"
+      >
+        <ChevronDown className="h-[10px] w-[10px]" strokeWidth={1.5} />
       </button>
 
       <input

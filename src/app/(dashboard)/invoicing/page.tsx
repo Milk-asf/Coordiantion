@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties } from "react"
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import {
   AlertTriangle,
@@ -19,7 +19,6 @@ import {
   Building2,
 } from "lucide-react"
 import { DatePicker } from "@/components/date-picker"
-import { EditableField } from "@/components/editable-field"
 import { useCharges } from "@/lib/hooks/use-charges"
 import { useClients } from "@/lib/hooks/use-clients"
 import { useInvoices } from "@/lib/hooks/use-invoices"
@@ -29,6 +28,28 @@ import { useWorkspace } from "@/lib/workspace-context"
 import { useWorkspaceSettings } from "@/lib/hooks/use-workspace-settings"
 import type { Client, FundingType, InvoiceDeliveryMethod, InvoiceLineItem, Task } from "@/lib/types"
 import { PageLoader, PageError } from "@/components/page-state"
+import { useToast } from "@/components/toast"
+import {
+  formatTime,
+  formatCurrency,
+  formatDecimal,
+  formatInvoiceQuantity,
+  formatFundingType,
+  formatBillingType,
+  formatInvoiceDate,
+  getPortalClaimTarget,
+  toDateStr,
+  getStartOfWeek,
+  sortTasksByDate,
+} from "./_components/invoicing-utils"
+import {
+  FilterPill,
+  DisplaySection,
+  MultiSelectDropdown,
+  SidebarField,
+  SidebarStaticField,
+  EmptyState,
+} from "./_components/invoicing-helpers"
 
 interface InvoicingSavedView {
   id: string
@@ -65,80 +86,8 @@ const invoiceColumnDefs: InvoiceColumnDef[] = [
 const defaultVisibleColumnKeys = ["checkbox", "date", "type", "participant", "charge", "quantity", "unit-cost", "amount"]
 const weekDayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
-function formatTime(minutes: number): string {
-  if (minutes === 0) return "0m"
-  const hours = Math.floor(minutes / 60)
-  const mins = minutes % 60
-  if (hours === 0) return `${mins}m`
-  if (mins === 0) return `${hours}h`
-  return `${hours}h ${mins}m`
-}
-
-function formatCurrency(amount: number): string {
-  return `$${amount.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
-function formatDecimal(value: number): string {
-  return value.toLocaleString("en-AU", { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-}
-
-function formatInvoiceQuantity(task: Task, unit: "hour" | "each" | "km" | undefined): number {
-  if (unit === "each" || unit === "km") return task.timeSpent > 0 ? task.timeSpent : 1
-  if (task.timeSpent <= 0) return 0
-  return Number((task.timeSpent / 60).toFixed(2))
-}
-
-function formatFundingType(fundingType: FundingType): string {
-  if (!fundingType) return "Unknown"
-  if (fundingType === "plan-managed") return "Plan managed"
-  if (fundingType === "ndia-managed") return "Agency managed"
-  return "Self managed"
-}
-
-function formatBillingType(fundingType: FundingType): string {
-  if (fundingType === "plan-managed") return "Plan"
-  if (fundingType === "ndia-managed") return "Agency"
-  if (fundingType === "self-managed") return "Self"
-  return "Unknown"
-}
-
-function formatInvoiceDate(dateStr: string | null): string {
-  if (!dateStr) return ""
-  return new Date(dateStr + "T00:00:00").toLocaleDateString("en-AU", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  })
-}
-
-function getPortalClaimTarget() {
-  return "NDIA myplace provider portal"
-}
-
-function toDateStr(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
-}
-
-function getStartOfWeek(offset = 0): Date {
-  const today = new Date()
-  const start = new Date(today)
-  const day = start.getDay()
-  const diff = day === 0 ? -6 : 1 - day
-  start.setDate(start.getDate() + diff + offset * 7)
-  start.setHours(0, 0, 0, 0)
-  return start
-}
-
-function sortTasksByDate(tasks: Task[]): Task[] {
-  return [...tasks].sort((a, b) => {
-    if (!a.dueDate && !b.dueDate) return 0
-    if (!a.dueDate) return 1
-    if (!b.dueDate) return -1
-    return b.dueDate.localeCompare(a.dueDate)
-  })
-}
-
 export default function InvoicingPage() {
+  const { toast } = useToast()
   const { tasks: allTasks, isLoading: tasksLoading, fetchError: tasksFetchError, updateTask, refetch: refetchTasks } = useTasks()
   const { clients, isLoading: clientsLoading, fetchError: clientsFetchError } = useClients()
   const { enabledCharges, allCharges } = useCharges()
@@ -498,7 +447,6 @@ export default function InvoicingPage() {
   const selectedTaskCount = selectedTasksToInvoice.length
   const isColumnVisible = (key: string) => visibleColumnKeys.includes(key)
   const visibleColumns = invoiceColumnDefs.filter((column) => column.alwaysVisible || visibleColumnKeys.includes(column.key))
-  const gridTemplateColumns = visibleColumns.map((column) => column.width).join(" ")
   const weekStart = getStartOfWeek(weekOffset)
   const weekEnd = new Date(weekStart)
   weekEnd.setDate(weekEnd.getDate() + 6)
@@ -648,6 +596,8 @@ export default function InvoicingPage() {
       failedMessages,
     })
     setIsSendingInvoices(false)
+    if (completedCount > 0 && failedCount === 0) toast(`${completedCount} invoice${completedCount > 1 ? "s" : ""} sent successfully`, "success")
+    else if (failedCount > 0) toast(`${failedCount} invoice${failedCount > 1 ? "s" : ""} failed to send`, "error")
   }
 
   const formatWeekLabel = () => {
@@ -671,16 +621,15 @@ export default function InvoicingPage() {
     const isReviewed = reviewedTaskIds.includes(task.id)
     const invoiceIssues = getTaskInvoiceIssues(task)
     const hasInvoiceIssues = invoiceIssues.length > 0
+    const lastKey = visibleColumns[visibleColumns.length - 1]?.key
+
+    const tdClass = (key: string) =>
+      `h-[44px] overflow-hidden whitespace-nowrap border-b ${key !== lastKey ? "border-r" : ""} border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626] group-hover:bg-[#f5f5f5]`
 
     return (
-      <div
+      <tr
         key={task.id}
-        className={`group grid cursor-pointer items-center border-b px-[24px] transition-colors ${
-          hasInvoiceIssues
-            ? "border-[#f2d7d7] bg-[#fff8f8] shadow-[inset_3px_0_0_0_#e46a6a] hover:bg-[#fff3f3]"
-            : "border-[#f0f0f0] hover:bg-[#f5f5f5]"
-        }`}
-        style={{ gridTemplateColumns: gridTemplateColumns }}
+        className="group cursor-pointer transition-colors"
         onClick={() => setSelectedTaskId(task.id)}
         role="button"
         tabIndex={0}
@@ -688,78 +637,84 @@ export default function InvoicingPage() {
           if (event.key === "Enter") setSelectedTaskId(task.id)
         }}
       >
-        <div className="flex items-center justify-center whitespace-nowrap">
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation()
-              setReviewedTaskIds((current) => current.includes(task.id)
-                ? current.filter((taskId) => taskId !== task.id)
-                : [...current, task.id])
-            }}
-            className={`flex h-[18px] w-[18px] items-center justify-center rounded border-[1.5px] transition-colors ${
-              isReviewed
-                ? "border-blue-500 bg-blue-500 text-white"
-                : "border-[#ccc] hover:border-[#999]"
-            }`}
-            tabIndex={0}
-            aria-label={isReviewed ? "Unmark invoice review" : "Mark invoice review"}
-          >
-            {isReviewed && <span className="text-[9px]">✓</span>}
-          </button>
-        </div>
-        {isColumnVisible("date") && (
-          <div className="whitespace-nowrap py-[12px] text-[13px] text-[#666]">
-            {formatInvoiceDate(task.dueDate) || <span className="text-[#ccc]">—</span>}
+        <td className={`${tdClass("checkbox")}${hasInvoiceIssues ? " border-l-[3px] border-l-[#e46a6a]" : ""}`}>
+          <div className="flex items-center justify-center">
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation()
+                setReviewedTaskIds((current) => current.includes(task.id)
+                  ? current.filter((taskId) => taskId !== task.id)
+                  : [...current, task.id])
+              }}
+              className={`flex h-[18px] w-[18px] items-center justify-center rounded border-[1.5px] transition-colors ${
+                isReviewed
+                  ? "border-blue-500 bg-blue-500 text-white"
+                  : "border-[#ccc] hover:border-[#999]"
+              }`}
+              tabIndex={0}
+              aria-label={isReviewed ? "Unmark invoice review" : "Mark invoice review"}
+            >
+              {isReviewed && <span className="text-[9px]">✓</span>}
+            </button>
           </div>
+        </td>
+        {isColumnVisible("date") && (
+          <td className={tdClass("date")}>
+            {formatInvoiceDate(task.dueDate) || <span className="text-[#ccc]">—</span>}
+          </td>
         )}
         {isColumnVisible("type") && (
-          <div className="whitespace-nowrap py-[12px]">
-            <span className={`inline-flex items-center rounded-[4px] border px-[10px] py-[4px] text-[12px] font-medium whitespace-nowrap ${
-              fundingType === "plan-managed" ? "border-[#d7e6ff] bg-[#eef5ff] text-[#2563eb]"
-              : fundingType === "ndia-managed" ? "border-[#e0d7f5] bg-[#f3eeff] text-[#6d28d9]"
-              : fundingType === "self-managed" ? "border-[#d7eadf] bg-[#f3faf6] text-[#286847]"
-              : "border-[#e2e2e2] bg-[#f7f7f7] text-[#666]"
+          <td className={tdClass("type")}>
+            <span className={`inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] px-[12px] text-[12px] font-medium ${
+              fundingType === "plan-managed" ? "bg-[#e8edf2] text-[#334155]"
+              : fundingType === "ndia-managed" ? "bg-[#ede8f5] text-[#5b21b6]"
+              : fundingType === "self-managed" ? "bg-green-100 text-green-700"
+              : "bg-[#f0f0f0] text-[#555]"
             }`}>
               {typeLabel}
             </span>
-          </div>
+          </td>
         )}
         {isColumnVisible("participant") && (
-          <div className="min-w-0 whitespace-nowrap py-[12px]">
-            <span className="inline-flex max-w-full items-center rounded-[4px] border border-[#e2e2e2] bg-[#f7f7f7] px-[10px] py-[4px] text-[12px] font-medium text-[#262626] whitespace-nowrap">
-              <span className="truncate">{participantName}</span>
-            </span>
-          </div>
+          <td className={tdClass("participant")}>
+            <span className="truncate">{participantName}</span>
+          </td>
         )}
         {isColumnVisible("charge") && (
-          <div className="truncate whitespace-nowrap py-[12px] text-[13px] text-[#666]">
-            {task.chargeType ? chargeLabel(task.chargeType) : <span className="text-[#ccc]">No charge</span>}
-          </div>
+          <td className={tdClass("charge")}>
+            {task.chargeType ? (
+              <span className="truncate">{chargeLabel(task.chargeType)}</span>
+            ) : <span className="text-[#ccc]">—</span>}
+          </td>
         )}
         {isColumnVisible("charge-number") && (
-          <div className="truncate whitespace-nowrap py-[12px] text-[13px] text-[#666]">
-            {task.chargeType || <span className="text-[#ccc]">—</span>}
-          </div>
+          <td className={tdClass("charge-number")}>
+            {task.chargeType ? (
+              <span className="text-[#666]">{task.chargeType}</span>
+            ) : <span className="text-[#ccc]">—</span>}
+          </td>
         )}
         {isColumnVisible("quantity") && (
-          <div className="whitespace-nowrap py-[12px] text-[13px] text-[#666]">
-            {quantity > 0 ? `${formatDecimal(quantity)} ${unitLabel}` : <span className="text-[#ccc]">—</span>}
-          </div>
+          <td className={tdClass("quantity")}>
+            {quantity > 0 ? (
+              <span className="text-[#666]">{formatDecimal(quantity)} {unitLabel}</span>
+            ) : <span className="text-[#ccc]">—</span>}
+          </td>
         )}
         {isColumnVisible("unit-cost") && (
-          <div className="whitespace-nowrap py-[12px] text-[13px] text-[#666]">
-            {unitCost > 0 ? formatCurrency(unitCost) : <span className="text-[#ccc]">—</span>}
-          </div>
+          <td className={tdClass("unit-cost")}>
+            {unitCost > 0 ? (
+              <span className="text-[#666]">{formatCurrency(unitCost)}</span>
+            ) : <span className="text-[#ccc]">—</span>}
+          </td>
         )}
         {isColumnVisible("amount") && (
-          <div className="whitespace-nowrap py-[12px] text-[13px] text-[#666]">
-            <span className="font-medium text-[#16a34a]">
-              {amount > 0 ? formatCurrency(amount) : <span className="text-[#ccc]">—</span>}
-            </span>
-          </div>
+          <td className={tdClass("amount")}>
+            {amount > 0 ? <span className="inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] bg-green-50 px-[10px] text-[12px] font-medium text-green-700">{formatCurrency(amount)}</span> : <span className="text-[#ccc]">—</span>}
+          </td>
         )}
-      </div>
+      </tr>
     )
   }
 
@@ -872,13 +827,11 @@ export default function InvoicingPage() {
                 ? "primary-btn"
                 : "cursor-not-allowed bg-[#efefef] text-[#b8b8b8]"
             }`}
-            style={selectedTaskCount > 0 ? { backgroundColor: "var(--primary-color)" } : undefined}
             tabIndex={0}
           >
-            <Receipt className="h-[13px] w-[13px]" strokeWidth={1.5} />
             <span>Create invoices</span>
             <span className={`rounded-[4px] px-[6px] py-[1px] text-[11px] font-semibold ${
-              selectedTaskCount > 0 ? "bg-white/15 text-white" : "bg-[#f5f5f5] text-[#b8b8b8]"
+              selectedTaskCount > 0 ? "bg-[#e8e8e8] text-[#555]" : "bg-[#f5f5f5] text-[#b8b8b8]"
             }`}>
               {selectedTaskCount}
             </span>
@@ -1025,7 +978,7 @@ export default function InvoicingPage() {
           <SlidersHorizontal className="h-[13px] w-[13px]" strokeWidth={1.5} />
           <span className="hidden sm:inline">Display</span>
           {hasDisplayFilters && (
-            <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded-[4px] px-[4px] text-[10px] font-bold" style={{ backgroundColor: "var(--primary-color)", color: "var(--primary-btn-text)" }}>
+            <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded-[4px] bg-[#e8edf2] px-[4px] text-[10px] font-bold text-[#334155]">
               {displayParticipants.length + displayAssignees.length + displayCharges.length}
             </span>
           )}
@@ -1231,78 +1184,107 @@ export default function InvoicingPage() {
         </>
       )}
 
-      <div className="flex-1 overflow-y-auto bg-[#fafafa]">
-        <div className="sticky top-0 z-[1] grid items-center border-b border-[#e0e0e0] bg-[#fafafa] px-[24px]" style={{ gridTemplateColumns: gridTemplateColumns }}>
-          {visibleColumns.map((column) => {
-            return (
-              <div
-                key={column.key}
-                className={`whitespace-nowrap py-[11px] text-[12px] font-medium text-[#666] ${column.key === "checkbox" ? "text-center" : "text-left"}`}
-              >
-                {column.label}
-              </div>
-            )
-          })}
-        </div>
+      <div className="flex-1 overflow-auto bg-[#fafafa]">
+        <table className="w-full border-separate border-spacing-0 text-left">
+          <thead>
+            <tr>
+              {visibleColumns.map((column, colIdx) => {
+                const isLast = colIdx === visibleColumns.length - 1
+                return (
+                  <th
+                    key={column.key}
+                    className={`sticky top-0 z-20 h-[44px] whitespace-nowrap border-b ${isLast ? "" : "border-r"} border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888] ${column.key === "checkbox" ? "text-center" : ""}`}
+                    style={column.width.endsWith("px") ? { width: parseInt(column.width) } : { minWidth: 180 }}
+                  >
+                    {column.label}
+                  </th>
+                )
+              })}
+            </tr>
+          </thead>
+          <tbody>
+            {viewMode === "list" ? (
+              <>
+                {sortedTasks.slice(0, visibleCount).map(renderTaskRow)}
+                {sortedTasks.length === 0 && (
+                  <tr>
+                    <td colSpan={visibleColumns.length}>
+                      <EmptyState />
+                    </td>
+                  </tr>
+                )}
+                {sortedTasks.length > visibleCount && (
+                  <tr>
+                    <td colSpan={visibleColumns.length} className="border-b border-[#f0f0f0]">
+                      <button
+                        type="button"
+                        onClick={() => setVisibleCount((current) => current + pageSize)}
+                        className="flex w-full items-center justify-center gap-[6px] py-[10px] text-[13px] font-medium text-[#888] transition-colors hover:text-[#262626]"
+                        tabIndex={0}
+                      >
+                        Show more ({sortedTasks.length - visibleCount} remaining)
+                      </button>
+                    </td>
+                  </tr>
+                )}
+              </>
+            ) : (
+              <>
+                {Object.entries(dayBuckets).map(([dateStr, dayTasks], index) => {
+                  const date = new Date(dateStr + "T00:00:00")
+                  const dayLabel = weekDayNames[index]
+                  const dateLabel = date.toLocaleDateString("en-AU", { day: "numeric", month: "short" })
+                  const isToday = dateStr === toDateStr(new Date())
 
-        {viewMode === "list" ? (
-          <>
-            {sortedTasks.slice(0, visibleCount).map(renderTaskRow)}
-            {sortedTasks.length === 0 && (
-              <EmptyState />
+                  return (
+                    <Fragment key={dateStr}>
+                      <tr>
+                        <td colSpan={visibleColumns.length} className={`border-b border-[#e8e8e8] px-[12px] py-[6px] ${isToday ? "bg-blue-50/60" : "bg-[#fafafa]"}`}>
+                          <div className="flex items-center gap-[8px]">
+                            <span className={`text-[13px] font-semibold ${isToday ? "text-blue-600" : "text-[#262626]"}`}>
+                              {dayLabel}
+                            </span>
+                            <span className={`text-[12px] font-medium ${isToday ? "text-blue-400" : "text-[#999]"}`}>
+                              {dateLabel}
+                            </span>
+                            {dayTasks.length > 0 && (
+                              <span className="text-[11px] font-medium text-[#bbb]">
+                                {dayTasks.length} {dayTasks.length === 1 ? "task" : "tasks"}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                      {dayTasks.map(renderTaskRow)}
+                    </Fragment>
+                  )
+                })}
+                {noDateTasks.length > 0 && (
+                  <Fragment>
+                    <tr>
+                      <td colSpan={visibleColumns.length} className="border-b border-[#e8e8e8] bg-[#fafafa] px-[12px] py-[6px]">
+                        <div className="flex items-center gap-[8px]">
+                          <span className="text-[13px] font-semibold text-[#999]">No date</span>
+                          <span className="text-[11px] font-medium text-[#bbb]">
+                            {noDateTasks.length} {noDateTasks.length === 1 ? "task" : "tasks"}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                    {noDateTasks.map(renderTaskRow)}
+                  </Fragment>
+                )}
+                {filteredTasks.length === 0 && (
+                  <tr>
+                    <td colSpan={visibleColumns.length}>
+                      <EmptyState />
+                    </td>
+                  </tr>
+                )}
+              </>
             )}
-            {sortedTasks.length > visibleCount && (
-              <button
-                type="button"
-                onClick={() => setVisibleCount((current) => current + pageSize)}
-                className="flex w-full items-center justify-center gap-[6px] border-b border-[#f0f0f0] py-[10px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#fafafa] hover:text-[#262626]"
-                tabIndex={0}
-              >
-                Show more ({sortedTasks.length - visibleCount} remaining)
-              </button>
-            )}
-          </>
-        ) : (
-          <>
-            {Object.entries(dayBuckets).map(([dateStr, dayTasks], index) => {
-              const date = new Date(dateStr + "T00:00:00")
-              const dayLabel = weekDayNames[index]
-              const dateLabel = date.toLocaleDateString("en-AU", { day: "numeric", month: "short" })
-              const isToday = dateStr === toDateStr(new Date())
-
-              return (
-                <div key={dateStr}>
-                  <div className={`flex items-center gap-[8px] border-b border-[#e8e8e8] px-[12px] py-[6px] ${isToday ? "bg-blue-50/60" : "bg-[#fafafa]"}`}>
-                    <span className={`text-[13px] font-semibold ${isToday ? "text-blue-600" : "text-[#262626]"}`}>
-                      {dayLabel}
-                    </span>
-                    <span className={`text-[12px] font-medium ${isToday ? "text-blue-400" : "text-[#999]"}`}>
-                      {dateLabel}
-                    </span>
-                    {dayTasks.length > 0 && (
-                      <span className="text-[11px] font-medium text-[#bbb]">
-                        {dayTasks.length} {dayTasks.length === 1 ? "task" : "tasks"}
-                      </span>
-                    )}
-                  </div>
-                  {dayTasks.map(renderTaskRow)}
-                </div>
-              )
-            })}
-            {noDateTasks.length > 0 && (
-              <div>
-                <div className="flex items-center gap-[8px] border-b border-[#e8e8e8] bg-[#fafafa] px-[12px] py-[6px]">
-                  <span className="text-[13px] font-semibold text-[#999]">No date</span>
-                  <span className="text-[11px] font-medium text-[#bbb]">
-                    {noDateTasks.length} {noDateTasks.length === 1 ? "task" : "tasks"}
-                  </span>
-                </div>
-                {noDateTasks.map(renderTaskRow)}
-              </div>
-            )}
-            {filteredTasks.length === 0 && <EmptyState />}
-          </>
-        )}
+          </tbody>
+        </table>
       </div>
 
       <div className="shrink-0 border-t border-[#dcdcdc] px-[20px] py-[10px]">
@@ -1529,7 +1511,7 @@ export default function InvoicingPage() {
                   type="button"
                   onClick={handleCreateView}
                   disabled={!newViewName.trim()}
-                  className="rounded-[4px] bg-[#262626] px-[12px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-40"
+                  className="primary-btn rounded-[4px] px-[12px] py-[7px] text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Save view
                 </button>
@@ -1568,7 +1550,7 @@ export default function InvoicingPage() {
                     <button
                       type="button"
                       onClick={handleCloseSendInvoicesModal}
-                      className="rounded-[4px] bg-[#262626] px-[12px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-black"
+                      className="primary-btn rounded-[4px] px-[12px] py-[7px] text-[13px] font-medium transition-colors"
                     >
                       Close
                     </button>
@@ -1624,194 +1606,6 @@ export default function InvoicingPage() {
           </button>
         </div>
       )}
-    </div>
-  )
-}
-
-function FilterPill({
-  icon: Icon,
-  label,
-  count,
-  onOpen,
-  onClear,
-  buttonRef,
-}: {
-  icon: ComponentType<{ className?: string; strokeWidth?: number }>
-  label: string
-  count: number
-  onOpen: () => void
-  onClear: () => void
-  buttonRef: (element: HTMLButtonElement | null) => void
-}) {
-  return (
-    <div className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626]">
-      <Icon className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
-      <button ref={buttonRef} onClick={onOpen} className="hover:underline" tabIndex={0}>
-        {label}
-      </button>
-      <span className="text-[#888]">is</span>
-      <span>{count} {count === 1 ? "value" : "values"}</span>
-      <button onClick={onClear} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded text-[#888] transition-colors hover:text-[#262626]" tabIndex={0} aria-label={`Clear ${label.toLowerCase()} filter`}>
-        <X className="h-[12px] w-[12px]" strokeWidth={1.5} />
-      </button>
-    </div>
-  )
-}
-
-function DisplaySection({
-  title,
-  items,
-  activeItems,
-  onToggle,
-  formatLabel,
-}: {
-  title: string
-  items: string[]
-  activeItems: string[]
-  onToggle: (value: string) => void
-  formatLabel?: (value: string) => string
-}) {
-  if (items.length === 0) return null
-
-  return (
-    <div className="px-[20px] pb-[16px] pt-[2px]">
-      <div className="pb-[12px] text-[13px] font-medium text-[#888]">{title}</div>
-      <div className="flex flex-wrap gap-[8px]">
-        {items.map((item) => {
-          const isActive = activeItems.includes(item)
-          return (
-            <button
-              key={item}
-              type="button"
-              onClick={() => onToggle(item)}
-              className={`inline-flex items-center rounded-[4px] border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
-              tabIndex={0}
-            >
-              {formatLabel ? formatLabel(item) : item}
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-function MultiSelectDropdown({
-  title,
-  items,
-  selectedValues,
-  onToggle,
-  onBack,
-  onClear,
-  emptyLabel = "No options",
-  style,
-}: {
-  title: string
-  items: Array<{ value: string; label: string }>
-  selectedValues: string[]
-  onToggle: (value: string) => void
-  onBack: () => void
-  onClear: () => void
-  emptyLabel?: string
-  style: CSSProperties
-}) {
-  return (
-    <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={style}>
-      <button onClick={onBack} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
-        <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
-        <span>Back</span>
-      </button>
-      <p className="px-[16px] py-[4px] text-[11px] font-medium text-[#888]">{title}</p>
-      {items.map((item) => {
-        const isActive = selectedValues.includes(item.value)
-        return (
-          <button
-            key={item.value}
-            onClick={() => onToggle(item.value)}
-            className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`}
-            tabIndex={0}
-          >
-            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
-              {isActive && <span className="text-[10px] text-white">✓</span>}
-            </div>
-            <span className="text-[#262626]">{item.label}</span>
-          </button>
-        )
-      })}
-      {items.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-[#888]">{emptyLabel}</p>}
-      <div className="border-t border-[#f0f0f0] px-[8px] py-[4px]">
-        <button onClick={onClear} className="w-full rounded px-[8px] py-[6px] text-left text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0}>
-          Clear
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function SidebarField({
-  label,
-  value,
-  onChange,
-  placeholder,
-  type = "text",
-  options,
-  formatValue,
-}: {
-  label: string
-  value: string
-  onChange: (value: string) => void
-  placeholder: string
-  type?: "text" | "select"
-  options?: string[]
-  formatValue?: (value: string) => string
-}) {
-  return (
-    <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
-      <span className="text-[13px] font-medium text-[#8d8d8d]">{label}</span>
-      <div className="min-w-0">
-        <EditableField
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          type={type}
-          options={options}
-          size="compact"
-          offsetClassName=""
-          emptyLabel="Empty"
-          displayClassName="block min-w-0 rounded-[10px] px-[8px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f7f7f7]"
-          dropdownButtonClassName="flex w-full min-w-0 items-center justify-between rounded-[10px] border border-[#a3c4f3] bg-[#fafafa] px-[8px] py-[5px] text-left text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
-          dropdownItemClassName="flex w-full items-center px-[8px] py-[6px] text-left text-[13px] font-medium transition-colors hover:bg-[#f5f5f5]"
-          inputClassName="w-full rounded-[10px] border border-[#a3c4f3] bg-[#fafafa] px-[8px] py-[5px] pr-[28px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
-        />
-        {formatValue && value && (
-          <div className="mt-[2px] px-[8px] text-[12px] text-[#888]">{formatValue(value)}</div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function SidebarStaticField({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
-      <span className="text-[13px] font-medium text-[#8d8d8d]">{label}</span>
-      <div className={`min-w-0 rounded-[10px] px-[8px] py-[6px] text-[13px] font-medium ${value === "Empty" ? "text-[#ccc]" : "text-[#262626]"}`}>
-        {value}
-      </div>
-    </div>
-  )
-}
-
-function EmptyState() {
-  return (
-    <div className="flex flex-col items-center justify-center px-[24px] py-[56px] text-center">
-      <div className="rounded-full bg-[#f5f5f5] p-[12px]">
-        <Receipt className="h-[20px] w-[20px] text-[#999]" strokeWidth={1.5} />
-      </div>
-      <h3 className="mt-[14px] text-[15px] font-semibold text-[#262626]">No tasks ready to invoice</h3>
-      <p className="mt-[6px] max-w-[320px] text-[13px] text-[#888]">
-        Completed coordinator tasks will appear here automatically as soon as they are ticked off.
-      </p>
     </div>
   )
 }

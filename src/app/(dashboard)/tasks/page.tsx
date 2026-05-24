@@ -1,8 +1,7 @@
 "use client"
 
-import { useState, useRef, useCallback, useEffect } from "react"
+import { useState, useRef, useCallback, useEffect, useMemo } from "react"
 import {
-  SquareCheck,
   Table2,
   Plus,
   ListFilter,
@@ -12,104 +11,43 @@ import {
   CalendarDays,
   Building2,
   FileText,
-  Trash2,
   Clock,
   Tag,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   User,
-  Bold,
-  Italic,
-  Underline,
-  List,
-  Strikethrough,
-  Type,
+  Trash2,
 } from "lucide-react"
 import { useTasks } from "@/lib/hooks/use-tasks"
+import { useInvoices } from "@/lib/hooks/use-invoices"
 import { useClients } from "@/lib/hooks/use-clients"
 import { useCharges } from "@/lib/hooks/use-charges"
 import { useSavedViews } from "@/lib/hooks/use-saved-views"
 import { useStaff } from "@/lib/hooks/use-staff"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
-import { DatePicker } from "@/components/date-picker"
 import { serviceChargeTypes } from "@/lib/ndis-charges"
 import type { Task, Attachment } from "@/lib/types"
 import { PageLoader, PageError } from "@/components/page-state"
+import { useToast } from "@/components/toast"
+import { ConfirmDialog } from "@/components/confirm-dialog"
+import { OnboardingChecklist } from "@/components/onboarding-checklist"
+import { TaskDetailModal } from "./_components/task-detail-modal"
+import {
+  type TaskSavedView,
+  taskColumnDefs,
+  defaultTaskVisibleKeys,
+  parseTimeInput,
+  formatRowDate,
+  getTodayStr,
+} from "./_components/task-helpers"
 
-interface TaskSavedView {
-  id: string
-  name: string
-  viewMode: "list" | "week"
-  visibleColumnKeys: string[]
-  displayParticipants: string[]
-  displayAssignees: string[]
-  displayCharges: string[]
-  statusFilter: string[]
-  dateFilter: string[]
-  participantFilter: string[]
-  assigneeFilter: string[]
-  chargeFilter: string[]
-}
-
-const taskColumnDefs = [
-  { key: "date", label: "Date", icon: CalendarDays, width: "90px" },
-  { key: "participant", label: "Client", icon: Building2, width: "40px" },
-  { key: "title", label: "Title", icon: FileText, width: "1fr", alwaysVisible: true },
-  { key: "assignee", label: "Assignee", icon: User, width: "40px" },
-  { key: "charge", label: "Charge", icon: Tag, width: "64px" },
-  { key: "time", label: "Time", icon: Clock, width: "56px" },
-  { key: "checkbox", label: "Status", icon: CheckSquare, width: "40px", alwaysVisible: true },
-] as const
-
-const defaultTaskVisibleKeys = ["date", "participant", "title", "assignee", "charge", "time", "checkbox"]
-
-function formatTime(minutes: number): string {
-  if (minutes === 0) return "0m"
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
-  if (h === 0) return `${m}m`
-  if (m === 0) return `${h}h`
-  return `${h}h ${m}m`
-}
-
-function parseTimeInput(val: string): number {
-  if (!val.trim()) return 0
-  const hMatch = val.match(/(\d+)\s*h/)
-  const mMatch = val.match(/(\d+)\s*m/)
-  const hours = hMatch ? parseInt(hMatch[1], 10) : 0
-  const mins = mMatch ? parseInt(mMatch[1], 10) : 0
-  if (hours === 0 && mins === 0) {
-    const num = parseInt(val, 10)
-    return isNaN(num) ? 0 : num
-  }
-  return hours * 60 + mins
-}
-
-function formatRowDate(dateStr: string | null): string {
-  if (!dateStr) return ""
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const d = new Date(dateStr + "T00:00:00")
-  d.setHours(0, 0, 0, 0)
-  const diff = d.getTime() - today.getTime()
-  const dayMs = 86400000
-  if (diff === 0) return "Today"
-  if (diff === dayMs) return "Tomorrow"
-  if (diff === -dayMs) return "Yesterday"
-  if (diff > 0 && diff < 7 * dayMs) return d.toLocaleDateString("en-AU", { weekday: "long" })
-  if (diff < 0 && diff > -7 * dayMs) return d.toLocaleDateString("en-AU", { weekday: "long" })
-  return d.toLocaleDateString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" })
-}
-
-function getTodayStr(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-}
 
 export default function TasksPage() {
-  const { tasks: allTasks, isLoading, fetchError, addTask, updateTask: updateTaskDb, deleteTask: deleteTaskDb, refetch } = useTasks()
+  const { toast } = useToast()
+  const { tasks: allTasks, isLoading, fetchError, hasMore, isLoadingMore, loadMore, addTask, updateTask: updateTaskDb, deleteTask: deleteTaskDb, refetch } = useTasks()
+  const { invoices } = useInvoices()
   const { clients, clientNames } = useClients()
   const { enabledCharges, allCharges } = useCharges()
   const { staffNames } = useStaff()
@@ -161,14 +99,21 @@ export default function TasksPage() {
     return val
   }
 
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
-  const createBtnRef = useRef<HTMLButtonElement>(null)
+  const invoicedTaskIds = useMemo(() => {
+    const ids = new Set<string>()
+    for (const inv of invoices) {
+      if (inv.status !== "unsent") {
+        for (const tid of inv.taskIds) ids.add(tid)
+      }
+    }
+    return ids
+  }, [invoices])
 
-  const detailClientRef = useRef<HTMLButtonElement>(null)
-  const detailChargeRef = useRef<HTMLButtonElement>(null)
-  const detailSecondaryChargeRef = useRef<HTMLButtonElement>(null)
-  const detailFileInputRef = useRef<HTMLInputElement>(null)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set())
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+  const createBtnRef = useRef<HTMLButtonElement>(null)
   const [statusFilter, setStatusFilter] = useState<string[]>([])
   const [dateFilter, setDateFilter] = useState<string[]>([])
   const [participantFilter, setParticipantFilter] = useState<string[]>([])
@@ -374,61 +319,6 @@ export default function TasksPage() {
   const quickClientListRef = useRef<HTMLDivElement>(null)
   const quickChargeListRef = useRef<HTMLDivElement>(null)
 
-  const [detailClientIdx, setDetailClientIdx] = useState(-1)
-
-  const descriptionRef = useRef<HTMLDivElement>(null)
-  const [formatToolbar, setFormatToolbar] = useState<{ x: number; y: number } | null>(null)
-  const [descFormats, setDescFormats] = useState<Record<string, boolean>>({})
-  const [currentBlock, setCurrentBlock] = useState("")
-  const [isTextSizeOpen, setIsTextSizeOpen] = useState(false)
-
-  const refreshDescFormats = useCallback(() => {
-    setDescFormats({
-      bold: document.queryCommandState("bold"),
-      italic: document.queryCommandState("italic"),
-      underline: document.queryCommandState("underline"),
-      strikeThrough: document.queryCommandState("strikeThrough"),
-      insertUnorderedList: document.queryCommandState("insertUnorderedList"),
-    })
-    setCurrentBlock(document.queryCommandValue("formatBlock") || "")
-  }, [])
-
-  const handleDescFormat = useCallback((cmd: string) => {
-    document.execCommand(cmd, false)
-    descriptionRef.current?.focus()
-    setTimeout(refreshDescFormats, 0)
-  }, [refreshDescFormats])
-
-  const handleTextSize = useCallback((tag: string) => {
-    if (tag === "p") {
-      document.execCommand("formatBlock", false, "p")
-    } else {
-      const current = document.queryCommandValue("formatBlock")
-      if (current === tag) {
-        document.execCommand("formatBlock", false, "p")
-      } else {
-        document.execCommand("formatBlock", false, tag)
-      }
-    }
-    descriptionRef.current?.focus()
-    setIsTextSizeOpen(false)
-    setTimeout(refreshDescFormats, 0)
-  }, [refreshDescFormats])
-
-  const handleDescContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    refreshDescFormats()
-    setFormatToolbar({ x: e.clientX, y: e.clientY })
-  }, [refreshDescFormats])
-
-  const prevSelectedTaskIdRef = useRef<string | null>(null)
-  useEffect(() => {
-    if (selectedTaskId && selectedTaskId !== prevSelectedTaskIdRef.current && descriptionRef.current) {
-      const task = tasks.find((t) => t.id === selectedTaskId)
-      if (task) descriptionRef.current.innerHTML = task.description || ""
-    }
-    prevSelectedTaskIdRef.current = selectedTaskId
-  }, [selectedTaskId, tasks])
 
   useEffect(() => {
     if (quickClientIdx >= 0 && quickClientListRef.current) {
@@ -473,7 +363,7 @@ export default function TasksPage() {
     const title = quickTitle.trim()
     if (!title) return
     const assignee = canAssignTasks ? (quickAssignee || currentUserName) : currentUserName
-    await addTask({
+    const result = await addTask({
       title,
       description: "",
       status: "todo",
@@ -484,6 +374,7 @@ export default function TasksPage() {
       chargeType: quickCharge,
       timeSpent: quickTime ? parseTimeInput(quickTime) : 0,
     })
+    if (result) toast("Task created", "success")
     setQuickTitle("")
     setQuickClient("")
     setQuickDueDate(getTodayStr())
@@ -510,8 +401,35 @@ export default function TasksPage() {
   }
 
   const handleDeleteTask = (id: string) => {
-    deleteTaskDb(id)
-    if (selectedTaskId === id) setSelectedTaskId(null)
+    setDeleteConfirmId(id)
+  }
+
+  const confirmDeleteTask = () => {
+    if (!deleteConfirmId) return
+    deleteTaskDb(deleteConfirmId)
+    if (selectedTaskId === deleteConfirmId) setSelectedTaskId(null)
+    toast("Task deleted", "success")
+    setDeleteConfirmId(null)
+  }
+
+  const toggleSelectAll = () => {
+    const visibleIds = filtered.map((t) => t.id)
+    const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedTaskIds.has(id))
+    if (allSelected) setSelectedTaskIds(new Set())
+    else setSelectedTaskIds(new Set(visibleIds))
+  }
+
+  const handleBulkMarkDone = async () => {
+    const ids = Array.from(selectedTaskIds)
+    await Promise.all(ids.map((id) => updateTaskDb(id, { status: "done" })))
+    setSelectedTaskIds(new Set())
+  }
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedTaskIds)
+    await Promise.all(ids.map((id) => deleteTaskDb(id)))
+    setSelectedTaskIds(new Set())
+    setIsBulkDeleting(false)
   }
 
   const selectedTask = selectedTaskId ? tasks.find((t) => t.id === selectedTaskId) ?? null : null
@@ -521,45 +439,17 @@ export default function TasksPage() {
     updateTaskDb(selectedTaskId, { [field]: value } as Partial<Task>)
   }, [selectedTaskId, updateTaskDb])
 
-  const handleDetailFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!selectedTaskId || !e.target.files) return
-    const task = tasks.find((t) => t.id === selectedTaskId)
-    if (!task) return
-
-    const files = Array.from(e.target.files)
-    e.target.value = ""
-
-    const supabase = isSupabaseConfigured() ? createClient() : null
-    const newAttachments: Attachment[] = []
-
-    for (const file of files) {
-      const id = crypto.randomUUID()
-      if (supabase) {
-        const storagePath = `task-attachments/${selectedTaskId}/${id}-${file.name}`
-        const { error } = await supabase.storage.from("documents").upload(storagePath, file)
-        if (!error) {
-          const { data: urlData } = supabase.storage.from("documents").getPublicUrl(storagePath)
-          newAttachments.push({ id, name: file.name, size: file.size, storagePath, url: urlData.publicUrl })
-        } else {
-          newAttachments.push({ id, name: file.name, size: file.size })
-        }
-      } else {
-        newAttachments.push({ id, name: file.name, size: file.size })
-      }
-    }
-
-    updateTaskDb(selectedTaskId, { attachments: [...task.attachments, ...newAttachments] })
-  }
 
   const closeDetail = () => {
     setSelectedTaskId(null)
-    setActiveDropdown(null)
-    setFormatToolbar(null)
-    setIsTextSizeOpen(false)
   }
 
   const filtered = tasks.filter((t) => {
-    if (statusFilter.length > 0 && !statusFilter.includes(t.status)) return false
+    if (statusFilter.length > 0) {
+      const isArchived = t.status === "done" && invoicedTaskIds.has(t.id)
+      const effectiveStatus = isArchived ? "archived" : t.status
+      if (!statusFilter.includes(effectiveStatus)) return false
+    }
     if (participantFilter.length > 0 && !participantFilter.includes(t.client)) return false
     if (assigneeFilter.length > 0 && !assigneeFilter.includes(t.assignee)) return false
     if (chargeFilter.length > 0 && !chargeFilter.includes(t.chargeType)) return false
@@ -598,7 +488,14 @@ export default function TasksPage() {
       if (!b.dueDate) return -1
       return a.dueDate.localeCompare(b.dueDate)
     })
-  const previousTasks = filtered.filter((t) => t.status === "done")
+  const completedTasks = filtered.filter((t) => t.status === "done" && !invoicedTaskIds.has(t.id))
+    .sort((a, b) => {
+      if (!a.dueDate && !b.dueDate) return 0
+      if (!a.dueDate) return 1
+      if (!b.dueDate) return -1
+      return b.dueDate.localeCompare(a.dueDate)
+    })
+  const archivedTasks = filtered.filter((t) => t.status === "done" && invoicedTaskIds.has(t.id))
     .sort((a, b) => {
       if (!a.dueDate && !b.dueDate) return 0
       if (!a.dueDate) return 1
@@ -613,6 +510,7 @@ export default function TasksPage() {
     if (typeof window === "undefined") return false
     return localStorage.getItem("tasks-show-completed") === "true"
   })
+  const [showArchived, setShowArchived] = useState(false)
 
   useEffect(() => {
     localStorage.setItem("tasks-show-completed", String(showPrevious))
@@ -621,6 +519,7 @@ export default function TasksPage() {
   const [pageSize, setPageSize] = useState(10)
   const [uncompletedVisible, setUncompletedVisible] = useState(10)
   const [completedVisible, setCompletedVisible] = useState(10)
+  const [archivedVisible, setArchivedVisible] = useState(10)
   const [isPageSizeOpen, setIsPageSizeOpen] = useState(false)
   const pageSizeBtnRef = useRef<HTMLButtonElement>(null)
 
@@ -640,6 +539,20 @@ export default function TasksPage() {
         tabIndex={0}
         onKeyDown={(e) => { if (e.key === "Enter") setSelectedTaskId(task.id) }}
       >
+        <div className="flex items-center justify-center">
+          <button
+            onClick={(e) => { e.stopPropagation(); handleToggleComplete(task.id) }}
+            className={`flex h-[18px] w-[18px] items-center justify-center rounded border-[1.5px] transition-colors ${
+              task.status === "done"
+                ? "border-blue-500 bg-blue-500 text-white"
+                : "border-[#ccc] hover:border-[#999]"
+            }`}
+            tabIndex={0}
+            aria-label={task.status === "done" ? "Mark as incomplete" : "Mark as complete"}
+          >
+            {task.status === "done" && <span className="text-[9px]">✓</span>}
+          </button>
+        </div>
         {isColVisible("date") && (
           <div className="py-[12px] text-[13px] text-[#888]">
             {dateStr || <span className="text-[#ccc]">—</span>}
@@ -676,23 +589,11 @@ export default function TasksPage() {
             {task.timeSpent > 0 ? task.timeSpent : <span className="text-[#ccc]">—</span>}
           </div>
         )}
-        <div className="flex items-center justify-center">
-          <button
-            onClick={(e) => { e.stopPropagation(); handleToggleComplete(task.id) }}
-            className={`flex h-[18px] w-[18px] items-center justify-center rounded border-[1.5px] transition-colors ${
-              task.status === "done"
-                ? "border-blue-500 bg-blue-500 text-white"
-                : "border-[#ccc] hover:border-[#999]"
-            }`}
-            tabIndex={0}
-            aria-label={task.status === "done" ? "Mark as incomplete" : "Mark as complete"}
-          >
-            {task.status === "done" && <span className="text-[9px]">✓</span>}
-          </button>
-        </div>
       </div>
     )
   }
+
+  const showOnboarding = !isLoading && !fetchError && allTasks.length === 0 && clients.length === 0
 
   if (isLoading) return <PageLoader label="Loading tasks…" />
   if (fetchError) return <PageError message="Failed to load tasks" onRetry={refetch} />
@@ -700,8 +601,8 @@ export default function TasksPage() {
   return (
     <div className="flex h-full flex-col">
       {/* View tabs */}
-      <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-[#f0f0f0] px-[16px]">
-        <div className="flex items-center gap-[8px]">
+      <div className="flex h-[44px] shrink-0 items-center justify-between gap-[8px] border-b border-[#f0f0f0] px-[16px]">
+        <div className="flex min-w-0 flex-1 items-center gap-[8px] overflow-x-auto">
           <span className="text-[13px] font-medium text-[#262626]">
             {isInvoicingMode ? "Invoicing" : "Tasks"}
           </span>
@@ -775,7 +676,6 @@ export default function TasksPage() {
                 ref={createBtnRef}
                 onClick={() => { if (isQuickAdding) { resetQuickAdd() } else { setIsQuickAdding(true); setQuickActiveField("title"); setTimeout(() => quickInputRef.current?.focus(), 0) } }}
                 className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
-                style={{ backgroundColor: isQuickAdding ? "var(--primary-color-hover)" : "var(--primary-color)" }}
                 tabIndex={0}
               >
                 <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -884,7 +784,7 @@ export default function TasksPage() {
                                         role="option"
                                         aria-selected={isHighlighted}
                                       >
-                                        <div className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-[#d4d4d4] text-[8px] font-semibold text-[#555]">
+                                        <div className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-[6px] bg-[#DBEAFE] text-[8px] font-semibold text-[#2563EB]">
                                           {initials}
                                         </div>
                                         {name}
@@ -1021,7 +921,7 @@ export default function TasksPage() {
       </div>
 
           {/* Filter & display bar */}
-          <div className="flex h-[41px] shrink-0 items-center gap-[8px] border-b border-[#dcdcdc] px-[16px]">
+          <div className="flex h-[41px] shrink-0 items-center gap-[8px] overflow-x-auto border-b border-[#dcdcdc] px-[16px]">
             <div className="relative">
               <button
                 ref={filterBtnRef}
@@ -1038,6 +938,7 @@ export default function TasksPage() {
                   <div className="absolute left-0 top-full z-[60] mt-[4px] w-[180px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
                     <p className="px-[16px] py-[6px] text-[11px] font-medium text-[#888]">Filter by</p>
                     {[
+                      { key: "status", label: "Status", icon: CheckSquare },
                       { key: "date", label: "Date", icon: CalendarDays },
                       { key: "participant", label: "Client", icon: Building2 },
                       { key: "assignee", label: "Assignee", icon: User },
@@ -1060,6 +961,23 @@ export default function TasksPage() {
                 </>
               )}
             </div>
+            <button
+              onClick={toggleSelectAll}
+              className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+              tabIndex={0}
+            >
+              <CheckSquare className="h-[13px] w-[13px]" strokeWidth={1.5} />
+              <span>{filtered.length > 0 && filtered.every((t) => selectedTaskIds.has(t.id)) ? "Deselect all" : "Select all"}</span>
+            </button>
+            {statusFilter.length > 0 && (
+              <div className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626]">
+                <CheckSquare className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+                <button ref={(el) => { filterPillRefs.current["status"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "status" ? null : "status")} className="hover:underline" tabIndex={0}>Status</button>
+                <span className="text-[#888]">is</span>
+                <span>{statusFilter.length} {statusFilter.length === 1 ? "value" : "values"}</span>
+                <button onClick={() => setStatusFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded text-[#888] transition-colors hover:text-[#262626]" tabIndex={0} aria-label="Clear status filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
+              </div>
+            )}
             {dateFilter.length > 0 && (
               <div className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626]">
                 <CalendarDays className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
@@ -1109,7 +1027,13 @@ export default function TasksPage() {
               {isPageSizeOpen && (
                 <>
                   <div className="fixed inset-0 z-[55]" onClick={() => setIsPageSizeOpen(false)} />
-                  <div className="absolute right-0 top-full z-[60] mt-[4px] w-[120px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                  <div
+                    className="fixed z-[60] w-[120px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+                    style={{
+                      top: (pageSizeBtnRef.current?.getBoundingClientRect().bottom ?? 0) + 4,
+                      left: (pageSizeBtnRef.current?.getBoundingClientRect().right ?? 120) - 120,
+                    }}
+                  >
                     {[10, 20, 50, 100].map((n) => (
                       <button
                         key={n}
@@ -1133,7 +1057,7 @@ export default function TasksPage() {
               <SlidersHorizontal className="h-[13px] w-[13px]" strokeWidth={1.5} />
               <span className="hidden sm:inline">Display</span>
               {hasDisplayFilters && (
-                <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded-[4px] px-[4px] text-[10px] font-bold" style={{ backgroundColor: "var(--primary-color)", color: "var(--primary-btn-text)" }}>
+                <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded-[4px] bg-[#e8edf2] px-[4px] text-[10px] font-bold text-[#334155]">
                   {displayParticipants.length + displayAssignees.length + displayCharges.length}
                 </span>
               )}
@@ -1282,6 +1206,37 @@ export default function TasksPage() {
                 if (!rect) return null
                 const dropdownStyle = { top: rect.bottom + 4, left: rect.left, minWidth: 200 }
 
+                if (activeFilterDropdown === "status") {
+                  const statusOptions = [
+                    { key: "todo", label: "Uncompleted" },
+                    { key: "done", label: "Completed" },
+                    { key: "archived", label: "Archived" },
+                  ]
+                  return (
+                    <div className="fixed z-[60] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={dropdownStyle}>
+                      <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+                        <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
+                        <span>Back</span>
+                      </button>
+                      <p className="px-[16px] py-[4px] text-[11px] font-medium text-[#888]">Filter by status</p>
+                      {statusOptions.map((opt) => {
+                        const isActive = statusFilter.includes(opt.key)
+                        return (
+                          <button key={opt.key} onClick={() => setStatusFilter((prev) => isActive ? prev.filter((f) => f !== opt.key) : [...prev, opt.key])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
+                            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
+                              {isActive && <span className="text-[10px] text-white">✓</span>}
+                            </div>
+                            <span className="text-[#262626]">{opt.label}</span>
+                          </button>
+                        )
+                      })}
+                      <div className="border-t border-[#f0f0f0] px-[8px] py-[4px]">
+                        <button onClick={() => { setStatusFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded px-[8px] py-[6px] text-left text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0}>Clear</button>
+                      </div>
+                    </div>
+                  )
+                }
+
                 if (activeFilterDropdown === "date") {
                   const dateOptions = [
                     { key: "today", label: "Today" },
@@ -1396,7 +1351,7 @@ export default function TasksPage() {
           )}
 
           {/* Column headers + task list share same scrollable container for alignment */}
-          <div className="flex-1 overflow-y-auto bg-[#fafafa]">
+          <div className="flex-1 overflow-auto bg-[#fafafa]">
             <div className="sticky top-0 z-[1] grid items-center border-b border-[#e0e0e0] bg-[#fafafa] px-[24px]" style={{ gridTemplateColumns: taskGridTemplate }}>
               {visibleTaskColumns.map((col) => {
                 const Icon = col.icon
@@ -1407,6 +1362,14 @@ export default function TasksPage() {
                 )
               })}
             </div>
+
+            {showOnboarding && (
+              <OnboardingChecklist
+                hasClients={clients.length > 0}
+                hasTasks={allTasks.length > 0}
+                hasCharges={enabledCharges.length > 0}
+              />
+            )}
 
             {viewMode === "list" ? (
               isInvoicingMode ? (
@@ -1419,19 +1382,19 @@ export default function TasksPage() {
                   >
                     <ChevronDown className={`h-[12px] w-[12px] text-[#888] transition-transform ${showPrevious ? "" : "-rotate-90"}`} strokeWidth={2} />
                     <span className="text-[13px] font-semibold text-[#262626]">Ready to invoice</span>
-                    <span className="ml-[2px] text-[12px] font-medium text-[#ccc]">({previousTasks.length})</span>
+                    <span className="ml-[2px] text-[12px] font-medium text-[#ccc]">({completedTasks.length})</span>
                   </button>
                   {showPrevious && (
                     <>
-                      {previousTasks.slice(0, completedVisible).map(renderTaskRow)}
-                      {previousTasks.length > completedVisible && (
+                      {completedTasks.slice(0, completedVisible).map(renderTaskRow)}
+                      {completedTasks.length > completedVisible && (
                         <button
                           type="button"
                           onClick={() => setCompletedVisible((prev) => prev + pageSize)}
                           className="flex w-full items-center justify-center gap-[6px] border-b border-[#f0f0f0] py-[10px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#fafafa] hover:text-[#262626]"
                           tabIndex={0}
                         >
-                          Show more ({previousTasks.length - completedVisible} remaining)
+                          Show more ({completedTasks.length - completedVisible} remaining)
                         </button>
                       )}
                     </>
@@ -1465,7 +1428,7 @@ export default function TasksPage() {
                     </>
                   )}
 
-                  {previousTasks.length > 0 && (
+                  {completedTasks.length > 0 && (
                     <>
                       <button
                         type="button"
@@ -1475,19 +1438,49 @@ export default function TasksPage() {
                       >
                         <ChevronDown className={`h-[12px] w-[12px] text-[#888] transition-transform ${showPrevious ? "" : "-rotate-90"}`} strokeWidth={2} />
                         <span className="text-[13px] font-semibold text-[#999]">Completed</span>
-                        <span className="ml-[2px] text-[12px] font-medium text-[#ccc]">({previousTasks.length})</span>
+                        <span className="ml-[2px] text-[12px] font-medium text-[#ccc]">({completedTasks.length})</span>
                       </button>
                       {showPrevious && (
                         <>
-                          {previousTasks.slice(0, completedVisible).map(renderTaskRow)}
-                          {previousTasks.length > completedVisible && (
+                          {completedTasks.slice(0, completedVisible).map(renderTaskRow)}
+                          {completedTasks.length > completedVisible && (
                             <button
                               type="button"
                               onClick={() => setCompletedVisible((prev) => prev + pageSize)}
                               className="flex w-full items-center justify-center gap-[6px] border-b border-[#f0f0f0] py-[10px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#fafafa] hover:text-[#262626]"
                               tabIndex={0}
                             >
-                              Show more ({previousTasks.length - completedVisible} remaining)
+                              Show more ({completedTasks.length - completedVisible} remaining)
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </>
+                  )}
+
+                  {archivedTasks.length > 0 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setShowArchived(!showArchived)}
+                        className="flex w-full items-center gap-[4px] border-b border-[#e8e8e8] bg-[#fafafa] px-[12px] py-[6px] text-left"
+                        tabIndex={0}
+                      >
+                        <ChevronDown className={`h-[12px] w-[12px] text-[#888] transition-transform ${showArchived ? "" : "-rotate-90"}`} strokeWidth={2} />
+                        <span className="text-[13px] font-semibold text-[#999]">Archived</span>
+                        <span className="ml-[2px] text-[12px] font-medium text-[#ccc]">({archivedTasks.length})</span>
+                      </button>
+                      {showArchived && (
+                        <>
+                          {archivedTasks.slice(0, archivedVisible).map(renderTaskRow)}
+                          {archivedTasks.length > archivedVisible && (
+                            <button
+                              type="button"
+                              onClick={() => setArchivedVisible((prev) => prev + pageSize)}
+                              className="flex w-full items-center justify-center gap-[6px] border-b border-[#f0f0f0] py-[10px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#fafafa] hover:text-[#262626]"
+                              tabIndex={0}
+                            >
+                              Show more ({archivedTasks.length - archivedVisible} remaining)
                             </button>
                           )}
                         </>
@@ -1561,6 +1554,20 @@ export default function TasksPage() {
                 )
               })()
             )}
+
+            {hasMore && (
+              <div className="flex justify-center py-[16px]">
+                <button
+                  type="button"
+                  onClick={loadMore}
+                  disabled={isLoadingMore}
+                  className="text-[13px] font-medium text-[#888] transition-colors hover:text-[#262626] disabled:opacity-50"
+                  tabIndex={0}
+                >
+                  {isLoadingMore ? "Loading..." : "Load more"}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Footer */}
@@ -1585,503 +1592,23 @@ export default function TasksPage() {
           </div>
 
 
-      {/* Task detail modal */}
-      {selectedTask && (() => {
-        const assigneeInitials = selectedTask.assignee
-          ? selectedTask.assignee.split(" ").filter(Boolean).map((part) => part[0]).join("").toUpperCase().slice(0, 2)
-          : ""
-
-        return (
-          <>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-[16px]">
-            <div className="absolute inset-0 bg-black/20" onClick={closeDetail} />
-            <div className="relative z-10 flex h-[680px] max-h-[calc(100vh-32px)] w-[960px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[20px] border border-[#e7e7e7] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
-              <input
-                ref={detailFileInputRef}
-                type="file"
-                multiple
-                onChange={handleDetailFileSelect}
-                className="hidden"
-              />
-
-              <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_320px]">
-                <div className="flex min-h-0 flex-col px-[28px] py-[22px]">
-                  <div className="flex items-center gap-[6px] text-[11px] font-medium uppercase tracking-[0.03em] text-[#a3a3a3]">
-                    <SquareCheck className="h-[12px] w-[12px]" strokeWidth={1.5} />
-                    <span>Task</span>
-                  </div>
-
-                  <div className="mt-[14px] rounded-[10px] bg-[#f7f7f7] px-[12px] py-[10px]">
-                    <input
-                      type="text"
-                      placeholder="Enter a title for this task..."
-                      value={selectedTask.title}
-                      onChange={(e) => handleUpdateTask("title", e.target.value)}
-                      className="w-full bg-transparent text-[18px] font-semibold text-[#262626] placeholder-[#8f8f8f] outline-none"
-                    />
-                  </div>
-
-                  <div
-                    ref={descriptionRef}
-                    contentEditable
-                    suppressContentEditableWarning
-                    data-placeholder="Start typing a description..."
-                    onInput={() => {
-                      if (descriptionRef.current) handleUpdateTask("description", descriptionRef.current.innerHTML)
-                    }}
-                    onContextMenu={handleDescContextMenu}
-                    dangerouslySetInnerHTML={!descriptionRef.current ? { __html: selectedTask.description } : undefined}
-                    className="mt-[14px] min-h-[80px] flex-1 overflow-y-auto text-[14px] leading-[1.6] text-[#4b4b4b] outline-none [&:empty]:before:pointer-events-none [&:empty]:before:text-[#b5b5b5] [&:empty]:before:content-[attr(data-placeholder)] [&_ul]:list-disc [&_ul]:pl-[20px] [&_ol]:list-decimal [&_ol]:pl-[20px] [&_li]:my-[2px] [&_h1]:text-[22px] [&_h1]:font-bold [&_h1]:leading-[1.3] [&_h1]:my-[4px] [&_h2]:text-[18px] [&_h2]:font-semibold [&_h2]:leading-[1.4] [&_h2]:my-[3px] [&_h3]:text-[15px] [&_h3]:font-medium [&_h3]:leading-[1.5] [&_h3]:my-[2px]"
-                  />
-
-                  <div className="mt-[16px] flex items-center gap-[8px] border-t border-[#f1f1f1] pt-[14px]">
-                    <button
-                      type="button"
-                      onClick={closeDetail}
-                      className="ml-auto flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[10px] py-[5px] text-[12px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                      tabIndex={0}
-                    >
-                      Done
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex min-h-0 flex-col border-l border-[#ececec] px-[20px] py-[18px]">
-                  <div className="flex justify-end gap-[4px]">
-                    <button
-                      onClick={() => { handleDeleteTask(selectedTask.id) }}
-                      className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#bbb] transition-colors hover:bg-[#f5f5f5] hover:text-red-500"
-                      tabIndex={0}
-                      aria-label="Delete task"
-                    >
-                      <Trash2 className="h-[14px] w-[14px]" strokeWidth={1.5} />
-                    </button>
-                    <button
-                      onClick={closeDetail}
-                      className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
-                      tabIndex={0}
-                      aria-label="Close"
-                    >
-                      <X className="h-[14px] w-[14px]" strokeWidth={1.5} />
-                    </button>
-                  </div>
-
-                  <div className="mt-[18px] flex flex-col gap-[14px]">
-                    <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
-                      <span className="text-[13px] font-medium text-[#8d8d8d]">Customer</span>
-                      <button
-                        ref={detailClientRef}
-                        type="button"
-                        onClick={() => { setActiveDropdown(activeDropdown === "detail-client" ? null : "detail-client"); setDetailClientIdx(-1) }}
-                        onKeyDown={(e) => {
-                          if (activeDropdown === "detail-client") {
-                            const total = clientNames.length + 1
-                            if (e.key === "ArrowDown") { e.preventDefault(); setDetailClientIdx((p) => (p + 1) % total) }
-                            else if (e.key === "ArrowUp") { e.preventDefault(); setDetailClientIdx((p) => (p - 1 + total) % total) }
-                            else if (e.key === "Enter") {
-                              e.preventDefault()
-                              const val = detailClientIdx === 0 ? "" : clientNames[detailClientIdx - 1] ?? ""
-                              handleUpdateTask("client", val)
-                              if (val) {
-                                const matched = clients.find((c) => c.name === val || c.displayName === val)
-                                if (matched?.owner && selectedTaskId) {
-                                  const task = tasks.find((t) => t.id === selectedTaskId)
-                                  if (task && !task.assignee) handleUpdateTask("assignee", matched.owner)
-                                }
-                              }
-                              setActiveDropdown(null)
-                              setDetailClientIdx(-1)
-                            }
-                            else if (e.key === "Escape") { e.stopPropagation(); setActiveDropdown(null); setDetailClientIdx(-1) }
-                          }
-                        }}
-                        className="flex min-w-0 items-center gap-[8px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
-                        tabIndex={0}
-                      >
-                        {selectedTask.client ? (
-                          <>
-                            <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md bg-blue-100 text-[9px] font-bold text-blue-600">
-                              {selectedTask.client.split(" ").filter(Boolean).map((part) => part[0]).join("").toUpperCase().slice(0, 2)}
-                            </span>
-                            <span className="truncate text-[13px] font-medium text-[#262626]">{selectedTask.client}</span>
-                          </>
-                        ) : (
-                          <>
-                            <Building2 className="h-[13px] w-[13px] shrink-0 text-[#ccc]" strokeWidth={1.5} />
-                            <span className="text-[13px] font-medium text-[#ccc]">Empty</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
-                      <span className="text-[13px] font-medium text-[#8d8d8d]">Assignee</span>
-                      {canAssignTasks ? (
-                        <div className="relative">
-                          <button
-                            type="button"
-                            onClick={() => setActiveDropdown(activeDropdown === "detail-assignee" ? null : "detail-assignee")}
-                            className="flex min-w-0 items-center gap-[8px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
-                            tabIndex={0}
-                          >
-                            {selectedTask.assignee ? (
-                              <>
-                                <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md bg-[#f0f0f0] text-[9px] font-bold text-[#555]">
-                                  {assigneeInitials}
-                                </span>
-                                <span className="truncate text-[13px] font-medium text-[#262626]">{selectedTask.assignee}</span>
-                              </>
-                            ) : (
-                              <>
-                                <User className="h-[13px] w-[13px] shrink-0 text-[#ccc]" strokeWidth={1.5} />
-                                <span className="text-[13px] font-medium text-[#ccc]">Empty</span>
-                              </>
-                            )}
-                          </button>
-                          {activeDropdown === "detail-assignee" && (
-                            <>
-                              <div className="fixed inset-0 z-[59]" onClick={() => setActiveDropdown(null)} />
-                              <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[200px] min-w-[180px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-                                <div
-                                  onClick={() => { handleUpdateTask("assignee", ""); setActiveDropdown(null) }}
-                                  className="flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5]"
-                                  role="option"
-                                  aria-selected={!selectedTask.assignee}
-                                >
-                                  None
-                                </div>
-                                {staffNames.map((name) => {
-                                  const initials = name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-                                  return (
-                                    <div
-                                      key={name}
-                                      onClick={() => { handleUpdateTask("assignee", name); setActiveDropdown(null) }}
-                                      className={`flex w-full cursor-pointer items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${selectedTask.assignee === name ? "bg-[#f5f5f5]" : ""}`}
-                                      role="option"
-                                      aria-selected={selectedTask.assignee === name}
-                                    >
-                                      <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[4px] bg-[#d4d4d4] text-[9px] font-semibold text-[#555]">
-                                        {initials}
-                                      </div>
-                                      {name}
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="flex min-w-0 items-center gap-[8px] px-[8px] py-[6px]">
-                          {selectedTask.assignee ? (
-                            <>
-                              <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md bg-[#f0f0f0] text-[9px] font-bold text-[#555]">
-                                {assigneeInitials}
-                              </span>
-                              <span className="truncate text-[13px] font-medium text-[#262626]">{selectedTask.assignee}</span>
-                            </>
-                          ) : (
-                            <>
-                              <User className="h-[13px] w-[13px] shrink-0 text-[#ccc]" strokeWidth={1.5} />
-                              <span className="text-[13px] font-medium text-[#ccc]">Empty</span>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
-                      <span className="text-[13px] font-medium text-[#8d8d8d]">Due date</span>
-                      <div className="relative">
-                        <button
-                          type="button"
-                          onClick={() => setActiveDropdown(activeDropdown === "detail-date" ? null : "detail-date")}
-                          className="flex min-w-0 items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
-                          tabIndex={0}
-                        >
-                          <CalendarDays className={`h-[13px] w-[13px] shrink-0 ${selectedTask.dueDate ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
-                          <span className={`truncate text-[13px] font-medium ${selectedTask.dueDate ? "text-[#262626]" : "text-[#ccc]"}`}>
-                            {selectedTask.dueDate
-                              ? new Date(selectedTask.dueDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short" })
-                              : "Empty"}
-                          </span>
-                        </button>
-                        {activeDropdown === "detail-date" && (
-                          <>
-                            <div className="fixed inset-0 z-[59]" onClick={() => setActiveDropdown(null)} />
-                            <div className="absolute left-0 top-full z-[60] mt-[6px]">
-                              <DatePicker
-                                value={selectedTask.dueDate || ""}
-                                onChange={(val) => handleUpdateTask("dueDate", val)}
-                                onClose={() => setActiveDropdown(null)}
-                              />
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
-                      <span className="text-[13px] font-medium text-[#8d8d8d]">Charge</span>
-                      <button
-                        ref={detailChargeRef}
-                        type="button"
-                        onClick={() => setActiveDropdown(activeDropdown === "detail-charge" ? null : "detail-charge")}
-                        className="flex min-w-0 items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
-                        tabIndex={0}
-                      >
-                        {selectedTask.chargeType ? (
-                          <span className="truncate rounded-[4px] bg-[#f0f0f0] px-[8px] py-[3px] text-[12px] font-semibold text-[#555]">
-                            {chargeLabel(selectedTask.chargeType)}
-                          </span>
-                        ) : (
-                          <>
-                            <Tag className="h-[13px] w-[13px] shrink-0 text-[#ccc]" strokeWidth={1.5} />
-                            <span className="text-[13px] font-medium text-[#ccc]">Empty</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
-                      <span className="text-[13px] font-medium text-[#8d8d8d]">Secondary</span>
-                      <button
-                        ref={detailSecondaryChargeRef}
-                        type="button"
-                        onClick={() => setActiveDropdown(activeDropdown === "detail-secondary-charge" ? null : "detail-secondary-charge")}
-                        className="flex min-w-0 items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
-                        tabIndex={0}
-                      >
-                        {selectedTask.secondaryChargeType ? (
-                          <span className="truncate rounded-[4px] bg-[#f0f0f0] px-[8px] py-[3px] text-[12px] font-semibold text-[#555]">
-                            {secondaryChargeLabel(selectedTask.secondaryChargeType)}
-                          </span>
-                        ) : (
-                          <>
-                            <Tag className="h-[13px] w-[13px] shrink-0 text-[#ccc]" strokeWidth={1.5} />
-                            <span className="text-[13px] font-medium text-[#ccc]">Empty</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
-                      <span className="text-[13px] font-medium text-[#8d8d8d]">Time</span>
-                      <div className="flex items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] transition-colors hover:bg-[#f7f7f7]">
-                        <Clock className={`h-[13px] w-[13px] shrink-0 ${selectedTask.timeSpent > 0 ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
-                        <input
-                          key={selectedTask.timeSpent}
-                          type="text"
-                          defaultValue={selectedTask.timeSpent > 0 ? formatTime(selectedTask.timeSpent) : ""}
-                          placeholder="Empty"
-                          onBlur={(e) => handleUpdateTask("timeSpent", parseTimeInput(e.target.value))}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              handleUpdateTask("timeSpent", parseTimeInput(e.currentTarget.value))
-                              e.currentTarget.blur()
-                            }
-                          }}
-                          className="w-full bg-transparent text-[13px] font-medium text-[#262626] placeholder-[#ccc] outline-none"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Detail client dropdown */}
-          {activeDropdown === "detail-client" && detailClientRef.current && (() => {
-            const rect = detailClientRef.current.getBoundingClientRect()
-            return (
-              <div
-                className="fixed z-[60] max-h-[200px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-                style={{ top: rect.bottom + 4, left: rect.left, minWidth: 180 }}
-              >
-                <div
-                  onClick={() => { handleUpdateTask("client", ""); setActiveDropdown(null); setDetailClientIdx(-1) }}
-                  className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] ${detailClientIdx === 0 ? "bg-blue-50 text-blue-600" : ""}`}
-                  role="option"
-                  aria-selected={detailClientIdx === 0}
-                >
-                  None
-                </div>
-                {clientNames.map((name, i) => {
-                  const initials = name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-                  const isHighlighted = detailClientIdx === i + 1
-                  return (
-                    <div
-                      key={name}
-                      onClick={() => {
-                        handleUpdateTask("client", name)
-                        const matched = clients.find((c) => c.name === name || c.displayName === name)
-                        if (matched?.owner && selectedTaskId) {
-                          const task = tasks.find((t) => t.id === selectedTaskId)
-                          if (task && !task.assignee) handleUpdateTask("assignee", matched.owner)
-                        }
-                        setActiveDropdown(null); setDetailClientIdx(-1)
-                      }}
-                      className={`flex w-full cursor-pointer items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${isHighlighted ? "bg-blue-50" : ""}`}
-                      role="option"
-                      aria-selected={isHighlighted}
-                    >
-                      <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[4px] bg-[#d4d4d4] text-[9px] font-semibold text-[#555]">
-                        {initials}
-                      </div>
-                      {name}
-                    </div>
-                  )
-                })}
-              </div>
-            )
-          })()}
-
-          {/* Detail charge dropdown */}
-          {activeDropdown === "detail-charge" && selectedTask && detailChargeRef.current && (() => {
-            const rect = detailChargeRef.current.getBoundingClientRect()
-            return (
-              <div
-                className="fixed z-[60] max-h-[220px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-                style={{ top: rect.bottom + 6, left: rect.left, minWidth: Math.max(rect.width, 220) }}
-              >
-                {chargeTypes.map((ct) => (
-                  <div
-                    key={ct.value}
-                    onClick={() => { handleUpdateTask("chargeType", ct.value); setActiveDropdown(null) }}
-                    className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${ct.value ? "text-[#262626]" : "text-[#888]"} ${selectedTask.chargeType === ct.value ? "bg-[#f5f5f5]" : ""}`}
-                    role="option"
-                    aria-selected={selectedTask.chargeType === ct.value}
-                  >
-                    {ct.label}
-                  </div>
-                ))}
-              </div>
-            )
-          })()}
-
-          {/* Secondary charge dropdown */}
-          {activeDropdown === "detail-secondary-charge" && selectedTask && detailSecondaryChargeRef.current && (() => {
-            const rect = detailSecondaryChargeRef.current.getBoundingClientRect()
-            return (
-              <div
-                className="fixed z-[60] max-h-[260px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-                style={{ top: rect.bottom + 6, left: rect.left, minWidth: Math.max(rect.width, 220) }}
-              >
-                <div
-                  onClick={() => { handleUpdateTask("secondaryChargeType", ""); setActiveDropdown(null) }}
-                  className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] ${!selectedTask.secondaryChargeType ? "bg-[#f5f5f5]" : ""}`}
-                  role="option"
-                  aria-selected={!selectedTask.secondaryChargeType}
-                >
-                  No charge
-                </div>
-                <div className="my-[2px] border-t border-[#f0f0f0]" />
-                <div className="px-[12px] py-[4px] text-[10px] font-semibold uppercase tracking-[0.05em] text-[#aaa]">Service type</div>
-                {serviceChargeTypes.map((sct) => (
-                  <div
-                    key={sct.value}
-                    onClick={() => { handleUpdateTask("secondaryChargeType", sct.value); setActiveDropdown(null) }}
-                    className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${selectedTask.secondaryChargeType === sct.value ? "bg-[#f5f5f5]" : ""}`}
-                    role="option"
-                    aria-selected={selectedTask.secondaryChargeType === sct.value}
-                  >
-                    {sct.label}
-                  </div>
-                ))}
-                {enabledCharges.length > 0 && (
-                  <>
-                    <div className="my-[2px] border-t border-[#f0f0f0]" />
-                    <div className="px-[12px] py-[4px] text-[10px] font-semibold uppercase tracking-[0.05em] text-[#aaa]">NDIS line item</div>
-                    {enabledCharges.map((c) => (
-                      <div
-                        key={c.itemNumber}
-                        onClick={() => { handleUpdateTask("secondaryChargeType", c.itemNumber); setActiveDropdown(null) }}
-                        className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${selectedTask.secondaryChargeType === c.itemNumber ? "bg-[#f5f5f5]" : ""}`}
-                        role="option"
-                        aria-selected={selectedTask.secondaryChargeType === c.itemNumber}
-                      >
-                        {c.shortName}
-                      </div>
-                    ))}
-                  </>
-                )}
-              </div>
-            )
-          })()}
-          </>
-        )
-      })()}
-
-      {formatToolbar && (
-        <>
-          <div className="fixed inset-0 z-[80]" onClick={() => { setFormatToolbar(null); setIsTextSizeOpen(false) }} onContextMenu={(e) => { e.preventDefault(); setFormatToolbar(null); setIsTextSizeOpen(false) }} />
-          <div
-            className="fixed z-[80] flex items-center gap-[2px] rounded-lg border border-[#e0e0e0] bg-white px-[6px] py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.12)]"
-            style={{ top: formatToolbar.y - 44, left: formatToolbar.x - 100 }}
-          >
-            <div className="relative">
-              <button
-                onMouseDown={(e) => { e.preventDefault(); setIsTextSizeOpen(!isTextSizeOpen) }}
-                className={`flex h-[28px] items-center gap-[3px] rounded-[4px] px-[6px] transition-colors ${isTextSizeOpen || currentBlock === "h1" || currentBlock === "h2" || currentBlock === "h3" ? "bg-[#e8e8e8] text-[#262626]" : "text-[#666] hover:bg-[#f0f0f0] hover:text-[#262626]"}`}
-                tabIndex={0}
-                aria-label="Text size"
-                title="Text size"
-              >
-                <Type className="h-[14px] w-[14px]" strokeWidth={2} />
-                <ChevronDown className="h-[10px] w-[10px]" strokeWidth={2} />
-              </button>
-              {isTextSizeOpen && (
-                <div className="absolute left-0 top-full z-[90] mt-[4px] w-[140px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
-                  {([
-                    { tag: "h1", label: "Heading", className: "text-[16px] font-bold" },
-                    { tag: "h2", label: "Subheading", className: "text-[14px] font-semibold" },
-                    { tag: "h3", label: "Small", className: "text-[13px] font-medium" },
-                    { tag: "p", label: "Normal", className: "text-[13px] font-normal" },
-                  ] as const).map(({ tag, label, className }) => (
-                    <button
-                      key={tag}
-                      onMouseDown={(e) => { e.preventDefault(); handleTextSize(tag) }}
-                      className={`flex w-full items-center px-[12px] py-[6px] transition-colors hover:bg-[#f5f5f5] ${currentBlock === tag ? "bg-[#f0f0f0]" : ""}`}
-                      tabIndex={0}
-                    >
-                      <span className={`text-[#262626] ${className}`}>{label}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="mx-[2px] h-[16px] w-px bg-[#e8e8e8]" />
-            {([
-              { cmd: "bold", Icon: Bold, label: "Bold" },
-              { cmd: "italic", Icon: Italic, label: "Italic" },
-              { cmd: "underline", Icon: Underline, label: "Underline" },
-              { cmd: "strikeThrough", Icon: Strikethrough, label: "Strikethrough" },
-            ] as const).map(({ cmd, Icon, label }) => (
-              <button
-                key={cmd}
-                onMouseDown={(e) => { e.preventDefault(); handleDescFormat(cmd) }}
-                className={`flex h-[28px] w-[28px] items-center justify-center rounded-[4px] transition-colors ${descFormats[cmd] ? "bg-[#e8e8e8] text-[#262626]" : "text-[#666] hover:bg-[#f0f0f0] hover:text-[#262626]"}`}
-                tabIndex={0}
-                aria-label={label}
-                title={label}
-              >
-                <Icon className="h-[14px] w-[14px]" strokeWidth={2} />
-              </button>
-            ))}
-            <div className="mx-[2px] h-[16px] w-px bg-[#e8e8e8]" />
-            <button
-              onMouseDown={(e) => { e.preventDefault(); handleDescFormat("insertUnorderedList") }}
-              className={`flex h-[28px] w-[28px] items-center justify-center rounded-[4px] transition-colors ${descFormats.insertUnorderedList ? "bg-[#e8e8e8] text-[#262626]" : "text-[#666] hover:bg-[#f0f0f0] hover:text-[#262626]"}`}
-              tabIndex={0}
-              aria-label="Bullet list"
-              title="Bullet list"
-            >
-              <List className="h-[14px] w-[14px]" strokeWidth={2} />
-            </button>
-          </div>
-        </>
+      {selectedTask && selectedTaskId && (
+        <TaskDetailModal
+          selectedTask={selectedTask}
+          selectedTaskId={selectedTaskId}
+          tasks={tasks}
+          onUpdateTask={handleUpdateTask}
+          onDeleteTask={handleDeleteTask}
+          onClose={closeDetail}
+          chargeTypes={chargeTypes}
+          chargeLabel={chargeLabel}
+          secondaryChargeLabel={secondaryChargeLabel}
+          clientNames={clientNames}
+          clients={clients}
+          staffNames={staffNames}
+          canAssignTasks={canAssignTasks}
+          enabledCharges={enabledCharges}
+        />
       )}
 
       {isCreateTaskViewOpen && (
@@ -2123,7 +1650,7 @@ export default function TasksPage() {
               <button
                 onClick={handleCreateTaskView}
                 disabled={!newTaskViewName.trim()}
-                className={`rounded-[4px] border px-[16px] py-[6px] text-[13px] font-medium transition-colors ${newTaskViewName.trim() ? "border-[#262626] bg-[#262626] text-white hover:bg-[#333]" : "border-[#dcdcdc] text-[#bbb]"}`}
+                className={`rounded-[4px] px-[16px] py-[6px] text-[13px] font-medium transition-colors ${newTaskViewName.trim() ? "primary-btn" : "border border-[#dcdcdc] text-[#bbb]"}`}
                 tabIndex={0}
               >
                 Create
@@ -2183,6 +1710,78 @@ export default function TasksPage() {
           </div>
         </div>
       )}
+
+      {selectedTaskIds.size > 0 && (
+        <div className="fixed bottom-[24px] left-1/2 z-50 -translate-x-1/2">
+          <div className="flex items-center gap-[12px] rounded-xl border border-[#e0e0e0] bg-white px-[20px] py-[12px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+            <span className="text-[13px] font-semibold text-[#262626]">
+              {selectedTaskIds.size} selected
+            </span>
+            <div className="h-[16px] w-px bg-[#e5e5e5]" />
+            <button
+              onClick={handleBulkMarkDone}
+              className="flex items-center gap-[6px] rounded-lg px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+              tabIndex={0}
+            >
+              <CheckSquare className="h-[14px] w-[14px] text-green-600" strokeWidth={1.75} />
+              Mark done
+            </button>
+            <button
+              onClick={() => setIsBulkDeleting(true)}
+              className="flex items-center gap-[6px] rounded-lg px-[12px] py-[6px] text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50"
+              tabIndex={0}
+            >
+              <Trash2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
+              Delete
+            </button>
+            <div className="h-[16px] w-px bg-[#e5e5e5]" />
+            <button
+              onClick={() => setSelectedTaskIds(new Set())}
+              className="flex items-center gap-[6px] rounded-lg px-[12px] py-[6px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+              tabIndex={0}
+            >
+              <X className="h-[14px] w-[14px]" strokeWidth={1.75} />
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isBulkDeleting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/20" onClick={() => setIsBulkDeleting(false)} />
+          <div className="relative z-10 w-[400px] rounded-lg bg-white p-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+            <h3 className="text-[15px] font-semibold text-[#262626]">Delete tasks</h3>
+            <p className="mt-[8px] text-[13px] font-medium text-[#888]">
+              Are you sure you want to delete <span className="text-[#262626]">{selectedTaskIds.size} {selectedTaskIds.size === 1 ? "task" : "tasks"}</span>? This action cannot be undone.
+            </p>
+            <div className="mt-[20px] flex items-center justify-end gap-[12px]">
+              <button
+                onClick={() => setIsBulkDeleting(false)}
+                className="px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:text-[#888]"
+                tabIndex={0}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                className="rounded-[4px] bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
+                tabIndex={0}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      <ConfirmDialog
+        isOpen={!!deleteConfirmId}
+        title="Delete task"
+        description="This action cannot be undone. The task and its data will be permanently removed."
+        confirmLabel="Delete"
+        onConfirm={confirmDeleteTask}
+        onCancel={() => setDeleteConfirmId(null)}
+      />
     </div>
   )
 }

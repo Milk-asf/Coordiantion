@@ -7,7 +7,7 @@ export default function BillingSettingsPage() {
           Manage your subscription and billing details.
         </p>
       </div>
-      <div className="flex items-center justify-center rounded-[14px] border border-[#e5e5e5] bg-[#fafafa] py-[48px]">
+      <div className="flex items-center justify-center py-[48px]">
         <p className="text-[13px] text-[#bbb]">Coming soon</p>
       </div>
     </>

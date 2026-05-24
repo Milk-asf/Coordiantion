@@ -1,6 +1,9 @@
 "use client"
 
 import { Sidebar } from "@/components/sidebar/sidebar"
+import { MobileNav } from "@/components/mobile-nav"
+import { CommandPalette } from "@/components/command-palette"
+import { KeyboardShortcutsProvider } from "@/components/keyboard-shortcuts-provider"
 import { ToastProvider } from "@/components/toast"
 import { WorkspaceProvider } from "@/lib/workspace-context"
 import { ClientsProvider } from "@/lib/clients-context"
@@ -22,12 +25,18 @@ export default function DashboardLayout({
             <StaffProvider>
               <TasksProvider>
                 <DocumentsProvider>
-                  <div className="flex h-screen overflow-hidden">
-                    <Sidebar />
-                    <main className="h-full flex-1 overflow-y-auto bg-[#fafafa]">
-                      {children}
-                    </main>
-                  </div>
+                  <KeyboardShortcutsProvider>
+                    <div className="flex h-screen flex-col overflow-hidden md:flex-row">
+                      <div className="hidden md:flex">
+                        <Sidebar />
+                      </div>
+                      <MobileNav />
+                      <main className="h-full flex-1 overflow-y-auto bg-[#fafafa]">
+                        {children}
+                      </main>
+                      <CommandPalette />
+                    </div>
+                  </KeyboardShortcutsProvider>
                 </DocumentsProvider>
               </TasksProvider>
             </StaffProvider>

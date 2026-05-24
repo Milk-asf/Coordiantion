@@ -4,9 +4,9 @@
 
 @layer base {
   :root {
-    --primary-color: #262626;
-    --primary-color-hover: #1a1a1a;
-    --primary-color-light: rgba(38, 38, 38, 0.06);
+    --primary-color: #2563EB;
+    --primary-color-hover: #1d4ed8;
+    --primary-color-light: rgba(37, 99, 235, 0.06);
     --primary-color-text: #262626;
     --primary-btn-text: #262626;
     --primary-btn-border: #d4d4d4;
@@ -26,4 +26,63 @@
 .primary-btn:hover {
   background-color: #f5f5f5 !important;
   filter: none;
+}
+
+.note-editable:empty::before {
+  content: attr(data-placeholder);
+  color: #bbb;
+  pointer-events: none;
+}
+
+.note-editable h1 {
+  font-size: 1.5em;
+  font-weight: 700;
+  margin: 0.4em 0;
+}
+
+.note-editable h2 {
+  font-size: 1.25em;
+  font-weight: 600;
+  margin: 0.3em 0;
+}
+
+.note-editable blockquote {
+  border-left: 3px solid #e0e0e0;
+  padding-left: 12px;
+  color: #666;
+  margin: 0.5em 0;
+}
+
+.note-editable pre {
+  background: #f5f5f5;
+  border-radius: 6px;
+  padding: 12px;
+  font-family: monospace;
+  font-size: 0.9em;
+  margin: 0.5em 0;
+}
+
+.note-editable ul, .note-editable ol {
+  padding-left: 1.5em;
+  margin: 0.3em 0;
+}
+
+.note-editable li {
+  margin: 0.2em 0;
+}
+
+@layer utilities {
+  @media (max-width: 767px) {
+    .modal-responsive {
+      width: 100% !important;
+      max-width: 100% !important;
+      height: 100% !important;
+      max-height: 100% !important;
+      border-radius: 0 !important;
+    }
+
+    .modal-responsive .grid-cols-\[minmax\(0\2c 1fr\)_320px\] {
+      grid-template-columns: 1fr !important;
+    }
+  }
 }
