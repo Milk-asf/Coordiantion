@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, Mail, CheckCircle2 } from "lucide-react"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 
 export default function SignUpPage() {
@@ -73,7 +73,7 @@ export default function SignUpPage() {
       }
 
       if (!data.session) {
-        setSuccessMessage("Check your email to confirm your account, then sign in.")
+        setSuccessMessage("confirmation-sent")
         setIsLoading(false)
         return
       }
@@ -85,6 +85,41 @@ export default function SignUpPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  if (successMessage === "confirmation-sent") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#fafafa]">
+        <div className="w-full max-w-[380px] px-[16px] text-center">
+          <div className="mx-auto mb-[20px] flex h-[48px] w-[48px] items-center justify-center rounded-full bg-green-50">
+            <Mail className="h-[22px] w-[22px] text-green-600" strokeWidth={1.75} />
+          </div>
+          <h1 className="text-[20px] font-semibold text-[#262626]">Check your email</h1>
+          <p className="mt-[8px] text-[14px] leading-[1.5] text-[#888]">
+            We sent a confirmation link to <span className="font-medium text-[#262626]">{email}</span>. Click the link to verify your account and start onboarding.
+          </p>
+          <div className="mt-[24px] rounded-[10px] border border-[#e8f5e9] bg-[#f1f8f2] px-[16px] py-[14px]">
+            <div className="flex items-start gap-[10px]">
+              <CheckCircle2 className="mt-[1px] h-[16px] w-[16px] shrink-0 text-green-600" strokeWidth={2} />
+              <div className="text-left">
+                <p className="text-[13px] font-medium text-[#262626]">Your account has been created</p>
+                <p className="mt-[2px] text-[12px] text-[#666]">Once confirmed, you&apos;ll be taken straight into your workspace to get set up.</p>
+              </div>
+            </div>
+          </div>
+          <p className="mt-[20px] text-[12px] text-[#bbb]">
+            Didn&apos;t receive it? Check your spam folder or{" "}
+            <button
+              type="button"
+              onClick={() => setSuccessMessage("")}
+              className="text-[#262626] underline underline-offset-2"
+            >
+              try again
+            </button>
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -165,11 +200,6 @@ export default function SignUpPage() {
             </p>
           )}
 
-          {successMessage && (
-            <div className="rounded-lg bg-green-50 px-[12px] py-[8px] text-[13px] font-medium text-green-700">
-              {successMessage}
-            </div>
-          )}
 
           <button
             type="submit"
