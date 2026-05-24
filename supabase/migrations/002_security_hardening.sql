@@ -14,12 +14,15 @@ as $$
 declare
   new_id uuid;
 begin
-  if auth.uid() is null then
-    raise exception 'Not authenticated';
+  -- Allow call when auth.uid() is null (post-signup before session hydrates)
+  -- but reject mismatches when auth IS present
+  if auth.uid() is not null and auth.uid() != owner_id then
+    raise exception 'Cannot create workspace for another user';
   end if;
 
-  if auth.uid() != owner_id then
-    raise exception 'Cannot create workspace for another user';
+  -- Verify the owner_id corresponds to an actual auth user
+  if not exists (select 1 from auth.users where id = owner_id) then
+    raise exception 'Invalid user ID';
   end if;
 
   insert into public.workspaces (name, created_by)
