@@ -25,6 +25,7 @@ import {
 import { cn } from "@/lib/utils"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
+import { usePermissions } from "@/lib/hooks/use-permissions"
 import { useWorkspaceSettings } from "@/lib/hooks/use-workspace-settings"
 import { useNotifications, type AppNotification } from "@/lib/hooks/use-notifications"
 import { SetupWidget } from "@/components/sidebar/setup-widget"
@@ -91,6 +92,7 @@ export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { activeWorkspace } = useWorkspace()
+  const { canViewStaff, isLoading: permissionsLoading } = usePermissions()
   const { settings: orgSettings } = useWorkspaceSettings()
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications()
 
@@ -320,7 +322,10 @@ export function Sidebar() {
         </div>
 
         {navigation.map((section) => {
-          const items = section.items
+          const items = section.items.filter((item) => {
+            if (item.label === "Staff" && !permissionsLoading && !canViewStaff) return false
+            return true
+          })
           if (items.length === 0) return null
           return (
             <div key={section.title} className="mt-4">
