@@ -14,6 +14,7 @@ export async function updateSession(request: NextRequest) {
   const isAuthPage = authPaths.includes(path)
   const isPublicPath = publicPaths.includes(path)
   const isOnboardingPath = path.startsWith("/onboarding")
+  const isApiPath = path.startsWith("/api")
 
   if (!isConfigured()) {
     if (isAuthPage) return NextResponse.next({ request })
@@ -89,8 +90,9 @@ export async function updateSession(request: NextRequest) {
     return redirectResponse
   }
 
-  // If they haven't finished onboarding, force them through it (except /onboarding itself)
-  if (!onboardingComplete && !isOnboardingPath) {
+  // If they haven't finished onboarding, force them through it
+  // (skip /onboarding itself and API routes so onboarding steps can call /api/invite etc.)
+  if (!onboardingComplete && !isOnboardingPath && !isApiPath) {
     const url = request.nextUrl.clone()
     url.pathname = "/onboarding"
     const redirectResponse = NextResponse.redirect(url)
