@@ -10,8 +10,10 @@ function isConfigured() {
 export async function updateSession(request: NextRequest) {
   const authPaths = ["/login", "/signup", "/reset-password", "/update-password"]
   const publicPaths = ["/auth/callback"]
-  const isAuthPage = authPaths.includes(request.nextUrl.pathname)
-  const isPublicPath = publicPaths.includes(request.nextUrl.pathname)
+  const path = request.nextUrl.pathname
+  const isAuthPage = authPaths.includes(path)
+  const isPublicPath = publicPaths.includes(path)
+  const isOnboardingPath = path.startsWith("/onboarding")
 
   if (!isConfigured()) {
     if (isAuthPage) return NextResponse.next({ request })
@@ -58,13 +60,39 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse
   }
 
-  if (request.nextUrl.pathname === "/update-password") {
+  if (path === "/update-password") {
     return supabaseResponse
   }
 
-  if (isAuthPage || request.nextUrl.pathname === "/") {
+  const meta = (user.user_metadata ?? {}) as Record<string, unknown>
+  const onboardingComplete = Boolean(meta.onboarding_completed_at)
+
+  // Logged in and on auth page or root: route based on onboarding state
+  if (isAuthPage || path === "/") {
+    const url = request.nextUrl.clone()
+    url.pathname = onboardingComplete ? "/tasks" : "/onboarding"
+    const redirectResponse = NextResponse.redirect(url)
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value)
+    })
+    return redirectResponse
+  }
+
+  // If they're done with onboarding but try to visit /onboarding/*, send to app
+  if (isOnboardingPath && onboardingComplete) {
     const url = request.nextUrl.clone()
     url.pathname = "/tasks"
+    const redirectResponse = NextResponse.redirect(url)
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value)
+    })
+    return redirectResponse
+  }
+
+  // If they haven't finished onboarding, force them through it (except /onboarding itself)
+  if (!onboardingComplete && !isOnboardingPath) {
+    const url = request.nextUrl.clone()
+    url.pathname = "/onboarding"
     const redirectResponse = NextResponse.redirect(url)
     supabaseResponse.cookies.getAll().forEach((cookie) => {
       redirectResponse.cookies.set(cookie.name, cookie.value)

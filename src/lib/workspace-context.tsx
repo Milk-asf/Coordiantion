@@ -36,83 +36,26 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      const { data, error } = await supabase.from("workspaces").select("*").order("created_at", { ascending: true }).limit(1).single()
-
-      if (cancelled) return
-
       const userName = user.user_metadata?.full_name || user.email?.split("@")[0] || "You"
       setCurrentUserName(userName)
 
-      if (data) {
-        setActiveWorkspace(data)
-        setIsLoading(false)
-        return
-      }
+      const { data, error } = await supabase
+        .from("workspaces")
+        .select("*")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle()
+
+      if (cancelled) return
 
       if (error) {
         console.error("Workspace query failed:", error.message)
       }
 
-      const fullName = user.user_metadata?.full_name || user.email?.split("@")[0] || "My"
-      const orgName = user.user_metadata?.org_name as string | undefined
-      const workspaceName = orgName?.trim() || `${fullName}'s Workspace`
-
-      const { data: wsId, error: rpcError } = await supabase.rpc("create_workspace_for_user", {
-        workspace_name: workspaceName,
-        owner_id: user.id,
-      })
-
-      if (cancelled) return
-
-      if (rpcError) {
-        console.error("Failed to create workspace via RPC:", rpcError.message, rpcError)
+      if (data) {
+        setActiveWorkspace(data)
       }
 
-      if (wsId) {
-        await supabase.from("workspace_members").upsert({
-          workspace_id: wsId,
-          user_id: user.id,
-          role: "super-admin",
-          status: "active",
-        }, { onConflict: "workspace_id,user_id" })
-
-        await supabase.from("clients").insert({
-          workspace_id: wsId,
-          name: "Jane Cooper",
-          icon_text: "JC",
-          icon_color: "#6b7280",
-          icon_shape: "square",
-          participant: {
-            firstName: "Jane",
-            middleName: "",
-            lastName: "Cooper",
-            preferredName: "",
-            dateOfBirth: "1990-04-15",
-            gender: "Female",
-            pronouns: "She/Her",
-            ethnicity: "",
-            language: "English",
-            primaryDiagnosis: "Cerebral Palsy",
-            secondaryDiagnosis: "",
-            email: "jane.cooper@example.com",
-            mobile: "0412 345 678",
-            phone: "",
-            preferredContactMethod: "Email",
-            preferredSignMethod: "Electronically",
-            ndisNumber: "430 012 345",
-            medicareNumber: "",
-            centrelinkNumber: "",
-            externalId: "",
-            serviceCommencementDate: "2024-01-10",
-            serviceExitDate: "",
-          },
-          industry: [],
-        })
-
-        if (cancelled) return
-        const { data: ws } = await supabase.from("workspaces").select("*").eq("id", wsId).single()
-        if (ws && !cancelled) setActiveWorkspace(ws)
-      }
       setIsLoading(false)
     }
 

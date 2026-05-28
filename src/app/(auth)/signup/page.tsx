@@ -8,8 +8,6 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 
 export default function SignUpPage() {
   const router = useRouter()
-  const [fullName, setFullName] = useState("")
-  const [orgName, setOrgName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -47,8 +45,7 @@ export default function SignUpPage() {
         password,
         options: {
           data: {
-            full_name: fullName,
-            org_name: orgName,
+            onboarding_step: "profile",
           },
         },
       })
@@ -77,7 +74,7 @@ export default function SignUpPage() {
         return
       }
 
-      router.push("/tasks")
+      router.push("/onboarding")
       router.refresh()
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Something went wrong. Please try again."
@@ -96,14 +93,14 @@ export default function SignUpPage() {
           </div>
           <h1 className="text-[20px] font-semibold text-[#262626]">Check your email</h1>
           <p className="mt-[8px] text-[14px] leading-[1.5] text-[#888]">
-            We sent a confirmation link to <span className="font-medium text-[#262626]">{email}</span>. Click the link to verify your account and start onboarding.
+            We sent a confirmation link to <span className="font-medium text-[#262626]">{email}</span>. Click the link to verify your account and start setting up.
           </p>
           <div className="mt-[24px] rounded-[10px] border border-[#e8f5e9] bg-[#f1f8f2] px-[16px] py-[14px]">
             <div className="flex items-start gap-[10px]">
               <CheckCircle2 className="mt-[1px] h-[16px] w-[16px] shrink-0 text-green-600" strokeWidth={2} />
               <div className="text-left">
                 <p className="text-[13px] font-medium text-[#262626]">Your account has been created</p>
-                <p className="mt-[2px] text-[12px] text-[#666]">Once confirmed, you&apos;ll be taken straight into your workspace to get set up.</p>
+                <p className="mt-[2px] text-[12px] text-[#666]">Once confirmed, we&apos;ll walk you through setting up your profile and workspace.</p>
               </div>
             </div>
           </div>
@@ -113,6 +110,7 @@ export default function SignUpPage() {
               type="button"
               onClick={() => setSuccessMessage("")}
               className="text-[#262626] underline underline-offset-2"
+              tabIndex={0}
             >
               try again
             </button>
@@ -129,35 +127,13 @@ export default function SignUpPage() {
           <div className="mx-auto mb-[16px] flex h-[36px] w-[36px] items-center justify-center rounded-full bg-green-600 text-[14px] font-semibold text-white">
             C
           </div>
-          <h1 className="text-[20px] font-semibold text-[#262626]">Create your account</h1>
-          <p className="mt-[4px] text-[13px] font-medium text-[#888]">Set up your organisation on Coordination</p>
+          <h1 className="text-[20px] font-semibold text-[#262626]">Welcome to Coordination</h1>
+          <p className="mt-[4px] text-[13px] font-medium text-[#888]">
+            Create your account to get started
+          </p>
         </div>
 
         <form onSubmit={handleSignUp} className="flex flex-col gap-[14px]">
-          <div>
-            <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Full name</label>
-            <input
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Your name"
-              required
-              className="h-[40px] w-full rounded-lg border border-[#e0e0e0] bg-[#fafafa] px-[12px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
-            />
-          </div>
-
-          <div>
-            <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Organisation name</label>
-            <input
-              type="text"
-              value={orgName}
-              onChange={(e) => setOrgName(e.target.value)}
-              placeholder="Your business or company"
-              required
-              className="h-[40px] w-full rounded-lg border border-[#e0e0e0] bg-[#fafafa] px-[12px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
-            />
-          </div>
-
           <div>
             <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Email</label>
             <input
@@ -167,6 +143,7 @@ export default function SignUpPage() {
               placeholder="you@company.com"
               required
               className="h-[40px] w-full rounded-lg border border-[#e0e0e0] bg-[#fafafa] px-[12px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
+              tabIndex={0}
             />
           </div>
 
@@ -179,8 +156,9 @@ export default function SignUpPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Min 12 characters"
                 required
-                minLength={6}
+                minLength={12}
                 className="h-[40px] w-full rounded-lg border border-[#e0e0e0] bg-[#fafafa] px-[12px] pr-[40px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
+                tabIndex={0}
               />
               <button
                 type="button"
@@ -200,17 +178,17 @@ export default function SignUpPage() {
             </p>
           )}
 
-
           <button
             type="submit"
             disabled={isLoading}
             className="h-[40px] w-full rounded-lg bg-[#262626] text-[13px] font-medium text-white transition-colors hover:bg-[#3d3d3d] disabled:opacity-50"
+            tabIndex={0}
           >
-            {isLoading ? "Creating account..." : "Create account"}
+            {isLoading ? "Creating account..." : "Continue"}
           </button>
 
           <p className="text-center text-[11px] text-[#aaa]">
-            You&apos;ll be the account owner with full admin access
+            We&apos;ll set up your profile and workspace in the next steps
           </p>
         </form>
 

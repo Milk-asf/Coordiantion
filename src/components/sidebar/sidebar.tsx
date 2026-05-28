@@ -28,6 +28,7 @@ import { useWorkspace } from "@/lib/workspace-context"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import { useWorkspaceSettings } from "@/lib/hooks/use-workspace-settings"
 import { useNotifications, type AppNotification } from "@/lib/hooks/use-notifications"
+import { SetupWidget } from "@/components/sidebar/setup-widget"
 
 interface NavItem {
   label: string
@@ -343,6 +344,9 @@ export function Sidebar() {
           )
         })}
       </nav>
+
+      {/* Setup widget */}
+      <SetupWidget isCollapsed={isCollapsed} />
 
       {/* User menu at bottom */}
       <div className="relative border-t border-sidebar-border px-2 pb-3 pt-2" ref={userMenuRef}>

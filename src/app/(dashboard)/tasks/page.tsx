@@ -32,7 +32,6 @@ import type { Task, Attachment } from "@/lib/types"
 import { PageLoader, PageError } from "@/components/page-state"
 import { useToast } from "@/components/toast"
 import { ConfirmDialog } from "@/components/confirm-dialog"
-import { OnboardingChecklist } from "@/components/onboarding-checklist"
 import { TaskDetailModal } from "./_components/task-detail-modal"
 import {
   type TaskSavedView,
@@ -592,8 +591,6 @@ export default function TasksPage() {
       </div>
     )
   }
-
-  const showOnboarding = !isLoading && !fetchError && allTasks.length === 0 && clients.length === 0
 
   if (isLoading) return <PageLoader label="Loading tasks…" />
   if (fetchError) return <PageError message="Failed to load tasks" onRetry={refetch} />
@@ -1362,14 +1359,6 @@ export default function TasksPage() {
                 )
               })}
             </div>
-
-            {showOnboarding && (
-              <OnboardingChecklist
-                hasClients={clients.length > 0}
-                hasTasks={allTasks.length > 0}
-                hasCharges={enabledCharges.length > 0}
-              />
-            )}
 
             {viewMode === "list" ? (
               isInvoicingMode ? (
