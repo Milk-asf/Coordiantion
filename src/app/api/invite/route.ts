@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { inviteMemberSchema } from "@/lib/validations"
 import { rateLimit, getRateLimitHeaders } from "@/lib/rate-limit"
+import { getSiteUrl } from "@/lib/get-site-url"
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -68,10 +69,12 @@ export async function POST(request: Request) {
     memberId = newMember.id
   }
 
-  const origin = new URL(request.url).origin
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+    ? getSiteUrl()
+    : new URL(request.url).origin
 
   const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${origin}/auth/callback`,
+    redirectTo: `${siteUrl}/auth/callback`,
   })
 
   let userId: string | null = null
