@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff, Mail, CheckCircle2 } from "lucide-react"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
-import { getSiteUrl } from "@/lib/get-site-url"
+import { getAuthCallbackUrl } from "@/lib/get-site-url"
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -45,7 +45,7 @@ export default function SignUpPage() {
         email,
         password,
         options: {
-          emailRedirectTo: `${getSiteUrl()}/auth/callback`,
+          emailRedirectTo: getAuthCallbackUrl("/onboarding"),
           data: {
             onboarding_step: "profile",
           },

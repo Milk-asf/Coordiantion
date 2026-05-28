@@ -1,18 +1,24 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff } from "lucide-react"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    const urlError = searchParams.get("error")
+    if (urlError) setError(decodeURIComponent(urlError))
+  }, [searchParams])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -120,5 +126,19 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#fafafa]">
+          <p className="text-[14px] font-medium text-[#666]">Loading…</p>
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   )
 }
