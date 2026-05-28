@@ -57,7 +57,7 @@ function derivePermissions(role: Role, userId: string | null = null, userEmail: 
     canManageWorkspaceSettings: isAdmin,
     canManageMembers: isAdmin,
     canManageStaff: isAdmin,
-    canViewStaff: isAdmin,
+    canViewStaff: true,
     canManageClients: true,
     canCreateTasks: true,
     canManageDocuments: true,
