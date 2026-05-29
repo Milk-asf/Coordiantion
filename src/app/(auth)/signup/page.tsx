@@ -26,14 +26,13 @@ export default function SignUpPage() {
   }, [resendIn])
 
   const sendCode = async () => {
-    const supabase = createClient()!
-    return supabase.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: true,
-        data: { onboarding_step: "profile" },
-      },
+    const res = await fetch("/api/auth/send-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email.trim().toLowerCase() }),
     })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.error || "Could not send the code.")
   }
 
   const handleSendCode = async (e: React.FormEvent) => {
@@ -52,11 +51,7 @@ export default function SignUpPage() {
 
     setIsLoading(true)
     try {
-      const { error: otpError } = await sendCode()
-      if (otpError) {
-        setError(otpError.message)
-        return
-      }
+      await sendCode()
       setStep("code")
       setResendIn(RESEND_COOLDOWN_SECONDS)
     } catch (err: unknown) {
@@ -80,7 +75,7 @@ export default function SignUpPage() {
     try {
       const supabase = createClient()!
       const { error: verifyError } = await supabase.auth.verifyOtp({
-        email,
+        email: email.trim().toLowerCase(),
         token,
         type: "email",
       })
@@ -104,11 +99,7 @@ export default function SignUpPage() {
     setError("")
     setIsLoading(true)
     try {
-      const { error: otpError } = await sendCode()
-      if (otpError) {
-        setError(otpError.message)
-        return
-      }
+      await sendCode()
       setResendIn(RESEND_COOLDOWN_SECONDS)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not resend the code.")
