@@ -3,19 +3,17 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Eye, EyeOff, Mail, ArrowLeft } from "lucide-react"
+import { Mail, ArrowLeft } from "lucide-react"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 
-type Step = "credentials" | "code"
+type Step = "email" | "code"
 
 const RESEND_COOLDOWN_SECONDS = 45
 
 export default function SignUpPage() {
   const router = useRouter()
-  const [step, setStep] = useState<Step>("credentials")
+  const [step, setStep] = useState<Step>("email")
   const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
   const [code, setCode] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -27,7 +25,18 @@ export default function SignUpPage() {
     return () => clearInterval(timer)
   }, [resendIn])
 
-  const handleCreateAccount = async (e: React.FormEvent) => {
+  const sendCode = async () => {
+    const supabase = createClient()!
+    return supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: true,
+        data: { onboarding_step: "profile" },
+      },
+    })
+  }
+
+  const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
 
@@ -36,45 +45,18 @@ export default function SignUpPage() {
       return
     }
 
-    if (password.length < 12) {
-      setError("Password must be at least 12 characters.")
-      return
-    }
-
-    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
-      setError("Password must contain uppercase, lowercase, and a number.")
+    if (!email.trim().includes("@")) {
+      setError("Enter a valid email address.")
       return
     }
 
     setIsLoading(true)
-
     try {
-      const supabase = createClient()!
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { onboarding_step: "profile" },
-        },
-      })
-
-      if (signUpError) {
-        setError(signUpError.message)
+      const { error: otpError } = await sendCode()
+      if (otpError) {
+        setError(otpError.message)
         return
       }
-
-      if (data.user?.identities && data.user.identities.length === 0) {
-        setError("This email is already registered. Please sign in instead.")
-        return
-      }
-
-      // Email confirmation disabled — session created immediately
-      if (data.session) {
-        router.push("/onboarding")
-        router.refresh()
-        return
-      }
-
       setStep("code")
       setResendIn(RESEND_COOLDOWN_SECONDS)
     } catch (err: unknown) {
@@ -95,13 +77,12 @@ export default function SignUpPage() {
     }
 
     setIsLoading(true)
-
     try {
       const supabase = createClient()!
       const { error: verifyError } = await supabase.auth.verifyOtp({
         email,
         token,
-        type: "signup",
+        type: "email",
       })
 
       if (verifyError) {
@@ -123,10 +104,9 @@ export default function SignUpPage() {
     setError("")
     setIsLoading(true)
     try {
-      const supabase = createClient()!
-      const { error: resendError } = await supabase.auth.resend({ type: "signup", email })
-      if (resendError) {
-        setError(resendError.message)
+      const { error: otpError } = await sendCode()
+      if (otpError) {
+        setError(otpError.message)
         return
       }
       setResendIn(RESEND_COOLDOWN_SECONDS)
@@ -144,7 +124,7 @@ export default function SignUpPage() {
           <button
             type="button"
             onClick={() => {
-              setStep("credentials")
+              setStep("email")
               setCode("")
               setError("")
             }}
@@ -163,7 +143,7 @@ export default function SignUpPage() {
             <h1 className="text-[20px] font-semibold text-[#262626]">Enter your code</h1>
             <p className="mt-[8px] text-[14px] leading-[1.5] text-[#888]">
               We sent a 6-digit code to{" "}
-              <span className="font-medium text-[#262626]">{email}</span>. Enter it below to verify your account.
+              <span className="font-medium text-[#262626]">{email}</span>. Enter it below to continue.
             </p>
           </div>
 
@@ -230,11 +210,11 @@ export default function SignUpPage() {
           </div>
           <h1 className="text-[20px] font-semibold text-[#262626]">Welcome to Coordination</h1>
           <p className="mt-[4px] text-[13px] font-medium text-[#888]">
-            Create your account to get started
+            Enter your email and we&apos;ll send you a code to get started
           </p>
         </div>
 
-        <form onSubmit={handleCreateAccount} className="flex flex-col gap-[14px]">
+        <form onSubmit={handleSendCode} className="flex flex-col gap-[14px]">
           <div>
             <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Email</label>
             <input
@@ -243,34 +223,10 @@ export default function SignUpPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@company.com"
               required
+              autoFocus
               className="h-[40px] w-full rounded-lg border border-[#e0e0e0] bg-[#fafafa] px-[12px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
               tabIndex={0}
             />
-          </div>
-
-          <div>
-            <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Password</label>
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Min 12 characters"
-                required
-                minLength={12}
-                className="h-[40px] w-full rounded-lg border border-[#e0e0e0] bg-[#fafafa] px-[12px] pr-[40px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
-                tabIndex={0}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-[10px] top-1/2 -translate-y-1/2 text-[#bbb] transition-colors hover:text-[#666]"
-                tabIndex={-1}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                {showPassword ? <EyeOff className="h-[16px] w-[16px]" /> : <Eye className="h-[16px] w-[16px]" />}
-              </button>
-            </div>
           </div>
 
           {error && (
@@ -285,7 +241,7 @@ export default function SignUpPage() {
             className="h-[40px] w-full rounded-lg bg-[#262626] text-[13px] font-medium text-white transition-colors hover:bg-[#3d3d3d] disabled:opacity-50"
             tabIndex={0}
           >
-            {isLoading ? "Creating account..." : "Continue"}
+            {isLoading ? "Sending code..." : "Continue"}
           </button>
 
           <p className="text-center text-[11px] text-[#aaa]">

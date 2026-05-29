@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Mail } from "lucide-react"
+import { Mail, Eye, EyeOff } from "lucide-react"
 import { OnboardingShell } from "@/components/onboarding/onboarding-shell"
 import { AvatarUpload } from "@/components/onboarding/avatar-upload"
 import {
@@ -24,6 +24,9 @@ export default function OnboardingProfilePage() {
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [avatarUrl, setAvatarUrl] = useState("")
+  const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [hasPassword, setHasPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(true)
@@ -52,6 +55,9 @@ export default function OnboardingProfilePage() {
       setFirstName((meta.first_name as string) || parts[0] || "")
       setLastName((meta.last_name as string) || parts.slice(1).join(" ") || "")
       setAvatarUrl((meta.avatar_url as string) || "")
+      // Users created via OTP have no password yet; ask them to set one.
+      const hasPwd = Boolean(meta.has_password)
+      setHasPassword(hasPwd)
       setIsLoading(false)
     })
   }, [router])
@@ -65,17 +71,30 @@ export default function OnboardingProfilePage() {
       return
     }
 
+    if (!hasPassword) {
+      if (password.length < 12) {
+        setError("Password must be at least 12 characters.")
+        return
+      }
+      if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+        setError("Password must contain uppercase, lowercase, and a number.")
+        return
+      }
+    }
+
     if (!isSupabaseConfigured()) return
     const supabase = createClient()
     if (!supabase) return
 
     setIsSubmitting(true)
     const { error: updateError } = await supabase.auth.updateUser({
+      ...(hasPassword ? {} : { password }),
       data: {
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         full_name: `${firstName.trim()} ${lastName.trim()}`,
         avatar_url: avatarUrl,
+        has_password: true,
       },
     })
 
@@ -138,6 +157,37 @@ export default function OnboardingProfilePage() {
             <span className="truncate">{email}</span>
           </div>
         </div>
+
+        {!hasPassword && (
+          <div>
+            <label className={labelClass}>Create a password</label>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Min 12 characters"
+                required
+                minLength={12}
+                autoComplete="new-password"
+                className={`${inputClass} pr-[40px]`}
+                tabIndex={0}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-[12px] top-1/2 -translate-y-1/2 text-[#bbb] transition-colors hover:text-[#666]"
+                tabIndex={-1}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="h-[16px] w-[16px]" /> : <Eye className="h-[16px] w-[16px]" />}
+              </button>
+            </div>
+            <p className="mt-[6px] text-[11px] text-[#aaa]">
+              You&apos;ll use this with your email to sign in next time.
+            </p>
+          </div>
+        )}
 
         {error && (
           <p className="rounded-[8px] bg-red-50 px-[12px] py-[8px] text-[12px] font-medium text-red-600">
