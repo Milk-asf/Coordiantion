@@ -1,121 +1,220 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Eye, EyeOff, Mail, CheckCircle2 } from "lucide-react"
+import { Eye, EyeOff, Mail, ArrowLeft } from "lucide-react"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
-import { getAuthCallbackUrl } from "@/lib/get-site-url"
+
+type Step = "credentials" | "code"
+
+const RESEND_COOLDOWN_SECONDS = 45
 
 export default function SignUpPage() {
   const router = useRouter()
+  const [step, setStep] = useState<Step>("credentials")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [code, setCode] = useState("")
   const [error, setError] = useState("")
-  const [successMessage, setSuccessMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [resendIn, setResendIn] = useState(0)
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  useEffect(() => {
+    if (resendIn <= 0) return
+    const timer = setInterval(() => setResendIn((s) => (s > 0 ? s - 1 : 0)), 1000)
+    return () => clearInterval(timer)
+  }, [resendIn])
+
+  const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
-    setIsLoading(true)
 
     if (!isSupabaseConfigured()) {
       setError("Supabase is not configured. Add your credentials to .env.local")
-      setIsLoading(false)
       return
     }
 
     if (password.length < 12) {
       setError("Password must be at least 12 characters.")
-      setIsLoading(false)
       return
     }
 
     if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
       setError("Password must contain uppercase, lowercase, and a number.")
-      setIsLoading(false)
       return
     }
 
+    setIsLoading(true)
+
     try {
       const supabase = createClient()!
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: getAuthCallbackUrl("/onboarding"),
-          data: {
-            onboarding_step: "profile",
-          },
+          data: { onboarding_step: "profile" },
         },
       })
 
-      if (error) {
-        setError(error.message)
-        setIsLoading(false)
+      if (signUpError) {
+        setError(signUpError.message)
         return
       }
 
-      if (!data.user) {
-        setError("Something went wrong creating your account. Please try again.")
-        setIsLoading(false)
-        return
-      }
-
-      if (data.user.identities && data.user.identities.length === 0) {
+      if (data.user?.identities && data.user.identities.length === 0) {
         setError("This email is already registered. Please sign in instead.")
-        setIsLoading(false)
         return
       }
 
-      if (!data.session) {
-        setSuccessMessage("confirmation-sent")
-        setIsLoading(false)
+      // Email confirmation disabled — session created immediately
+      if (data.session) {
+        router.push("/onboarding")
+        router.refresh()
+        return
+      }
+
+      setStep("code")
+      setResendIn(RESEND_COOLDOWN_SECONDS)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+
+    const token = code.replace(/\D/g, "")
+    if (token.length !== 6) {
+      setError("Enter the 6-digit code from your email.")
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      const supabase = createClient()!
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: "signup",
+      })
+
+      if (verifyError) {
+        setError(verifyError.message)
         return
       }
 
       router.push("/onboarding")
       router.refresh()
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Something went wrong. Please try again."
-      setError(message)
+      setError(err instanceof Error ? err.message : "Could not verify the code. Please try again.")
     } finally {
       setIsLoading(false)
     }
   }
 
-  if (successMessage === "confirmation-sent") {
+  const handleResend = async () => {
+    if (resendIn > 0 || !isSupabaseConfigured()) return
+    setError("")
+    setIsLoading(true)
+    try {
+      const supabase = createClient()!
+      const { error: resendError } = await supabase.auth.resend({ type: "signup", email })
+      if (resendError) {
+        setError(resendError.message)
+        return
+      }
+      setResendIn(RESEND_COOLDOWN_SECONDS)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not resend the code.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (step === "code") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#fafafa]">
-        <div className="w-full max-w-[380px] px-[16px] text-center">
-          <div className="mx-auto mb-[20px] flex h-[48px] w-[48px] items-center justify-center rounded-full bg-green-50">
-            <Mail className="h-[22px] w-[22px] text-green-600" strokeWidth={1.75} />
-          </div>
-          <h1 className="text-[20px] font-semibold text-[#262626]">Check your email</h1>
-          <p className="mt-[8px] text-[14px] leading-[1.5] text-[#888]">
-            We sent a confirmation link to <span className="font-medium text-[#262626]">{email}</span>. Click the link to verify your account and start setting up.
-          </p>
-          <div className="mt-[24px] rounded-[10px] border border-[#e8f5e9] bg-[#f1f8f2] px-[16px] py-[14px]">
-            <div className="flex items-start gap-[10px]">
-              <CheckCircle2 className="mt-[1px] h-[16px] w-[16px] shrink-0 text-green-600" strokeWidth={2} />
-              <div className="text-left">
-                <p className="text-[13px] font-medium text-[#262626]">Your account has been created</p>
-                <p className="mt-[2px] text-[12px] text-[#666]">Once confirmed, we&apos;ll walk you through setting up your profile and workspace.</p>
-              </div>
+        <div className="w-full max-w-[380px] px-[16px]">
+          <button
+            type="button"
+            onClick={() => {
+              setStep("credentials")
+              setCode("")
+              setError("")
+            }}
+            className="mb-[20px] flex items-center gap-[6px] text-[13px] font-medium text-[#888] transition-colors hover:text-[#262626]"
+            tabIndex={0}
+            aria-label="Go back"
+          >
+            <ArrowLeft className="h-[14px] w-[14px]" strokeWidth={2} />
+            Back
+          </button>
+
+          <div className="mb-[28px] text-center">
+            <div className="mx-auto mb-[20px] flex h-[48px] w-[48px] items-center justify-center rounded-full bg-green-50">
+              <Mail className="h-[22px] w-[22px] text-green-600" strokeWidth={1.75} />
             </div>
+            <h1 className="text-[20px] font-semibold text-[#262626]">Enter your code</h1>
+            <p className="mt-[8px] text-[14px] leading-[1.5] text-[#888]">
+              We sent a 6-digit code to{" "}
+              <span className="font-medium text-[#262626]">{email}</span>. Enter it below to verify your account.
+            </p>
           </div>
-          <p className="mt-[20px] text-[12px] text-[#bbb]">
-            Didn&apos;t receive it? Check your spam folder or{" "}
+
+          <form onSubmit={handleVerifyCode} className="flex flex-col gap-[14px]">
+            <div>
+              <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Verification code</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="123456"
+                required
+                autoFocus
+                className="h-[48px] w-full rounded-lg border border-[#e0e0e0] bg-[#fafafa] px-[12px] text-center text-[20px] font-semibold tracking-[0.4em] text-[#262626] placeholder-[#ccc] outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
+                tabIndex={0}
+              />
+            </div>
+
+            {error && (
+              <p className="rounded-lg bg-red-50 px-[12px] py-[8px] text-[13px] font-medium text-red-600">
+                {error}
+              </p>
+            )}
+
             <button
-              type="button"
-              onClick={() => setSuccessMessage("")}
-              className="text-[#262626] underline underline-offset-2"
+              type="submit"
+              disabled={isLoading || code.length !== 6}
+              className="h-[40px] w-full rounded-lg bg-[#262626] text-[13px] font-medium text-white transition-colors hover:bg-[#3d3d3d] disabled:opacity-50"
               tabIndex={0}
             >
-              try again
+              {isLoading ? "Verifying..." : "Verify & continue"}
             </button>
+          </form>
+
+          <p className="mt-[20px] text-center text-[12px] text-[#aaa]">
+            Didn&apos;t receive it?{" "}
+            {resendIn > 0 ? (
+              <span className="text-[#bbb]">Resend in {resendIn}s</span>
+            ) : (
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={isLoading}
+                className="text-[#262626] underline underline-offset-2 disabled:opacity-50"
+                tabIndex={0}
+              >
+                Resend code
+              </button>
+            )}
           </p>
         </div>
       </div>
@@ -135,7 +234,7 @@ export default function SignUpPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSignUp} className="flex flex-col gap-[14px]">
+        <form onSubmit={handleCreateAccount} className="flex flex-col gap-[14px]">
           <div>
             <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Email</label>
             <input
