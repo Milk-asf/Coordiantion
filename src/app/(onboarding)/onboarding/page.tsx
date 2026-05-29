@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { isOnboardingComplete, readOnboardingMetadata } from "@/lib/hooks/use-onboarding"
+import { isOnboardingComplete, readOnboardingMetadata } from "@/lib/onboarding/onboarding-metadata"
 
 export default async function OnboardingIndexPage() {
   const supabase = await createClient()
