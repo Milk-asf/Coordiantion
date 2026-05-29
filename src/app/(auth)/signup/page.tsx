@@ -68,8 +68,8 @@ export default function SignUpPage() {
     setError("")
 
     const token = code.replace(/\D/g, "")
-    if (token.length !== 6) {
-      setError("Enter the 6-digit code from your email.")
+    if (token.length < 6) {
+      setError("Enter the code from your email.")
       return
     }
 
@@ -135,7 +135,7 @@ export default function SignUpPage() {
             </div>
             <h1 className="text-[20px] font-semibold text-[#262626]">Enter your code</h1>
             <p className="mt-[8px] text-[14px] leading-[1.5] text-[#888]">
-              We sent a 6-digit code to{" "}
+              We sent a verification code to{" "}
               <span className="font-medium text-[#262626]">{email}</span>. Enter it below to continue.
             </p>
           </div>
@@ -148,8 +148,8 @@ export default function SignUpPage() {
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                placeholder="123456"
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                placeholder="Enter code"
                 required
                 autoFocus
                 className="h-[48px] w-full rounded-lg border border-[#e0e0e0] bg-[#fafafa] px-[12px] text-center text-[20px] font-semibold tracking-[0.4em] text-[#262626] placeholder-[#ccc] outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
@@ -165,7 +165,7 @@ export default function SignUpPage() {
 
             <button
               type="submit"
-              disabled={isLoading || code.length !== 6}
+              disabled={isLoading || code.length < 6}
               className="h-[40px] w-full rounded-lg bg-[#262626] text-[13px] font-medium text-white transition-colors hover:bg-[#3d3d3d] disabled:opacity-50"
               tabIndex={0}
             >
