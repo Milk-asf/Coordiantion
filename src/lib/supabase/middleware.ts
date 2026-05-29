@@ -12,9 +12,7 @@ export async function updateSession(request: NextRequest) {
   const publicPaths = ["/auth/callback", "/auth/confirm"]
   const path = request.nextUrl.pathname
   const isAuthPage = authPaths.includes(path)
-  // Public auth endpoints (e.g. sending a sign-in code) must work before login
-  const isPublicAuthApi = path.startsWith("/api/auth/")
-  const isPublicPath = publicPaths.includes(path) || isPublicAuthApi
+  const isPublicPath = publicPaths.includes(path)
   const isOnboardingPath = path.startsWith("/onboarding")
   const isApiPath = path.startsWith("/api")
 

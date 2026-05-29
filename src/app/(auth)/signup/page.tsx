@@ -26,13 +26,15 @@ export default function SignUpPage() {
   }, [resendIn])
 
   const sendCode = async () => {
-    const res = await fetch("/api/auth/send-code", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email.trim().toLowerCase() }),
+    const supabase = createClient()!
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email: email.trim().toLowerCase(),
+      options: {
+        shouldCreateUser: true,
+        data: { onboarding_step: "profile" },
+      },
     })
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok) throw new Error(data.error || "Could not send the code.")
+    if (otpError) throw new Error(otpError.message)
   }
 
   const handleSendCode = async (e: React.FormEvent) => {
