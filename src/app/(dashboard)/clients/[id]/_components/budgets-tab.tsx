@@ -66,7 +66,7 @@ export function BudgetsTab({ budgets, onAddNew, onEditBudget, getBudgetTotal, ge
                   >
                     <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626]">{budget.name}</td>
                     <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px]">{total > 0 ? <span className="inline-flex h-[24px] items-center rounded-[6px] bg-[#e8edf2] px-[12px] text-[12px] font-medium text-[#334155]">${total.toLocaleString()}</span> : <span className="text-[13px] font-medium text-[#bbb]">—</span>}</td>
-                    <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px]"><UsageBar percent={usagePct} /></td>
+                    <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px]"><UsageBar percent={usagePct} tooltip={`$${used.toLocaleString()} of $${total.toLocaleString()} used`} /></td>
                     <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626]">{startFmt} – {endFmt}</td>
                     <td className="h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626]">{itemCount} {itemCount === 1 ? "item" : "items"}</td>
                   </tr>

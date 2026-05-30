@@ -296,7 +296,10 @@ export default function NdisPlansPage() {
       case "usage":
         return (
           <td key={key} className={cellBase}>
-            <UsageBar percent={row.usagePct} />
+            <UsageBar
+              percent={row.usagePct}
+              tooltip={`$${row.totalUsed.toLocaleString("en-AU", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} of $${row.totalBudget.toLocaleString("en-AU", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} used`}
+            />
           </td>
         )
       case "burnRate": {
