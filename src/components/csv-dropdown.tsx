@@ -159,8 +159,8 @@ export function CsvDropdown({ entityType, columns, exportColumns, data, onImport
 
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-[9]" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 top-full z-10 mt-[4px] w-[200px] rounded-[6px] border border-sidebar-border bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+          <div className="absolute right-0 top-full z-50 mt-[4px] w-[200px] rounded-[6px] border border-sidebar-border bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
             <button
               onClick={handleImportClick}
               disabled={isImporting}
