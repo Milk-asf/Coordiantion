@@ -13,6 +13,7 @@ import { useStaff } from "@/lib/hooks/use-staff"
 import { useAssignableCoordinators } from "@/lib/hooks/use-assignable-coordinators"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import { useDocuments } from "@/lib/hooks/use-documents"
+import { useNotes } from "@/lib/hooks/use-notes"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
 import type { ParticipantDetails, Document, NdisPlan, PlanService, FundingReleasePeriod, Budget, BudgetLineItem, BudgetPeriod, ActivityEntry } from "@/lib/types"
@@ -49,6 +50,7 @@ import { useSaveIndicator, SaveIndicator } from "@/components/save-indicator"
 import { ProfileTasksTab } from "./_components/profile-tasks-tab"
 import { FilesTab } from "./_components/files-tab"
 import { ProfileSidebar } from "./_components/profile-sidebar"
+import { ProfileNotesTab } from "@/components/profile-notes-tab"
 import { PlanTab } from "./_components/plan-tab"
 import { BudgetsTab } from "./_components/budgets-tab"
 
@@ -167,6 +169,20 @@ export default function ParticipantProfilePage() {
   }, [])
   const id = params.id as string
   const client = clients.find((c) => c.id === id) || null
+
+  const { notes, addNote } = useNotes()
+  const [isCreatingNote, setIsCreatingNote] = useState(false)
+  const clientNotes = useMemo(
+    () => notes.filter((n) => n.clientId === id || (!!client && n.createdBy === client.displayName)),
+    [notes, id, client]
+  )
+  const handleCreateNote = useCallback(async () => {
+    if (!client || isCreatingNote) return
+    setIsCreatingNote(true)
+    const created = await addNote({ title: "Untitled", content: "", clientId: id, clientName: client.name, createdBy: currentUserName })
+    setIsCreatingNote(false)
+    if (created) router.push(`/notes?note=${created.id}`)
+  }, [client, isCreatingNote, addNote, id, currentUserName, router])
 
   const handleMouseDown = useCallback(() => {
     isResizing.current = true
@@ -1377,6 +1393,14 @@ export default function ParticipantProfilePage() {
               onDeleteDocument={deleteDocument}
               onCreateFile={createFile}
               onPreviewDoc={setPreviewDoc}
+            />
+          ) : activeTab === "notes" ? (
+            <ProfileNotesTab
+              notes={clientNotes}
+              onOpenNote={(noteId) => router.push(`/notes?note=${noteId}`)}
+              onCreateNote={handleCreateNote}
+              isCreating={isCreatingNote}
+              emptyDescription="Notes linked to this participant will appear here."
             />
           ) : activeTab !== "overview" ? (
             <div className="flex h-full items-center justify-center">

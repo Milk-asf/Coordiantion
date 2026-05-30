@@ -236,6 +236,23 @@ export default function NotesPage() {
     return () => clearTimeout(timeout)
   }, [editTitle, editContent, selectedNoteId, handleSaveNote])
 
+  // Open a specific note when deep-linked from a profile (e.g. /notes?note=<id>)
+  const [pendingNoteId, setPendingNoteId] = useState<string | null>(null)
+  useEffect(() => {
+    const noteId = new URLSearchParams(window.location.search).get("note")
+    if (noteId) setPendingNoteId(noteId)
+  }, [])
+  useEffect(() => {
+    if (!pendingNoteId || notes.length === 0) return
+    const note = notes.find((n) => n.id === pendingNoteId)
+    if (note) {
+      setSelectedNoteId(note.id)
+      setEditTitle(note.title)
+      setEditContent(note.content)
+    }
+    setPendingNoteId(null)
+  }, [pendingNoteId, notes])
+
   if (isLoading) return <PageLoader label="Loading notes…" />
   if (fetchError) return <PageError message={fetchError} onRetry={refetch} />
 

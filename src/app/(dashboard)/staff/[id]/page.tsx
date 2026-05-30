@@ -6,6 +6,7 @@ import { useStaff } from "@/lib/staff-context"
 import { useClients } from "@/lib/hooks/use-clients"
 import { useTasks } from "@/lib/hooks/use-tasks"
 import { useDocuments } from "@/lib/hooks/use-documents"
+import { useNotes } from "@/lib/hooks/use-notes"
 import { useCharges } from "@/lib/hooks/use-charges"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import type { StaffMember, StaffDetails, Task, Document } from "@/lib/types"
@@ -15,6 +16,7 @@ import { EditableField } from "@/components/editable-field"
 import { ContactChip } from "@/components/contact-chip"
 import { DetailRow } from "@/components/detail-row"
 import { DocumentPreview } from "@/components/document-preview"
+import { ProfileNotesTab } from "@/components/profile-notes-tab"
 import {
   User,
   FileText,
@@ -463,6 +465,21 @@ export default function StaffProfilePage() {
   const member = staff.find((s) => s.id === id) || null
 
   const memberName = member?.name ?? ""
+
+  const { notes, addNote } = useNotes()
+  const [isCreatingNote, setIsCreatingNote] = useState(false)
+  const staffNotes = useMemo(
+    () => notes.filter((n) => !!memberName && n.createdBy === memberName),
+    [notes, memberName]
+  )
+  const handleCreateNote = useCallback(async () => {
+    if (!memberName || isCreatingNote) return
+    setIsCreatingNote(true)
+    const created = await addNote({ title: "Untitled", content: "", clientId: null, clientName: "", createdBy: memberName })
+    setIsCreatingNote(false)
+    if (created) router.push(`/notes?note=${created.id}`)
+  }, [memberName, isCreatingNote, addNote, router])
+
   const staffFolder = memberName
   const staffDocuments = useMemo(() =>
     documents.filter((doc) => doc.folder === staffFolder || doc.folder.startsWith(staffFolder + "/"))
@@ -1155,6 +1172,14 @@ export default function StaffProfilePage() {
                 </div>
               )}
             </div>
+          ) : activeTab === "notes" ? (
+            <ProfileNotesTab
+              notes={staffNotes}
+              onOpenNote={(noteId) => router.push(`/notes?note=${noteId}`)}
+              onCreateNote={handleCreateNote}
+              isCreating={isCreatingNote}
+              emptyDescription="Notes created by this staff member will appear here."
+            />
           ) : activeTab !== "overview" ? (
             <div className="flex h-full items-center justify-center">
               <p className="text-[13px] font-medium text-[#bbb]">No content yet</p>
