@@ -1216,40 +1216,6 @@ export default function StaffProfilePage() {
               )}
             </div>
 
-            {/* Open tasks */}
-            <div className="mb-[24px]">
-              <div className="flex items-center justify-between">
-                <h3 className="text-[13px] font-medium text-[#888]">Open tasks</h3>
-                <button onClick={() => setActiveTab("tasks")} className="text-[12px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>See all</button>
-              </div>
-              {staffTasks.filter((t) => t.status !== "done").length === 0 ? (
-                <p className="mt-[8px] text-[13px] font-medium text-[#bbb]">No open tasks</p>
-              ) : (
-                <div className="mt-[8px] flex flex-col gap-[4px]">
-                  {staffTasks.filter((t) => t.status !== "done").slice(0, 5).map((task) => (
-                    <div key={task.id} className="flex items-center gap-[8px] rounded-md px-[8px] py-[6px] transition-colors hover:bg-[#f5f5f5]">
-                      <button
-                        onClick={() => updateTask(task.id, { status: "done" })}
-                        className="flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded border-[1.5px] border-[#ccc] transition-colors hover:border-[#999]"
-                        tabIndex={0}
-                        aria-label="Complete task"
-                      />
-                      <span className="truncate text-[13px] text-[#262626]">{task.title}</span>
-                      {task.client && (
-                        <span className="ml-[4px] shrink-0 rounded bg-[#f0f0f0] px-[6px] py-[1px] text-[11px] font-medium text-[#666]">{task.client}</span>
-                      )}
-                      {task.dueDate && <span className="ml-auto shrink-0 text-[11px] text-[#999]">{formatTaskDate(task.dueDate)}</span>}
-                    </div>
-                  ))}
-                  {staffTasks.filter((t) => t.status !== "done").length > 5 && (
-                    <button onClick={() => setActiveTab("tasks")} className="mt-[2px] text-left text-[12px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
-                      +{staffTasks.filter((t) => t.status !== "done").length - 5} more
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-
             {/* Activity */}
             <div>
               <h3 className="mb-[12px] text-[13px] font-medium text-[#888]">Activity</h3>
