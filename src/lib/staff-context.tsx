@@ -44,6 +44,55 @@ export function StaffProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
 
+  const ensureCurrentUserCoordinator = useCallback(async (workspaceId: string, currentStaff: StaffMember[]) => {
+    const supabase = createClient()
+    if (!supabase) return
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const { data: member } = await supabase
+      .from("workspace_members")
+      .select("role")
+      .eq("workspace_id", workspaceId)
+      .eq("user_id", user.id)
+      .maybeSingle()
+
+    // Only auto-register admins / super-admins (i.e. the account owner). Regular
+    // coordinators are added as staff through the normal invite flow.
+    if (!member || (member.role !== "super-admin" && member.role !== "admin")) return
+
+    const email = (user.email || "").trim()
+    const meta = (user.user_metadata || {}) as Record<string, unknown>
+    const fullName = ((meta.full_name as string) || "").trim()
+    const firstName = ((meta.first_name as string) || fullName.split(" ")[0] || "").trim()
+    const lastName = ((meta.last_name as string) || fullName.split(" ").slice(1).join(" ") || "").trim()
+    const name = fullName || (email ? email.split("@")[0] : "") || "Account owner"
+
+    const alreadyExists = currentStaff.some(
+      (s) => (email && s.invitedEmail === email) || s.name === name
+    )
+    if (alreadyExists) return
+
+    const { data, error } = await supabase
+      .from("staff")
+      .insert({
+        workspace_id: workspaceId,
+        name,
+        icon_text: name[0]?.toUpperCase() || "?",
+        details: { ...emptyStaffDetails, firstName, lastName, email },
+        status: "active",
+        invited_email: email,
+      })
+      .select()
+      .single()
+
+    if (!error && data) {
+      const newStaff = dbToStaff(data)
+      setStaff((prev) => (prev.some((s) => s.id === newStaff.id) ? prev : [...prev, newStaff]))
+    }
+  }, [])
+
   const fetchStaff = useCallback(async () => {
     if (!activeWorkspace || !isSupabaseConfigured()) {
       setStaff([])
@@ -66,14 +115,19 @@ export function StaffProvider({ children }: { children: ReactNode }) {
         setFetchError(error.message)
         setStaff([])
       } else {
-        setStaff((data || []).map(dbToStaff))
+        const mapped = (data || []).map(dbToStaff)
+        setStaff(mapped)
+        // Ensure the account owner / admins are a real coordinator so they can
+        // be assigned (e.g. as a client's coordinator) without needing to be
+        // invited as a separate staff member first.
+        ensureCurrentUserCoordinator(activeWorkspace.id, mapped)
       }
     } catch (err) {
       setFetchError(err instanceof Error ? err.message : "Failed to load staff")
       setStaff([])
     }
     setIsLoading(false)
-  }, [activeWorkspace])
+  }, [activeWorkspace, ensureCurrentUserCoordinator])
 
   useEffect(() => { fetchStaff() }, [fetchStaff])
 

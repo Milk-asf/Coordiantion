@@ -1,5 +1,6 @@
 "use client"
 
+import { ToastProvider } from "@/components/toast"
 import { WorkspaceProvider } from "@/lib/workspace-context"
 import { ClientsProvider } from "@/lib/clients-context"
 import { ContactsProvider } from "@/lib/contacts-context"
@@ -12,15 +13,17 @@ export default function SettingsGroupLayout({
 }) {
   return (
     <WorkspaceProvider>
-      <ClientsProvider>
-        <ContactsProvider>
-          <StaffProvider>
-            <div className="flex h-screen w-full overflow-hidden bg-[#fafafa]">
-              {children}
-            </div>
-          </StaffProvider>
-        </ContactsProvider>
-      </ClientsProvider>
+      <ToastProvider>
+        <ClientsProvider>
+          <ContactsProvider>
+            <StaffProvider>
+              <div className="flex h-screen w-full overflow-hidden bg-[#fafafa]">
+                {children}
+              </div>
+            </StaffProvider>
+          </ContactsProvider>
+        </ClientsProvider>
+      </ToastProvider>
     </WorkspaceProvider>
   )
 }

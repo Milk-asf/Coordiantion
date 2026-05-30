@@ -70,8 +70,10 @@ export function TaskDetailModal({
 }: TaskDetailModalProps) {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
   const [detailClientIdx, setDetailClientIdx] = useState(-1)
+  const [detailClientSearch, setDetailClientSearch] = useState("")
 
   const detailClientRef = useRef<HTMLButtonElement>(null)
+  const detailClientSearchRef = useRef<HTMLInputElement>(null)
   const detailChargeRef = useRef<HTMLButtonElement>(null)
   const detailSecondaryChargeRef = useRef<HTMLButtonElement>(null)
   const detailFileInputRef = useRef<HTMLInputElement>(null)
@@ -118,7 +120,11 @@ export function TaskDetailModal({
   const handleDescContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     refreshDescFormats()
-    setFormatToolbar({ x: e.clientX, y: e.clientY })
+    // Anchor the formatting toolbar to the bottom of the description field
+    // instead of the cursor position, so it always opens at the bottom of the task.
+    const rect = descriptionRef.current?.getBoundingClientRect()
+    if (rect) setFormatToolbar({ x: rect.left, y: rect.bottom })
+    else setFormatToolbar({ x: e.clientX, y: e.clientY })
   }, [refreshDescFormats])
 
   const prevSelectedTaskIdRef = useRef<string | null>(null)
@@ -248,32 +254,16 @@ export function TaskDetailModal({
 
               <div className="mt-[18px] flex flex-col gap-[14px]">
                 <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
-                  <span className="text-[13px] font-medium text-[#8d8d8d]">Customer</span>
+                  <span className="text-[13px] font-medium text-[#8d8d8d]">Client</span>
                   <button
                     ref={detailClientRef}
                     type="button"
-                    onClick={() => { setActiveDropdown(activeDropdown === "detail-client" ? null : "detail-client"); setDetailClientIdx(-1) }}
-                    onKeyDown={(e) => {
-                      if (activeDropdown === "detail-client") {
-                        const total = clientNames.length + 1
-                        if (e.key === "ArrowDown") { e.preventDefault(); setDetailClientIdx((p) => (p + 1) % total) }
-                        else if (e.key === "ArrowUp") { e.preventDefault(); setDetailClientIdx((p) => (p - 1 + total) % total) }
-                        else if (e.key === "Enter") {
-                          e.preventDefault()
-                          const val = detailClientIdx === 0 ? "" : clientNames[detailClientIdx - 1] ?? ""
-                          onUpdateTask("client", val)
-                          if (val) {
-                            const matched = clients.find((c) => c.name === val || c.displayName === val)
-                            if (matched?.owner && selectedTaskId) {
-                              const task = tasks.find((t) => t.id === selectedTaskId)
-                              if (task && !task.assignee) onUpdateTask("assignee", matched.owner)
-                            }
-                          }
-                          setActiveDropdown(null)
-                          setDetailClientIdx(-1)
-                        }
-                        else if (e.key === "Escape") { e.stopPropagation(); setActiveDropdown(null); setDetailClientIdx(-1) }
-                      }
+                    onClick={() => {
+                      const next = activeDropdown === "detail-client" ? null : "detail-client"
+                      setActiveDropdown(next)
+                      setDetailClientIdx(-1)
+                      setDetailClientSearch("")
+                      if (next) setTimeout(() => detailClientSearchRef.current?.focus(), 50)
                     }}
                     className="flex min-w-0 items-center gap-[8px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
                     tabIndex={0}
@@ -497,52 +487,98 @@ export function TaskDetailModal({
 
       {activeDropdown === "detail-client" && detailClientRef.current && (() => {
         const rect = detailClientRef.current.getBoundingClientRect()
+        const query = detailClientSearch.trim().toLowerCase()
+        const filteredNames = query
+          ? clientNames.filter((n) => n.toLowerCase().includes(query))
+          : clientNames
+
+        const selectClient = (name: string) => {
+          onUpdateTask("client", name)
+          if (name) {
+            const matched = clients.find((c) => c.name === name || c.displayName === name)
+            if (matched?.owner && selectedTaskId) {
+              const task = tasks.find((t) => t.id === selectedTaskId)
+              if (task && !task.assignee) onUpdateTask("assignee", matched.owner)
+            }
+          }
+          setActiveDropdown(null)
+          setDetailClientIdx(-1)
+          setDetailClientSearch("")
+        }
+
         return (
+          <>
+          <div className="fixed inset-0 z-[59]" onClick={() => { setActiveDropdown(null); setDetailClientIdx(-1); setDetailClientSearch("") }} />
           <div
-            className="fixed z-[60] max-h-[200px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-            style={{ top: rect.bottom + 4, left: rect.left, minWidth: 180 }}
+            className="fixed z-[60] flex max-h-[260px] flex-col rounded-lg border border-[#e0e0e0] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+            style={{ top: rect.bottom + 4, left: rect.left, minWidth: 220 }}
           >
-            <div
-              onClick={() => { onUpdateTask("client", ""); setActiveDropdown(null); setDetailClientIdx(-1) }}
-              className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] ${detailClientIdx === 0 ? "bg-blue-50 text-blue-600" : ""}`}
-              role="option"
-              aria-selected={detailClientIdx === 0}
-            >
-              None
-            </div>
-            {clientNames.map((name, i) => {
-              const initials = name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-              const isHighlighted = detailClientIdx === i + 1
-              return (
-                <div
-                  key={name}
-                  onClick={() => {
-                    onUpdateTask("client", name)
-                    const matched = clients.find((c) => c.name === name || c.displayName === name)
-                    if (matched?.owner && selectedTaskId) {
-                      const task = tasks.find((t) => t.id === selectedTaskId)
-                      if (task && !task.assignee) onUpdateTask("assignee", matched.owner)
+            <div className="border-b border-[#f0f0f0] p-[6px]">
+              <input
+                ref={detailClientSearchRef}
+                type="text"
+                value={detailClientSearch}
+                onChange={(e) => { setDetailClientSearch(e.target.value); setDetailClientIdx(-1) }}
+                onKeyDown={(e) => {
+                  const total = filteredNames.length + 1
+                  if (e.key === "ArrowDown") { e.preventDefault(); setDetailClientIdx((p) => (p + 1) % total) }
+                  else if (e.key === "ArrowUp") { e.preventDefault(); setDetailClientIdx((p) => (p - 1 + total) % total) }
+                  else if (e.key === "Enter") {
+                    e.preventDefault()
+                    if (detailClientIdx === 0) selectClient("")
+                    else {
+                      const idx = detailClientIdx > 0 ? detailClientIdx - 1 : 0
+                      const name = filteredNames[idx]
+                      if (name) selectClient(name)
                     }
-                    setActiveDropdown(null); setDetailClientIdx(-1)
-                  }}
-                  className={`flex w-full cursor-pointer items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${isHighlighted ? "bg-blue-50" : ""}`}
-                  role="option"
-                  aria-selected={isHighlighted}
-                >
-                  <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[6px] bg-[#DBEAFE] text-[9px] font-semibold text-[#2563EB]">
-                    {initials}
+                  }
+                  else if (e.key === "Escape") { e.stopPropagation(); setActiveDropdown(null); setDetailClientIdx(-1); setDetailClientSearch("") }
+                }}
+                placeholder="Search clients…"
+                className="w-full rounded-[6px] border border-[#e0e0e0] bg-[#fafafa] px-[10px] py-[6px] text-[13px] text-[#262626] outline-none transition-colors focus:border-[#bbb]"
+              />
+            </div>
+            <div className="overflow-y-auto">
+              <div
+                onClick={() => selectClient("")}
+                className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] ${detailClientIdx === 0 ? "bg-blue-50 text-blue-600" : ""}`}
+                role="option"
+                aria-selected={detailClientIdx === 0}
+              >
+                None
+              </div>
+              {filteredNames.map((name, i) => {
+                const initials = name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+                const isHighlighted = detailClientIdx === i + 1
+                return (
+                  <div
+                    key={name}
+                    onClick={() => selectClient(name)}
+                    className={`flex w-full cursor-pointer items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${isHighlighted ? "bg-blue-50" : ""}`}
+                    role="option"
+                    aria-selected={isHighlighted}
+                  >
+                    <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[6px] bg-[#DBEAFE] text-[9px] font-semibold text-[#2563EB]">
+                      {initials}
+                    </div>
+                    {name}
                   </div>
-                  {name}
-                </div>
-              )
-            })}
+                )
+              })}
+              {filteredNames.length === 0 && (
+                <div className="px-[12px] py-[10px] text-[13px] text-[#bbb]">No clients found</div>
+              )}
+            </div>
           </div>
+          </>
         )
       })()}
 
       {activeDropdown === "detail-charge" && selectedTask && detailChargeRef.current && (() => {
         const rect = detailChargeRef.current.getBoundingClientRect()
         return (
+          <>
+          <div className="fixed inset-0 z-[59]" onClick={() => setActiveDropdown(null)} />
           <div
             className="fixed z-[60] max-h-[220px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
             style={{ top: rect.bottom + 6, left: rect.left, minWidth: Math.max(rect.width, 220) }}
@@ -559,12 +595,15 @@ export function TaskDetailModal({
               </div>
             ))}
           </div>
+          </>
         )
       })()}
 
       {activeDropdown === "detail-secondary-charge" && selectedTask && detailSecondaryChargeRef.current && (() => {
         const rect = detailSecondaryChargeRef.current.getBoundingClientRect()
         return (
+          <>
+          <div className="fixed inset-0 z-[59]" onClick={() => setActiveDropdown(null)} />
           <div
             className="fixed z-[60] max-h-[260px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
             style={{ top: rect.bottom + 6, left: rect.left, minWidth: Math.max(rect.width, 220) }}
@@ -608,6 +647,7 @@ export function TaskDetailModal({
               </>
             )}
           </div>
+          </>
         )
       })()}
 
@@ -616,7 +656,7 @@ export function TaskDetailModal({
           <div className="fixed inset-0 z-[80]" onClick={() => { setFormatToolbar(null); setIsTextSizeOpen(false) }} onContextMenu={(e) => { e.preventDefault(); setFormatToolbar(null); setIsTextSizeOpen(false) }} />
           <div
             className="fixed z-[80] flex items-center gap-[2px] rounded-lg border border-[#e0e0e0] bg-white px-[6px] py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.12)]"
-            style={{ top: formatToolbar.y - 44, left: formatToolbar.x - 100 }}
+            style={{ top: formatToolbar.y + 8, left: formatToolbar.x }}
           >
             <div className="relative">
               <button

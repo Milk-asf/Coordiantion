@@ -7,7 +7,8 @@ import { useClients } from "@/lib/hooks/use-clients"
 import { useFieldConfig } from "@/lib/hooks/use-field-config"
 import { useSavedViews } from "@/lib/hooks/use-saved-views"
 import { useColumnResize } from "@/lib/hooks/use-column-resize"
-import { useStaff } from "@/lib/hooks/use-staff"
+import { useAssignableCoordinators } from "@/lib/hooks/use-assignable-coordinators"
+import { contactCsvColumns, parseContactsFromCsvRow } from "@/lib/participants/csv-contacts"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import { useTasks } from "@/lib/tasks-context"
 import type { Client, ParticipantDetails } from "@/lib/types"
@@ -52,6 +53,7 @@ import {
   UserPlus,
   Info,
   Clock,
+  DollarSign,
 } from "lucide-react"
 import { CsvDropdown } from "@/components/csv-dropdown"
 import { PageLoader, PageError } from "@/components/page-state"
@@ -76,6 +78,8 @@ const allPropertyColumns = [
   { key: "nextCheckUp", label: "Next Check-up", icon: Clock, minWidth: 160 },
   { key: "serviceCommencementDate", label: "Service Start", icon: CalendarDays, minWidth: 150 },
   { key: "serviceExitDate", label: "Service Exit", icon: CalendarDays, minWidth: 150 },
+  { key: "ndisPlans", label: "NDIS Plans", icon: FileText, minWidth: 240 },
+  { key: "budgets", label: "Budgets", icon: DollarSign, minWidth: 220 },
   { key: "contact-support-coordinator", label: "Support Coordinator", icon: Users, minWidth: 180 },
   { key: "contact-general-practitioner", label: "General Practitioner", icon: Users, minWidth: 180 },
   { key: "contact-pharmacy", label: "Pharmacy", icon: Users, minWidth: 150 },
@@ -504,9 +508,9 @@ export default function ClientsPage() {
   const { toast } = useToast()
   const router = useRouter()
   const { clients, isLoading, fetchError, hasMore, isLoadingMore, loadMore, addClient, updateClient, updateParticipantField, refetch } = useClients()
-  const { getContactsForClient } = useContacts()
+  const { getContactsForClient, addContact } = useContacts()
   const { participantDisabled } = useFieldConfig()
-  const { staffNames } = useStaff()
+  const staffNames = useAssignableCoordinators()
   const { canManageClients, canAssignClients } = usePermissions()
   const { tasks: allTasks } = useTasks()
 
@@ -639,6 +643,14 @@ export default function ClientsPage() {
     updateParticipantField(clientId, field, value)
   }, [updateParticipantField])
 
+  // Resolve the open panel's client from live context data so optimistic
+  // edits (e.g. participant name fields) appear immediately and persist,
+  // instead of reverting to the stale snapshot captured when the row was clicked.
+  const openClient = useMemo(
+    () => (selectedClient ? clients.find((c) => c.id === selectedClient.id) ?? selectedClient : null),
+    [selectedClient, clients]
+  )
+
   const handleCreateClient = async () => {
     const name = newClientName.trim()
     if (!name) return
@@ -682,6 +694,7 @@ export default function ClientsPage() {
     { key: "planEndDate", label: "Plan End Date" },
     { key: "serviceCommencementDate", label: "Service Start" },
     { key: "serviceExitDate", label: "Service Exit" },
+    ...contactCsvColumns,
   ], [])
 
   const tableKeyToCsvKey: Record<string, string> = useMemo(() => ({
@@ -784,11 +797,12 @@ export default function ClientsPage() {
   )
 
   const handleCsvImport = useCallback(async (rows: Record<string, string>[]) => {
+    let contactCount = 0
     for (const row of rows) {
       const firstName = row.firstName || ""
       const lastName = row.lastName || ""
       const name = [firstName, lastName].filter(Boolean).join(" ") || "Unnamed"
-      await addClient({
+      const created = await addClient({
         name,
         iconText: name[0]?.toUpperCase() || "?",
         participant: {
@@ -818,9 +832,19 @@ export default function ClientsPage() {
           serviceExitDate: row.serviceExitDate || "",
         },
       })
+
+      if (created) {
+        const contacts = parseContactsFromCsvRow(row, { id: created.id, name: created.name })
+        for (const contact of contacts) {
+          const result = await addContact(contact)
+          if (result) contactCount++
+        }
+      }
     }
-    toast(`${rows.length} client${rows.length > 1 ? "s" : ""} imported`, "success")
-  }, [addClient, toast])
+    const clientMsg = `${rows.length} client${rows.length > 1 ? "s" : ""} imported`
+    const contactMsg = contactCount > 0 ? ` with ${contactCount} contact${contactCount > 1 ? "s" : ""}` : ""
+    toast(`${clientMsg}${contactMsg}`, "success")
+  }, [addClient, addContact, toast])
 
   const sortedClients = (() => {
     if (!sortKey) return filteredClients
@@ -1271,6 +1295,35 @@ export default function ClientsPage() {
                           {p.serviceExitDate ? new Date(p.serviceExitDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }) : dash}
                         </td>
                       )
+                    case "ndisPlans": {
+                      const plans = p.plans || []
+                      if (plans.length === 0) return <td key={key} className={cls}>{dash}</td>
+                      const fmtDate = (d: string) => d ? new Date(d + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }) : "?"
+                      return (
+                        <td key={key} className={cls}>
+                          <div className="flex items-center gap-[6px]">
+                            {plans.map((plan) => (
+                              <span key={plan.id} className={whiteChip}>
+                                {fmtDate(plan.startDate)} – {fmtDate(plan.endDate)}{plan.isPacePlan ? " · PACE" : ""}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                      )
+                    }
+                    case "budgets": {
+                      const budgets = p.budgets || []
+                      if (budgets.length === 0) return <td key={key} className={cls}>{dash}</td>
+                      return (
+                        <td key={key} className={cls}>
+                          <div className="flex items-center gap-[6px]">
+                            {budgets.map((budget) => (
+                              <span key={budget.id} className={whiteChip}>{budget.name || "Budget"}</span>
+                            ))}
+                          </div>
+                        </td>
+                      )
+                    }
                     default: {
                       if (key.startsWith("contact-")) {
                         const relKey = key.replace("contact-", "")
@@ -1401,16 +1454,16 @@ export default function ClientsPage() {
         </>
       )}
 
-      {selectedClient && (
+      {openClient && (
         <div className="absolute right-0 top-0 z-40 h-full overflow-hidden">
           <ClientProfile
-            client={selectedClient}
-            participantData={getParticipantData(selectedClient)}
-            onUpdateField={(field, value) => handleUpdateField(selectedClient.id, field, value)}
+            client={openClient}
+            participantData={getParticipantData(openClient)}
+            onUpdateField={(field, value) => handleUpdateField(openClient.id, field, value)}
             onClose={() => setSelectedClient(null)}
             staffNames={staffNames}
             canAssignClients={canAssignClients}
-            onAssign={(name) => updateClient(selectedClient.id, { owner: name })}
+            onAssign={(name) => updateClient(openClient.id, { owner: name })}
           />
         </div>
       )}

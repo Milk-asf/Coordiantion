@@ -10,6 +10,7 @@ import { useInvoices } from "@/lib/hooks/use-invoices"
 import { relationshipConfig } from "@/lib/types"
 import { useFieldConfig } from "@/lib/hooks/use-field-config"
 import { useStaff } from "@/lib/hooks/use-staff"
+import { useAssignableCoordinators } from "@/lib/hooks/use-assignable-coordinators"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import { useDocuments } from "@/lib/hooks/use-documents"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
@@ -77,6 +78,7 @@ export default function ParticipantProfilePage() {
   const { invoices } = useInvoices()
   const { isFieldEnabled } = useFieldConfig()
   const { staffNames } = useStaff()
+  const assignableCoordinators = useAssignableCoordinators()
   const { canAssignTasks, canAssignClients } = usePermissions()
   const { documents, uploadDocument, deleteDocument, getDownloadUrl, createFile } = useDocuments()
   const { activeWorkspace, currentUserName } = useWorkspace()
@@ -1566,7 +1568,7 @@ export default function ParticipantProfilePage() {
           plans={plans}
           budgets={budgets}
           sidebarWidth={sidebarWidth}
-          staffNames={staffNames}
+          staffNames={assignableCoordinators}
           canAssignClients={canAssignClients}
           enabledCharges={enabledCharges}
           allServiceCharges={allServiceCharges}
