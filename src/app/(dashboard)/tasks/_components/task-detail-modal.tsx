@@ -18,6 +18,13 @@ import {
   Strikethrough,
   Type,
   ChevronDown,
+  Plus,
+  Upload,
+  Heading1,
+  Heading2,
+  ListOrdered,
+  Quote,
+  Code,
 } from "lucide-react"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { DatePicker } from "@/components/date-picker"
@@ -83,6 +90,7 @@ export function TaskDetailModal({
   const [descFormats, setDescFormats] = useState<Record<string, boolean>>({})
   const [currentBlock, setCurrentBlock] = useState("")
   const [isTextSizeOpen, setIsTextSizeOpen] = useState(false)
+  const [isFormatMenuOpen, setIsFormatMenuOpen] = useState(false)
 
   const refreshDescFormats = useCallback(() => {
     setDescFormats({
@@ -100,6 +108,15 @@ export function TaskDetailModal({
     descriptionRef.current?.focus()
     setTimeout(refreshDescFormats, 0)
   }, [refreshDescFormats])
+
+  // Notes-style formatting: focus the editor, run the command, then persist
+  // the resulting HTML (execCommand doesn't fire the onInput handler).
+  const applyDescFormat = useCallback((command: string, value?: string) => {
+    descriptionRef.current?.focus()
+    document.execCommand(command, false, value)
+    if (descriptionRef.current) onUpdateTask("description", sanitizeHtml(descriptionRef.current.innerHTML))
+    setTimeout(refreshDescFormats, 0)
+  }, [onUpdateTask, refreshDescFormats])
 
   const handleTextSize = useCallback((tag: string) => {
     if (tag === "p") {
@@ -217,10 +234,72 @@ export function TaskDetailModal({
                 }}
                 onContextMenu={handleDescContextMenu}
                 dangerouslySetInnerHTML={!descriptionRef.current ? { __html: sanitizeHtml(selectedTask.description) } : undefined}
-                className="mt-[14px] min-h-[80px] flex-1 overflow-y-auto text-[14px] leading-[1.6] text-[#4b4b4b] outline-none [&:empty]:before:pointer-events-none [&:empty]:before:text-[#b5b5b5] [&:empty]:before:content-[attr(data-placeholder)] [&_ul]:list-disc [&_ul]:pl-[20px] [&_ol]:list-decimal [&_ol]:pl-[20px] [&_li]:my-[2px] [&_h1]:text-[22px] [&_h1]:font-bold [&_h1]:leading-[1.3] [&_h1]:my-[4px] [&_h2]:text-[18px] [&_h2]:font-semibold [&_h2]:leading-[1.4] [&_h2]:my-[3px] [&_h3]:text-[15px] [&_h3]:font-medium [&_h3]:leading-[1.5] [&_h3]:my-[2px]"
+                className="mt-[14px] min-h-[80px] flex-1 overflow-y-auto text-[14px] leading-[1.6] text-[#4b4b4b] outline-none [&:empty]:before:pointer-events-none [&:empty]:before:text-[#b5b5b5] [&:empty]:before:content-[attr(data-placeholder)] [&_ul]:list-disc [&_ul]:pl-[20px] [&_ol]:list-decimal [&_ol]:pl-[20px] [&_li]:my-[2px] [&_h1]:text-[22px] [&_h1]:font-bold [&_h1]:leading-[1.3] [&_h1]:my-[4px] [&_h2]:text-[18px] [&_h2]:font-semibold [&_h2]:leading-[1.4] [&_h2]:my-[3px] [&_h3]:text-[15px] [&_h3]:font-medium [&_h3]:leading-[1.5] [&_h3]:my-[2px] [&_blockquote]:my-[4px] [&_blockquote]:border-l-2 [&_blockquote]:border-[#e0e0e0] [&_blockquote]:pl-[12px] [&_blockquote]:text-[#666] [&_pre]:my-[4px] [&_pre]:rounded-[6px] [&_pre]:bg-[#f5f5f5] [&_pre]:p-[10px] [&_pre]:font-mono [&_pre]:text-[13px]"
               />
 
               <div className="mt-[16px] flex items-center gap-[8px] border-t border-[#f1f1f1] pt-[14px]">
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => { refreshDescFormats(); setIsFormatMenuOpen((o) => !o) }}
+                    className={`flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border transition-colors ${isFormatMenuOpen ? "border-[#d0d0d0] bg-[#f0f0f0] text-[#555]" : "border-[#e8e8e8] text-[#888] hover:border-[#d0d0d0] hover:bg-[#f5f5f5] hover:text-[#555]"}`}
+                    tabIndex={0}
+                    aria-label="Formatting options"
+                  >
+                    <Plus className="h-[14px] w-[14px]" strokeWidth={1.5} />
+                  </button>
+
+                  {isFormatMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-[40]" onClick={() => setIsFormatMenuOpen(false)} />
+                      <div className="absolute bottom-full left-0 z-50 mb-[8px] flex items-center gap-[2px] rounded-[8px] border border-[#e8e8e8] bg-white px-[6px] py-[6px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
+                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("bold") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Bold">
+                          <Bold className="h-[14px] w-[14px]" strokeWidth={2} />
+                        </button>
+                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("italic") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Italic">
+                          <Italic className="h-[14px] w-[14px]" strokeWidth={2} />
+                        </button>
+                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("underline") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Underline">
+                          <Underline className="h-[14px] w-[14px]" strokeWidth={2} />
+                        </button>
+                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("strikeThrough") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Strikethrough">
+                          <Strikethrough className="h-[14px] w-[14px]" strokeWidth={2} />
+                        </button>
+                        <div className="mx-[4px] h-[18px] w-[1px] bg-[#e8e8e8]" />
+                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("formatBlock", "h1") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Heading 1">
+                          <Heading1 className="h-[14px] w-[14px]" strokeWidth={2} />
+                        </button>
+                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("formatBlock", "h2") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Heading 2">
+                          <Heading2 className="h-[14px] w-[14px]" strokeWidth={2} />
+                        </button>
+                        <div className="mx-[4px] h-[18px] w-[1px] bg-[#e8e8e8]" />
+                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("insertUnorderedList") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Bullet list">
+                          <List className="h-[14px] w-[14px]" strokeWidth={2} />
+                        </button>
+                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("insertOrderedList") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Numbered list">
+                          <ListOrdered className="h-[14px] w-[14px]" strokeWidth={2} />
+                        </button>
+                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("formatBlock", "blockquote") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Quote">
+                          <Quote className="h-[14px] w-[14px]" strokeWidth={2} />
+                        </button>
+                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("formatBlock", "pre") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Code">
+                          <Code className="h-[14px] w-[14px]" strokeWidth={2} />
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => detailFileInputRef.current?.click()}
+                  className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-[#e8e8e8] text-[#888] transition-colors hover:border-[#d0d0d0] hover:bg-[#f5f5f5] hover:text-[#555]"
+                  tabIndex={0}
+                  aria-label="Upload attachment"
+                >
+                  <Upload className="h-[14px] w-[14px]" strokeWidth={1.5} />
+                </button>
+
                 <button
                   type="button"
                   onClick={handleCloseDetail}

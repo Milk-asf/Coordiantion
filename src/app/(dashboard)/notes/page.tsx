@@ -457,7 +457,7 @@ export default function NotesPage() {
               </div>
             </div>
           ) : (
-            <div className={viewMode === "grid" ? "grid grid-cols-4 gap-[16px]" : "space-y-[8px]"}>
+            <div className={viewMode === "grid" ? "grid grid-cols-1 gap-[16px] sm:grid-cols-2 lg:grid-cols-3" : "space-y-[8px]"}>
               {favoriteNotes.map((note) => (
                 <NoteCard
                   key={note.id}
@@ -480,7 +480,7 @@ export default function NotesPage() {
               <p className="text-[12px] font-medium text-[#888]">{group.label}</p>
               <span className="text-[12px] text-[#bbb]">{group.notes.length}</span>
             </div>
-            <div className={viewMode === "grid" ? "grid grid-cols-4 gap-[16px]" : "space-y-[8px]"}>
+            <div className={viewMode === "grid" ? "grid grid-cols-1 gap-[16px] sm:grid-cols-2 lg:grid-cols-3" : "space-y-[8px]"}>
               {group.notes.map((note) => (
                 <NoteCard
                   key={note.id}
@@ -605,9 +605,11 @@ function NoteCard({ note, viewMode, isFavorite, onSelect, onToggleFavorite, onDe
 }) {
   if (viewMode === "list") {
     return (
-      <button
+      <div
+        role="button"
         onClick={() => onSelect(note)}
-        className="group flex w-full items-center gap-[16px] rounded-[8px] border border-[#f0f0f0] bg-white px-[16px] py-[12px] text-left transition-all hover:border-[#e0e0e0] hover:shadow-sm"
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(note) } }}
+        className="group flex w-full cursor-pointer items-center gap-[16px] rounded-[8px] border border-[#f0f0f0] bg-white px-[16px] py-[12px] text-left transition-all hover:border-[#e0e0e0] hover:shadow-sm"
         tabIndex={0}
       >
         <div className="min-w-0 flex-1">
@@ -640,14 +642,16 @@ function NoteCard({ note, viewMode, isFavorite, onSelect, onToggleFavorite, onDe
             <Trash2 className="h-[12px] w-[12px]" strokeWidth={1.5} />
           </button>
         </div>
-      </button>
+      </div>
     )
   }
 
   return (
-    <button
+    <div
+      role="button"
       onClick={() => onSelect(note)}
-      className="group flex w-full flex-col rounded-[8px] border border-[#f0f0f0] bg-white p-[16px] text-left transition-all hover:border-[#e0e0e0] hover:shadow-sm"
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(note) } }}
+      className="group flex min-h-[180px] w-full cursor-pointer flex-col rounded-[8px] border border-[#f0f0f0] bg-white p-[20px] text-left transition-all hover:border-[#e0e0e0] hover:shadow-sm"
       tabIndex={0}
     >
       <div className="mb-[10px] flex items-center justify-between">
@@ -686,6 +690,6 @@ function NoteCard({ note, viewMode, isFavorite, onSelect, onToggleFavorite, onDe
         </div>
         <span className="text-[11px] text-[#bbb]">{formatDate(note.createdAt)}</span>
       </div>
-    </button>
+    </div>
   )
 }
