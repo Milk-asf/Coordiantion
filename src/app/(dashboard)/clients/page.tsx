@@ -15,7 +15,7 @@ import type { Client, ParticipantDetails } from "@/lib/types"
 import { EntityIcon } from "@/components/entity-icon"
 import { EditableField } from "@/components/editable-field"
 import { ContactChip } from "@/components/contact-chip"
-import { DetailRow, SectionHeader } from "@/components/detail-row"
+import { DetailRow } from "@/components/detail-row"
 import {
   UserRound,
   ListFilter,
@@ -306,20 +306,41 @@ function ClientProfile({
           </h2>
         </div>
 
-        {/* Assignment */}
-        <div className="border-b border-[#f0f0f0] px-[20px] pb-[12px]">
-          <DetailRow icon={User} label="Assigned to">
+        {/* Account details */}
+        <div className="border-b border-[#f0f0f0] px-[20px] pb-[16px]">
+          <h3 className="mb-[6px] text-[12px] font-semibold text-[#262626]">Account details</h3>
+          {pf("p-first-name") && <DetailRow label="First Name" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+            <EditableField value={participantData.firstName} onChange={(v) => onUpdateField("firstName", v)} placeholder="First name" size="compact" />
+          </DetailRow>}
+          {pf("p-middle-name") && <DetailRow label="Middle Name" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+            <EditableField value={participantData.middleName} onChange={(v) => onUpdateField("middleName", v)} placeholder="Middle name" size="compact" />
+          </DetailRow>}
+          {pf("p-last-name") && <DetailRow label="Last Name" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+            <EditableField value={participantData.lastName} onChange={(v) => onUpdateField("lastName", v)} placeholder="Last name" size="compact" />
+          </DetailRow>}
+          {pf("p-preferred-name") && <DetailRow label="Preferred Name" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+            <EditableField value={participantData.preferredName} onChange={(v) => onUpdateField("preferredName", v)} placeholder="Preferred name" size="compact" />
+          </DetailRow>}
+          <DetailRow label="Coordinator" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
             {canAssignClients ? (
               <div className="relative">
-                <span
+                <button
                   onClick={() => setIsAssignOpen(!isAssignOpen)}
-                  className="block -ml-[9px] cursor-default rounded-lg px-[10px] py-[7px] transition-colors hover:bg-[#f5f5f5]"
-                  role="button"
+                  className="flex min-w-0 items-center gap-[6px] rounded px-[6px] py-[3px] text-[13px] transition-colors hover:bg-[#f5f5f5]"
                   tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === "Enter") setIsAssignOpen(!isAssignOpen) }}
                 >
-                  {client.owner || <span className="text-[#bbb]">Unassigned</span>}
-                </span>
+                  {client.owner ? (
+                    <>
+                      <div className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-blue-100 text-[9px] font-semibold text-blue-600">
+                        {client.owner.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
+                      </div>
+                      <span className="truncate font-medium text-[#262626]">{client.owner}</span>
+                    </>
+                  ) : (
+                    <span className="font-medium text-[#ccc]">Assign coordinator</span>
+                  )}
+                  <ChevronDown className="ml-[2px] h-[10px] w-[10px] shrink-0 text-[#bbb]" strokeWidth={1.5} />
+                </button>
                 {isAssignOpen && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsAssignOpen(false)} />
@@ -330,7 +351,7 @@ function ClientProfile({
                         role="option"
                         aria-selected={!client.owner}
                       >
-                        Unassigned
+                        None
                       </div>
                       {staffNames.map((name) => (
                         <div
@@ -351,36 +372,28 @@ function ClientProfile({
                 )}
               </div>
             ) : (
-              <span className="block -ml-[9px] px-[10px] py-[7px] text-[13px] font-medium text-[#262626]">
-                {client.owner || <span className="text-[#bbb]">Unassigned</span>}
-              </span>
+              <div className="flex items-center gap-[6px] px-[6px] py-[3px]">
+                {client.owner ? (
+                  <>
+                    <div className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-blue-100 text-[9px] font-semibold text-blue-600">
+                      {client.owner.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
+                    </div>
+                    <span className="text-[13px] font-medium text-[#262626]">{client.owner}</span>
+                  </>
+                ) : (
+                  <span className="text-[13px] font-medium text-[#ccc]">No coordinator</span>
+                )}
+              </div>
             )}
           </DetailRow>
-        </div>
-
-        {/* Participant Details */}
-        <div className="border-b border-[#f0f0f0] px-[20px] pb-[16px]">
-          <SectionHeader title="Personal Information" />
-          {pf("p-first-name") && <DetailRow icon={User} label="First Name">
-            <EditableField value={participantData.firstName} onChange={(v) => onUpdateField("firstName", v)} placeholder="First name" />
+          {pf("p-date-of-birth") && <DetailRow label="Date of Birth" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+            <EditableField value={participantData.dateOfBirth} onChange={(v) => onUpdateField("dateOfBirth", v)} type="date" placeholder="Date of birth" size="compact" />
           </DetailRow>}
-          {pf("p-middle-name") && <DetailRow icon={User} label="Middle Name">
-            <EditableField value={participantData.middleName} onChange={(v) => onUpdateField("middleName", v)} placeholder="Middle name" />
+          {pf("p-primary-diagnosis") && <DetailRow label="Primary Dx" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+            <ContactChip value={participantData.primaryDiagnosis} onChange={(v) => onUpdateField("primaryDiagnosis", v)} placeholder="Add diagnosis" variant="white" enableCopy={false} size="compact" emptyPrefix="+" />
           </DetailRow>}
-          {pf("p-last-name") && <DetailRow icon={User} label="Last Name">
-            <EditableField value={participantData.lastName} onChange={(v) => onUpdateField("lastName", v)} placeholder="Last name" />
-          </DetailRow>}
-          {pf("p-preferred-name") && <DetailRow icon={Heart} label="Preferred Name">
-            <EditableField value={participantData.preferredName} onChange={(v) => onUpdateField("preferredName", v)} placeholder="Preferred name" />
-          </DetailRow>}
-          {pf("p-date-of-birth") && <DetailRow icon={CalendarDays} label="Date of Birth">
-            <EditableField value={participantData.dateOfBirth} onChange={(v) => onUpdateField("dateOfBirth", v)} type="date" placeholder="Date of birth" />
-          </DetailRow>}
-          {pf("p-primary-diagnosis") && <DetailRow icon={Stethoscope} label="Primary Diagnosis">
-            <ContactChip value={participantData.primaryDiagnosis} onChange={(v) => onUpdateField("primaryDiagnosis", v)} placeholder="Add diagnosis" variant="white" enableCopy={false} />
-          </DetailRow>}
-          {pf("p-secondary-diagnosis") && <DetailRow icon={Stethoscope} label="Secondary Diagnosis">
-            <ContactChip value={participantData.secondaryDiagnosis} onChange={(v) => onUpdateField("secondaryDiagnosis", v)} placeholder="Add diagnosis" variant="white" enableCopy={false} />
+          {pf("p-secondary-diagnosis") && <DetailRow label="Secondary Dx" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+            <ContactChip value={participantData.secondaryDiagnosis} onChange={(v) => onUpdateField("secondaryDiagnosis", v)} placeholder="Add diagnosis" variant="white" enableCopy={false} size="compact" emptyPrefix="+" />
           </DetailRow>}
 
           {!isPersonalExpanded && (
@@ -397,54 +410,56 @@ function ClientProfile({
 
           {isPersonalExpanded && (
             <>
-              {pf("p-gender") && <DetailRow icon={User} label="Gender">
-                <EditableField value={participantData.gender} onChange={(v) => onUpdateField("gender", v)} type="select" options={["Male", "Female", "Non-binary", "Other", "Prefer not to say"]} />
+              {pf("p-gender") && <DetailRow label="Gender" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                <EditableField value={participantData.gender} onChange={(v) => onUpdateField("gender", v)} type="select" options={["Male", "Female", "Non-binary", "Other", "Prefer not to say"]} size="compact" />
               </DetailRow>}
-              {pf("p-pronouns") && <DetailRow icon={MessageSquare} label="Pronouns">
-                <EditableField value={participantData.pronouns} onChange={(v) => onUpdateField("pronouns", v)} type="select" options={["He/Him", "She/Her", "They/Them", "Other"]} />
+              {pf("p-pronouns") && <DetailRow label="Pronouns" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                <EditableField value={participantData.pronouns} onChange={(v) => onUpdateField("pronouns", v)} type="select" options={["He/Him", "She/Her", "They/Them", "Other"]} size="compact" />
               </DetailRow>}
-              {pf("p-ethnicity") && <DetailRow icon={Globe} label="Ethnicity">
-                <EditableField value={participantData.ethnicity} onChange={(v) => onUpdateField("ethnicity", v)} placeholder="Ethnicity" />
+              {pf("p-ethnicity") && <DetailRow label="Ethnicity" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                <EditableField value={participantData.ethnicity} onChange={(v) => onUpdateField("ethnicity", v)} placeholder="Ethnicity" size="compact" />
               </DetailRow>}
-              {pf("p-language") && <DetailRow icon={Languages} label="Language">
-                <EditableField value={participantData.language} onChange={(v) => onUpdateField("language", v)} placeholder="Language" />
-              </DetailRow>}
-
-              <SectionHeader title="Contact Information" />
-              {pf("p-email") && <DetailRow icon={Mail} label="Email">
-                <ContactChip value={participantData.email} onChange={(v) => onUpdateField("email", v)} placeholder="Email address" />
+              {pf("p-language") && <DetailRow label="Language" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                <EditableField value={participantData.language} onChange={(v) => onUpdateField("language", v)} placeholder="Language" size="compact" />
               </DetailRow>}
 
-              {pf("p-phone") && <DetailRow icon={Phone} label="Phone">
-                <ContactChip value={participantData.phone} onChange={(v) => onUpdateField("phone", v)} placeholder="Phone number" />
+              <div className="my-[12px] h-px bg-[#e8e8e8]" />
+              <h3 className="mb-[6px] text-[12px] font-semibold text-[#262626]">Contact Information</h3>
+              {pf("p-email") && <DetailRow label="Email" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                <ContactChip value={participantData.email} onChange={(v) => onUpdateField("email", v)} placeholder="Email address" size="compact" emptyPrefix="+" />
               </DetailRow>}
-              {pf("p-contact-method") && <DetailRow icon={MessageSquare} label="Contact Method">
-                <EditableField value={participantData.preferredContactMethod} onChange={(v) => onUpdateField("preferredContactMethod", v)} type="select" options={["SMS", "Email", "Call (Mobile)", "Call (Phone)"]} />
+              {pf("p-phone") && <DetailRow label="Phone" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                <ContactChip value={participantData.phone} onChange={(v) => onUpdateField("phone", v)} placeholder="Phone number" size="compact" emptyPrefix="+" />
               </DetailRow>}
-              {pf("p-sign-method") && <DetailRow icon={PenLine} label="Sign Documents">
-                <EditableField value={participantData.preferredSignMethod} onChange={(v) => onUpdateField("preferredSignMethod", v)} type="select" options={["In Person", "Electronically"]} />
+              {pf("p-contact-method") && <DetailRow label="Contact" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                <EditableField value={participantData.preferredContactMethod} onChange={(v) => onUpdateField("preferredContactMethod", v)} type="select" options={["SMS", "Email", "Call (Mobile)", "Call (Phone)"]} size="compact" />
               </DetailRow>}
-
-              <SectionHeader title="Reference Numbers" />
-              {pf("p-ndis-number") && <DetailRow icon={Hash} label="NDIS Number">
-                <ContactChip value={participantData.ndisNumber} onChange={(v) => onUpdateField("ndisNumber", v)} placeholder="NDIS number" variant="white" />
-              </DetailRow>}
-              {pf("p-medicare-number") && <DetailRow icon={Hash} label="Medicare Number">
-                <ContactChip value={participantData.medicareNumber} onChange={(v) => onUpdateField("medicareNumber", v)} placeholder="Medicare number" variant="white" />
-              </DetailRow>}
-              {pf("p-centrelink-number") && <DetailRow icon={Hash} label="Centrelink Number">
-                <ContactChip value={participantData.centrelinkNumber} onChange={(v) => onUpdateField("centrelinkNumber", v)} placeholder="Centrelink number" variant="white" />
-              </DetailRow>}
-              {pf("p-external-id") && <DetailRow icon={Hash} label="External ID">
-                <ContactChip value={participantData.externalId} onChange={(v) => onUpdateField("externalId", v)} placeholder="External ID" variant="white" />
+              {pf("p-sign-method") && <DetailRow label="Sign Method" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                <EditableField value={participantData.preferredSignMethod} onChange={(v) => onUpdateField("preferredSignMethod", v)} type="select" options={["In Person", "Electronically"]} size="compact" />
               </DetailRow>}
 
-              <SectionHeader title="Other Details" />
-              {pf("p-service-start") && <DetailRow icon={CalendarDays} label="Service Start">
-                <EditableField value={participantData.serviceCommencementDate} onChange={(v) => onUpdateField("serviceCommencementDate", v)} type="date" placeholder="Commencement date" />
+              <div className="my-[12px] h-px bg-[#e8e8e8]" />
+              <h3 className="mb-[6px] text-[12px] font-semibold text-[#262626]">Reference Numbers</h3>
+              {pf("p-ndis-number") && <DetailRow label="NDIS" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                <ContactChip value={participantData.ndisNumber} onChange={(v) => onUpdateField("ndisNumber", v)} placeholder="NDIS number" variant="white" size="compact" emptyPrefix="+" />
               </DetailRow>}
-              {pf("p-service-exit") && <DetailRow icon={CalendarDays} label="Service Exit">
-                <EditableField value={participantData.serviceExitDate} onChange={(v) => onUpdateField("serviceExitDate", v)} type="date" placeholder="Exit date" />
+              {pf("p-medicare-number") && <DetailRow label="Medicare" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                <ContactChip value={participantData.medicareNumber} onChange={(v) => onUpdateField("medicareNumber", v)} placeholder="Medicare number" variant="white" size="compact" emptyPrefix="+" />
+              </DetailRow>}
+              {pf("p-centrelink-number") && <DetailRow label="Centrelink" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                <ContactChip value={participantData.centrelinkNumber} onChange={(v) => onUpdateField("centrelinkNumber", v)} placeholder="Centrelink number" variant="white" size="compact" emptyPrefix="+" />
+              </DetailRow>}
+              {pf("p-external-id") && <DetailRow label="External ID" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                <ContactChip value={participantData.externalId} onChange={(v) => onUpdateField("externalId", v)} placeholder="External ID" variant="white" size="compact" emptyPrefix="+" />
+              </DetailRow>}
+
+              <div className="my-[12px] h-px bg-[#e8e8e8]" />
+              <h3 className="mb-[6px] text-[12px] font-semibold text-[#262626]">Other Details</h3>
+              {pf("p-service-start") && <DetailRow label="Service Start" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                <EditableField value={participantData.serviceCommencementDate} onChange={(v) => onUpdateField("serviceCommencementDate", v)} type="date" placeholder="Commencement date" size="compact" />
+              </DetailRow>}
+              {pf("p-service-exit") && <DetailRow label="Service Exit" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                <EditableField value={participantData.serviceExitDate} onChange={(v) => onUpdateField("serviceExitDate", v)} type="date" placeholder="Exit date" size="compact" />
               </DetailRow>}
 
               <button

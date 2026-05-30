@@ -12,7 +12,7 @@ import type { StaffMember, StaffDetails } from "@/lib/types"
 import { EntityIcon } from "@/components/entity-icon"
 import { EditableField } from "@/components/editable-field"
 import { ContactChip } from "@/components/contact-chip"
-import { DetailRow, SectionHeader } from "@/components/detail-row"
+import { DetailRow } from "@/components/detail-row"
 import {
   Users,
   ListFilter,
@@ -103,30 +103,30 @@ function StaffProfile({ member, onUpdateField, onClose }: { member: StaffMember;
           </div>
 
           <div className="border-b border-[#f0f0f0] px-[20px] pb-[16px]">
-            <SectionHeader title="Work Information" />
-            {sf("s-role") && <DetailRow icon={Briefcase} label="Role">
-              <EditableField value={d.role} onChange={(v) => onUpdateField("role", v)} placeholder="Job title" />
+            <h3 className="mb-[6px] text-[12px] font-semibold text-[#262626]">Work Information</h3>
+            {sf("s-role") && <DetailRow label="Role" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+              <EditableField value={d.role} onChange={(v) => onUpdateField("role", v)} placeholder="Job title" size="compact" />
             </DetailRow>}
-            {sf("s-department") && <DetailRow icon={Building2} label="Department">
-              <EditableField value={d.department} onChange={(v) => onUpdateField("department", v)} placeholder="Department" />
+            {sf("s-department") && <DetailRow label="Department" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+              <EditableField value={d.department} onChange={(v) => onUpdateField("department", v)} placeholder="Department" size="compact" />
             </DetailRow>}
-            {sf("s-employment-type") && <DetailRow icon={Clock} label="Employment Type">
-              <EditableField value={d.employmentType} onChange={(v) => onUpdateField("employmentType", v)} type="select" options={["Full-time", "Part-time", "Casual", "Contract"]} />
+            {sf("s-employment-type") && <DetailRow label="Employment Type" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+              <EditableField value={d.employmentType} onChange={(v) => onUpdateField("employmentType", v)} type="select" options={["Full-time", "Part-time", "Casual", "Contract"]} size="compact" />
             </DetailRow>}
-            {sf("s-start-date") && <DetailRow icon={CalendarDays} label="Start Date">
-              <EditableField value={d.startDate} onChange={(v) => onUpdateField("startDate", v)} type="date" placeholder="Start date" />
+            {sf("s-start-date") && <DetailRow label="Start Date" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+              <EditableField value={d.startDate} onChange={(v) => onUpdateField("startDate", v)} type="date" placeholder="Start date" size="compact" />
             </DetailRow>}
-            {sf("s-end-date") && <DetailRow icon={CalendarDays} label="End Date">
-              <EditableField value={d.endDate} onChange={(v) => onUpdateField("endDate", v)} type="date" placeholder="End date" />
-            </DetailRow>}
-
-            <SectionHeader title="Contact Information" />
-            {sf("s-email") && <DetailRow icon={Mail} label="Email">
-              <ContactChip value={d.email} onChange={(v) => onUpdateField("email", v)} placeholder="Email address" />
+            {sf("s-end-date") && <DetailRow label="End Date" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+              <EditableField value={d.endDate} onChange={(v) => onUpdateField("endDate", v)} type="date" placeholder="End date" size="compact" />
             </DetailRow>}
 
-            {sf("s-phone") && <DetailRow icon={Phone} label="Phone">
-              <ContactChip value={d.phone} onChange={(v) => onUpdateField("phone", v)} placeholder="Phone number" />
+            <div className="my-[12px] h-px bg-[#e8e8e8]" />
+            <h3 className="mb-[6px] text-[12px] font-semibold text-[#262626]">Contact Information</h3>
+            {sf("s-email") && <DetailRow label="Email" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+              <ContactChip value={d.email} onChange={(v) => onUpdateField("email", v)} placeholder="Email address" size="compact" emptyPrefix="+" />
+            </DetailRow>}
+            {sf("s-phone") && <DetailRow label="Phone" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+              <ContactChip value={d.phone} onChange={(v) => onUpdateField("phone", v)} placeholder="Phone number" size="compact" emptyPrefix="+" />
             </DetailRow>}
 
             {!isPersonalExpanded && (
@@ -138,40 +138,43 @@ function StaffProfile({ member, onUpdateField, onClose }: { member: StaffMember;
 
             {isPersonalExpanded && (
               <>
-                <SectionHeader title="Personal Information" />
-                {sf("s-first-name") && <DetailRow icon={User} label="First Name">
-                  <EditableField value={d.firstName} onChange={(v) => onUpdateField("firstName", v)} placeholder="First name" />
+                <div className="my-[12px] h-px bg-[#e8e8e8]" />
+                <h3 className="mb-[6px] text-[12px] font-semibold text-[#262626]">Personal Information</h3>
+                {sf("s-first-name") && <DetailRow label="First Name" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                  <EditableField value={d.firstName} onChange={(v) => onUpdateField("firstName", v)} placeholder="First name" size="compact" />
                 </DetailRow>}
-                {sf("s-last-name") && <DetailRow icon={User} label="Last Name">
-                  <EditableField value={d.lastName} onChange={(v) => onUpdateField("lastName", v)} placeholder="Last name" />
+                {sf("s-last-name") && <DetailRow label="Last Name" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                  <EditableField value={d.lastName} onChange={(v) => onUpdateField("lastName", v)} placeholder="Last name" size="compact" />
                 </DetailRow>}
-                {sf("s-preferred-name") && <DetailRow icon={Heart} label="Preferred Name">
-                  <EditableField value={d.preferredName} onChange={(v) => onUpdateField("preferredName", v)} placeholder="Preferred name" />
+                {sf("s-preferred-name") && <DetailRow label="Preferred Name" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                  <EditableField value={d.preferredName} onChange={(v) => onUpdateField("preferredName", v)} placeholder="Preferred name" size="compact" />
                 </DetailRow>}
-                {sf("s-date-of-birth") && <DetailRow icon={CalendarDays} label="Date of Birth">
-                  <EditableField value={d.dateOfBirth} onChange={(v) => onUpdateField("dateOfBirth", v)} type="date" placeholder="Date of birth" />
+                {sf("s-date-of-birth") && <DetailRow label="Date of Birth" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                  <EditableField value={d.dateOfBirth} onChange={(v) => onUpdateField("dateOfBirth", v)} type="date" placeholder="Date of birth" size="compact" />
                 </DetailRow>}
-                {sf("s-gender") && <DetailRow icon={User} label="Gender">
-                  <EditableField value={d.gender} onChange={(v) => onUpdateField("gender", v)} type="select" options={["Male", "Female", "Non-binary", "Other", "Prefer not to say"]} />
+                {sf("s-gender") && <DetailRow label="Gender" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                  <EditableField value={d.gender} onChange={(v) => onUpdateField("gender", v)} type="select" options={["Male", "Female", "Non-binary", "Other", "Prefer not to say"]} size="compact" />
                 </DetailRow>}
-                {sf("s-pronouns") && <DetailRow icon={MessageSquare} label="Pronouns">
-                  <EditableField value={d.pronouns} onChange={(v) => onUpdateField("pronouns", v)} type="select" options={["He/Him", "She/Her", "They/Them", "Other"]} />
-                </DetailRow>}
-
-                <SectionHeader title="Qualifications" />
-                {sf("s-qualifications") && <DetailRow icon={Award} label="Qualifications">
-                  <EditableField value={d.qualifications} onChange={(v) => onUpdateField("qualifications", v)} placeholder="Qualifications" />
-                </DetailRow>}
-                {sf("s-certifications") && <DetailRow icon={Award} label="Certifications">
-                  <EditableField value={d.certifications} onChange={(v) => onUpdateField("certifications", v)} placeholder="Certifications" />
+                {sf("s-pronouns") && <DetailRow label="Pronouns" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                  <EditableField value={d.pronouns} onChange={(v) => onUpdateField("pronouns", v)} type="select" options={["He/Him", "She/Her", "They/Them", "Other"]} size="compact" />
                 </DetailRow>}
 
-                <SectionHeader title="Emergency Contact" />
-                {sf("s-emergency-contact") && <DetailRow icon={Users} label="Contact Name">
-                  <EditableField value={d.emergencyContactName} onChange={(v) => onUpdateField("emergencyContactName", v)} placeholder="Emergency contact name" />
+                <div className="my-[12px] h-px bg-[#e8e8e8]" />
+                <h3 className="mb-[6px] text-[12px] font-semibold text-[#262626]">Qualifications</h3>
+                {sf("s-qualifications") && <DetailRow label="Qualifications" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                  <EditableField value={d.qualifications} onChange={(v) => onUpdateField("qualifications", v)} placeholder="Qualifications" size="compact" />
                 </DetailRow>}
-                {sf("s-emergency-phone") && <DetailRow icon={Phone} label="Contact Phone">
-                  <ContactChip value={d.emergencyContactPhone} onChange={(v) => onUpdateField("emergencyContactPhone", v)} placeholder="Emergency phone" />
+                {sf("s-certifications") && <DetailRow label="Certifications" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                  <EditableField value={d.certifications} onChange={(v) => onUpdateField("certifications", v)} placeholder="Certifications" size="compact" />
+                </DetailRow>}
+
+                <div className="my-[12px] h-px bg-[#e8e8e8]" />
+                <h3 className="mb-[6px] text-[12px] font-semibold text-[#262626]">Emergency Contact</h3>
+                {sf("s-emergency-contact") && <DetailRow label="Contact Name" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                  <EditableField value={d.emergencyContactName} onChange={(v) => onUpdateField("emergencyContactName", v)} placeholder="Emergency contact name" size="compact" />
+                </DetailRow>}
+                {sf("s-emergency-phone") && <DetailRow label="Contact Phone" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                  <ContactChip value={d.emergencyContactPhone} onChange={(v) => onUpdateField("emergencyContactPhone", v)} placeholder="Emergency phone" size="compact" emptyPrefix="+" />
                 </DetailRow>}
 
                 <button onClick={() => setIsPersonalExpanded(false)} className="mt-[8px] flex items-center gap-[4px] text-[13px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
