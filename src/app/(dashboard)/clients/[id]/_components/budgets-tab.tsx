@@ -39,7 +39,6 @@ export function BudgetsTab({ budgets, onAddNew, onEditBudget, getBudgetTotal, ge
             <tr>
               <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Name</th>
               <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Total</th>
-              <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Used</th>
               <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Usage</th>
               <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Period</th>
               <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Items</th>
@@ -48,7 +47,7 @@ export function BudgetsTab({ budgets, onAddNew, onEditBudget, getBudgetTotal, ge
           <tbody>
             {budgets.length === 0 ? (
               <tr>
-                <td colSpan={6} className="h-[120px] text-center text-[13px] font-medium text-[#bbb]">No budgets yet</td>
+                <td colSpan={5} className="h-[120px] text-center text-[13px] font-medium text-[#bbb]">No budgets yet</td>
               </tr>
             ) : (
               [...budgets].reverse().map((budget) => {
@@ -67,7 +66,6 @@ export function BudgetsTab({ budgets, onAddNew, onEditBudget, getBudgetTotal, ge
                   >
                     <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626]">{budget.name}</td>
                     <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px]">{total > 0 ? <span className="inline-flex h-[24px] items-center rounded-[6px] bg-[#e8edf2] px-[12px] text-[12px] font-medium text-[#334155]">${total.toLocaleString()}</span> : <span className="text-[13px] font-medium text-[#bbb]">—</span>}</td>
-                    <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626]">{used > 0 ? `$${used.toLocaleString()}` : <span className="text-[#bbb]">—</span>}</td>
                     <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px]"><UsageBar percent={usagePct} /></td>
                     <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626]">{startFmt} – {endFmt}</td>
                     <td className="h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626]">{itemCount} {itemCount === 1 ? "item" : "items"}</td>
