@@ -17,6 +17,7 @@ import { ContactChip } from "@/components/contact-chip"
 import { DetailRow } from "@/components/detail-row"
 import { DocumentPreview } from "@/components/document-preview"
 import { ProfileNotesTab } from "@/components/profile-notes-tab"
+import { EmptyState } from "@/components/empty-state"
 import {
   User,
   FileText,
@@ -128,15 +129,12 @@ function StaffProfileTasksTab({
 
   if (tasks.length === 0) {
     return (
-      <div className="flex h-full flex-col items-center justify-center px-[24px] py-[56px] text-center">
-        <div className="rounded-full bg-[#f5f5f5] p-[12px]">
-          <CheckSquare className="h-[20px] w-[20px] text-[#999]" strokeWidth={1.5} />
-        </div>
-        <h3 className="mt-[14px] text-[15px] font-semibold text-[#262626]">No tasks yet</h3>
-        <p className="mt-[6px] max-w-[320px] text-[13px] text-[#888]">
-          Tasks assigned to this staff member will appear here.
-        </p>
-      </div>
+      <EmptyState
+        icon={CheckSquare}
+        title="No tasks yet"
+        description="Tasks assigned to this staff member will appear here."
+        className="h-full"
+      />
     )
   }
 
@@ -1104,18 +1102,13 @@ export default function StaffProfilePage() {
               )}
 
               {staffDocuments.length === 0 && !isNewSubfileOpen ? (
-                <div className="flex flex-1 flex-col items-center justify-center gap-[8px]">
-                  <FolderOpen className="h-[32px] w-[32px] text-[#ccc]" strokeWidth={1.5} />
-                  <p className="text-[13px] font-medium text-[#bbb]">No files yet</p>
-                  <button
-                    onClick={() => setIsFilesAddNewOpen(true)}
-                    className="primary-btn mt-[4px] flex items-center gap-[5px] rounded-[4px] px-[10px] py-[6px] text-[13px] font-medium transition-colors"
-                    tabIndex={0}
-                  >
-                    <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-                    Add new
-                  </button>
-                </div>
+                <EmptyState
+                  icon={FolderOpen}
+                  title="No files yet"
+                  description="Upload documents or create a file to organise them."
+                  action={{ label: "Add new", onClick: () => setIsFilesAddNewOpen(true) }}
+                  className="flex-1"
+                />
               ) : (
                 <div className="flex-1 overflow-auto">
                   <table className="w-full border-separate border-spacing-0 text-left">

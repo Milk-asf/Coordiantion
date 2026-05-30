@@ -3,6 +3,7 @@
 import type { RefObject } from "react"
 import type { Document } from "@/lib/types"
 import { getDocIcon, formatFileSize, formatDate } from "./client-profile-helpers"
+import { EmptyState } from "@/components/empty-state"
 import {
   FolderOpen,
   FilePlus,
@@ -130,18 +131,13 @@ export function FilesTab({
       )}
 
       {clientDocuments.length === 0 && !isNewSubfileOpen ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-[8px]">
-          <FolderOpen className="h-[32px] w-[32px] text-[#ccc]" strokeWidth={1.5} />
-          <p className="text-[13px] font-medium text-[#bbb]">No files yet</p>
-          <button
-            onClick={() => onSetFilesAddNewOpen(true)}
-            className="primary-btn mt-[4px] flex items-center gap-[5px] rounded-[4px] px-[10px] py-[6px] text-[13px] font-medium transition-colors"
-            tabIndex={0}
-          >
-            <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-            Add new
-          </button>
-        </div>
+        <EmptyState
+          icon={FolderOpen}
+          title="No files yet"
+          description="Upload documents or create a file to organise them."
+          action={{ label: "Add new", onClick: () => onSetFilesAddNewOpen(true) }}
+          className="flex-1"
+        />
       ) : (
         <div className="flex-1 overflow-auto">
           <table className="w-full border-separate border-spacing-0 text-left">

@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 import type { Task } from "@/lib/types"
 import { formatTaskDate } from "./client-profile-helpers"
+import { EmptyState } from "@/components/empty-state"
 
 export function ProfileTasksTab({
   tasks,
@@ -24,15 +25,12 @@ export function ProfileTasksTab({
 
   if (tasks.length === 0) {
     return (
-      <div className="flex h-full flex-col items-center justify-center px-[24px] py-[56px] text-center">
-        <div className="rounded-full bg-[#f5f5f5] p-[12px]">
-          <CheckSquare className="h-[20px] w-[20px] text-[#999]" strokeWidth={1.5} />
-        </div>
-        <h3 className="mt-[14px] text-[15px] font-semibold text-[#262626]">No tasks yet</h3>
-        <p className="mt-[6px] max-w-[320px] text-[13px] text-[#888]">
-          Tasks assigned to this participant will appear here.
-        </p>
-      </div>
+      <EmptyState
+        icon={CheckSquare}
+        title="No tasks yet"
+        description="Tasks assigned to this participant will appear here."
+        className="h-full"
+      />
     )
   }
 

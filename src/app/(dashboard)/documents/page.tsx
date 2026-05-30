@@ -28,6 +28,7 @@ import {
 import { useDocuments } from "@/lib/hooks/use-documents"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import { DocumentPreview } from "@/components/document-preview"
+import { EmptyState } from "@/components/empty-state"
 import type { Document } from "@/lib/types"
 
 const docColumnDefs = [
@@ -652,25 +653,12 @@ export default function DocumentsPage() {
             <div className="h-[20px] w-[20px] animate-spin rounded-full border-2 border-[#dcdcdc] border-t-[#888]" />
           </div>
         ) : allItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-[80px]">
-            <div className="mb-[16px] flex h-[56px] w-[56px] items-center justify-center rounded-full bg-[#f0f0f0]">
-              <Folder className="h-[24px] w-[24px] text-[#bbb]" strokeWidth={1.5} />
-            </div>
-            <p className="text-[14px] font-medium text-[#262626]">{isInsideFile ? "This file is empty" : "No files yet"}</p>
-            <p className="mt-[4px] text-[13px] text-[#888]">{isInsideFile ? "Upload documents or create a file inside" : "Create a file to organise your documents"}</p>
-            {canManageDocuments && (
-              <div className="mt-[16px]">
-                <button
-                  onClick={() => { setIsAddNewOpen(!isAddNewOpen); setIsUploadPickerOpen(false) }}
-                  className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[10px] py-[6px] text-[13px] font-medium transition-colors"
-                  tabIndex={0}
-                >
-                  <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-                  Add new
-                </button>
-              </div>
-            )}
-          </div>
+          <EmptyState
+            icon={Folder}
+            title={isInsideFile ? "This file is empty" : "No files yet"}
+            description={isInsideFile ? "Upload documents or create a file inside" : "Create a file to organise your documents"}
+            action={canManageDocuments ? { label: "Add new", onClick: () => { setIsAddNewOpen(!isAddNewOpen); setIsUploadPickerOpen(false) } } : undefined}
+          />
         ) : (
           <table className="w-full border-separate border-spacing-0 text-left" style={{ tableLayout: "fixed", minWidth: 700 }}>
             <thead>

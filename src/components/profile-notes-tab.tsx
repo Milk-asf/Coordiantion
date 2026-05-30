@@ -2,6 +2,7 @@
 
 import { SquarePen, Plus } from "lucide-react"
 import type { Note } from "@/lib/types"
+import { EmptyState } from "@/components/empty-state"
 
 interface ProfileNotesTabProps {
   notes: Note[]
@@ -23,24 +24,13 @@ function formatDate(dateStr: string) {
 export function ProfileNotesTab({ notes, onOpenNote, onCreateNote, isCreating = false, emptyDescription = "Notes linked here will appear in this section." }: ProfileNotesTabProps) {
   if (notes.length === 0) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-[12px] px-[24px]">
-        <div className="flex h-[44px] w-[44px] items-center justify-center rounded-full bg-[#f5f5f5]">
-          <SquarePen className="h-[18px] w-[18px] text-[#bbb]" strokeWidth={1.5} />
-        </div>
-        <div className="text-center">
-          <p className="text-[14px] font-medium text-[#262626]">No notes yet</p>
-          <p className="mt-[2px] text-[13px] text-[#999]">{emptyDescription}</p>
-        </div>
-        <button
-          onClick={onCreateNote}
-          disabled={isCreating}
-          className="primary-btn mt-[2px] flex items-center gap-[6px] rounded-[8px] px-[14px] py-[8px] text-[13px] font-medium transition-colors disabled:opacity-50"
-          tabIndex={0}
-        >
-          <Plus className="h-[14px] w-[14px]" strokeWidth={2} />
-          {isCreating ? "Creating…" : "New note"}
-        </button>
-      </div>
+      <EmptyState
+        icon={SquarePen}
+        title="No notes yet"
+        description={emptyDescription}
+        action={{ label: isCreating ? "Creating…" : "New note", onClick: onCreateNote, disabled: isCreating }}
+        className="h-full"
+      />
     )
   }
 
