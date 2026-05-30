@@ -7,6 +7,7 @@ import { useColumnResize } from "@/lib/hooks/use-column-resize"
 import { useInvoices } from "@/lib/hooks/use-invoices"
 import { EntityIcon } from "@/components/entity-icon"
 import { PageLoader, PageError } from "@/components/page-state"
+import { UsageBar } from "@/components/usage-bar"
 import type { NdisPlan } from "@/lib/types"
 import {
   UserRound,
@@ -265,7 +266,6 @@ export default function NdisPlansPage() {
     const cellBg = isSelected ? "bg-[#eef4ff]" : "bg-[#fafafa] group-hover:bg-[#f5f5f5]"
     const cellBase = `h-[44px] overflow-hidden whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] ${cellBg}`
     const textCell = `${cellBase} text-[13px] font-medium text-[#262626]`
-    const usageColor = row.usagePct >= 90 ? "bg-red-500" : row.usagePct >= 70 ? "bg-amber-400" : "bg-[#2563EB]"
     const dash = <span className="text-[#bbb]">—</span>
 
     switch (key) {
@@ -296,12 +296,7 @@ export default function NdisPlansPage() {
       case "usage":
         return (
           <td key={key} className={cellBase}>
-            <div className="flex items-center gap-[10px]">
-              <div className="h-[12px] w-[80px] overflow-hidden rounded-full bg-[#f0f0f0]">
-                <div className={`h-full rounded-full ${usageColor} transition-all`} style={{ width: `${Math.min(100, row.usagePct)}%` }} />
-              </div>
-              <span className="text-[12px] font-medium text-[#888]">{Math.round(row.usagePct)}%</span>
-            </div>
+            <UsageBar percent={row.usagePct} />
           </td>
         )
       case "burnRate": {
@@ -330,15 +325,9 @@ export default function NdisPlansPage() {
         )
       case "timeElapsed": {
         if (row.totalDays === 0) return <td key={key} className={textCell}>{dash}</td>
-        const timeColor = row.timePct >= 90 ? "bg-red-500" : row.timePct >= 70 ? "bg-amber-400" : "bg-[#BFDBFE]"
         return (
           <td key={key} className={cellBase}>
-            <div className="flex items-center gap-[10px]">
-              <div className="h-[12px] w-[80px] overflow-hidden rounded-full bg-[#f0f0f0]">
-                <div className={`h-full rounded-full ${timeColor} transition-all`} style={{ width: `${Math.min(100, row.timePct)}%` }} />
-              </div>
-              <span className="text-[12px] font-medium text-[#888]">{Math.round(row.timePct)}%</span>
-            </div>
+            <UsageBar percent={row.timePct} baseColor="bg-[#BFDBFE]" />
           </td>
         )
       }
