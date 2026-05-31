@@ -30,7 +30,6 @@ import {
   Heart,
   Clock,
   Hash,
-  ChevronDown,
   Plus,
   SquarePen,
   CheckSquare,
@@ -270,11 +269,6 @@ function SidebarContactChip({ value, onChange, placeholder, variant = "grey" }: 
   )
 }
 
-function formatNoteDate(dateStr: string) {
-  if (!dateStr) return ""
-  return new Date(dateStr).toLocaleDateString("en-AU", { day: "numeric", month: "short" })
-}
-
 interface ActivityItem {
   id: string
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
@@ -294,7 +288,6 @@ export default function StaffProfilePage() {
   const params = useParams()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState("overview")
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false)
   const [isSidebarVisible, setIsSidebarVisible] = useState(true)
   const [sidebarWidth, setSidebarWidth] = useState(404)
   const { staff, isLoading, updateStaff } = useStaff()
@@ -1278,7 +1271,7 @@ export default function StaffProfilePage() {
           />
           <div className="shrink-0 overflow-y-auto bg-white" style={{ width: sidebarWidth }}>
           <div className="flex items-center justify-between px-[24px] pb-[4px] pt-[20px]">
-            <h2 className="text-[13px] font-semibold text-[#262626]">Staff details</h2>
+            <h2 className="text-[13px] font-semibold text-[#262626]">Account details</h2>
             <button
               onClick={() => setIsSidebarVisible(false)}
               className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
@@ -1289,7 +1282,7 @@ export default function StaffProfilePage() {
             </button>
           </div>
 
-          <div className="border-b border-[#f0f0f0] px-[24px] pb-[12px]">
+          <div className="px-[24px] pb-[20px]">
             <h3 className="mb-[2px] ml-[22px] mt-[10px] text-[11px] font-medium tracking-wide text-[#888]">Personal Information</h3>
             {sf("s-first-name") && <SidebarDetailRow icon={User} label="First Name">
               <SidebarEditableField value={d.firstName} onChange={(v) => handleUpdateField("firstName", v)} placeholder="First name" />
@@ -1303,131 +1296,53 @@ export default function StaffProfilePage() {
             {sf("s-date-of-birth") && <SidebarDetailRow icon={CalendarDays} label="Date of Birth">
               <SidebarEditableField value={d.dateOfBirth} onChange={(v) => handleUpdateField("dateOfBirth", v)} type="date" placeholder="Date of birth" />
             </SidebarDetailRow>}
+            {sf("s-gender") && <SidebarDetailRow icon={User} label="Gender">
+              <SidebarEditableField value={d.gender} onChange={(v) => handleUpdateField("gender", v)} type="select" options={["Male", "Female", "Non-binary", "Other", "Prefer not to say"]} />
+            </SidebarDetailRow>}
+            {sf("s-pronouns") && <SidebarDetailRow icon={MessageSquare} label="Pronouns">
+              <SidebarEditableField value={d.pronouns} onChange={(v) => handleUpdateField("pronouns", v)} type="select" options={["He/Him", "She/Her", "They/Them", "Other"]} />
+            </SidebarDetailRow>}
 
-            {!isSidebarExpanded && (
-              <button
-                onClick={() => setIsSidebarExpanded(true)}
-                className="mt-[6px] flex items-center gap-[4px] text-[13px] font-medium text-[#888] transition-colors hover:text-[#262626]"
-                tabIndex={0}
-              >
-                <ChevronDown className="h-[12px] w-[12px]" strokeWidth={1.5} />
-                <span>See more</span>
-              </button>
-            )}
+            <h3 className="mb-[2px] ml-[22px] mt-[10px] text-[11px] font-medium tracking-wide text-[#888]">Contact Information</h3>
+            {sf("s-email") && <SidebarDetailRow icon={Mail} label="Email">
+              <SidebarContactChip value={d.email} onChange={(v) => handleUpdateField("email", v)} placeholder="Email address" />
+            </SidebarDetailRow>}
+            {sf("s-phone") && <SidebarDetailRow icon={Phone} label="Phone">
+              <SidebarContactChip value={d.phone} onChange={(v) => handleUpdateField("phone", v)} placeholder="Phone number" />
+            </SidebarDetailRow>}
 
-            {isSidebarExpanded && (
-              <>
-                {sf("s-gender") && <SidebarDetailRow icon={User} label="Gender">
-                  <SidebarEditableField value={d.gender} onChange={(v) => handleUpdateField("gender", v)} type="select" options={["Male", "Female", "Non-binary", "Other", "Prefer not to say"]} />
-                </SidebarDetailRow>}
-                {sf("s-pronouns") && <SidebarDetailRow icon={MessageSquare} label="Pronouns">
-                  <SidebarEditableField value={d.pronouns} onChange={(v) => handleUpdateField("pronouns", v)} type="select" options={["He/Him", "She/Her", "They/Them", "Other"]} />
-                </SidebarDetailRow>}
+            <h3 className="mb-[2px] ml-[22px] mt-[10px] text-[11px] font-medium tracking-wide text-[#888]">Employment</h3>
+            {sf("s-role") && <SidebarDetailRow icon={Briefcase} label="Role">
+              <SidebarEditableField value={d.role} onChange={(v) => handleUpdateField("role", v)} placeholder="Job role" />
+            </SidebarDetailRow>}
+            {sf("s-department") && <SidebarDetailRow icon={Briefcase} label="Department">
+              <SidebarEditableField value={d.department} onChange={(v) => handleUpdateField("department", v)} placeholder="Department" />
+            </SidebarDetailRow>}
+            {sf("s-employment-type") && <SidebarDetailRow icon={Briefcase} label="Type">
+              <SidebarEditableField value={d.employmentType} onChange={(v) => handleUpdateField("employmentType", v)} type="select" options={["Full-time", "Part-time", "Casual", "Contract"]} />
+            </SidebarDetailRow>}
+            {sf("s-start-date") && <SidebarDetailRow icon={CalendarDays} label="Start Date">
+              <SidebarEditableField value={d.startDate} onChange={(v) => handleUpdateField("startDate", v)} type="date" placeholder="Start date" />
+            </SidebarDetailRow>}
+            {sf("s-end-date") && <SidebarDetailRow icon={CalendarDays} label="End Date">
+              <SidebarEditableField value={d.endDate} onChange={(v) => handleUpdateField("endDate", v)} type="date" placeholder="End date" />
+            </SidebarDetailRow>}
 
-                <h3 className="mb-[2px] ml-[22px] mt-[10px] text-[11px] font-medium tracking-wide text-[#888]">Contact Information</h3>
-                {sf("s-email") && <SidebarDetailRow icon={Mail} label="Email">
-                  <SidebarContactChip value={d.email} onChange={(v) => handleUpdateField("email", v)} placeholder="Email address" />
-                </SidebarDetailRow>}
+            <h3 className="mb-[2px] ml-[22px] mt-[10px] text-[11px] font-medium tracking-wide text-[#888]">Qualifications</h3>
+            {sf("s-qualifications") && <SidebarDetailRow icon={GraduationCap} label="Qualifications">
+              <SidebarEditableField value={d.qualifications} onChange={(v) => handleUpdateField("qualifications", v)} placeholder="Qualifications" />
+            </SidebarDetailRow>}
+            {sf("s-certifications") && <SidebarDetailRow icon={ShieldCheck} label="Certifications">
+              <SidebarEditableField value={d.certifications} onChange={(v) => handleUpdateField("certifications", v)} placeholder="Certifications" />
+            </SidebarDetailRow>}
 
-                {sf("s-phone") && <SidebarDetailRow icon={Phone} label="Phone">
-                  <SidebarContactChip value={d.phone} onChange={(v) => handleUpdateField("phone", v)} placeholder="Phone number" />
-                </SidebarDetailRow>}
-
-                <h3 className="mb-[2px] ml-[22px] mt-[10px] text-[11px] font-medium tracking-wide text-[#888]">Employment</h3>
-                {sf("s-role") && <SidebarDetailRow icon={Briefcase} label="Role">
-                  <SidebarEditableField value={d.role} onChange={(v) => handleUpdateField("role", v)} placeholder="Job role" />
-                </SidebarDetailRow>}
-                {sf("s-department") && <SidebarDetailRow icon={Briefcase} label="Department">
-                  <SidebarEditableField value={d.department} onChange={(v) => handleUpdateField("department", v)} placeholder="Department" />
-                </SidebarDetailRow>}
-                {sf("s-employment-type") && <SidebarDetailRow icon={Briefcase} label="Type">
-                  <SidebarEditableField value={d.employmentType} onChange={(v) => handleUpdateField("employmentType", v)} type="select" options={["Full-time", "Part-time", "Casual", "Contract"]} />
-                </SidebarDetailRow>}
-                {sf("s-start-date") && <SidebarDetailRow icon={CalendarDays} label="Start Date">
-                  <SidebarEditableField value={d.startDate} onChange={(v) => handleUpdateField("startDate", v)} type="date" placeholder="Start date" />
-                </SidebarDetailRow>}
-                {sf("s-end-date") && <SidebarDetailRow icon={CalendarDays} label="End Date">
-                  <SidebarEditableField value={d.endDate} onChange={(v) => handleUpdateField("endDate", v)} type="date" placeholder="End date" />
-                </SidebarDetailRow>}
-
-                <h3 className="mb-[2px] ml-[22px] mt-[10px] text-[11px] font-medium tracking-wide text-[#888]">Qualifications</h3>
-                {sf("s-qualifications") && <SidebarDetailRow icon={GraduationCap} label="Qualifications">
-                  <SidebarEditableField value={d.qualifications} onChange={(v) => handleUpdateField("qualifications", v)} placeholder="Qualifications" />
-                </SidebarDetailRow>}
-                {sf("s-certifications") && <SidebarDetailRow icon={ShieldCheck} label="Certifications">
-                  <SidebarEditableField value={d.certifications} onChange={(v) => handleUpdateField("certifications", v)} placeholder="Certifications" />
-                </SidebarDetailRow>}
-
-                <h3 className="mb-[2px] ml-[22px] mt-[10px] text-[11px] font-medium tracking-wide text-[#888]">Emergency Contact</h3>
-                {sf("s-emergency-contact") && <SidebarDetailRow icon={User} label="Name">
-                  <SidebarEditableField value={d.emergencyContactName} onChange={(v) => handleUpdateField("emergencyContactName", v)} placeholder="Emergency contact" />
-                </SidebarDetailRow>}
-                {sf("s-emergency-phone") && <SidebarDetailRow icon={Phone} label="Phone">
-                  <SidebarContactChip value={d.emergencyContactPhone} onChange={(v) => handleUpdateField("emergencyContactPhone", v)} placeholder="Phone number" />
-                </SidebarDetailRow>}
-
-                <button
-                  onClick={() => setIsSidebarExpanded(false)}
-                  className="mt-[6px] flex items-center gap-[4px] text-[13px] font-medium text-[#888] transition-colors hover:text-[#262626]"
-                  tabIndex={0}
-                >
-                  <ChevronDown className="h-[12px] w-[12px] rotate-180" strokeWidth={1.5} />
-                  <span>See less</span>
-                </button>
-              </>
-            )}
-          </div>
-
-          <div className="border-t border-[#f0f0f0] px-[24px] py-[16px]">
-            <div className="flex items-center justify-between">
-              <h3 className="text-[13px] font-semibold text-[#262626]">Tasks</h3>
-              <button onClick={() => setActiveTab("tasks")} className="text-[12px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>See all</button>
-            </div>
-            {staffTasks.filter((t) => t.status !== "done").length === 0 ? (
-              <p className="mt-[6px] text-[13px] font-medium text-[#bbb]">No open tasks</p>
-            ) : (
-              <div className="mt-[6px] flex flex-col gap-[2px]">
-                {staffTasks.filter((t) => t.status !== "done").slice(0, 5).map((task) => (
-                  <div key={task.id} className="flex items-center gap-[8px] rounded-md px-[4px] py-[4px] transition-colors hover:bg-[#f5f5f5]">
-                    <span className="truncate text-[13px] text-[#262626]">{task.title}</span>
-                    {task.dueDate && <span className="ml-auto shrink-0 text-[11px] text-[#999]">{formatTaskDate(task.dueDate)}</span>}
-                  </div>
-                ))}
-                {staffTasks.filter((t) => t.status !== "done").length > 5 && (
-                  <button onClick={() => setActiveTab("tasks")} className="mt-[2px] text-left text-[12px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
-                    +{staffTasks.filter((t) => t.status !== "done").length - 5} more
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-          <div className="border-t border-[#f0f0f0] px-[24px] py-[16px]">
-            <div className="flex items-center justify-between">
-              <h3 className="text-[13px] font-semibold text-[#262626]">Notes</h3>
-              <button onClick={() => setActiveTab("notes")} className="text-[12px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>See all</button>
-            </div>
-            {staffNotes.length === 0 ? (
-              <p className="mt-[6px] text-[13px] font-medium text-[#bbb]">No notes</p>
-            ) : (
-              <div className="mt-[6px] flex flex-col gap-[2px]">
-                {staffNotes.slice(0, 5).map((note) => (
-                  <button
-                    key={note.id}
-                    onClick={() => router.push(`/notes?note=${note.id}`)}
-                    className="flex items-center gap-[8px] rounded-md px-[4px] py-[4px] text-left transition-colors hover:bg-[#f5f5f5]"
-                    tabIndex={0}
-                  >
-                    <span className="truncate text-[13px] text-[#262626]">{note.title || "Untitled"}</span>
-                    <span className="ml-auto shrink-0 text-[11px] text-[#999]">{formatNoteDate(note.updatedAt || note.createdAt)}</span>
-                  </button>
-                ))}
-                {staffNotes.length > 5 && (
-                  <button onClick={() => setActiveTab("notes")} className="mt-[2px] text-left text-[12px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
-                    +{staffNotes.length - 5} more
-                  </button>
-                )}
-              </div>
-            )}
+            <h3 className="mb-[2px] ml-[22px] mt-[10px] text-[11px] font-medium tracking-wide text-[#888]">Emergency Contact</h3>
+            {sf("s-emergency-contact") && <SidebarDetailRow icon={User} label="Name">
+              <SidebarEditableField value={d.emergencyContactName} onChange={(v) => handleUpdateField("emergencyContactName", v)} placeholder="Emergency contact" />
+            </SidebarDetailRow>}
+            {sf("s-emergency-phone") && <SidebarDetailRow icon={Phone} label="Phone">
+              <SidebarContactChip value={d.emergencyContactPhone} onChange={(v) => handleUpdateField("emergencyContactPhone", v)} placeholder="Phone number" />
+            </SidebarDetailRow>}
           </div>
           </div>
         </>

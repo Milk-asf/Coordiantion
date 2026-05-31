@@ -1686,9 +1686,6 @@ export default function ParticipantProfilePage() {
           onMouseDown={handleMouseDown}
           onUpdateField={handleUpdateField}
           onUpdateClient={updateClient}
-          notes={clientNotes}
-          onOpenNote={(noteId) => router.push(`/notes?note=${noteId}`)}
-          onSeeAllNotes={() => setActiveTab("notes")}
           periodLabels={periodLabels}
         />
       ) : null}
