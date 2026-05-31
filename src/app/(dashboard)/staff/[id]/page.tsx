@@ -8,6 +8,7 @@ import { useTasks } from "@/lib/hooks/use-tasks"
 import { useDocuments } from "@/lib/hooks/use-documents"
 import { useNotes } from "@/lib/hooks/use-notes"
 import { useCharges } from "@/lib/hooks/use-charges"
+import { useInvoices } from "@/lib/hooks/use-invoices"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import type { StaffMember, StaffDetails, Task, Document } from "@/lib/types"
 import { useFieldConfig } from "@/lib/hooks/use-field-config"
@@ -18,6 +19,7 @@ import { DetailRow } from "@/components/detail-row"
 import { DocumentPreview } from "@/components/document-preview"
 import { ProfileNotesTab } from "@/components/profile-notes-tab"
 import { EmptyState } from "@/components/empty-state"
+import { UsageBar } from "@/components/usage-bar"
 import {
   User,
   FileText,
@@ -311,6 +313,7 @@ export default function StaffProfilePage() {
   const { tasks: allTasks, updateTask, addTask } = useTasks()
   const { documents, uploadDocument, deleteDocument, getDownloadUrl, createFile } = useDocuments()
   const { allCharges, enabledCharges } = useCharges()
+  const { invoices } = useInvoices()
   const { canAssignClients } = usePermissions()
   const { isFieldEnabled } = useFieldConfig()
   const sf = isFieldEnabled
@@ -520,6 +523,26 @@ export default function StaffProfilePage() {
   const d = member.details
   const activities = getActivities(member.name)
   const assignedClients = clients.filter((c) => c.owner === member.name)
+
+  const getClientPlanUsage = (client: (typeof clients)[number]) => {
+    const plans = client.participant.plans || []
+    const clientInvoices = invoices.filter(
+      (inv) => inv.clientId === client.id || inv.clientName === client.name || inv.clientName === client.displayName
+    )
+    let totalBudget = 0
+    let totalUsed = 0
+    for (const plan of plans) {
+      const services = plan.services || []
+      totalBudget += services.reduce((sum, svc) => sum + svc.budget, 0)
+      for (const inv of clientInvoices) {
+        for (const li of inv.lineItems) {
+          if (services.some((svc) => svc.enabledChargeItems.includes(li.chargeItemNumber))) totalUsed += li.amount
+        }
+      }
+    }
+    const usagePct = totalBudget > 0 ? (totalUsed / totalBudget) * 100 : 0
+    return { totalBudget, totalUsed, usagePct, hasPlan: plans.length > 0 }
+  }
 
   const handleUpdateField = (field: keyof StaffDetails, value: string) => {
     updateStaff(member.id, { details: { ...member.details, [field]: value } })
@@ -965,18 +988,20 @@ export default function StaffProfilePage() {
                       <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Client name</th>
                       <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">NDIS Number</th>
                       <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Primary Diagnosis</th>
-                      <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Email</th>
+                      <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Email</th>
+                      <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Plan usage</th>
                     </tr>
                   </thead>
                   <tbody>
                     {assignedClients.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="bg-white px-[20px] py-[32px] text-center text-[13px] font-medium text-[#bbb]">
+                        <td colSpan={5} className="bg-white px-[20px] py-[32px] text-center text-[13px] font-medium text-[#bbb]">
                           No clients assigned
                         </td>
                       </tr>
                     ) : assignedClients.map((client) => {
                       const initials = client.iconText
+                      const planUsage = getClientPlanUsage(client)
                       return (
                         <tr
                           key={client.id}
@@ -997,8 +1022,15 @@ export default function StaffProfilePage() {
                           <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626]">
                             {client.participant.primaryDiagnosis || <span className="text-[#bbb]">—</span>}
                           </td>
-                          <td className="h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626]">
+                          <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626]">
                             {client.participant.email || <span className="text-[#bbb]">—</span>}
+                          </td>
+                          <td className="h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px]" onClick={(e) => e.stopPropagation()}>
+                            {planUsage.hasPlan ? (
+                              <UsageBar percent={planUsage.usagePct} tooltip={`$${planUsage.totalUsed.toLocaleString()} of $${planUsage.totalBudget.toLocaleString()} used`} />
+                            ) : (
+                              <span className="text-[13px] font-medium text-[#bbb]">—</span>
+                            )}
                           </td>
                         </tr>
                       )
