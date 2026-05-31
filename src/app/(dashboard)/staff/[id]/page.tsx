@@ -1368,12 +1368,6 @@ export default function StaffProfilePage() {
               <div className="mt-[6px] flex flex-col gap-[2px]">
                 {staffTasks.filter((t) => t.status !== "done").slice(0, 5).map((task) => (
                   <div key={task.id} className="flex items-center gap-[8px] rounded-md px-[4px] py-[4px] transition-colors hover:bg-[#f5f5f5]">
-                    <button
-                      onClick={() => updateTask(task.id, { status: "done" })}
-                      className="flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded border-[1.5px] border-[#ccc] transition-colors hover:border-[#999]"
-                      tabIndex={0}
-                      aria-label="Complete task"
-                    />
                     <span className="truncate text-[13px] text-[#262626]">{task.title}</span>
                     {task.dueDate && <span className="ml-auto shrink-0 text-[11px] text-[#999]">{formatTaskDate(task.dueDate)}</span>}
                   </div>
