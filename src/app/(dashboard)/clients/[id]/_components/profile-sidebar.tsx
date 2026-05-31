@@ -1,7 +1,7 @@
 "use client"
 
 import type { RefObject } from "react"
-import type { Client, ParticipantDetails, NdisPlan, PlanService, FundingReleasePeriod, Budget, BudgetLineItem, BudgetPeriod } from "@/lib/types"
+import type { Client, ParticipantDetails, NdisPlan, PlanService, FundingReleasePeriod, Budget, BudgetLineItem, BudgetPeriod, Note } from "@/lib/types"
 import type { NdisChargeItem } from "@/lib/ndis-charges"
 import { ndisCharges, chargeCategories } from "@/lib/ndis-charges"
 import { DatePicker } from "@/components/date-picker"
@@ -130,7 +130,16 @@ interface ProfileSidebarProps {
   onUpdateField: (field: keyof ParticipantDetails, value: string) => void
   onUpdateClient: (id: string, data: Partial<Client>) => void
 
+  notes: Note[]
+  onOpenNote: (noteId: string) => void
+  onSeeAllNotes: () => void
+
   periodLabels: Record<BudgetPeriod, string>
+}
+
+function formatSidebarNoteDate(dateStr: string) {
+  if (!dateStr) return ""
+  return new Date(dateStr).toLocaleDateString("en-AU", { day: "numeric", month: "short" })
 }
 
 export function ProfileSidebar(props: ProfileSidebarProps) {
@@ -161,6 +170,7 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
     isCoordinatorOpen, coordinatorSearch, coordinatorInputRef,
     onSetIsCoordinatorOpen, onSetCoordinatorSearch,
     onSetSidebarVisible, onMouseDown, onUpdateField, onUpdateClient,
+    notes, onOpenNote, onSeeAllNotes,
     periodLabels,
   } = props
 
@@ -1340,9 +1350,34 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
         </SidebarDetailRow>
       </div>
 
-     
-
-     
+      <div className="border-t border-[#f0f0f0] px-[24px] py-[16px]">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[13px] font-semibold text-[#262626]">Notes</h3>
+          <button onClick={onSeeAllNotes} className="text-[12px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>See all</button>
+        </div>
+        {notes.length === 0 ? (
+          <p className="mt-[6px] text-[13px] font-medium text-[#bbb]">No notes</p>
+        ) : (
+          <div className="mt-[6px] flex flex-col gap-[2px]">
+            {notes.slice(0, 5).map((note) => (
+              <button
+                key={note.id}
+                onClick={() => onOpenNote(note.id)}
+                className="flex items-center gap-[8px] rounded-md px-[4px] py-[4px] text-left transition-colors hover:bg-[#f5f5f5]"
+                tabIndex={0}
+              >
+                <span className="truncate text-[13px] text-[#262626]">{note.title || "Untitled"}</span>
+                <span className="ml-auto shrink-0 text-[11px] text-[#999]">{formatSidebarNoteDate(note.updatedAt || note.createdAt)}</span>
+              </button>
+            ))}
+            {notes.length > 5 && (
+              <button onClick={onSeeAllNotes} className="mt-[2px] text-left text-[12px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+                +{notes.length - 5} more
+              </button>
+            )}
+          </div>
+        )}
+      </div>
 
       </>
       )}

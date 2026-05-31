@@ -270,20 +270,9 @@ function SidebarContactChip({ value, onChange, placeholder, variant = "grey" }: 
   )
 }
 
-function SidebarSection({ title, emptyText, actionLabel }: { title: string; emptyText: string; actionLabel?: string }) {
-  return (
-    <div className="border-t border-[#f0f0f0] px-[24px] py-[16px]">
-      <div className="flex items-center justify-between">
-        <h3 className="text-[13px] font-semibold text-[#262626]">{title}</h3>
-        {actionLabel && (
-          <button className="text-[12px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
-            {actionLabel}
-          </button>
-        )}
-      </div>
-      <p className="mt-[6px] text-[13px] font-medium text-[#bbb]">{emptyText}</p>
-    </div>
-  )
+function formatNoteDate(dateStr: string) {
+  if (!dateStr) return ""
+  return new Date(dateStr).toLocaleDateString("en-AU", { day: "numeric", month: "short" })
 }
 
 interface ActivityItem {
@@ -1412,7 +1401,34 @@ export default function StaffProfilePage() {
               </div>
             )}
           </div>
-          <SidebarSection title="Notes" emptyText="No notes" actionLabel="See all" />
+          <div className="border-t border-[#f0f0f0] px-[24px] py-[16px]">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[13px] font-semibold text-[#262626]">Notes</h3>
+              <button onClick={() => setActiveTab("notes")} className="text-[12px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>See all</button>
+            </div>
+            {staffNotes.length === 0 ? (
+              <p className="mt-[6px] text-[13px] font-medium text-[#bbb]">No notes</p>
+            ) : (
+              <div className="mt-[6px] flex flex-col gap-[2px]">
+                {staffNotes.slice(0, 5).map((note) => (
+                  <button
+                    key={note.id}
+                    onClick={() => router.push(`/notes?note=${note.id}`)}
+                    className="flex items-center gap-[8px] rounded-md px-[4px] py-[4px] text-left transition-colors hover:bg-[#f5f5f5]"
+                    tabIndex={0}
+                  >
+                    <span className="truncate text-[13px] text-[#262626]">{note.title || "Untitled"}</span>
+                    <span className="ml-auto shrink-0 text-[11px] text-[#999]">{formatNoteDate(note.updatedAt || note.createdAt)}</span>
+                  </button>
+                ))}
+                {staffNotes.length > 5 && (
+                  <button onClick={() => setActiveTab("notes")} className="mt-[2px] text-left text-[12px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+                    +{staffNotes.length - 5} more
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
           </div>
         </>
       ) : null}
