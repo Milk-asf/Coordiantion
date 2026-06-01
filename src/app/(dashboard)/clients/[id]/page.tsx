@@ -16,7 +16,7 @@ import { useDocuments } from "@/lib/hooks/use-documents"
 import { useNotes } from "@/lib/hooks/use-notes"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
-import type { ParticipantDetails, Document, NdisPlan, PlanService, FundingReleasePeriod, Budget, BudgetLineItem, BudgetPeriod, ActivityEntry } from "@/lib/types"
+import type { ParticipantDetails, Document, NdisPlan, PlanService, FundingReleasePeriod, Budget, BudgetLineItem, BudgetPeriod, ActivityEntry, ClientGoal } from "@/lib/types"
 import { DocumentPreview } from "@/components/document-preview"
 import {
   FileText,
@@ -39,6 +39,7 @@ import {
   ClipboardList,
   DollarSign,
   MoreHorizontal,
+  Target,
 } from "lucide-react"
 import {
   type ProfileContact,
@@ -53,11 +54,14 @@ import { ProfileSidebar } from "./_components/profile-sidebar"
 import { ProfileNotesTab } from "@/components/profile-notes-tab"
 import { PlanTab } from "./_components/plan-tab"
 import { BudgetsTab } from "./_components/budgets-tab"
+import { GoalsTab } from "./_components/goals-tab"
+import { type GoalFormData } from "./_components/goal-sidebar-form"
 
 const tabs = [
   { key: "overview", label: "Overview", icon: FileText },
   { key: "plan", label: "Plan", icon: ClipboardList },
   { key: "budgets", label: "Budgets", icon: DollarSign },
+  { key: "goals", label: "Goals", icon: Target },
   { key: "contacts", label: "Contacts", icon: Users },
   { key: "tasks", label: "Tasks", icon: CheckSquare },
   { key: "notes", label: "Notes", icon: SquarePen },
@@ -287,6 +291,9 @@ export default function ParticipantProfilePage() {
 
   const [isItemChargeDropdownOpen, setIsItemChargeDropdownOpen] = useState(false)
   const [isItemPeriodDropdownOpen, setIsItemPeriodDropdownOpen] = useState(false)
+
+  const [isGoalFormOpen, setIsGoalFormOpen] = useState(false)
+  const [editingGoal, setEditingGoal] = useState<ClientGoal | null>(null)
 
   const [isBudgetFormOpen, setIsBudgetFormOpen] = useState(false)
   const [editingBudgetId, setEditingBudgetId] = useState<string | null>(null)
@@ -753,6 +760,85 @@ export default function ParticipantProfilePage() {
 
   const budgets = client.participant.budgets || []
 
+  const goals = client.participant.goals || []
+
+  const resetGoalForm = () => {
+    setIsGoalFormOpen(false)
+    setEditingGoal(null)
+  }
+
+  const initGoalForm = () => {
+    setEditingGoal(null)
+    setIsGoalFormOpen(true)
+    setIsSidebarVisible(true)
+  }
+
+  const initEditGoalForm = (goal: ClientGoal) => {
+    setEditingGoal(goal)
+    setIsGoalFormOpen(true)
+    setIsSidebarVisible(true)
+  }
+
+  const handleSaveGoal = async (data: GoalFormData) => {
+    const existingGoals = client.participant.goals || []
+    const existingLog = client.participant.activityLog || []
+
+    if (editingGoal) {
+      const updatedGoals = existingGoals.map((g) =>
+        g.id === editingGoal.id ? { ...g, ...data } : g
+      )
+      const entry: ActivityEntry = {
+        id: crypto.randomUUID(),
+        type: "goal_updated",
+        message: `Updated the goal **${data.title}**`,
+        user: currentUserName,
+        createdAt: new Date().toISOString(),
+      }
+      await saveClient(client.id, {
+        participant: { ...client.participant, goals: updatedGoals, activityLog: [entry, ...existingLog] },
+      })
+    } else {
+      const newGoal: ClientGoal = {
+        id: crypto.randomUUID(),
+        title: data.title,
+        goalType: data.goalType,
+        status: data.status,
+        achievementStrategies: data.achievementStrategies,
+        barriers: data.barriers,
+        linkedTasks: [],
+        createdAt: new Date().toISOString(),
+      }
+      const entry: ActivityEntry = {
+        id: crypto.randomUUID(),
+        type: "goal_created",
+        message: `Created the goal **${data.title}**`,
+        user: currentUserName,
+        createdAt: new Date().toISOString(),
+      }
+      await saveClient(client.id, {
+        participant: { ...client.participant, goals: [...existingGoals, newGoal], activityLog: [entry, ...existingLog] },
+      })
+    }
+    resetGoalForm()
+  }
+
+  const handleDeleteGoal = async (goalId: string) => {
+    const existingGoals = client.participant.goals || []
+    const target = existingGoals.find((g) => g.id === goalId)
+    const existingLog = client.participant.activityLog || []
+    const entry: ActivityEntry = {
+      id: crypto.randomUUID(),
+      type: "goal_deleted",
+      message: `Deleted the goal **${target?.title || "Untitled goal"}**`,
+      user: currentUserName,
+      createdAt: new Date().toISOString(),
+    }
+    await saveClient(client.id, {
+      participant: { ...client.participant, goals: existingGoals.filter((g) => g.id !== goalId), activityLog: [entry, ...existingLog] },
+    })
+    resetGoalForm()
+  }
+
   const resetBudgetForm = () => {
     setIsBudgetFormOpen(false)
     setEditingBudgetId(null)
@@ -977,7 +1063,7 @@ export default function ParticipantProfilePage() {
               return (
                 <button
                   key={tab.key}
-                  onClick={() => { setActiveTab(tab.key); resetPlanForm(); resetBudgetForm(); resetItemForm(); resetServiceForm() }}
+                  onClick={() => { setActiveTab(tab.key); resetPlanForm(); resetBudgetForm(); resetItemForm(); resetServiceForm(); resetGoalForm() }}
                   className={`relative flex shrink-0 items-center gap-[4px] px-[8px] py-[4px] text-[12px] font-medium transition-colors ${isActive ? "text-[#262626]" : "text-[#888] hover:text-[#262626]"}`}
                   tabIndex={0}
                 >
@@ -1015,7 +1101,7 @@ export default function ParticipantProfilePage() {
                         return (
                           <button
                             key={tab.key}
-                            onClick={() => { setActiveTab(tab.key); setIsTabOverflowOpen(false); resetPlanForm(); resetBudgetForm(); resetItemForm(); resetServiceForm() }}
+                            onClick={() => { setActiveTab(tab.key); setIsTabOverflowOpen(false); resetPlanForm(); resetBudgetForm(); resetItemForm(); resetServiceForm(); resetGoalForm() }}
                             className={`flex w-full items-center gap-[10px] px-[14px] py-[8px] text-[13px] font-medium transition-colors ${isActive ? "bg-[#f0f0f0] text-[#262626]" : "text-[#262626] hover:bg-[#f5f5f5]"}`}
                             tabIndex={0}
                           >
@@ -1301,6 +1387,12 @@ export default function ParticipantProfilePage() {
               getBudgetTotal={getBudgetTotal}
               getBudgetUsed={getBudgetUsed}
             />
+          ) : activeTab === "goals" ? (
+            <GoalsTab
+              goals={goals}
+              onAddNew={initGoalForm}
+              onEditGoal={initEditGoalForm}
+            />
           ) : activeTab === "contacts" ? (
             <div className="relative flex h-full flex-col">
               {/* Toolbar */}
@@ -1460,51 +1552,40 @@ export default function ParticipantProfilePage() {
               const totalUsed = services.reduce((sum, svc) => sum + getServiceUsed(svc), 0)
               const totalRemaining = Math.max(0, totalBudget - totalUsed)
               const usedPct = totalBudget > 0 ? (totalUsed / totalBudget) * 100 : 0
-              const remainingPct = totalBudget > 0 ? (totalRemaining / totalBudget) * 100 : 0
               const daysLeft = endDate ? Math.max(0, Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))) : 0
 
-              const size = 120
-              const sw = 22
-              const r = (size - sw) / 2
-              const circ = 2 * Math.PI * r
-              const usedArc = (usedPct / 100) * circ
-              const remArc = (remainingPct / 100) * circ
+              const fmt = (n: number) => `$${n.toLocaleString("en-AU", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+              const fillColor = usedPct >= 90 ? "bg-red-500" : usedPct >= 70 ? "bg-amber-400" : "bg-[#2563EB]"
 
               return (
                 <div className="mt-[28px] rounded-[8px] border border-[#f0f0f0] px-[24px] py-[16px]">
                   <h3 className="text-[13px] font-semibold text-[#262626]">NDIS Plan</h3>
-                  <div className="mt-[12px] flex items-center gap-[16px]">
-                    <div className="relative shrink-0">
-                      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
-                        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f0f0f0" strokeWidth={sw} />
-                        {remainingPct > 0 && (
-                          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#BFDBFE" strokeWidth={sw} strokeDasharray={`${remArc} ${circ - remArc}`} strokeDashoffset={-usedArc} strokeLinecap="butt" />
-                        )}
-                        {usedPct > 0 && (
-                          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#2563EB" strokeWidth={sw} strokeDasharray={`${usedArc} ${circ - usedArc}`} strokeDashoffset={0} strokeLinecap="butt" />
-                        )}
-                      </svg>
-                      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-[12px] font-bold text-[#262626]">${totalRemaining.toLocaleString("en-AU", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-                        <span className="text-[9px] font-medium text-[#888]">Remaining</span>
-                      </div>
+
+                  <div className="mt-[14px] h-[28px] w-full overflow-hidden rounded-[8px] bg-[#f0f0f0]">
+                    <div className={`h-full rounded-[8px] ${fillColor} transition-all`} style={{ width: `${Math.min(100, usedPct)}%` }} />
+                  </div>
+
+                  <div className="mt-[14px] flex flex-wrap items-center gap-x-[24px] gap-y-[8px]">
+                    <div className="flex items-center gap-[6px]">
+                      <span className={`h-[8px] w-[8px] shrink-0 rounded-full ${fillColor}`} />
+                      <span className="text-[12px] font-semibold text-[#262626]">{Math.round(usedPct)}%</span>
+                      <span className="text-[11px] text-[#888]">Usage</span>
                     </div>
-                    <div className="flex min-w-0 flex-1 flex-col gap-[8px]">
-                      <div className="flex items-center gap-[6px]">
-                        <span className="h-[8px] w-[8px] shrink-0 rounded-full bg-[#2563EB]" />
-                        <span className="text-[12px] font-semibold text-[#262626]">${totalBudget.toLocaleString("en-AU", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-                        <span className="text-[11px] text-[#888]">Total</span>
-                      </div>
-                      <div className="flex items-center gap-[6px]">
-                        <span className="h-[8px] w-[8px] shrink-0 rounded-full bg-[#2563EB]" />
-                        <span className="text-[12px] font-semibold text-[#262626]">${totalUsed.toLocaleString("en-AU", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-                        <span className="text-[11px] text-[#888]">Used</span>
-                      </div>
-                      <div className="flex items-center gap-[6px]">
-                        <span className="h-[8px] w-[8px] shrink-0 rounded-full bg-[#BFDBFE]" />
-                        <span className="text-[12px] font-semibold text-[#262626]">{daysLeft}</span>
-                        <span className="text-[11px] text-[#888]">Days left</span>
-                      </div>
+                    <div className="flex items-center gap-[6px]">
+                      <span className="text-[12px] font-semibold text-[#262626]">{fmt(totalUsed)}</span>
+                      <span className="text-[11px] text-[#888]">Used</span>
+                    </div>
+                    <div className="flex items-center gap-[6px]">
+                      <span className="text-[12px] font-semibold text-[#262626]">{fmt(totalRemaining)}</span>
+                      <span className="text-[11px] text-[#888]">Remaining</span>
+                    </div>
+                    <div className="flex items-center gap-[6px]">
+                      <span className="text-[12px] font-semibold text-[#262626]">{fmt(totalBudget)}</span>
+                      <span className="text-[11px] text-[#888]">Total</span>
+                    </div>
+                    <div className="flex items-center gap-[6px]">
+                      <span className="text-[12px] font-semibold text-[#262626]">{daysLeft}</span>
+                      <span className="text-[11px] text-[#888]">Days left</span>
                     </div>
                   </div>
                 </div>
@@ -1651,6 +1732,16 @@ export default function ParticipantProfilePage() {
           onResetBudgetForm={resetBudgetForm}
           onSaveBudget={handleSaveBudget}
           onUsePlanDates={handleUsePlanDates}
+          isGoalFormOpen={isGoalFormOpen}
+          editingGoal={editingGoal}
+          onResetGoalForm={resetGoalForm}
+          onSaveGoal={handleSaveGoal}
+          onDeleteGoal={handleDeleteGoal}
+          onOpenGoalTask={(taskId) => router.push(`/tasks?task=${taskId}`)}
+          onResolveGoalTask={(taskId) => {
+            const t = allTasks.find((x) => x.id === taskId)
+            return t ? { title: t.title, status: t.status, exists: true } : null
+          }}
           isItemFormOpen={isItemFormOpen}
           editingItemId={editingItemId}
           addingItemToBudgetId={addingItemToBudgetId}

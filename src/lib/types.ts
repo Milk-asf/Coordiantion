@@ -37,6 +37,27 @@ export interface Budget {
   createdAt: string
 }
 
+export type GoalType = "long-term" | "short-term"
+export type GoalStatus = "not-started" | "in-progress" | "achieved" | "on-hold"
+
+export interface GoalLinkedTask {
+  taskId: string
+  title: string
+  status: "todo" | "in-progress" | "done"
+  linkedAt: string
+}
+
+export interface ClientGoal {
+  id: string
+  title: string
+  goalType: GoalType
+  status: GoalStatus
+  achievementStrategies: string
+  barriers: string
+  linkedTasks: GoalLinkedTask[]
+  createdAt: string
+}
+
 export interface NdisPlan {
   id: string
   startDate: string
@@ -82,6 +103,7 @@ export interface ParticipantDetails {
   planEndDate: string
   plans?: NdisPlan[]
   budgets?: Budget[]
+  goals?: ClientGoal[]
   supportCoordinationBudget?: number
   supportCoordinationUsed?: number
   description?: string
@@ -90,7 +112,7 @@ export interface ParticipantDetails {
 
 export interface ActivityEntry {
   id: string
-  type: "plan_created" | "plan_updated" | "service_added" | "service_updated" | "service_deleted" | "budget_created" | "budget_updated" | "budget_deleted" | "field_updated" | "description_updated" | "account_created"
+  type: "plan_created" | "plan_updated" | "service_added" | "service_updated" | "service_deleted" | "budget_created" | "budget_updated" | "budget_deleted" | "goal_created" | "goal_updated" | "goal_deleted" | "field_updated" | "description_updated" | "account_created"
   message: string
   user: string
   createdAt: string

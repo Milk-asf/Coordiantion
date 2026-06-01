@@ -87,6 +87,43 @@ function dbToClient(row: ClientRow): Client {
 
 const PAGE_SIZE = 50
 
+function isTransientFetchError(message: string | undefined): boolean {
+  if (!message) return false
+  const m = message.toLowerCase()
+  return (
+    m.includes("failed to fetch") ||
+    m.includes("fetch failed") ||
+    m.includes("network") ||
+    m.includes("load failed") ||
+    m.includes("timeout") ||
+    m.includes("timed out")
+  )
+}
+
+type SupabaseClientInstance = NonNullable<ReturnType<typeof createClient>>
+
+async function updateClientRowWithRetry(
+  supabase: SupabaseClientInstance,
+  id: string,
+  dbUpdates: Record<string, unknown>,
+  attempts = 3,
+): Promise<{ error: { message: string } | null; transient: boolean }> {
+  let lastError: { message: string } | null = null
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      const { error } = await supabase.from("clients").update(dbUpdates).eq("id", id)
+      if (!error) return { error: null, transient: false }
+      lastError = error
+      if (!isTransientFetchError(error.message)) return { error, transient: false }
+    } catch (err) {
+      lastError = { message: err instanceof Error ? err.message : String(err) }
+      if (!isTransientFetchError(lastError.message)) return { error: lastError, transient: false }
+    }
+    if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, 300 * attempt))
+  }
+  return { error: lastError, transient: true }
+}
+
 interface ClientsContextValue {
   clients: Client[]
   clientNames: string[]
@@ -299,10 +336,12 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
 
     if (Object.keys(dbUpdates).length === 0) return
 
-    const { error } = await supabase.from("clients").update(dbUpdates).eq("id", id)
+    const { error, transient } = await updateClientRowWithRetry(supabase, id, dbUpdates as Record<string, unknown>)
     if (error) {
       console.error("Failed to update client:", error.message)
-      fetchClients()
+      // Only re-sync from the server on real (non-transient) errors. On a transient
+      // network failure we keep the optimistic update so the user's change isn't lost.
+      if (!transient) fetchClients()
     }
   }, [fetchClients])
 
@@ -324,10 +363,10 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
     const supabase = createClient()
     if (!supabase) return
 
-    const { error } = await supabase.from("clients").update({ participant: mergedParticipant }).eq("id", id)
+    const { error, transient } = await updateClientRowWithRetry(supabase, id, { participant: mergedParticipant })
     if (error) {
       console.error("Failed to update participant field:", error.message)
-      fetchClients()
+      if (!transient) fetchClients()
     }
   }, [fetchClients])
 

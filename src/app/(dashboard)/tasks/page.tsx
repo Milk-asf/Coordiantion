@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect, useMemo } from "react"
+import { useSearchParams } from "next/navigation"
 import {
   Table2,
   Plus,
@@ -47,7 +48,8 @@ export default function TasksPage() {
   const { toast } = useToast()
   const { tasks: allTasks, isLoading, fetchError, hasMore, isLoadingMore, loadMore, addTask, updateTask: updateTaskDb, deleteTask: deleteTaskDb, refetch } = useTasks()
   const { invoices } = useInvoices()
-  const { clients, clientNames } = useClients()
+  const { clients, clientNames, updateClient } = useClients()
+  const searchParams = useSearchParams()
   const { enabledCharges, allCharges } = useCharges()
   const { staffNames } = useStaff()
   const { canAssignTasks, role } = usePermissions()
@@ -438,6 +440,34 @@ export default function TasksPage() {
     updateTaskDb(selectedTaskId, { [field]: value } as Partial<Task>)
   }, [selectedTaskId, updateTaskDb])
 
+  const handleLinkGoal = useCallback((goalId: string | null) => {
+    if (!selectedTask || !selectedTask.clientId) return
+    const client = clients.find((c) => c.id === selectedTask.clientId)
+    if (!client) return
+    const existingGoals = client.participant.goals || []
+    const snapshot = {
+      taskId: selectedTask.id,
+      title: selectedTask.title,
+      status: selectedTask.status,
+      linkedAt: new Date().toISOString(),
+    }
+    const updatedGoals = existingGoals.map((g) => {
+      const without = g.linkedTasks.filter((lt) => lt.taskId !== selectedTask.id)
+      if (g.id === goalId) return { ...g, linkedTasks: [...without, snapshot] }
+      return { ...g, linkedTasks: without }
+    })
+    updateClient(client.id, { participant: { ...client.participant, goals: updatedGoals } })
+  }, [selectedTask, clients, updateClient])
+
+  const deepLinkHandledRef = useRef(false)
+  useEffect(() => {
+    if (deepLinkHandledRef.current) return
+    const taskParam = searchParams.get("task")
+    if (taskParam && allTasks.some((t) => t.id === taskParam)) {
+      setSelectedTaskId(taskParam)
+      deepLinkHandledRef.current = true
+    }
+  }, [searchParams, allTasks])
 
   const closeDetail = () => {
     setSelectedTaskId(null)
@@ -1587,6 +1617,7 @@ export default function TasksPage() {
           selectedTaskId={selectedTaskId}
           tasks={tasks}
           onUpdateTask={handleUpdateTask}
+          onLinkGoal={handleLinkGoal}
           onDeleteTask={handleDeleteTask}
           onClose={closeDetail}
           chargeTypes={chargeTypes}

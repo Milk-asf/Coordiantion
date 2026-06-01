@@ -25,6 +25,7 @@ import {
   ListOrdered,
   Quote,
   Code,
+  Target,
 } from "lucide-react"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { DatePicker } from "@/components/date-picker"
@@ -47,6 +48,7 @@ export interface TaskDetailModalProps {
   selectedTaskId: string
   tasks: Task[]
   onUpdateTask: (field: keyof Task, value: string | Attachment[] | boolean | number) => void
+  onLinkGoal: (goalId: string | null) => void
   onDeleteTask: (id: string) => void
   onClose: () => void
   chargeTypes: ChargeType[]
@@ -64,6 +66,7 @@ export function TaskDetailModal({
   selectedTaskId,
   tasks,
   onUpdateTask,
+  onLinkGoal,
   onDeleteTask,
   onClose,
   chargeTypes,
@@ -193,6 +196,11 @@ export function TaskDetailModal({
   const assigneeInitials = selectedTask.assignee
     ? selectedTask.assignee.split(" ").filter(Boolean).map((part) => part[0]).join("").toUpperCase().slice(0, 2)
     : ""
+
+  const taskClient = clients.find((c) => c.id === selectedTask.clientId)
+  const clientGoals = taskClient?.participant.goals || []
+  const attachedGoal = clientGoals.find((g) => g.linkedTasks?.some((lt) => lt.taskId === selectedTask.id)) || null
+  const goalTypeLabel: Record<string, string> = { "long-term": "Long term", "short-term": "Short term" }
 
   return (
     <>
@@ -535,6 +543,69 @@ export function TaskDetailModal({
                       </>
                     )}
                   </button>
+                </div>
+
+                <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
+                  <span className="text-[13px] font-medium text-[#8d8d8d]">Goal</span>
+                  {!selectedTask.clientId ? (
+                    <div className="flex min-w-0 items-center gap-[7px] px-[8px] py-[6px]">
+                      <Target className="h-[13px] w-[13px] shrink-0 text-[#ccc]" strokeWidth={1.5} />
+                      <span className="text-[13px] font-medium text-[#ccc]">Select a client first</span>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setActiveDropdown(activeDropdown === "detail-goal" ? null : "detail-goal")}
+                        className="flex min-w-0 items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
+                        tabIndex={0}
+                      >
+                        {attachedGoal ? (
+                          <>
+                            <Target className="h-[13px] w-[13px] shrink-0 text-[#2563EB]" strokeWidth={1.5} />
+                            <span className="truncate text-[13px] font-medium text-[#262626]">{attachedGoal.title || "Untitled goal"}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Target className="h-[13px] w-[13px] shrink-0 text-[#ccc]" strokeWidth={1.5} />
+                            <span className="text-[13px] font-medium text-[#ccc]">Empty</span>
+                          </>
+                        )}
+                      </button>
+                      {activeDropdown === "detail-goal" && (
+                        <>
+                          <div className="fixed inset-0 z-[59]" onClick={() => setActiveDropdown(null)} />
+                          <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[240px] min-w-[240px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                            <div
+                              onClick={() => { onLinkGoal(null); setActiveDropdown(null) }}
+                              className="flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5]"
+                              role="option"
+                              aria-selected={!attachedGoal}
+                            >
+                              None
+                            </div>
+                            {clientGoals.length === 0 ? (
+                              <div className="px-[12px] py-[8px] text-[12px] text-[#bbb]">No goals for this participant yet</div>
+                            ) : (
+                              clientGoals.map((goal) => (
+                                <div
+                                  key={goal.id}
+                                  onClick={() => { onLinkGoal(goal.id); setActiveDropdown(null) }}
+                                  className={`flex w-full cursor-pointer items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${attachedGoal?.id === goal.id ? "bg-[#f5f5f5]" : ""}`}
+                                  role="option"
+                                  aria-selected={attachedGoal?.id === goal.id}
+                                >
+                                  <Target className="h-[13px] w-[13px] shrink-0 text-[#2563EB]" strokeWidth={1.5} />
+                                  <span className="min-w-0 flex-1 truncate">{goal.title || "Untitled goal"}</span>
+                                  <span className="shrink-0 text-[11px] font-medium text-[#999]">{goalTypeLabel[goal.goalType]}</span>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">

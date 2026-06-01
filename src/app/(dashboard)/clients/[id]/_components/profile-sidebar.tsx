@@ -1,10 +1,11 @@
 "use client"
 
 import type { RefObject } from "react"
-import type { Client, ParticipantDetails, NdisPlan, PlanService, FundingReleasePeriod, Budget, BudgetLineItem, BudgetPeriod } from "@/lib/types"
+import type { Client, ParticipantDetails, NdisPlan, PlanService, FundingReleasePeriod, Budget, BudgetLineItem, BudgetPeriod, ClientGoal } from "@/lib/types"
 import type { NdisChargeItem } from "@/lib/ndis-charges"
 import { ndisCharges, chargeCategories } from "@/lib/ndis-charges"
 import { DatePicker } from "@/components/date-picker"
+import { GoalSidebarForm, type GoalFormData, type ResolvedGoalTask } from "./goal-sidebar-form"
 import {
   SidebarDetailRow,
   SidebarEditableField,
@@ -92,6 +93,14 @@ interface ProfileSidebarProps {
   onSaveBudget: () => void
   onUsePlanDates: () => void
 
+  isGoalFormOpen: boolean
+  editingGoal: ClientGoal | null
+  onResetGoalForm: () => void
+  onSaveGoal: (data: GoalFormData) => void
+  onDeleteGoal: (id: string) => void
+  onOpenGoalTask: (taskId: string) => void
+  onResolveGoalTask: (taskId: string) => ResolvedGoalTask | null
+
   isItemFormOpen: boolean
   editingItemId: string | null
   addingItemToBudgetId: string | null
@@ -151,6 +160,7 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
     budgetStartPickerOpen, budgetEndPickerOpen,
     onSetBudgetName, onSetBudgetStartDate, onSetBudgetEndDate,
     onSetBudgetStartPickerOpen, onSetBudgetEndPickerOpen, onResetBudgetForm, onSaveBudget, onUsePlanDates,
+    isGoalFormOpen, editingGoal, onResetGoalForm, onSaveGoal, onDeleteGoal, onOpenGoalTask, onResolveGoalTask,
     isItemFormOpen, editingItemId, addingItemToBudgetId, editingItemBudgetId,
     itemChargeItemNumber, itemBillingCode, itemServiceName, itemQuantity, itemUnit, itemPeriod, itemDescription,
     isItemChargeDropdownOpen, isItemPeriodDropdownOpen,
@@ -171,7 +181,17 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
         className="w-[4px] shrink-0 cursor-col-resize border-l border-[#f0f0f0] transition-colors hover:border-[#aaa] hover:bg-[#f0f0f0]"
       />
       <div className="flex min-h-0 shrink-0 flex-col overflow-y-auto bg-white" style={{ width: sidebarWidth }}>
-      {isPlanModalOpen ? (
+      {isGoalFormOpen ? (
+        <GoalSidebarForm
+          key={editingGoal?.id ?? "new"}
+          goal={editingGoal}
+          onSave={onSaveGoal}
+          onDelete={editingGoal ? onDeleteGoal : undefined}
+          onClose={onResetGoalForm}
+          onOpenTask={onOpenGoalTask}
+          resolveTask={onResolveGoalTask}
+        />
+      ) : isPlanModalOpen ? (
         <>
         <div className="flex items-center justify-between px-[24px] pb-[4px] pt-[20px]">
           <h2 className="text-[13px] font-semibold text-[#262626]">{editingPlanId ? "Edit NDIS plan" : "Add NDIS plan"}</h2>
