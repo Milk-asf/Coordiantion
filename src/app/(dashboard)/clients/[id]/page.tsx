@@ -52,6 +52,7 @@ import { ProfileTasksTab } from "./_components/profile-tasks-tab"
 import { FilesTab } from "./_components/files-tab"
 import { ProfileSidebar } from "./_components/profile-sidebar"
 import { ProfileNotesTab } from "@/components/profile-notes-tab"
+import { NoteEditorModal } from "@/app/(dashboard)/notes/_components/note-editor-modal"
 import { PlanTab } from "./_components/plan-tab"
 import { BudgetsTab } from "./_components/budgets-tab"
 import { GoalsTab } from "./_components/goals-tab"
@@ -174,19 +175,65 @@ export default function ParticipantProfilePage() {
   const id = params.id as string
   const client = clients.find((c) => c.id === id) || null
 
-  const { notes, addNote } = useNotes()
+  const { notes, addNote, updateNote, deleteNote } = useNotes()
   const [isCreatingNote, setIsCreatingNote] = useState(false)
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
+  const [noteEditTitle, setNoteEditTitle] = useState("")
+  const [noteEditContent, setNoteEditContent] = useState("")
+  const [noteFavorites, setNoteFavorites] = useState<string[]>(() => {
+    if (typeof window === "undefined") return []
+    try { return JSON.parse(localStorage.getItem("note-favorites") || "[]") } catch { return [] }
+  })
   const clientNotes = useMemo(
     () => notes.filter((n) => n.clientId === id || (!!client && n.createdBy === client.displayName)),
     [notes, id, client]
   )
+  const selectedNote = useMemo(() => notes.find((n) => n.id === selectedNoteId) ?? null, [notes, selectedNoteId])
+
+  const openNote = useCallback((noteId: string) => {
+    const note = notes.find((n) => n.id === noteId)
+    if (!note) return
+    setSelectedNoteId(note.id)
+    setNoteEditTitle(note.title)
+    setNoteEditContent(note.content)
+  }, [notes])
+
+  const closeNoteEditor = useCallback(() => {
+    setSelectedNoteId(null)
+    setNoteEditTitle("")
+    setNoteEditContent("")
+  }, [])
+
+  const toggleNoteFavorite = useCallback((noteId: string) => {
+    setNoteFavorites((prev) => {
+      const next = prev.includes(noteId) ? prev.filter((f) => f !== noteId) : [...prev, noteId]
+      if (typeof window !== "undefined") localStorage.setItem("note-favorites", JSON.stringify(next))
+      return next
+    })
+  }, [])
+
+  const handleDeleteNote = useCallback(async (noteId: string) => {
+    await deleteNote(noteId)
+    if (selectedNoteId === noteId) closeNoteEditor()
+  }, [deleteNote, selectedNoteId, closeNoteEditor])
+
+  useEffect(() => {
+    if (!selectedNoteId) return
+    const timeout = setTimeout(() => { updateNote(selectedNoteId, { title: noteEditTitle, content: noteEditContent }) }, 800)
+    return () => clearTimeout(timeout)
+  }, [noteEditTitle, noteEditContent, selectedNoteId, updateNote])
+
   const handleCreateNote = useCallback(async () => {
     if (!client || isCreatingNote) return
     setIsCreatingNote(true)
     const created = await addNote({ title: "Untitled", content: "", clientId: id, clientName: client.name, createdBy: currentUserName })
     setIsCreatingNote(false)
-    if (created) router.push(`/notes?note=${created.id}`)
-  }, [client, isCreatingNote, addNote, id, currentUserName, router])
+    if (created) {
+      setSelectedNoteId(created.id)
+      setNoteEditTitle(created.title)
+      setNoteEditContent(created.content)
+    }
+  }, [client, isCreatingNote, addNote, id, currentUserName])
 
   const handleMouseDown = useCallback(() => {
     isResizing.current = true
@@ -1489,7 +1536,7 @@ export default function ParticipantProfilePage() {
           ) : activeTab === "notes" ? (
             <ProfileNotesTab
               notes={clientNotes}
-              onOpenNote={(noteId) => router.push(`/notes?note=${noteId}`)}
+              onOpenNote={openNote}
               onCreateNote={handleCreateNote}
               isCreating={isCreatingNote}
               emptyDescription="Notes linked to this participant will appear here."
@@ -1550,7 +1597,6 @@ export default function ParticipantProfilePage() {
 
               const totalBudget = services.reduce((sum, svc) => sum + svc.budget, 0)
               const totalUsed = services.reduce((sum, svc) => sum + getServiceUsed(svc), 0)
-              const totalRemaining = Math.max(0, totalBudget - totalUsed)
               const usedPct = totalBudget > 0 ? (totalUsed / totalBudget) * 100 : 0
               const daysLeft = endDate ? Math.max(0, Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))) : 0
 
@@ -1558,35 +1604,24 @@ export default function ParticipantProfilePage() {
               const fillColor = usedPct >= 90 ? "bg-red-500" : usedPct >= 70 ? "bg-amber-400" : "bg-[#2563EB]"
 
               return (
-                <div className="mt-[28px] rounded-[8px] border border-[#f0f0f0] px-[24px] py-[16px]">
-                  <h3 className="text-[13px] font-semibold text-[#262626]">NDIS Plan</h3>
-
-                  <div className="mt-[14px] h-[28px] w-full overflow-hidden rounded-[8px] bg-[#f0f0f0]">
-                    <div className={`h-full rounded-[8px] ${fillColor} transition-all`} style={{ width: `${Math.min(100, usedPct)}%` }} />
+                <div className="mt-[28px] rounded-[12px] border border-[#eee] px-[24px] py-[18px]">
+                  <div className="flex items-center justify-between gap-[12px]">
+                    <span className="text-[18px] font-semibold text-[#262626]">{fmt(totalBudget)}</span>
+                    <div className="flex items-center gap-[12px] text-[12px]">
+                      <span>
+                        <span className="font-semibold text-[#262626]">{Math.round(usedPct)}%</span>{" "}
+                        <span className="text-[#999]">used</span>
+                      </span>
+                      <span className="h-[12px] w-px bg-[#e5e5e5]" />
+                      <span>
+                        <span className="font-semibold text-[#262626]">{daysLeft}</span>{" "}
+                        <span className="text-[#999]">days left</span>
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="mt-[14px] flex flex-wrap items-center gap-x-[24px] gap-y-[8px]">
-                    <div className="flex items-center gap-[6px]">
-                      <span className={`h-[8px] w-[8px] shrink-0 rounded-full ${fillColor}`} />
-                      <span className="text-[12px] font-semibold text-[#262626]">{Math.round(usedPct)}%</span>
-                      <span className="text-[11px] text-[#888]">Usage</span>
-                    </div>
-                    <div className="flex items-center gap-[6px]">
-                      <span className="text-[12px] font-semibold text-[#262626]">{fmt(totalUsed)}</span>
-                      <span className="text-[11px] text-[#888]">Used</span>
-                    </div>
-                    <div className="flex items-center gap-[6px]">
-                      <span className="text-[12px] font-semibold text-[#262626]">{fmt(totalRemaining)}</span>
-                      <span className="text-[11px] text-[#888]">Remaining</span>
-                    </div>
-                    <div className="flex items-center gap-[6px]">
-                      <span className="text-[12px] font-semibold text-[#262626]">{fmt(totalBudget)}</span>
-                      <span className="text-[11px] text-[#888]">Total</span>
-                    </div>
-                    <div className="flex items-center gap-[6px]">
-                      <span className="text-[12px] font-semibold text-[#262626]">{daysLeft}</span>
-                      <span className="text-[11px] text-[#888]">Days left</span>
-                    </div>
+                  <div className="mt-[14px] h-[10px] w-full overflow-hidden rounded-full bg-[#f0f0f0]">
+                    <div className={`h-full rounded-full ${fillColor} transition-all`} style={{ width: `${Math.min(100, usedPct)}%` }} />
                   </div>
                 </div>
               )
@@ -1645,7 +1680,7 @@ export default function ParticipantProfilePage() {
                               <span className="ml-[6px] text-[12px] text-[#bbb]"> · {timeAgo}</span>
                             </div>
                             <button
-                              className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded text-[#ccc] opacity-0 transition-all hover:bg-[#f0f0f0] hover:text-[#262626] group-hover:opacity-100"
+                              className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded text-[#ccc] transition-all hover:bg-[#f0f0f0] hover:text-[#262626]"
                               tabIndex={0}
                               aria-label="More options"
                             >
@@ -1909,6 +1944,22 @@ export default function ParticipantProfilePage() {
           doc={previewDoc}
           getDownloadUrl={getDownloadUrl}
           onClose={() => setPreviewDoc(null)}
+        />
+      )}
+
+      {selectedNoteId && selectedNote && (
+        <NoteEditorModal
+          note={selectedNote}
+          editTitle={noteEditTitle}
+          editContent={noteEditContent}
+          onEditTitle={setNoteEditTitle}
+          onEditContent={setNoteEditContent}
+          onClose={closeNoteEditor}
+          onDelete={handleDeleteNote}
+          onToggleFavorite={toggleNoteFavorite}
+          isFavorite={noteFavorites.includes(selectedNote.id)}
+          currentUserName={currentUserName}
+          recordIcon={{ iconText: client?.iconText || "?", name: client?.displayName || client?.name || "Unknown" }}
         />
       )}
     </div>

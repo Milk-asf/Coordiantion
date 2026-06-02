@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
-import { Eye, EyeOff, Mail, Globe, Clock } from "lucide-react"
+import { Mail, Globe, Clock, Lock } from "lucide-react"
 
 const languageOptions = [
   "English (US)",
@@ -33,6 +34,7 @@ const timezoneOptions = [
 
 const inputClass = "h-[44px] w-full rounded-[8px] border border-[#f0f0f0] bg-[#fafafa] px-[14px] text-[14px] text-[#262626] outline-none transition-colors placeholder:text-[#c0c0c0] focus:border-[#d0d0d0] focus:ring-2 focus:ring-[#e8e8e8]"
 const labelClass = "mb-[8px] block text-[13px] font-semibold text-[#262626]"
+const changeBtnClass = "h-[44px] shrink-0 rounded-[8px] border border-[#e0e0e0] bg-white px-[16px] text-[13px] font-semibold text-[#262626] transition-colors hover:bg-[#f5f5f5]"
 
 function ProfileSelect({ label, value, options, onChange, icon }: { label: string; value: string; options: readonly string[]; onChange: (v: string) => void; icon?: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -87,6 +89,7 @@ function ProfileSelect({ label, value, options, onChange, icon }: { label: strin
 }
 
 export default function ProfileSettingsPage() {
+  const router = useRouter()
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
@@ -96,16 +99,7 @@ export default function ProfileSettingsPage() {
   const [hasChanges, setHasChanges] = useState(false)
   const [saveMessage, setSaveMessage] = useState("")
 
-  const [currentPassword, setCurrentPassword] = useState("")
-  const [newPassword, setNewPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [isChangingPassword, setIsChangingPassword] = useState(false)
-  const [passwordError, setPasswordError] = useState("")
-  const [passwordSuccess, setPasswordSuccess] = useState("")
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
-  const [showNewPassword, setShowNewPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-
+  const [isEmailEditing, setIsEmailEditing] = useState(false)
   const [newEmail, setNewEmail] = useState("")
   const [isChangingEmail, setIsChangingEmail] = useState(false)
   const [emailError, setEmailError] = useState("")
@@ -158,39 +152,11 @@ export default function ProfileSettingsPage() {
     }
   }
 
-  const handleChangePassword = async () => {
-    setPasswordError("")
-    setPasswordSuccess("")
-
-    if (newPassword.length < 6) {
-      setPasswordError("Password must be at least 6 characters")
-      return
-    }
-    if (newPassword !== confirmPassword) {
-      setPasswordError("Passwords do not match")
-      return
-    }
-
-    if (!isSupabaseConfigured()) {
-      setPasswordError("Supabase is not configured")
-      return
-    }
-    const supabase = createClient()
-    if (!supabase) return
-
-    setIsChangingPassword(true)
-    const { error } = await supabase.auth.updateUser({ password: newPassword })
-    setIsChangingPassword(false)
-
-    if (error) {
-      setPasswordError(error.message)
-    } else {
-      setPasswordSuccess("Password updated successfully")
-      setCurrentPassword("")
-      setNewPassword("")
-      setConfirmPassword("")
-      setTimeout(() => setPasswordSuccess(""), 3000)
-    }
+  const resetEmailEditing = () => {
+    setIsEmailEditing(false)
+    setNewEmail("")
+    setEmailError("")
+    setEmailSuccess("")
   }
 
   const handleChangeEmail = async () => {
@@ -218,11 +184,9 @@ export default function ProfileSettingsPage() {
     } else {
       setEmailSuccess("Confirmation email sent to your new address")
       setNewEmail("")
-      setTimeout(() => setEmailSuccess(""), 5000)
     }
   }
 
-  const isPasswordFormValid = newPassword && confirmPassword
   const isEmailFormValid = !!newEmail
 
   return (
@@ -261,9 +225,78 @@ export default function ProfileSettingsPage() {
 
         <div className="mt-[16px]">
           <label className={labelClass}>Email</label>
-          <div className={cn(inputClass, "flex items-center gap-[8px] cursor-not-allowed opacity-60")}>
-            <Mail className="h-[14px] w-[14px] shrink-0 text-[#999]" strokeWidth={1.5} />
-            <span className="truncate text-[#888]">{email}</span>
+          {!isEmailEditing ? (
+            <div className="flex items-center gap-[12px]">
+              <div className={cn(inputClass, "flex flex-1 items-center gap-[8px]")}>
+                <Mail className="h-[14px] w-[14px] shrink-0 text-[#999]" strokeWidth={1.5} />
+                <span className="truncate text-[#888]">{email}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setIsEmailEditing(true); setNewEmail(""); setEmailError(""); setEmailSuccess("") }}
+                className={changeBtnClass}
+                tabIndex={0}
+              >
+                Change
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-[12px]">
+              <input
+                type="email"
+                value={newEmail}
+                onChange={(e) => { setNewEmail(e.target.value); setEmailError(""); setEmailSuccess("") }}
+                className={inputClass}
+                placeholder="new@email.com"
+                autoFocus
+              />
+              {emailError && (
+                <p className="rounded-[8px] bg-red-50 px-[14px] py-[10px] text-[13px] font-medium text-red-600">{emailError}</p>
+              )}
+              {emailSuccess && (
+                <p className="rounded-[8px] bg-green-50 px-[14px] py-[10px] text-[13px] font-medium text-green-600">{emailSuccess}</p>
+              )}
+              <div className="flex items-center gap-[10px]">
+                <button
+                  type="button"
+                  onClick={handleChangeEmail}
+                  disabled={!isEmailFormValid || isChangingEmail}
+                  className={cn(
+                    "h-[38px] rounded-[8px] px-[20px] text-[13px] font-semibold transition-colors",
+                    isEmailFormValid
+                      ? "primary-btn"
+                      : "bg-[#e8e8e8] text-[#c0c0c0] cursor-not-allowed"
+                  )}
+                >
+                  {isChangingEmail ? "Sending..." : "Update email"}
+                </button>
+                <button
+                  type="button"
+                  onClick={resetEmailEditing}
+                  className="h-[38px] rounded-[8px] border border-[#e0e0e0] bg-white px-[20px] text-[13px] font-semibold text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-[16px]">
+          <label className={labelClass}>Password</label>
+          <div className="flex items-center gap-[12px]">
+            <div className={cn(inputClass, "flex flex-1 items-center gap-[8px]")}>
+              <Lock className="h-[14px] w-[14px] shrink-0 text-[#999]" strokeWidth={1.5} />
+              <span className="tracking-[0.25em] text-[#888]">••••••••••</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push("/update-password")}
+              className={changeBtnClass}
+              tabIndex={0}
+            >
+              Change
+            </button>
           </div>
         </div>
 
@@ -289,158 +322,6 @@ export default function ProfileSettingsPage() {
             <span className="text-[13px] font-medium text-green-600">{saveMessage}</span>
           )}
         </div>
-      </div>
-
-      {/* Divider */}
-      <div className="my-[36px] h-px bg-[#f0f0f0]" />
-
-      {/* Change email section */}
-      <div className="mb-[20px]">
-        <h2 className="text-[17px] font-bold text-[#262626]">Change email</h2>
-        <p className="mt-[4px] text-[14px] text-[#888]">
-          Update the email address associated with your account.
-        </p>
-      </div>
-
-      <div className="space-y-[16px]">
-        <div>
-          <label className={labelClass}>New email address</label>
-          <input
-            type="email"
-            value={newEmail}
-            onChange={(e) => { setNewEmail(e.target.value); setEmailError(""); setEmailSuccess("") }}
-            className={inputClass}
-            placeholder="new@email.com"
-          />
-        </div>
-
-        {emailError && (
-          <p className="rounded-[8px] bg-red-50 px-[14px] py-[10px] text-[13px] font-medium text-red-600">{emailError}</p>
-        )}
-        {emailSuccess && (
-          <p className="rounded-[8px] bg-green-50 px-[14px] py-[10px] text-[13px] font-medium text-green-600">{emailSuccess}</p>
-        )}
-
-        <button
-          onClick={handleChangeEmail}
-          disabled={!isEmailFormValid || isChangingEmail}
-          className={cn(
-            "h-[38px] rounded-[8px] px-[20px] text-[13px] font-semibold transition-colors",
-            isEmailFormValid
-              ? "primary-btn"
-              : "bg-[#e8e8e8] text-[#c0c0c0] cursor-not-allowed"
-          )}
-        >
-          {isChangingEmail ? "Sending..." : "Update email"}
-        </button>
-      </div>
-
-      {/* Divider */}
-      <div className="my-[36px] h-px bg-[#f0f0f0]" />
-
-      {/* Change password section */}
-      <div className="mb-[20px]">
-        <h2 className="text-[17px] font-bold text-[#262626]">Change password</h2>
-        <p className="mt-[4px] text-[14px] text-[#888]">
-          Update the password used to sign in to your account.
-        </p>
-      </div>
-
-      <div className="space-y-[16px]">
-        <div>
-          <label className={labelClass}>Current password</label>
-          <div className="relative">
-            <input
-              type={showCurrentPassword ? "text" : "password"}
-              value={currentPassword}
-              onChange={(e) => { setCurrentPassword(e.target.value); setPasswordError("") }}
-              className={cn(inputClass, "pr-[44px]")}
-              placeholder="••••••••"
-            />
-            <button
-              type="button"
-              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-              className="absolute right-[12px] top-1/2 -translate-y-1/2 text-[#bbb] transition-colors hover:text-[#888]"
-              tabIndex={-1}
-              aria-label={showCurrentPassword ? "Hide password" : "Show password"}
-            >
-              {showCurrentPassword
-                ? <EyeOff className="h-[16px] w-[16px]" strokeWidth={1.75} />
-                : <Eye className="h-[16px] w-[16px]" strokeWidth={1.75} />
-              }
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <label className={labelClass}>New password</label>
-          <div className="relative">
-            <input
-              type={showNewPassword ? "text" : "password"}
-              value={newPassword}
-              onChange={(e) => { setNewPassword(e.target.value); setPasswordError("") }}
-              className={cn(inputClass, "pr-[44px]")}
-              placeholder="Min 6 characters"
-            />
-            <button
-              type="button"
-              onClick={() => setShowNewPassword(!showNewPassword)}
-              className="absolute right-[12px] top-1/2 -translate-y-1/2 text-[#bbb] transition-colors hover:text-[#888]"
-              tabIndex={-1}
-              aria-label={showNewPassword ? "Hide password" : "Show password"}
-            >
-              {showNewPassword
-                ? <EyeOff className="h-[16px] w-[16px]" strokeWidth={1.75} />
-                : <Eye className="h-[16px] w-[16px]" strokeWidth={1.75} />
-              }
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <label className={labelClass}>Confirm new password</label>
-          <div className="relative">
-            <input
-              type={showConfirmPassword ? "text" : "password"}
-              value={confirmPassword}
-              onChange={(e) => { setConfirmPassword(e.target.value); setPasswordError("") }}
-              className={cn(inputClass, "pr-[44px]")}
-              placeholder="••••••••"
-            />
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-[12px] top-1/2 -translate-y-1/2 text-[#bbb] transition-colors hover:text-[#888]"
-              tabIndex={-1}
-              aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-            >
-              {showConfirmPassword
-                ? <EyeOff className="h-[16px] w-[16px]" strokeWidth={1.75} />
-                : <Eye className="h-[16px] w-[16px]" strokeWidth={1.75} />
-              }
-            </button>
-          </div>
-        </div>
-
-        {passwordError && (
-          <p className="rounded-[8px] bg-red-50 px-[14px] py-[10px] text-[13px] font-medium text-red-600">{passwordError}</p>
-        )}
-        {passwordSuccess && (
-          <p className="rounded-[8px] bg-green-50 px-[14px] py-[10px] text-[13px] font-medium text-green-600">{passwordSuccess}</p>
-        )}
-
-        <button
-          onClick={handleChangePassword}
-          disabled={!isPasswordFormValid || isChangingPassword}
-          className={cn(
-            "h-[38px] rounded-[8px] px-[20px] text-[13px] font-semibold transition-colors",
-            isPasswordFormValid
-              ? "primary-btn"
-              : "bg-[#e8e8e8] text-[#c0c0c0] cursor-not-allowed"
-          )}
-        >
-          {isChangingPassword ? "Updating..." : "Change password"}
-        </button>
       </div>
     </>
   )

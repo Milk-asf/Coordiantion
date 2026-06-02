@@ -69,12 +69,14 @@ export function SidebarEditableField({
   placeholder,
   type = "text",
   options,
+  displayClassName,
 }: {
   value: string
   onChange: (val: string) => void
   placeholder?: string
   type?: "text" | "select" | "date"
   options?: string[]
+  displayClassName?: string
 }) {
   return (
     <EditableField
@@ -84,6 +86,7 @@ export function SidebarEditableField({
       type={type}
       options={options}
       size="compact"
+      displayClassName={displayClassName}
     />
   )
 }

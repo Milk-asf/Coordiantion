@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { cn } from "@/lib/utils"
 import { MoreHorizontal } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Switch } from "@/components/switch"
 
 const STORAGE_KEY = "coordination:notification-preferences"
 
@@ -61,22 +62,7 @@ function savePrefs(prefs: Record<string, NotifPref & { timing?: string }>) {
 }
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onChange}
-      className="relative h-[22px] w-[40px] shrink-0 rounded-full transition-colors"
-      style={{ backgroundColor: checked ? "#6b8afd" : "#d4d4d4" }}
-      tabIndex={0}
-      role="switch"
-      aria-checked={checked}
-    >
-      <span className={cn(
-        "absolute top-[2px] h-[18px] w-[18px] rounded-full bg-white shadow-sm transition-transform",
-        checked ? "left-[20px]" : "left-[2px]"
-      )} />
-    </button>
-  )
+  return <Switch checked={checked} onChange={onChange} />
 }
 
 export default function NotificationsSettingsPage() {
@@ -106,9 +92,8 @@ export default function NotificationsSettingsPage() {
 
       <div className="w-full">
         {/* Table header */}
-        <div className="grid grid-cols-[1fr_120px_140px_80px_40px] items-center border-b border-[#f0f0f0] px-[20px] py-[12px]">
+        <div className="grid grid-cols-[1fr_140px_80px_40px] items-center border-b border-[#f0f0f0] px-[20px] py-[12px]">
           <span className="text-[12px] font-medium text-[#888]">Name</span>
-          <span className="text-[12px] font-medium text-[#888]">Category</span>
           <span className="text-[12px] font-medium text-[#888]">Channel</span>
           <span className="text-[12px] font-medium text-[#888]">Enabled</span>
           <span />
@@ -120,12 +105,11 @@ export default function NotificationsSettingsPage() {
           return (
             <div
               key={item.id}
-              className="grid grid-cols-[1fr_120px_140px_80px_40px] items-center border-b border-[#f5f5f5] px-[20px] py-[16px] transition-colors hover:bg-[#fafafa]"
+              className="grid grid-cols-[1fr_140px_80px_40px] items-center border-b border-[#f5f5f5] px-[20px] py-[16px] transition-colors hover:bg-[#fafafa]"
             >
               <span className={cn("text-[14px] font-medium", pref.enabled ? "text-[#262626]" : "text-[#bbb]")}>
                 {item.label}
               </span>
-              <span className="text-[13px] text-[#888]">{item.category}</span>
               <span className="text-[13px] text-[#888]">{item.channel}</span>
               <Toggle checked={pref.enabled} onChange={() => update(item.id, { enabled: !pref.enabled })} />
               <div className="relative">

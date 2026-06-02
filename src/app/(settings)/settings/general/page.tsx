@@ -17,6 +17,91 @@ import { SettingsGuard } from "@/components/settings-guard"
 const inputClass = "h-[44px] w-full rounded-[8px] border border-[#f0f0f0] bg-[#fafafa] px-[14px] text-[14px] text-[#262626] outline-none transition-colors placeholder:text-[#c0c0c0] focus:border-[#d0d0d0] focus:ring-2 focus:ring-[#e8e8e8]"
 const labelClass = "mb-[8px] block text-[13px] font-semibold text-[#262626]"
 
+const australianBanks = [
+  "Commonwealth Bank",
+  "Westpac",
+  "ANZ",
+  "National Australia Bank (NAB)",
+  "Macquarie Bank",
+  "Bendigo Bank",
+  "Bank of Queensland",
+  "Suncorp Bank",
+  "ING",
+  "St.George Bank",
+  "Bankwest",
+  "ME Bank",
+  "AMP Bank",
+  "HSBC Australia",
+  "Citibank Australia",
+  "Bank of Melbourne",
+  "BankSA",
+  "Heritage Bank",
+  "Greater Bank",
+  "Newcastle Permanent",
+  "Beyond Bank",
+  "P&N Bank",
+  "IMB Bank",
+  "Teachers Mutual Bank",
+  "UBank",
+  "Up",
+  "Judo Bank",
+  "Tyro",
+  "Rabobank Australia",
+]
+
+function BankSearchInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [isOpen, setIsOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setIsOpen(false)
+    }
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [isOpen])
+
+  const query = value.trim().toLowerCase()
+  const matches = (query
+    ? australianBanks.filter((bank) => bank.toLowerCase().includes(query))
+    : australianBanks
+  ).slice(0, 8)
+  const showDropdown = isOpen && matches.length > 0 && !(matches.length === 1 && matches[0].toLowerCase() === query)
+
+  return (
+    <div className="relative" ref={ref}>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => { onChange(e.target.value); setIsOpen(true) }}
+        onFocus={() => setIsOpen(true)}
+        placeholder="Commonwealth Bank"
+        className={inputClass}
+        autoComplete="off"
+      />
+      {showDropdown && (
+        <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[240px] w-full overflow-y-auto rounded-[8px] border border-[#f0f0f0] bg-white py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+          {matches.map((bank) => (
+            <button
+              key={bank}
+              type="button"
+              onClick={() => { onChange(bank); setIsOpen(false) }}
+              className={cn(
+                "flex w-full items-center px-[14px] py-[10px] text-left text-[13px] transition-colors hover:bg-[#f5f5f5]",
+                bank === value ? "bg-[#f0f0f0] font-medium text-[#262626]" : "text-[#555]"
+              )}
+              tabIndex={0}
+            >
+              {bank}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function GeneralSettingsPage() {
   const { settings, updateSettings } = useWorkspaceSettings()
   const { activeWorkspace, renameWorkspace } = useWorkspace()
@@ -214,7 +299,7 @@ export default function GeneralSettingsPage() {
         <div className="space-y-[16px]">
           <div>
             <label className={labelClass}>Bank</label>
-            <input type="text" value={local.bankName} onChange={(e) => update("bankName")(e.target.value)} placeholder="Commonwealth Bank" className={inputClass} />
+            <BankSearchInput value={local.bankName} onChange={update("bankName")} />
           </div>
           <div>
             <label className={labelClass}>Account name</label>

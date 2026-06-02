@@ -1,10 +1,14 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Plus, X, Search, Trash2, MoreHorizontal } from "lucide-react"
+import { Plus, X, Search, Trash2, MoreHorizontal, Tag } from "lucide-react"
 import { ndisCharges, claimTypes, gstCodes, type ChargeItem } from "@/lib/ndis-charges"
 import { useCharges } from "@/lib/hooks/use-charges"
 import { SettingsGuard } from "@/components/settings-guard"
+import { Switch } from "@/components/switch"
+import { EmptyState } from "@/components/empty-state"
+import { Button } from "@/components/button"
+import { useToast } from "@/components/toast"
 import { cn } from "@/lib/utils"
 
 const emptyForm: Omit<ChargeItem, "id"> = {
@@ -25,15 +29,10 @@ export default function ChargesSettingsPage() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchIdx, setSearchIdx] = useState(-1)
   const [menuOpen, setMenuOpen] = useState<string | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
+  const [disabledItems, setDisabledItems] = useState<ChargeItem[]>([])
+  const { toast } = useToast()
   const searchRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!toast) return
-    const t = setTimeout(() => setToast(null), 3000)
-    return () => clearTimeout(t)
-  }, [toast])
 
   useEffect(() => {
     if (isAdding) setTimeout(() => searchRef.current?.focus(), 50)
@@ -92,13 +91,25 @@ export default function ChargesSettingsPage() {
     setForm(emptyForm)
     setSearchQuery("")
     setIsAdding(false)
-    setToast(`Added ${form.reference || form.name}`)
+    toast(`Added ${form.reference || form.name}`, "success")
   }
 
   const handleRemove = (item: ChargeItem) => {
     removeChargeItem(item.id)
+    setDisabledItems((prev) => prev.filter((d) => d.id !== item.id))
     setMenuOpen(null)
-    setToast(`Removed ${item.reference || item.name}`)
+    toast(`Removed ${item.reference || item.name}`, "success")
+  }
+
+  const handleToggleEnabled = (item: ChargeItem, currentlyEnabled: boolean) => {
+    setMenuOpen(null)
+    if (currentlyEnabled) {
+      removeChargeItem(item.id)
+      setDisabledItems((prev) => [item, ...prev.filter((d) => d.itemNumber !== item.itemNumber)])
+      return
+    }
+    setDisabledItems((prev) => prev.filter((d) => d.id !== item.id))
+    addChargeItem(item)
   }
 
   const handleCancel = () => {
@@ -111,6 +122,62 @@ export default function ChargesSettingsPage() {
   const unitLabel = (u: string) => u === "hour" ? "Hour" : u === "km" ? "Km" : "Each"
   const claimLabel = (val: string) => claimTypes.find((c) => c.value === val)?.label ?? val
 
+  const visibleDisabledItems = disabledItems.filter((d) => !chargeItems.some((ci) => ci.itemNumber === d.itemNumber))
+
+  const renderChargeRow = (item: ChargeItem, enabled: boolean) => (
+    <div
+      key={item.id}
+      className={cn(
+        "grid grid-cols-[1fr_150px_92px_72px_56px_60px_40px] items-center border-b border-[#f5f5f5] px-[20px] py-[14px] transition-colors",
+        enabled ? "hover:bg-[#fafafa]" : "opacity-60"
+      )}
+    >
+      <span className="text-[14px] font-medium text-[#262626]">{item.reference || item.name}</span>
+      <span>
+        <span className="inline-flex items-center rounded-[6px] border border-[#e5e5e5] bg-[#f7f7f7] px-[8px] py-[3px] font-mono text-[12px] font-medium text-[#555]">
+          {item.itemNumber}
+        </span>
+      </span>
+      <span className="text-[13px] text-[#888]">{claimLabel(item.claimType)}</span>
+      <span className="text-[13px] font-medium text-[#262626] text-right">${item.price.toFixed(2)}</span>
+      <span className="text-[13px] text-[#888]">{unitLabel(item.unit)}</span>
+      <div>
+        <Switch
+          checked={enabled}
+          onChange={() => handleToggleEnabled(item, enabled)}
+          ariaLabel={enabled ? "Disable charge item" : "Enable charge item"}
+        />
+      </div>
+      <div className="relative flex justify-end">
+        <button
+          type="button"
+          onClick={() => setMenuOpen(menuOpen === item.id ? null : item.id)}
+          className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-[#bbb] transition-all hover:bg-[#f0f0f0] hover:text-[#666]"
+          tabIndex={0}
+          aria-label="More options"
+        >
+          <MoreHorizontal className="h-[16px] w-[16px]" />
+        </button>
+        {menuOpen === item.id && (
+          <>
+            <div className="fixed inset-0 z-[59]" onClick={() => setMenuOpen(null)} />
+            <div className="absolute right-0 top-full z-[60] mt-[4px] w-[140px] rounded-[8px] border border-[#f0f0f0] bg-white py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+              <button
+                type="button"
+                onClick={() => handleRemove(item)}
+                className="flex w-full items-center gap-[8px] px-[12px] py-[8px] text-left text-[13px] text-red-500 transition-colors hover:bg-red-50"
+                tabIndex={0}
+              >
+                <Trash2 className="h-[13px] w-[13px]" strokeWidth={1.75} />
+                Remove
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+
   return (
     <SettingsGuard requireAdmin>
       <div className="mb-[32px]">
@@ -120,14 +187,10 @@ export default function ChargesSettingsPage() {
         </p>
       </div>
 
-      <button
-        onClick={() => setIsAdding(true)}
-        className="mb-[24px] flex items-center gap-[6px] rounded-[8px] bg-[#f0f0f0] px-[14px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#e8e8e8]"
-        tabIndex={0}
-      >
+      <Button onClick={() => setIsAdding(true)} className="mb-[24px] px-[12px] py-[7px]">
         <Plus className="h-[14px] w-[14px]" strokeWidth={1.75} />
         Add charge item
-      </button>
+      </Button>
 
       {/* Add modal */}
       {isAdding && (
@@ -214,7 +277,11 @@ export default function ChargesSettingsPage() {
                   </div>
                   <div className="grid grid-cols-[90px_1fr] items-center gap-[8px]">
                     <span className="text-[12px] font-medium text-[#888]">Item number</span>
-                    <span className="px-[10px] py-[7px] font-mono text-[13px] text-[#555]">{form.itemNumber}</span>
+                    <span>
+                      <span className="inline-flex items-center rounded-[6px] border border-[#e5e5e5] bg-[#f7f7f7] px-[8px] py-[3px] font-mono text-[12px] font-medium text-[#555]">
+                        {form.itemNumber}
+                      </span>
+                    </span>
                   </div>
                   <div className="grid grid-cols-[90px_1fr] items-center gap-[8px]">
                     <span className="text-[12px] font-medium text-[#888]">Price</span>
@@ -249,99 +316,60 @@ export default function ChargesSettingsPage() {
             </div>
 
             <div className="flex items-center justify-end gap-[8px] border-t border-[#f0f0f0] px-[24px] py-[14px]">
-              <button
-                onClick={handleCancel}
-                className="rounded-[6px] px-[14px] py-[7px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
-                tabIndex={0}
-              >
+              <Button variant="ghost" onClick={handleCancel} className="px-[14px] py-[6px]">
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleAdd}
                 disabled={!form.name.trim() || !form.itemNumber.trim()}
-                className="primary-btn rounded-[6px] px-[14px] py-[7px] text-[13px] font-medium transition-colors disabled:opacity-30"
-                tabIndex={0}
+                className="px-[14px] py-[6px]"
               >
                 Add
-              </button>
+              </Button>
             </div>
           </div>
         </>
       )}
 
       {/* Charge items table */}
-      {chargeItems.length === 0 ? (
-        <div className="flex flex-col items-center justify-center px-[20px] py-[48px] text-center">
-          <div className="flex h-[40px] w-[40px] items-center justify-center rounded-[10px] bg-[#f5f5f5]">
-            <Plus className="h-[18px] w-[18px] text-[#ccc]" strokeWidth={1.5} />
-          </div>
-          <p className="mt-[12px] text-[14px] font-medium text-[#888]">No charge items added</p>
-          <p className="mt-[2px] text-[13px] text-[#bbb]">Add items from the NDIS Support Coordination price list</p>
-        </div>
+      {chargeItems.length === 0 && visibleDisabledItems.length === 0 ? (
+        <EmptyState
+          icon={Tag}
+          title="No charge items added"
+          description="Add items from the NDIS Support Coordination price list"
+          action={{ label: "Add charge item", onClick: () => setIsAdding(true) }}
+        />
       ) : (
         <div className="w-full">
           {/* Table header */}
-          <div className="grid grid-cols-[1fr_180px_100px_80px_80px_40px] items-center border-b border-[#f0f0f0] px-[20px] py-[12px]">
+          <div className="grid grid-cols-[1fr_150px_92px_72px_56px_60px_40px] items-center border-b border-[#f0f0f0] px-[20px] py-[12px]">
             <span className="text-[12px] font-medium text-[#888]">Name</span>
             <span className="text-[12px] font-medium text-[#888]">Item Number</span>
             <span className="text-[12px] font-medium text-[#888]">Claim Type</span>
             <span className="text-[12px] font-medium text-[#888] text-right">Price</span>
             <span className="text-[12px] font-medium text-[#888]">Unit</span>
+            <span className="text-[12px] font-medium text-[#888]">Enabled</span>
             <span />
           </div>
 
-          {/* Table rows */}
-          {chargeItems.map((item) => (
-            <div
-              key={item.id}
-              className="group grid grid-cols-[1fr_180px_100px_80px_80px_40px] items-center border-b border-[#f5f5f5] px-[20px] py-[14px] transition-colors hover:bg-[#fafafa]"
-            >
-              <span className="text-[14px] font-medium text-[#262626]">{item.reference || item.name}</span>
-              <span className="font-mono text-[13px] text-[#888]">{item.itemNumber}</span>
-              <span className="text-[13px] text-[#888]">{claimLabel(item.claimType)}</span>
-              <span className="text-[13px] font-medium text-[#262626] text-right">${item.price.toFixed(2)}</span>
-              <span className="text-[13px] text-[#888]">{unitLabel(item.unit)}</span>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setMenuOpen(menuOpen === item.id ? null : item.id)}
-                  className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-[#bbb] opacity-0 transition-all group-hover:opacity-100 hover:bg-[#f0f0f0] hover:text-[#666]"
-                  tabIndex={0}
-                  aria-label="More options"
-                >
-                  <MoreHorizontal className="h-[16px] w-[16px]" />
-                </button>
-                {menuOpen === item.id && (
-                  <>
-                    <div className="fixed inset-0 z-[59]" onClick={() => setMenuOpen(null)} />
-                    <div className="absolute right-0 top-full z-[60] mt-[4px] w-[140px] rounded-[8px] border border-[#f0f0f0] bg-white py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
-                      <button
-                        type="button"
-                        onClick={() => handleRemove(item)}
-                        className="flex w-full items-center gap-[8px] px-[12px] py-[8px] text-left text-[13px] text-red-500 transition-colors hover:bg-red-50"
-                        tabIndex={0}
-                      >
-                        <Trash2 className="h-[13px] w-[13px]" strokeWidth={1.75} />
-                        Remove
-                      </button>
-                    </div>
-                  </>
-                )}
+          {/* Enabled rows */}
+          {chargeItems.map((item) => renderChargeRow(item, true))}
+
+          {/* Disabled rows */}
+          {visibleDisabledItems.length > 0 && (
+            <>
+              <div className="border-b border-[#efefef] px-[20px] pb-[8px] pt-[20px]">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-[#999]">Disabled</span>
               </div>
-            </div>
-          ))}
+              {visibleDisabledItems.map((item) => renderChargeRow(item, false))}
+            </>
+          )}
         </div>
       )}
 
       <p className="mt-[20px] text-[12px] text-[#bbb]">
         Source: NDIS Pricing Arrangements and Price Limits 2025–26, effective 1 July 2025.
       </p>
-
-      {toast && (
-        <div className="fixed bottom-[24px] left-1/2 z-50 -translate-x-1/2 rounded-[8px] border border-[#f0f0f0] bg-white px-[16px] py-[10px] text-[13px] font-medium text-[#262626] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
-          {toast}
-        </div>
-      )}
     </SettingsGuard>
   )
 }

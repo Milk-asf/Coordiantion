@@ -5,6 +5,7 @@ import type { Client, ParticipantDetails, NdisPlan, PlanService, FundingReleaseP
 import type { NdisChargeItem } from "@/lib/ndis-charges"
 import { ndisCharges, chargeCategories } from "@/lib/ndis-charges"
 import { DatePicker } from "@/components/date-picker"
+import { Switch } from "@/components/switch"
 import { GoalSidebarForm, type GoalFormData, type ResolvedGoalTask } from "./goal-sidebar-form"
 import {
   SidebarDetailRow,
@@ -284,18 +285,11 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
                 <span className="text-[12px] font-medium text-[#262626]">PACE plan</span>
                 <p className="mt-[1px] text-[11px] text-[#888]">Is this participant on a PACE plan?</p>
               </div>
-              <button
-                type="button"
-                onClick={() => onSetPlanIsPace(!planIsPace)}
-                className="relative h-[22px] w-[40px] rounded-full transition-colors"
-                style={{ backgroundColor: planIsPace ? "var(--primary-color)" : "#d4d4d4" }}
-                tabIndex={0}
-                role="switch"
-                aria-checked={planIsPace}
-                aria-label="PACE plan toggle"
-              >
-                <span className={`absolute top-[2px] h-[18px] w-[18px] rounded-full bg-white shadow-sm transition-transform ${planIsPace ? "left-[20px]" : "left-[2px]"}`} />
-              </button>
+              <Switch
+                checked={planIsPace}
+                onChange={() => onSetPlanIsPace(!planIsPace)}
+                ariaLabel="PACE plan toggle"
+              />
             </div>
           </div>
 
@@ -1325,27 +1319,36 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
         <div className="my-[12px] h-px bg-[#e8e8e8]" />
         <h3 className="mb-[6px] text-[12px] font-semibold text-[#262626]">Funding &amp; Plan Manager</h3>
         <SidebarDetailRow label="Funding Type">
-          <SidebarEditableField value={p.fundingType} onChange={(v) => onUpdateField("fundingType", v)} type="select" options={["plan-managed", "ndia-managed", "self-managed"]} />
+          <SidebarEditableField
+            value={p.fundingType}
+            onChange={(v) => onUpdateField("fundingType", v)}
+            type="select"
+            options={["plan-managed", "ndia-managed", "self-managed"]}
+            displayClassName="inline-flex h-[24px] cursor-pointer items-center whitespace-nowrap rounded-[6px] bg-[#e8edf2] px-[10px] text-[12px] font-medium capitalize text-[#334155] transition-colors hover:bg-[#dde5ec]"
+          />
         </SidebarDetailRow>
         {(p.fundingType === "plan-managed" || !p.fundingType) && (
           <>
             <SidebarDetailRow label="PM Organisation">
               <SidebarEditableField value={p.planManagerOrg} onChange={(v) => onUpdateField("planManagerOrg", v)} placeholder="Plan manager org" />
             </SidebarDetailRow>
-            <SidebarDetailRow label="PM Name">
+            <SidebarDetailRow label="Plan Manager Name">
               <SidebarEditableField value={p.planManagerName} onChange={(v) => onUpdateField("planManagerName", v)} placeholder="Plan manager name" />
-            </SidebarDetailRow>
-            <SidebarDetailRow label="PM Email">
-              <SidebarContactChip value={p.planManagerEmail} onChange={(v) => onUpdateField("planManagerEmail", v)} placeholder="Plan manager email" variant="white" />
             </SidebarDetailRow>
           </>
         )}
-        <SidebarDetailRow label="Plan Start">
-          <SidebarEditableField value={p.planStartDate} onChange={(v) => onUpdateField("planStartDate", v)} type="date" placeholder="Plan start date" />
-        </SidebarDetailRow>
-        <SidebarDetailRow label="Plan End">
-          <SidebarEditableField value={p.planEndDate} onChange={(v) => onUpdateField("planEndDate", v)} type="date" placeholder="Plan end date" />
-        </SidebarDetailRow>
+        {p.fundingType !== "ndia-managed" && (
+          <>
+            <SidebarDetailRow label="Invoice Email">
+              {p.fundingType === "self-managed" ? (
+                <SidebarContactChip value={p.email} onChange={(v) => onUpdateField("email", v)} placeholder="Invoice email" variant="white" />
+              ) : (
+                <SidebarContactChip value={p.planManagerEmail} onChange={(v) => onUpdateField("planManagerEmail", v)} placeholder="Invoice email" variant="white" />
+              )}
+            </SidebarDetailRow>
+            <p className="mt-[4px] px-[2px] text-[11px] leading-[1.45] text-[#999]">Invoices are sent to this email address.</p>
+          </>
+        )}
 
         <div className="my-[12px] h-px bg-[#e8e8e8]" />
         <h3 className="mb-[6px] text-[12px] font-semibold text-[#262626]">Other Details</h3>

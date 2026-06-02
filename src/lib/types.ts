@@ -98,6 +98,7 @@ export interface ParticipantDetails {
   fundingType: FundingType
   planManagerName: string
   planManagerEmail: string
+  planManagerPhone?: string
   planManagerOrg: string
   planStartDate: string
   planEndDate: string
@@ -127,7 +128,7 @@ export const emptyParticipant: ParticipantDetails = {
   ndisNumber: "", medicareNumber: "", centrelinkNumber: "", externalId: "",
   serviceCommencementDate: "", serviceExitDate: "",
   checkInPeriod: "",
-  fundingType: "", planManagerName: "", planManagerEmail: "", planManagerOrg: "",
+  fundingType: "", planManagerName: "", planManagerEmail: "", planManagerPhone: "", planManagerOrg: "",
   planStartDate: "", planEndDate: "",
 }
 

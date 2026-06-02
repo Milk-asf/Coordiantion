@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react"
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react"
 import { ChevronDown, X } from "lucide-react"
 
 interface EditableFieldProps {
@@ -38,6 +38,7 @@ export function EditableField({
 }: EditableFieldProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [draft, setDraft] = useState(value)
+  const [dropUp, setDropUp] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -49,6 +50,16 @@ export function EditableField({
     if (!isEditing) return
     if (type !== "select") inputRef.current?.focus()
   }, [isEditing, type])
+
+  useLayoutEffect(() => {
+    if (!isEditing || type !== "select" || !dropdownRef.current) return
+    const optionCount = (options?.length ?? 0) + 1
+    const estimatedHeight = Math.min(204, optionCount * 32 + 8)
+    const rect = dropdownRef.current.getBoundingClientRect()
+    const spaceBelow = window.innerHeight - rect.bottom
+    const spaceAbove = rect.top
+    setDropUp(spaceBelow < estimatedHeight + 8 && spaceAbove > spaceBelow)
+  }, [isEditing, type, options])
 
   useEffect(() => {
     if (!isEditing || type !== "select") return
@@ -117,7 +128,7 @@ export function EditableField({
             <span className={draft ? "text-[#262626]" : "text-[#bbb]"}>{draft || emptyLabel}</span>
             <ChevronDown className="h-[12px] w-[12px] rotate-180 text-[#999]" strokeWidth={1.5} />
           </button>
-          <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[200px] w-full min-w-[160px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
+          <div className={`absolute left-0 z-[60] max-h-[200px] w-full min-w-[160px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.1)] ${dropUp ? "bottom-full mb-[4px]" : "top-full mt-[4px]"}`}>
             <button
               type="button"
               onClick={() => {

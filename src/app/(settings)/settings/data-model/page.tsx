@@ -1,9 +1,13 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Plus, MoreHorizontal, X, Settings2, Check, EyeOff, Eye, Trash2, FileText, Layers, AlignLeft } from "lucide-react"
+import { Plus, MoreHorizontal, X, Settings2, EyeOff, Eye, Trash2, FileText, Layers, AlignLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { SettingsGuard } from "@/components/settings-guard"
+import { SearchBar } from "@/components/search-bar"
+import { Switch } from "@/components/switch"
+import { Button } from "@/components/button"
+import { useToast } from "@/components/toast"
 import { useFieldConfig } from "@/lib/hooks/use-field-config"
 import {
   fieldTypeLabels,
@@ -19,10 +23,11 @@ const fieldTypes: FieldType[] = ["text", "date", "markdown", "single-select", "m
 export default function DataModelSettingsPage() {
   const { fields, toggleField } = useFieldConfig()
   const [activeTab, setActiveTab] = useState<EntityTab>("participants")
+  const [search, setSearch] = useState("")
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [editingField, setEditingField] = useState<FieldDefinition | null>(null)
   const [menuFieldId, setMenuFieldId] = useState<string | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
+  const { toast } = useToast()
 
   const [newName, setNewName] = useState("")
   const [newType, setNewType] = useState<FieldType>("text")
@@ -35,7 +40,6 @@ export default function DataModelSettingsPage() {
   const [isEditTypeOpen, setIsEditTypeOpen] = useState(false)
 
   const menuRef = useRef<HTMLDivElement>(null)
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -45,13 +49,15 @@ export default function DataModelSettingsPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  const showToast = (message: string) => {
-    if (toastTimer.current) clearTimeout(toastTimer.current)
-    setToast(message)
-    toastTimer.current = setTimeout(() => setToast(null), 3000)
-  }
+  const showToast = (message: string) => toast(message, "success")
 
-  const tabFields = fields.filter((f) => f.entity === activeTab)
+  const query = search.trim().toLowerCase()
+  const tabFields = fields.filter((f) => {
+    if (f.entity !== activeTab) return false
+    if (!query) return true
+    return [f.name, fieldTypeLabels[f.type], f.description]
+      .some((field) => (field || "").toLowerCase().includes(query))
+  })
   const enabledFields = tabFields.filter((f) => f.isEnabled)
   const disabledFields = tabFields.filter((f) => !f.isEnabled)
 
@@ -127,16 +133,18 @@ export default function DataModelSettingsPage() {
         ))}
       </div>
 
-      {/* Create field button */}
-      <div className="mb-[16px]">
-        <button
-          onClick={() => setIsCreateOpen(true)}
-          className="flex items-center gap-[6px] rounded-[8px] bg-[#f0f0f0] px-[14px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#e8e8e8]"
-          tabIndex={0}
-        >
+      {/* Create field button + search */}
+      <div className="mb-[16px] flex items-center gap-[10px]">
+        <SearchBar
+          value={search}
+          onChange={setSearch}
+          placeholder="Search fields…"
+          className="flex-1"
+        />
+        <Button onClick={() => setIsCreateOpen(true)} className="h-[36px] shrink-0 px-[12px]">
           <Plus className="h-[14px] w-[14px]" strokeWidth={1.75} />
           Create field
-        </button>
+        </Button>
       </div>
 
       {/* Fields table */}
@@ -185,7 +193,7 @@ export default function DataModelSettingsPage() {
 
         {enabledFields.length === 0 && disabledFields.length === 0 && (
           <div className="px-[20px] py-[40px] text-center text-[13px] text-[#bbb]">
-            No fields defined
+            {query ? `No fields match “${search.trim()}”.` : "No fields defined"}
           </div>
         )}
       </div>
@@ -479,16 +487,6 @@ export default function DataModelSettingsPage() {
           </div>
         </div>
       )}
-
-      {/* Toast */}
-      {toast && (
-        <div className="fixed bottom-[24px] left-1/2 z-50 -translate-x-1/2">
-          <div className="flex items-center gap-[8px] rounded-[8px] border border-[#f0f0f0] bg-white px-[16px] py-[10px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
-            <Check className="h-[14px] w-[14px] text-green-500" strokeWidth={2} />
-            <span className="text-[13px] font-medium text-[#262626]">{toast}</span>
-          </div>
-        </div>
-      )}
     </SettingsGuard>
   )
 }
@@ -528,38 +526,12 @@ function FieldRow({
       <span className="text-[13px] text-[#888]">{field.editableBy === "system" ? "System only" : "Anyone"}</span>
 
       <div onClick={(e) => e.stopPropagation()}>
-        {!field.isSystem ? (
-          <button
-            type="button"
-            onClick={onToggleEnabled}
-            className="relative h-[22px] w-[40px] rounded-full transition-colors"
-            style={{ backgroundColor: field.isEnabled ? "#2563EB" : "#d4d4d4" }}
-            tabIndex={0}
-            aria-label={field.isEnabled ? "Disable field" : "Enable field"}
-            aria-checked={field.isEnabled}
-            role="switch"
-          >
-            <span
-              className={cn(
-                "absolute top-[2px] h-[18px] w-[18px] rounded-full bg-white shadow-sm transition-transform",
-                field.isEnabled ? "left-[20px]" : "left-[2px]"
-              )}
-            />
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="relative h-[22px] w-[40px] cursor-not-allowed rounded-full opacity-50"
-            style={{ backgroundColor: "#2563EB" }}
-            disabled
-            tabIndex={-1}
-            aria-label="System field — always enabled"
-            aria-checked
-            role="switch"
-          >
-            <span className="absolute left-[20px] top-[2px] h-[18px] w-[18px] rounded-full bg-white shadow-sm" />
-          </button>
-        )}
+        <Switch
+          checked={field.isSystem ? true : field.isEnabled}
+          onChange={onToggleEnabled}
+          disabled={field.isSystem}
+          ariaLabel={field.isSystem ? "System field — always enabled" : (field.isEnabled ? "Disable field" : "Enable field")}
+        />
       </div>
 
       <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>

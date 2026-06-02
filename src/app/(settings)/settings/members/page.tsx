@@ -2,11 +2,17 @@
 
 import { useState, useRef, useEffect } from "react"
 import { cn } from "@/lib/utils"
-import { MoreHorizontal, ChevronDown, Plus, X } from "lucide-react"
+import { MoreHorizontal, ChevronDown, Plus, X, Users } from "lucide-react"
+import { SearchBar } from "@/components/search-bar"
+import { Switch } from "@/components/switch"
+import { Badge } from "@/components/badge"
+import { Button } from "@/components/button"
+import { EmptyState } from "@/components/empty-state"
 import { useMembers } from "@/lib/hooks/use-members"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import { useStaff } from "@/lib/hooks/use-staff"
 import { useWorkspace } from "@/lib/workspace-context"
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import type { WorkspaceMember } from "@/lib/types"
 
 type Role = WorkspaceMember["role"]
@@ -29,15 +35,31 @@ export default function MembersSettingsPage() {
   const [memberMenuId, setMemberMenuId] = useState<string | null>(null)
   const [roleChangeId, setRoleChangeId] = useState<string | null>(null)
   const [isInviteOpen, setIsInviteOpen] = useState(false)
+  const [search, setSearch] = useState("")
   const [inviteEmail, setInviteEmail] = useState("")
   const [inviteRole, setInviteRole] = useState<Role>("coordinator")
   const [isInviting, setIsInviting] = useState(false)
   const [inviteError, setInviteError] = useState<string | null>(null)
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string; email: string } | null>(null)
   const inviteInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (isInviteOpen) setTimeout(() => inviteInputRef.current?.focus(), 50)
   }, [isInviteOpen])
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return
+    const supabase = createClient()
+    if (!supabase) return
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      setCurrentUser({
+        id: user.id,
+        name: user.user_metadata?.full_name || user.email?.split("@")[0] || "You",
+        email: user.email || "",
+      })
+    })
+  }, [])
 
   const handleInvite = async () => {
     if (!inviteEmail?.includes("@") || !activeWorkspace) return
@@ -104,8 +126,37 @@ export default function MembersSettingsPage() {
     </div>
   )
 
-  const activeMembers = members.filter((m) => m.status !== "deactivated")
-  const deactivatedMembers = members.filter((m) => m.status === "deactivated")
+  const ownerUserId = activeWorkspace?.created_by ?? null
+  const isOwnerMember = (m: WorkspaceMember) => !!ownerUserId && m.user_id === ownerUserId
+
+  // Always surface the workspace owner (the account holder paying for the software),
+  // even if their membership row hasn't been hydrated into the members list yet.
+  const ownerInList = !!ownerUserId && members.some((m) => m.user_id === ownerUserId)
+  const syntheticOwner: WorkspaceMember | null = !ownerInList && ownerUserId
+    ? {
+        id: `owner-${ownerUserId}`,
+        workspace_id: activeWorkspace?.id || "",
+        user_id: ownerUserId,
+        role: "super-admin",
+        status: "active",
+        invited_email: null,
+        team: null,
+        created_at: activeWorkspace?.created_at || new Date().toISOString(),
+        name: currentUser?.id === ownerUserId ? currentUser.name : "Account owner",
+        email: currentUser?.id === ownerUserId ? currentUser.email : "",
+      }
+    : null
+
+  const mergedMembers = syntheticOwner ? [syntheticOwner, ...members] : members
+  const query = search.trim().toLowerCase()
+  const matchesSearch = (m: WorkspaceMember) => {
+    if (!query) return true
+    return [m.name, m.email, m.invited_email]
+      .some((field) => (field || "").toLowerCase().includes(query))
+  }
+  const allMembers = mergedMembers.filter(matchesSearch)
+  const activeMembers = allMembers.filter((m) => m.status !== "deactivated")
+  const deactivatedMembers = allMembers.filter((m) => m.status === "deactivated")
 
   const isMemberSuperAdminEmail = (m: WorkspaceMember) =>
     (m.email === SUPER_ADMIN_EMAIL || m.invited_email === SUPER_ADMIN_EMAIL)
@@ -113,36 +164,28 @@ export default function MembersSettingsPage() {
   const canEditRole = (member: WorkspaceMember) => {
     if (!isSuperAdmin) return false
     if (isMemberSuperAdminEmail(member)) return false
+    if (isOwnerMember(member)) return false
     return true
   }
 
   const canToggleStatus = (member: WorkspaceMember) => {
     if (isMemberSuperAdminEmail(member)) return false
+    if (isOwnerMember(member)) return false
     return true
   }
 
   return (
     <>
-      <div className="mb-[32px] flex items-start justify-between">
-        <div>
-          <h1 className="text-[20px] font-bold text-[#262626]">Members</h1>
-          <p className="mt-[4px] text-[14px] text-[#888]">
-            Manage who has access to this workspace.
-          </p>
-        </div>
-        <button
-          onClick={() => setIsInviteOpen(true)}
-          className="primary-btn flex items-center gap-[5px] rounded-[8px] px-[12px] py-[7px] text-[13px] font-medium transition-colors"
-          tabIndex={0}
-        >
-          <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-          Invite member
-        </button>
+      <div className="mb-[24px]">
+        <h1 className="text-[20px] font-bold text-[#262626]">Members</h1>
+        <p className="mt-[4px] text-[14px] text-[#888]">
+          Manage who has access to this workspace.
+        </p>
       </div>
 
       {isInviteOpen && (
         <>
-          <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setIsInviteOpen(false)} />
+          <div className="fixed inset-0 z-40 bg-black/20" onClick={() => setIsInviteOpen(false)} />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-[16px]">
             <div className="w-full max-w-[420px] rounded-[8px] border border-[#f0f0f0] bg-white p-[24px] shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
               <div className="mb-[16px] flex items-center justify-between">
@@ -159,13 +202,13 @@ export default function MembersSettingsPage() {
                 onChange={(e) => setInviteEmail(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleInvite() }}
                 placeholder="colleague@example.com"
-                className="mb-[12px] w-full rounded-[8px] border border-[#e0e0e0] bg-white px-[12px] py-[9px] text-[14px] text-[#262626] outline-none transition-colors focus:border-[#bbb]"
+                className="mb-[12px] w-full rounded-[8px] border border-[#e0e0e0] bg-[#fafafa] px-[12px] py-[9px] text-[14px] text-[#262626] outline-none transition-colors focus:border-[#bbb]"
               />
               <label className="mb-[4px] block text-[13px] font-medium text-[#555]">Role</label>
               <select
                 value={inviteRole}
                 onChange={(e) => setInviteRole(e.target.value as Role)}
-                className="mb-[16px] w-full rounded-[8px] border border-[#e0e0e0] bg-white px-[12px] py-[9px] text-[14px] text-[#262626] outline-none transition-colors focus:border-[#bbb]"
+                className="mb-[16px] w-full rounded-[8px] border border-[#e0e0e0] bg-[#fafafa] px-[12px] py-[9px] text-[14px] text-[#262626] outline-none transition-colors focus:border-[#bbb]"
               >
                 {(isSuperAdmin ? allRoles : allRoles.filter((r) => r !== "super-admin")).map((r) => (
                   <option key={r} value={r}>{roleConfig[r].label}</option>
@@ -173,22 +216,34 @@ export default function MembersSettingsPage() {
               </select>
               {inviteError && <p className="mb-[12px] text-[13px] text-red-500">{inviteError}</p>}
               <div className="flex justify-end gap-[8px]">
-                <button onClick={() => setIsInviteOpen(false)} className="rounded-[8px] border border-[#e0e0e0] bg-white px-[14px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
+                <Button variant="secondary" onClick={() => setIsInviteOpen(false)} className="px-[14px] py-[6px]">
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={handleInvite}
                   disabled={isInviting || !inviteEmail?.includes("@")}
-                  className="primary-btn rounded-[8px] px-[14px] py-[7px] text-[13px] font-medium transition-colors disabled:opacity-50"
-                  tabIndex={0}
+                  className="px-[14px] py-[6px]"
                 >
                   {isInviting ? "Sending…" : "Send invite"}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
         </>
       )}
+
+      <div className="mb-[16px] flex items-center gap-[10px]">
+        <SearchBar
+          value={search}
+          onChange={setSearch}
+          placeholder="Search members…"
+          className="flex-1"
+        />
+        <Button onClick={() => setIsInviteOpen(true)} className="h-[36px] shrink-0 px-[12px]">
+          <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+          Invite member
+        </Button>
+      </div>
 
       {/* Active members */}
       <div className="overflow-hidden">
@@ -217,10 +272,19 @@ export default function MembersSettingsPage() {
           />
         ))}
 
-        {members.length === 0 && (
-          <div className="px-[20px] py-[40px] text-center text-[13px] text-[#bbb]">
-            No members
-          </div>
+        {allMembers.length === 0 && (
+          query ? (
+            <div className="px-[20px] py-[40px] text-center text-[13px] text-[#bbb]">
+              No members match “{search.trim()}”.
+            </div>
+          ) : (
+            <EmptyState
+              icon={Users}
+              title="No members yet"
+              description="Invite a colleague to collaborate in this workspace."
+              action={{ label: "Invite member", onClick: () => setIsInviteOpen(true) }}
+            />
+          )
         )}
       </div>
 
@@ -306,9 +370,9 @@ function MemberRow({
               {displayName}
             </span>
             {(member.status === "pending" || member.status === "invited") && (
-              <span className="shrink-0 rounded-full bg-yellow-50 px-[8px] py-[2px] text-[11px] font-medium text-yellow-600">
+              <Badge variant="warning" className="shrink-0">
                 {member.status === "invited" ? "Invited" : "Pending"}
-              </span>
+              </Badge>
             )}
           </div>
           {displayEmail && <p className="truncate text-[12px] text-[#999]">{displayEmail}</p>}
@@ -320,7 +384,7 @@ function MemberRow({
           <button
             onClick={onRoleToggle}
             className={cn(
-              "flex items-center gap-[4px] rounded-full border px-[10px] py-[3px] text-[11px] font-medium transition-colors hover:opacity-80",
+              "flex items-center gap-[4px] rounded-[6px] border px-[10px] py-[3px] text-[11px] font-medium transition-colors hover:opacity-80",
               roleConfig[member.role as Role]?.color ?? "bg-gray-50 text-gray-600 border-gray-100"
             )}
             tabIndex={0}
@@ -330,7 +394,7 @@ function MemberRow({
           </button>
         ) : (
           <span className={cn(
-            "inline-flex rounded-full border px-[10px] py-[3px] text-[11px] font-medium",
+            "inline-flex rounded-[6px] border px-[10px] py-[3px] text-[11px] font-medium",
             isDisabledRow ? "bg-gray-50 text-[#ccc] border-gray-100" : (roleConfig[member.role as Role]?.color ?? "bg-gray-50 text-gray-600 border-gray-100")
           )}>
             {roleConfig[member.role as Role]?.label ?? member.role}
@@ -364,38 +428,12 @@ function MemberRow({
       </div>
 
       <div>
-        {canToggle ? (
-          <button
-            type="button"
-            onClick={onToggleStatus}
-            className="relative h-[22px] w-[40px] rounded-full transition-colors"
-            style={{ backgroundColor: isActive ? "#2563EB" : "#d4d4d4" }}
-            tabIndex={0}
-            aria-label={isActive ? "Deactivate member" : "Activate member"}
-            aria-checked={isActive}
-            role="switch"
-          >
-            <span
-              className={cn(
-                "absolute top-[2px] h-[18px] w-[18px] rounded-full bg-white shadow-sm transition-transform",
-                isActive ? "left-[20px]" : "left-[2px]"
-              )}
-            />
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="relative h-[22px] w-[40px] cursor-not-allowed rounded-full opacity-50"
-            style={{ backgroundColor: "#2563EB" }}
-            disabled
-            tabIndex={-1}
-            aria-label="Super admin — always active"
-            aria-checked
-            role="switch"
-          >
-            <span className="absolute left-[20px] top-[2px] h-[18px] w-[18px] rounded-full bg-white shadow-sm" />
-          </button>
-        )}
+        <Switch
+          checked={canToggle ? isActive : true}
+          onChange={onToggleStatus}
+          disabled={!canToggle}
+          ariaLabel={canToggle ? (isActive ? "Deactivate member" : "Activate member") : "Super admin — always active"}
+        />
       </div>
 
       <div className="flex justify-end">

@@ -32,6 +32,7 @@ import { serviceChargeTypes } from "@/lib/ndis-charges"
 import type { Task, Attachment } from "@/lib/types"
 import { PageLoader, PageError } from "@/components/page-state"
 import { useToast } from "@/components/toast"
+import { Switch } from "@/components/switch"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { TaskDetailModal } from "./_components/task-detail-modal"
 import {
@@ -441,8 +442,9 @@ export default function TasksPage() {
   }, [selectedTaskId, updateTaskDb])
 
   const handleLinkGoal = useCallback((goalId: string | null) => {
-    if (!selectedTask || !selectedTask.clientId) return
+    if (!selectedTask) return
     const client = clients.find((c) => c.id === selectedTask.clientId)
+      || clients.find((c) => c.name === selectedTask.client || c.displayName === selectedTask.client)
     if (!client) return
     const existingGoals = client.participant.goals || []
     const snapshot = {
@@ -1188,17 +1190,11 @@ export default function TasksPage() {
                     <div className="px-[20px] pb-[16px] pt-[2px]">
                       <div className="flex items-center justify-between">
                         <span className="text-[13px] font-medium text-[#888]">Show completed</span>
-                        <button
-                          type="button"
-                          onClick={() => setShowPrevious((prev) => !prev)}
-                          className="relative inline-flex h-[20px] w-[36px] shrink-0 items-center rounded-full transition-colors"
-                          style={{ backgroundColor: showPrevious ? "var(--primary-color)" : "#dcdcdc" }}
-                          role="switch"
-                          aria-checked={showPrevious}
-                          tabIndex={0}
-                        >
-                          <span className={`inline-block h-[16px] w-[16px] rounded-full bg-white shadow-sm transition-transform ${showPrevious ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
-                        </button>
+                        <Switch
+                          checked={showPrevious}
+                          onChange={() => setShowPrevious((prev) => !prev)}
+                          ariaLabel="Show completed toggle"
+                        />
                       </div>
                     </div>
                   </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { sanitizeHtml } from "@/lib/sanitize"
 import {
   Plus,
@@ -52,6 +52,7 @@ export function NoteEditorModal({
 }: NoteEditorModalProps) {
   const [isFormatMenuOpen, setIsFormatMenuOpen] = useState(false)
   const [isNoteMenuOpen, setIsNoteMenuOpen] = useState(false)
+  const [activeFormats, setActiveFormats] = useState<Record<string, boolean>>({})
   const formatMenuRef = useRef<HTMLDivElement>(null)
   const noteMenuRef = useRef<HTMLDivElement>(null)
   const contentEditableRef = useRef<HTMLDivElement>(null)
@@ -72,13 +73,46 @@ export function NoteEditorModal({
     return () => document.removeEventListener("mousedown", handleClick)
   }, [])
 
+  const updateActiveFormats = useCallback(() => {
+    const editor = contentEditableRef.current
+    if (!editor) return
+    const sel = window.getSelection()
+    if (!sel || sel.rangeCount === 0 || !sel.anchorNode || !editor.contains(sel.anchorNode)) return
+    const formats: Record<string, boolean> = {}
+    try {
+      formats.bold = document.queryCommandState("bold")
+      formats.italic = document.queryCommandState("italic")
+      formats.underline = document.queryCommandState("underline")
+      formats.strikeThrough = document.queryCommandState("strikeThrough")
+      formats.insertUnorderedList = document.queryCommandState("insertUnorderedList")
+      formats.insertOrderedList = document.queryCommandState("insertOrderedList")
+      const block = (document.queryCommandValue("formatBlock") || "").toLowerCase()
+      formats.h1 = block === "h1"
+      formats.h2 = block === "h2"
+      formats.blockquote = block === "blockquote"
+      formats.pre = block === "pre"
+    } catch {
+      // queryCommand* can throw if the selection is detached; ignore
+    }
+    setActiveFormats(formats)
+  }, [])
+
+  useEffect(() => {
+    document.addEventListener("selectionchange", updateActiveFormats)
+    return () => document.removeEventListener("selectionchange", updateActiveFormats)
+  }, [updateActiveFormats])
+
   const applyFormat = (command: string, value?: string) => {
     contentEditableRef.current?.focus()
     document.execCommand(command, false, value)
     if (contentEditableRef.current) {
       onEditContent(sanitizeHtml(contentEditableRef.current.innerHTML))
     }
+    updateActiveFormats()
   }
+
+  const formatBtnClass = (key: string) =>
+    `flex h-[30px] w-[30px] items-center justify-center rounded-[4px] transition-colors ${activeFormats[key] ? "bg-[#eef4fd] text-[#2563EB]" : "text-[#555] hover:bg-[#f0f0f0]"}`
 
   return (
     <div className="flex h-full flex-col">
@@ -194,36 +228,36 @@ export function NoteEditorModal({
 
             {isFormatMenuOpen && (
               <div className="absolute bottom-[52px] left-[40px] z-50 flex items-center gap-[2px] rounded-[8px] border border-[#e8e8e8] bg-white px-[6px] py-[6px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
-                <button onMouseDown={(e) => { e.preventDefault(); applyFormat("bold") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Bold">
+                <button onMouseDown={(e) => { e.preventDefault(); applyFormat("bold") }} className={formatBtnClass("bold")} tabIndex={0} aria-label="Bold" aria-pressed={!!activeFormats.bold}>
                   <Bold className="h-[14px] w-[14px]" strokeWidth={2} />
                 </button>
-                <button onMouseDown={(e) => { e.preventDefault(); applyFormat("italic") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Italic">
+                <button onMouseDown={(e) => { e.preventDefault(); applyFormat("italic") }} className={formatBtnClass("italic")} tabIndex={0} aria-label="Italic" aria-pressed={!!activeFormats.italic}>
                   <Italic className="h-[14px] w-[14px]" strokeWidth={2} />
                 </button>
-                <button onMouseDown={(e) => { e.preventDefault(); applyFormat("underline") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Underline">
+                <button onMouseDown={(e) => { e.preventDefault(); applyFormat("underline") }} className={formatBtnClass("underline")} tabIndex={0} aria-label="Underline" aria-pressed={!!activeFormats.underline}>
                   <Underline className="h-[14px] w-[14px]" strokeWidth={2} />
                 </button>
-                <button onMouseDown={(e) => { e.preventDefault(); applyFormat("strikeThrough") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Strikethrough">
+                <button onMouseDown={(e) => { e.preventDefault(); applyFormat("strikeThrough") }} className={formatBtnClass("strikeThrough")} tabIndex={0} aria-label="Strikethrough" aria-pressed={!!activeFormats.strikeThrough}>
                   <Strikethrough className="h-[14px] w-[14px]" strokeWidth={2} />
                 </button>
                 <div className="mx-[4px] h-[18px] w-[1px] bg-[#e8e8e8]" />
-                <button onMouseDown={(e) => { e.preventDefault(); applyFormat("formatBlock", "h1") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Heading 1">
+                <button onMouseDown={(e) => { e.preventDefault(); applyFormat("formatBlock", "h1") }} className={formatBtnClass("h1")} tabIndex={0} aria-label="Heading 1" aria-pressed={!!activeFormats.h1}>
                   <Heading1 className="h-[14px] w-[14px]" strokeWidth={2} />
                 </button>
-                <button onMouseDown={(e) => { e.preventDefault(); applyFormat("formatBlock", "h2") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Heading 2">
+                <button onMouseDown={(e) => { e.preventDefault(); applyFormat("formatBlock", "h2") }} className={formatBtnClass("h2")} tabIndex={0} aria-label="Heading 2" aria-pressed={!!activeFormats.h2}>
                   <Heading2 className="h-[14px] w-[14px]" strokeWidth={2} />
                 </button>
                 <div className="mx-[4px] h-[18px] w-[1px] bg-[#e8e8e8]" />
-                <button onMouseDown={(e) => { e.preventDefault(); applyFormat("insertUnorderedList") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Bullet list">
+                <button onMouseDown={(e) => { e.preventDefault(); applyFormat("insertUnorderedList") }} className={formatBtnClass("insertUnorderedList")} tabIndex={0} aria-label="Bullet list" aria-pressed={!!activeFormats.insertUnorderedList}>
                   <List className="h-[14px] w-[14px]" strokeWidth={2} />
                 </button>
-                <button onMouseDown={(e) => { e.preventDefault(); applyFormat("insertOrderedList") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Numbered list">
+                <button onMouseDown={(e) => { e.preventDefault(); applyFormat("insertOrderedList") }} className={formatBtnClass("insertOrderedList")} tabIndex={0} aria-label="Numbered list" aria-pressed={!!activeFormats.insertOrderedList}>
                   <ListOrdered className="h-[14px] w-[14px]" strokeWidth={2} />
                 </button>
-                <button onMouseDown={(e) => { e.preventDefault(); applyFormat("formatBlock", "blockquote") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Quote">
+                <button onMouseDown={(e) => { e.preventDefault(); applyFormat("formatBlock", "blockquote") }} className={formatBtnClass("blockquote")} tabIndex={0} aria-label="Quote" aria-pressed={!!activeFormats.blockquote}>
                   <Quote className="h-[14px] w-[14px]" strokeWidth={2} />
                 </button>
-                <button onMouseDown={(e) => { e.preventDefault(); applyFormat("formatBlock", "pre") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Code">
+                <button onMouseDown={(e) => { e.preventDefault(); applyFormat("formatBlock", "pre") }} className={formatBtnClass("pre")} tabIndex={0} aria-label="Code" aria-pressed={!!activeFormats.pre}>
                   <Code className="h-[14px] w-[14px]" strokeWidth={2} />
                 </button>
               </div>

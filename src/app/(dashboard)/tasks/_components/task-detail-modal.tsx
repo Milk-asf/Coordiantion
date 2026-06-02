@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback, useEffect } from "react"
+import { useState, useRef, useCallback, useEffect, type CSSProperties } from "react"
 import { sanitizeHtml } from "@/lib/sanitize"
 import {
   SquareCheck,
@@ -41,6 +41,8 @@ interface ChargeType {
 interface EnabledCharge {
   itemNumber: string
   shortName: string
+  unit?: "hour" | "each" | "km"
+  price?: number
 }
 
 export interface TaskDetailModalProps {
@@ -86,6 +88,7 @@ export function TaskDetailModal({
   const detailClientSearchRef = useRef<HTMLInputElement>(null)
   const detailChargeRef = useRef<HTMLButtonElement>(null)
   const detailSecondaryChargeRef = useRef<HTMLButtonElement>(null)
+  const detailGoalRef = useRef<HTMLButtonElement>(null)
   const detailFileInputRef = useRef<HTMLInputElement>(null)
 
   const descriptionRef = useRef<HTMLDivElement>(null)
@@ -198,9 +201,24 @@ export function TaskDetailModal({
     : ""
 
   const taskClient = clients.find((c) => c.id === selectedTask.clientId)
+    || clients.find((c) => c.name === selectedTask.client || c.displayName === selectedTask.client)
   const clientGoals = taskClient?.participant.goals || []
   const attachedGoal = clientGoals.find((g) => g.linkedTasks?.some((lt) => lt.taskId === selectedTask.id)) || null
   const goalTypeLabel: Record<string, string> = { "long-term": "Long term", "short-term": "Short term" }
+
+  const secondaryCharge = selectedTask.secondaryChargeType
+    ? enabledCharges.find((c) => c.itemNumber === selectedTask.secondaryChargeType) || null
+    : null
+  const secondaryUnit = secondaryCharge?.unit
+  const isSecondaryQuantity = secondaryUnit === "km" || secondaryUnit === "each"
+
+  const fixedDropdownStyle = (rect: DOMRect, estimatedHeight: number, minWidth: number): CSSProperties => {
+    const spaceBelow = window.innerHeight - rect.bottom
+    const openUp = spaceBelow < estimatedHeight + 8 && rect.top > spaceBelow
+    return openUp
+      ? { bottom: window.innerHeight - rect.top + 4, left: rect.left, minWidth }
+      : { top: rect.bottom + 4, left: rect.left, minWidth }
+  }
 
   return (
     <>
@@ -545,66 +563,83 @@ export function TaskDetailModal({
                   </button>
                 </div>
 
+                {secondaryCharge && (
+                  <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
+                    <span className="text-[13px] font-medium text-[#8d8d8d]">
+                      {secondaryUnit === "km" ? "Distance" : secondaryUnit === "each" ? "Quantity" : "Sec. time"}
+                    </span>
+                    <div className="flex items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] transition-colors hover:bg-[#f7f7f7]">
+                      {isSecondaryQuantity ? (
+                        <>
+                          <Tag className={`h-[13px] w-[13px] shrink-0 ${selectedTask.secondaryTimeSpent > 0 ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
+                          <input
+                            key={`sec-${selectedTask.secondaryTimeSpent}`}
+                            type="number"
+                            min="0"
+                            step="1"
+                            defaultValue={selectedTask.secondaryTimeSpent > 0 ? selectedTask.secondaryTimeSpent : ""}
+                            placeholder="0"
+                            onBlur={(e) => onUpdateTask("secondaryTimeSpent", Math.max(0, Math.round(parseFloat(e.target.value) || 0)))}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                onUpdateTask("secondaryTimeSpent", Math.max(0, Math.round(parseFloat(e.currentTarget.value) || 0)))
+                                e.currentTarget.blur()
+                              }
+                            }}
+                            className="w-full bg-transparent text-[13px] font-medium text-[#262626] placeholder-[#ccc] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                          />
+                          <span className="shrink-0 text-[12px] font-medium text-[#aaa]">{secondaryUnit === "km" ? "km" : "ea"}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Clock className={`h-[13px] w-[13px] shrink-0 ${selectedTask.secondaryTimeSpent > 0 ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
+                          <input
+                            key={`sec-${selectedTask.secondaryTimeSpent}`}
+                            type="text"
+                            defaultValue={selectedTask.secondaryTimeSpent > 0 ? formatTime(selectedTask.secondaryTimeSpent) : ""}
+                            placeholder="Empty"
+                            onBlur={(e) => onUpdateTask("secondaryTimeSpent", parseTimeInput(e.target.value))}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                onUpdateTask("secondaryTimeSpent", parseTimeInput(e.currentTarget.value))
+                                e.currentTarget.blur()
+                              }
+                            }}
+                            className="w-full bg-transparent text-[13px] font-medium text-[#262626] placeholder-[#ccc] outline-none"
+                          />
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
                   <span className="text-[13px] font-medium text-[#8d8d8d]">Goal</span>
-                  {!selectedTask.clientId ? (
+                  {!taskClient ? (
                     <div className="flex min-w-0 items-center gap-[7px] px-[8px] py-[6px]">
                       <Target className="h-[13px] w-[13px] shrink-0 text-[#ccc]" strokeWidth={1.5} />
                       <span className="text-[13px] font-medium text-[#ccc]">Select a client first</span>
                     </div>
                   ) : (
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() => setActiveDropdown(activeDropdown === "detail-goal" ? null : "detail-goal")}
-                        className="flex min-w-0 items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
-                        tabIndex={0}
-                      >
-                        {attachedGoal ? (
-                          <>
-                            <Target className="h-[13px] w-[13px] shrink-0 text-[#2563EB]" strokeWidth={1.5} />
-                            <span className="truncate text-[13px] font-medium text-[#262626]">{attachedGoal.title || "Untitled goal"}</span>
-                          </>
-                        ) : (
-                          <>
-                            <Target className="h-[13px] w-[13px] shrink-0 text-[#ccc]" strokeWidth={1.5} />
-                            <span className="text-[13px] font-medium text-[#ccc]">Empty</span>
-                          </>
-                        )}
-                      </button>
-                      {activeDropdown === "detail-goal" && (
+                    <button
+                      ref={detailGoalRef}
+                      type="button"
+                      onClick={() => setActiveDropdown(activeDropdown === "detail-goal" ? null : "detail-goal")}
+                      className="flex min-w-0 items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
+                      tabIndex={0}
+                    >
+                      {attachedGoal ? (
                         <>
-                          <div className="fixed inset-0 z-[59]" onClick={() => setActiveDropdown(null)} />
-                          <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[240px] min-w-[240px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-                            <div
-                              onClick={() => { onLinkGoal(null); setActiveDropdown(null) }}
-                              className="flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5]"
-                              role="option"
-                              aria-selected={!attachedGoal}
-                            >
-                              None
-                            </div>
-                            {clientGoals.length === 0 ? (
-                              <div className="px-[12px] py-[8px] text-[12px] text-[#bbb]">No goals for this participant yet</div>
-                            ) : (
-                              clientGoals.map((goal) => (
-                                <div
-                                  key={goal.id}
-                                  onClick={() => { onLinkGoal(goal.id); setActiveDropdown(null) }}
-                                  className={`flex w-full cursor-pointer items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${attachedGoal?.id === goal.id ? "bg-[#f5f5f5]" : ""}`}
-                                  role="option"
-                                  aria-selected={attachedGoal?.id === goal.id}
-                                >
-                                  <Target className="h-[13px] w-[13px] shrink-0 text-[#2563EB]" strokeWidth={1.5} />
-                                  <span className="min-w-0 flex-1 truncate">{goal.title || "Untitled goal"}</span>
-                                  <span className="shrink-0 text-[11px] font-medium text-[#999]">{goalTypeLabel[goal.goalType]}</span>
-                                </div>
-                              ))
-                            )}
-                          </div>
+                          <Target className="h-[13px] w-[13px] shrink-0 text-[#2563EB]" strokeWidth={1.5} />
+                          <span className="truncate text-[13px] font-medium text-[#262626]">{attachedGoal.title || "Untitled goal"}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Target className="h-[13px] w-[13px] shrink-0 text-[#ccc]" strokeWidth={1.5} />
+                          <span className="text-[13px] font-medium text-[#ccc]">Empty</span>
                         </>
                       )}
-                    </div>
+                    </button>
                   )}
                 </div>
 
@@ -644,12 +679,11 @@ export function TaskDetailModal({
 
         const selectClient = (name: string) => {
           onUpdateTask("client", name)
-          if (name) {
-            const matched = clients.find((c) => c.name === name || c.displayName === name)
-            if (matched?.owner && selectedTaskId) {
-              const task = tasks.find((t) => t.id === selectedTaskId)
-              if (task && !task.assignee) onUpdateTask("assignee", matched.owner)
-            }
+          const matched = name ? clients.find((c) => c.name === name || c.displayName === name) : undefined
+          onUpdateTask("clientId", matched?.id || "")
+          if (name && matched?.owner && selectedTaskId) {
+            const task = tasks.find((t) => t.id === selectedTaskId)
+            if (task && !task.assignee) onUpdateTask("assignee", matched.owner)
           }
           setActiveDropdown(null)
           setDetailClientIdx(-1)
@@ -661,7 +695,7 @@ export function TaskDetailModal({
           <div className="fixed inset-0 z-[59]" onClick={() => { setActiveDropdown(null); setDetailClientIdx(-1); setDetailClientSearch("") }} />
           <div
             className="fixed z-[60] flex max-h-[260px] flex-col rounded-lg border border-[#e0e0e0] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-            style={{ top: rect.bottom + 4, left: rect.left, minWidth: 220 }}
+            style={fixedDropdownStyle(rect, Math.min(260, (filteredNames.length + 1) * 34 + 52), 220)}
           >
             <div className="border-b border-[#f0f0f0] p-[6px]">
               <input
@@ -731,7 +765,7 @@ export function TaskDetailModal({
           <div className="fixed inset-0 z-[59]" onClick={() => setActiveDropdown(null)} />
           <div
             className="fixed z-[60] max-h-[220px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-            style={{ top: rect.bottom + 6, left: rect.left, minWidth: Math.max(rect.width, 220) }}
+            style={fixedDropdownStyle(rect, Math.min(220, chargeTypes.length * 34 + 8), Math.max(rect.width, 220))}
           >
             {chargeTypes.map((ct) => (
               <div
@@ -749,6 +783,45 @@ export function TaskDetailModal({
         )
       })()}
 
+      {activeDropdown === "detail-goal" && selectedTask && detailGoalRef.current && (() => {
+        const rect = detailGoalRef.current.getBoundingClientRect()
+        return (
+          <>
+          <div className="fixed inset-0 z-[59]" onClick={() => setActiveDropdown(null)} />
+          <div
+            className="fixed z-[60] max-h-[240px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+            style={fixedDropdownStyle(rect, Math.min(240, (clientGoals.length + 1) * 36 + 8), Math.max(rect.width, 240))}
+          >
+            <div
+              onClick={() => { onLinkGoal(null); setActiveDropdown(null) }}
+              className="flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5]"
+              role="option"
+              aria-selected={!attachedGoal}
+            >
+              None
+            </div>
+            {clientGoals.length === 0 ? (
+              <div className="px-[12px] py-[8px] text-[12px] text-[#bbb]">No goals for this participant yet</div>
+            ) : (
+              clientGoals.map((goal) => (
+                <div
+                  key={goal.id}
+                  onClick={() => { onLinkGoal(goal.id); setActiveDropdown(null) }}
+                  className={`flex w-full cursor-pointer items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${attachedGoal?.id === goal.id ? "bg-[#f5f5f5]" : ""}`}
+                  role="option"
+                  aria-selected={attachedGoal?.id === goal.id}
+                >
+                  <Target className="h-[13px] w-[13px] shrink-0 text-[#2563EB]" strokeWidth={1.5} />
+                  <span className="min-w-0 flex-1 truncate">{goal.title || "Untitled goal"}</span>
+                  <span className="shrink-0 text-[11px] font-medium text-[#999]">{goalTypeLabel[goal.goalType]}</span>
+                </div>
+              ))
+            )}
+          </div>
+          </>
+        )
+      })()}
+
       {activeDropdown === "detail-secondary-charge" && selectedTask && detailSecondaryChargeRef.current && (() => {
         const rect = detailSecondaryChargeRef.current.getBoundingClientRect()
         return (
@@ -756,7 +829,7 @@ export function TaskDetailModal({
           <div className="fixed inset-0 z-[59]" onClick={() => setActiveDropdown(null)} />
           <div
             className="fixed z-[60] max-h-[260px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-            style={{ top: rect.bottom + 6, left: rect.left, minWidth: Math.max(rect.width, 220) }}
+            style={fixedDropdownStyle(rect, Math.min(260, (serviceChargeTypes.length + enabledCharges.length + 3) * 34 + 20), Math.max(rect.width, 220))}
           >
             <div
               onClick={() => { onUpdateTask("secondaryChargeType", ""); setActiveDropdown(null) }}

@@ -10,8 +10,6 @@ import {
   Folder,
   ChevronRight,
   MoreHorizontal,
-  X,
-  Search,
   File,
   FileImage,
   FileSpreadsheet,
@@ -29,6 +27,7 @@ import { useDocuments } from "@/lib/hooks/use-documents"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import { DocumentPreview } from "@/components/document-preview"
 import { EmptyState } from "@/components/empty-state"
+import { SearchBar } from "@/components/search-bar"
 import type { Document } from "@/lib/types"
 
 const docColumnDefs = [
@@ -506,22 +505,14 @@ export default function DocumentsPage() {
         </div>
 
         {/* Global search */}
-        <div className="flex h-[32px] flex-1 items-center gap-[6px] rounded-md border border-[#e0e0e0] bg-[#fafafa] px-[10px]">
-          <Search className="h-[14px] w-[14px] shrink-0 text-[#bbb]" strokeWidth={1.75} />
-          <input
-            ref={globalSearchRef}
-            type="text"
-            value={globalSearch}
-            onChange={(e) => setGlobalSearch(e.target.value)}
-            placeholder="Search all documents..."
-            className="min-w-0 flex-1 bg-transparent text-[12px] font-medium text-[#262626] placeholder-[#bbb] outline-none"
-          />
-          {globalSearch && (
-            <button onClick={() => setGlobalSearch("")} className="text-[#bbb] hover:text-[#888]" tabIndex={0} aria-label="Clear search">
-              <X className="h-[12px] w-[12px]" strokeWidth={2} />
-            </button>
-          )}
-        </div>
+        <SearchBar
+          ref={globalSearchRef}
+          value={globalSearch}
+          onChange={setGlobalSearch}
+          placeholder="Search all documents..."
+          className="h-[32px] flex-1"
+          inputClassName="text-[12px]"
+        />
 
         {/* Display */}
         <div className="relative ml-auto">
@@ -739,7 +730,7 @@ export default function DocumentsPage() {
                       <td className="h-[44px] border-b border-[#dcdcdc] bg-[#fafafa] group-hover:bg-[#f5f5f5]">
                         <button
                           onClick={(e) => { e.stopPropagation(); setFileContextMenu({ path: file.path, name: file.name, x: e.clientX, y: e.clientY }) }}
-                          className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#ccc] opacity-0 transition-all hover:bg-[#e8e8e8] hover:text-[#888] group-hover:opacity-100"
+                          className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#ccc] transition-all hover:bg-[#e8e8e8] hover:text-[#888]"
                           tabIndex={0}
                           aria-label="File options"
                         >
@@ -807,7 +798,7 @@ export default function DocumentsPage() {
                     <td className="h-[44px] border-b border-[#dcdcdc] bg-[#fafafa] group-hover:bg-[#f5f5f5]">
                       <button
                         onClick={(e) => { e.stopPropagation(); setContextMenu({ doc, x: e.clientX, y: e.clientY }) }}
-                        className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#ccc] opacity-0 transition-all hover:bg-[#f0f0f0] hover:text-[#888] group-hover:opacity-100"
+                        className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#ccc] transition-all hover:bg-[#f0f0f0] hover:text-[#888]"
                         tabIndex={0}
                         aria-label="Document options"
                       >

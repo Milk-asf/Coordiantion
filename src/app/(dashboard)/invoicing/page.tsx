@@ -183,18 +183,35 @@ export default function InvoicingPage() {
     return client.participant.email || client.participant.planManagerEmail || ""
   }, [getTaskClient])
 
+  const getTaskSecondaryCharge = useCallback((task: Task) => {
+    if (!task.secondaryChargeType) return null
+    return enabledCharges.find((item) => item.itemNumber === task.secondaryChargeType)
+      || allCharges.find((item) => item.itemNumber === task.secondaryChargeType)
+      || null
+  }, [allCharges, enabledCharges])
+
+  const getSecondaryAmount = useCallback((task: Task): number => {
+    const charge = getTaskSecondaryCharge(task)
+    if (!charge) return 0
+    const raw = task.secondaryTimeSpent || 0
+    if (raw <= 0) return 0
+    const quantity = charge.unit === "each" || charge.unit === "km" ? raw : raw / 60
+    return quantity * charge.price
+  }, [getTaskSecondaryCharge])
+
   const getTaskAmount = useCallback((task: Task): number => {
     const charge = getTaskCharge(task)
-    if (!charge) return 0
+    let total = getSecondaryAmount(task)
+    if (!charge) return total
 
     if (charge.unit === "each" || charge.unit === "km") {
       const quantity = task.timeSpent > 0 ? task.timeSpent : 1
-      return quantity * charge.price
+      total += quantity * charge.price
+    } else {
+      total += (task.timeSpent / 60) * charge.price
     }
-
-    const hours = task.timeSpent / 60
-    return hours * charge.price
-  }, [getTaskCharge])
+    return total
+  }, [getTaskCharge, getSecondaryAmount])
 
   const getTaskCompletionAction = useCallback((task: Task): {
     mode: "email" | "portal"
@@ -262,6 +279,14 @@ export default function InvoicingPage() {
           : "Add billable time before sending the invoice.")
     }
 
+    const secondaryCharge = getTaskSecondaryCharge(task)
+    if (secondaryCharge && (task.secondaryTimeSpent || 0) <= 0)
+      issues.push(secondaryCharge.unit === "km"
+        ? "Add the distance (km) for the secondary travel charge before sending."
+        : secondaryCharge.unit === "each"
+        ? "Add a quantity for the secondary charge before sending."
+        : "Add billable time for the secondary charge before sending.")
+
     if (amount <= 0)
       issues.push("Invoice total must be greater than $0.00 before sending.")
 
@@ -272,7 +297,7 @@ export default function InvoicingPage() {
       issues.push("Add an invoicing email on the participant profile before sending.")
 
     return issues
-  }, [getTaskAmount, getTaskCharge, getTaskClient, getTaskCompletionAction])
+  }, [getTaskAmount, getTaskCharge, getTaskSecondaryCharge, getTaskClient, getTaskCompletionAction])
 
   const resetViewState = useCallback(() => {
     setViewMode("list")
@@ -507,26 +532,49 @@ export default function InvoicingPage() {
       if (!client || !charge || !completionAction) continue
 
       const quantity = formatInvoiceQuantity(task, charge.unit)
-      const amount = getTaskAmount(task)
 
-      const lineItem: InvoiceLineItem = {
-        id: crypto.randomUUID(),
-        description: task.title || charge.shortName || "Support item",
-        chargeItemNumber: charge.itemNumber,
-        chargeName: charge.shortName,
-        quantity,
-        unit: charge.unit,
-        rate: charge.price,
-        amount,
-        taskId: task.id,
-        clientId: client.id,
+      const lineItems: InvoiceLineItem[] = [
+        {
+          id: crypto.randomUUID(),
+          description: task.title || charge.shortName || "Support item",
+          chargeItemNumber: charge.itemNumber,
+          chargeName: charge.shortName,
+          quantity,
+          unit: charge.unit,
+          rate: charge.price,
+          amount: quantity * charge.price,
+          taskId: task.id,
+          clientId: client.id,
+        },
+      ]
+
+      const secondaryCharge = getTaskSecondaryCharge(task)
+      const secondaryRaw = task.secondaryTimeSpent || 0
+      if (secondaryCharge && secondaryRaw > 0) {
+        const secondaryQuantity = secondaryCharge.unit === "each" || secondaryCharge.unit === "km"
+          ? secondaryRaw
+          : Number((secondaryRaw / 60).toFixed(2))
+        lineItems.push({
+          id: crypto.randomUUID(),
+          description: `${task.title || "Support item"} — ${secondaryCharge.shortName}`,
+          chargeItemNumber: secondaryCharge.itemNumber,
+          chargeName: secondaryCharge.shortName,
+          quantity: secondaryQuantity,
+          unit: secondaryCharge.unit,
+          rate: secondaryCharge.price,
+          amount: secondaryQuantity * secondaryCharge.price,
+          taskId: task.id,
+          clientId: client.id,
+        })
       }
+
+      const amount = lineItems.reduce((sum, item) => sum + item.amount, 0)
 
       const invoice = await addInvoice({
         clientName: participantName,
         clientId: client.id,
         taskIds: [task.id],
-        lineItems: [lineItem],
+        lineItems,
         subtotal: amount,
         gst: 0,
         total: amount,
@@ -1301,6 +1349,15 @@ export default function InvoicingPage() {
             const selectedClient = getTaskClient(selectedTask)
             const selectedInvoiceEmail = getInvoiceEmail(selectedTask)
             const selectedAmount = getTaskAmount(selectedTask)
+            const selectedSecondaryCharge = getTaskSecondaryCharge(selectedTask)
+            const selectedSecondaryRaw = selectedTask.secondaryTimeSpent || 0
+            const selectedSecondaryValue = selectedSecondaryCharge && selectedSecondaryRaw > 0
+              ? (selectedSecondaryCharge.unit === "km"
+                ? `${selectedSecondaryRaw} km`
+                : selectedSecondaryCharge.unit === "each"
+                ? `${selectedSecondaryRaw} ea`
+                : formatTime(selectedSecondaryRaw))
+              : ""
             const selectedFunding = formatFundingType(selectedClient?.participant.fundingType || "")
             const isSelectedTaskReviewed = reviewedTaskIds.includes(selectedTask.id)
             const selectedTaskInvoiceIssues = getTaskInvoiceIssues(selectedTask)
@@ -1468,6 +1525,12 @@ export default function InvoicingPage() {
                         <SidebarStaticField label="Funding" value={selectedFunding} />
                         <SidebarStaticField label="Email" value={selectedInvoiceEmail || "Empty"} />
                         <SidebarStaticField label="Time" value={selectedTask.timeSpent > 0 ? formatTime(selectedTask.timeSpent) : "Empty"} />
+                        {selectedSecondaryCharge && (
+                          <SidebarStaticField
+                            label={selectedSecondaryCharge.shortName}
+                            value={selectedSecondaryValue || "Empty"}
+                          />
+                        )}
                         <SidebarStaticField label="Status" value={isSelectedTaskReviewed ? "Reviewed" : "Review pending"} />
                       </div>
                     </div>
