@@ -16,3 +16,7 @@ additional_redirect_urls = ["http://localhost:3000/auth/callback"]
 [auth.email]
 enable_signup = true
 enable_confirmations = false
+
+[auth.email.template.confirmation]
+subject = "Confirm your email address"
+content_path = "./supabase/templates/confirmation.html"
