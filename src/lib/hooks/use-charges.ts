@@ -53,32 +53,46 @@ export function useCharges() {
 
     let cancelled = false
 
+    const saveConfig = async (items: ChargeItem[]) => {
+      await supabase
+        .from("charges_config")
+        .upsert(
+          {
+            workspace_id: workspaceId,
+            enabled_charges: items.map((ci) => ci.itemNumber),
+            charge_items: items as unknown as Record<string, unknown>[],
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "workspace_id" }
+        )
+    }
+
     const load = async () => {
       const { data } = await supabase
         .from("charges_config")
-        .select("enabled_charges")
+        .select("enabled_charges, charge_items")
         .eq("workspace_id", workspaceId)
         .single()
 
       if (cancelled) return
 
-      if (data?.enabled_charges) {
-        setChargeItems(buildChargeItems(data.enabled_charges))
+      // Preferred path: full per-charge config (incl. GST treatment) is stored.
+      const stored = data?.charge_items as ChargeItem[] | null | undefined
+      if (Array.isArray(stored) && stored.length > 0) {
+        setChargeItems(stored)
         hasLoadedRef.current = true
         setIsLoading(false)
         return
       }
 
-      const defaults = getDefaultItemNumbers()
-      await supabase
-        .from("charges_config")
-        .upsert(
-          { workspace_id: workspaceId, enabled_charges: defaults },
-          { onConflict: "workspace_id" }
-        )
+      // Legacy path: only item numbers stored. Build defaults and backfill the
+      // full objects so per-charge edits persist going forward.
+      const itemNumbers = data?.enabled_charges?.length ? data.enabled_charges : getDefaultItemNumbers()
+      const built = buildChargeItems(itemNumbers)
+      await saveConfig(built)
 
       if (cancelled) return
-      setChargeItems(buildChargeItems(defaults))
+      setChargeItems(built)
       hasLoadedRef.current = true
       setIsLoading(false)
     }
@@ -97,7 +111,7 @@ export function useCharges() {
   }, [workspaceId])
 
   const persistToSupabase = useCallback(
-    async (itemNumbers: string[]) => {
+    async (items: ChargeItem[]) => {
       if (!workspaceId || !isSupabaseConfigured()) return
       const supabase = createClient()
       if (!supabase) return
@@ -106,7 +120,8 @@ export function useCharges() {
         .upsert(
           {
             workspace_id: workspaceId,
-            enabled_charges: itemNumbers,
+            enabled_charges: items.map((ci) => ci.itemNumber),
+            charge_items: items as unknown as Record<string, unknown>[],
             updated_at: new Date().toISOString(),
           },
           { onConflict: "workspace_id" }
@@ -142,7 +157,7 @@ export function useCharges() {
     (item: ChargeItem) => {
       setChargeItems((prev) => {
         const next = [...prev, item]
-        persistToSupabase(next.map((ci) => ci.itemNumber))
+        persistToSupabase(next)
         return next
       })
     },
@@ -153,7 +168,7 @@ export function useCharges() {
     (id: string) => {
       setChargeItems((prev) => {
         const next = prev.filter((ci) => ci.id !== id)
-        persistToSupabase(next.map((ci) => ci.itemNumber))
+        persistToSupabase(next)
         return next
       })
     },
@@ -166,7 +181,7 @@ export function useCharges() {
         const next = prev.map((ci) =>
           ci.id === id ? { ...ci, ...updates } : ci
         )
-        persistToSupabase(next.map((ci) => ci.itemNumber))
+        persistToSupabase(next)
         return next
       })
     },

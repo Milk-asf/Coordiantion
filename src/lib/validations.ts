@@ -9,6 +9,9 @@ export const invoiceLineItemSchema = z.object({
   unit: z.string().optional().default("hour"),
   rate: z.number(),
   amount: z.number(),
+  serviceDate: z.string().optional(),
+  gstCode: z.string().optional(),
+  gstAmount: z.number().optional(),
   taskId: z.string().optional(),
   clientId: z.string().optional(),
 })
@@ -18,7 +21,7 @@ export const invoiceSchema = z.object({
   invoiceNumber: z.string().min(1, "Invoice number is required"),
   clientName: z.string().default(""),
   clientId: z.string().nullable().optional(),
-  status: z.enum(["unsent", "sent", "paid", "overdue"]).optional(),
+  status: z.enum(["unsent", "sent", "paid", "overdue", "void"]).optional(),
   issueDate: z.string().optional().default(""),
   dueDate: z.string().optional().default(""),
   taskIds: z.array(z.string()).optional().default([]),
@@ -29,11 +32,16 @@ export const invoiceSchema = z.object({
   notes: z.string().optional().default(""),
   createdBy: z.string().optional().default(""),
   createdAt: z.string().optional().default(""),
+  kind: z.enum(["invoice", "credit-note"]).optional(),
+  creditOf: z.string().nullable().optional(),
   deliveryMethod: z.string().nullable().optional(),
   sentAt: z.string().nullable().optional(),
   sentTo: z.string().nullable().optional(),
   sentError: z.string().nullable().optional(),
   paidAt: z.string().nullable().optional(),
+  voidedAt: z.string().nullable().optional(),
+  pdfPath: z.string().nullable().optional(),
+  sentMessageId: z.string().nullable().optional(),
 })
 
 export const orgSettingsSchema = z.object({

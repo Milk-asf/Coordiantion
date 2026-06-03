@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import {
-  CheckCircle2,
-  Circle,
+  Check,
   ChevronUp,
   X,
   Users,
@@ -14,6 +13,7 @@ import {
 import { cn } from "@/lib/utils"
 import { useClients } from "@/lib/clients-context"
 import { useWorkspaceSettings } from "@/lib/hooks/use-workspace-settings"
+import { useCharges } from "@/lib/hooks/use-charges"
 
 const STORAGE_KEY = "setup-widget-dismissed"
 
@@ -32,6 +32,7 @@ interface SetupWidgetProps {
 export function SetupWidget({ isCollapsed }: SetupWidgetProps) {
   const { clients } = useClients()
   const { settings } = useWorkspaceSettings()
+  const { chargeItems, isLoading: chargesLoading } = useCharges()
   const [isDismissed, setIsDismissed] = useState(true)
   const [isExpanded, setIsExpanded] = useState(true)
 
@@ -59,7 +60,7 @@ export function SetupWidget({ isCollapsed }: SetupWidgetProps) {
       label: "Set up your charges",
       href: "/settings/charges",
       icon: Tag,
-      isComplete: false,
+      isComplete: !chargesLoading && chargeItems.length > 0,
     },
   ]
 
@@ -116,30 +117,21 @@ export function SetupWidget({ isCollapsed }: SetupWidgetProps) {
 
   return (
     <div className="px-2 pb-2">
-      <div className="rounded-[8px] border border-sidebar-border bg-white">
+      <div className="rounded-[10px] border border-sidebar-border bg-white p-[8px]">
         <button
           onClick={() => setIsExpanded((v) => !v)}
-          className="flex w-full items-center gap-2 px-2 py-[7px] text-left transition-colors hover:bg-[#fafafa]"
+          className="flex w-full items-center gap-[6px] rounded-[6px] px-[4px] py-[4px] text-left transition-colors hover:bg-[#fafafa]"
           aria-expanded={isExpanded}
           tabIndex={0}
         >
-          <div className="flex flex-1 flex-col gap-[4px]">
-            <div className="flex items-center justify-between">
-              <span className="text-[12px] font-semibold text-[#262626]">Setup</span>
-              <span className="text-[11px] font-medium text-[#888]">
-                {completedCount}/{items.length}
-              </span>
-            </div>
-            <div className="h-[3px] overflow-hidden rounded-full bg-[#eee]">
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{ width: `${percent}%`, backgroundColor: "#16a34a" }}
-              />
-            </div>
-          </div>
+          <span className="text-[13px] font-semibold text-[#262626]">Setup</span>
+          <span className="rounded-full bg-[#f0f0f0] px-[7px] py-[1px] text-[10px] font-semibold text-[#888]">
+            {completedCount}/{items.length}
+          </span>
+          <span className="flex-1" />
           <ChevronUp
             className={cn(
-              "h-[12px] w-[12px] shrink-0 text-[#bbb] transition-transform",
+              "h-[13px] w-[13px] shrink-0 text-[#bbb] transition-transform",
               !isExpanded && "rotate-180"
             )}
             strokeWidth={1.75}
@@ -147,7 +139,7 @@ export function SetupWidget({ isCollapsed }: SetupWidgetProps) {
         </button>
 
         {isExpanded && (
-          <div className="border-t border-sidebar-border">
+          <div className="mt-[6px] flex flex-col gap-[5px]">
             {items.map((item) => {
               const Icon = item.icon
               return (
@@ -155,29 +147,33 @@ export function SetupWidget({ isCollapsed }: SetupWidgetProps) {
                   key={item.id}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-2 px-2 py-[6px] text-[12px] font-medium transition-colors",
+                    "flex items-center gap-[8px] rounded-[7px] px-[9px] py-[8px] text-[12px] font-medium transition-colors",
                     item.isComplete
-                      ? "text-[#bbb]"
-                      : "text-[#555] hover:bg-[#fafafa] hover:text-[#262626]"
+                      ? "bg-[#eaf1fe] text-[#2563EB]"
+                      : "bg-[#f5f5f5] text-[#444] hover:bg-[#ededed] hover:text-[#262626]"
                   )}
                   tabIndex={0}
                 >
-                  {item.isComplete ? (
-                    <CheckCircle2 className="h-[13px] w-[13px] shrink-0 text-emerald-500" strokeWidth={2} />
-                  ) : (
-                    <Circle className="h-[13px] w-[13px] shrink-0 text-[#d0d0d0]" strokeWidth={1.5} />
-                  )}
-                  <Icon className="h-[12px] w-[12px] shrink-0 text-[#999]" strokeWidth={1.5} />
+                  <Icon
+                    className={cn(
+                      "h-[14px] w-[14px] shrink-0",
+                      item.isComplete ? "text-[#2563EB]" : "text-[#888]"
+                    )}
+                    strokeWidth={1.75}
+                  />
                   <span className={cn("flex-1 truncate", item.isComplete && "line-through")}>
                     {item.label}
                   </span>
+                  {item.isComplete && (
+                    <Check className="h-[14px] w-[14px] shrink-0 text-[#2563EB]" strokeWidth={2.5} />
+                  )}
                 </Link>
               )
             })}
-            <div className="flex items-center justify-end border-t border-sidebar-border px-2 py-[5px]">
+            <div className="mt-[1px] flex items-center justify-end">
               <button
                 onClick={handleDismiss}
-                className="flex items-center gap-[4px] text-[10px] font-medium text-[#bbb] transition-colors hover:text-[#666]"
+                className="flex items-center gap-[4px] px-[4px] py-[2px] text-[10px] font-medium text-[#bbb] transition-colors hover:text-[#666]"
                 tabIndex={0}
                 aria-label="Dismiss setup"
               >

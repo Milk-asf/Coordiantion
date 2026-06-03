@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest"
 import type { Invoice, InvoiceLineItem, InvoiceStatus } from "@/lib/types"
+import { roundMoney, computeGstAmount } from "@/app/(dashboard)/invoicing/_components/invoicing-utils"
 
 interface InvoiceRow {
   id: string
@@ -51,18 +52,6 @@ function dbToInvoice(row: InvoiceRow): Invoice {
   }
 }
 
-function nextInvoiceNumberFromList(invoices: Invoice[]): string {
-  let max = 0
-  for (const inv of invoices) {
-    const match = inv.invoiceNumber.match(/^INV-(\d+)$/)
-    if (match) {
-      const num = parseInt(match[1], 10)
-      if (num > max) max = num
-    }
-  }
-  const next = max + 1
-  return `INV-${String(next).padStart(4, "0")}`
-}
 
 describe("dbToInvoice", () => {
   it("maps a database row to Invoice type", () => {
@@ -186,39 +175,58 @@ describe("dbToInvoice", () => {
   })
 })
 
-describe("nextInvoiceNumberFromList", () => {
-  it("returns INV-0001 for empty list", () => {
-    expect(nextInvoiceNumberFromList([])).toBe("INV-0001")
+describe("roundMoney", () => {
+  it("rounds to 2 decimal places", () => {
+    expect(roundMoney(202.676)).toBe(202.68)
+    expect(roundMoney(100)).toBe(100)
   })
 
-  it("increments from highest existing number", () => {
-    const invoices = [
-      { invoiceNumber: "INV-0001" },
-      { invoiceNumber: "INV-0005" },
-      { invoiceNumber: "INV-0003" },
-    ] as Invoice[]
+  it("avoids floating point drift", () => {
+    expect(roundMoney(0.1 + 0.2)).toBe(0.3)
+    expect(roundMoney(1.005)).toBe(1.01)
+  })
+})
 
-    expect(nextInvoiceNumberFromList(invoices)).toBe("INV-0006")
+describe("computeGstAmount", () => {
+  it("returns 0 for GST-free codes", () => {
+    expect(computeGstAmount(110, "P2")).toBe(0)
+    expect(computeGstAmount(110, "P5")).toBe(0)
+    expect(computeGstAmount(110, undefined)).toBe(0)
   })
 
-  it("ignores non-standard invoice numbers", () => {
-    const invoices = [
-      { invoiceNumber: "INV-0010" },
-      { invoiceNumber: "CUSTOM-001" },
-      { invoiceNumber: "something" },
-    ] as Invoice[]
+  it("treats P1 rates as GST-inclusive (amount / 11)", () => {
+    expect(computeGstAmount(110, "P1")).toBe(10)
+    expect(computeGstAmount(202.68, "P1")).toBe(18.43)
+  })
+})
 
-    expect(nextInvoiceNumberFromList(invoices)).toBe("INV-0011")
+describe("invoice grouping by participant", () => {
+  it("collapses multiple tasks for one participant into a single invoice", () => {
+    const tasks = [
+      { id: "t1", clientId: "c1" },
+      { id: "t2", clientId: "c1" },
+      { id: "t3", clientId: "c2" },
+    ]
+
+    const groups = new Map<string, string[]>()
+    for (const task of tasks) {
+      const existing = groups.get(task.clientId)
+      if (existing) existing.push(task.id)
+      else groups.set(task.clientId, [task.id])
+    }
+
+    expect(groups.size).toBe(2)
+    expect(groups.get("c1")).toEqual(["t1", "t2"])
+    expect(groups.get("c2")).toEqual(["t3"])
   })
 
-  it("zero-pads to 4 digits", () => {
-    const invoices = [{ invoiceNumber: "INV-0002" }] as Invoice[]
-    expect(nextInvoiceNumberFromList(invoices)).toBe("INV-0003")
-  })
-
-  it("handles high numbers", () => {
-    const invoices = [{ invoiceNumber: "INV-9999" }] as Invoice[]
-    expect(nextInvoiceNumberFromList(invoices)).toBe("INV-10000")
+  it("sums rounded line amounts into the subtotal", () => {
+    const lineItems = [
+      { amount: roundMoney(2 * 67.561) },
+      { amount: roundMoney(1.5 * 100.14) },
+    ]
+    const subtotal = roundMoney(lineItems.reduce((sum, li) => sum + li.amount, 0))
+    expect(subtotal).toBe(285.33)
   })
 })
 

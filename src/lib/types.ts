@@ -262,7 +262,8 @@ export interface Document {
   createdAt: string
 }
 
-export type InvoiceStatus = "unsent" | "sent" | "paid" | "overdue"
+export type InvoiceStatus = "unsent" | "sent" | "paid" | "overdue" | "void"
+export type InvoiceKind = "invoice" | "credit-note"
 export type InvoiceDeliveryMethod = "plan-manager-email" | "participant-email" | "ndia-portal"
 
 export interface InvoiceLineItem {
@@ -274,6 +275,9 @@ export interface InvoiceLineItem {
   unit: "hour" | "each" | "km"
   rate: number
   amount: number
+  serviceDate?: string
+  gstCode?: string
+  gstAmount?: number
   taskId?: string
   clientId?: string
 }
@@ -299,6 +303,11 @@ export interface Invoice {
   sentTo?: string
   sentError?: string
   deliveryMethod?: InvoiceDeliveryMethod
+  kind?: InvoiceKind
+  creditOf?: string
+  voidedAt?: string
+  pdfPath?: string
+  sentMessageId?: string
 }
 
 export interface Note {

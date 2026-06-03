@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
-import type { Invoice, InvoiceStatus, InvoiceLineItem, InvoiceDeliveryMethod } from "@/lib/types"
+import type { Invoice, InvoiceStatus, InvoiceKind, InvoiceLineItem, InvoiceDeliveryMethod } from "@/lib/types"
 
 interface InvoiceRow {
   id: string
@@ -21,11 +21,16 @@ interface InvoiceRow {
   total: number
   notes: string
   created_by: string
+  kind: string | null
+  credit_of: string | null
   delivery_method: string | null
   sent_at: string | null
   sent_to: string | null
   sent_error: string | null
   paid_at: string | null
+  voided_at: string | null
+  pdf_path: string | null
+  sent_message_id: string | null
   created_at: string
   updated_at: string
 }
@@ -47,25 +52,17 @@ function dbToInvoice(row: InvoiceRow): Invoice {
     notes: row.notes || "",
     createdBy: row.created_by || "",
     createdAt: row.created_at,
+    kind: (row.kind as InvoiceKind) || "invoice",
+    ...(row.credit_of ? { creditOf: row.credit_of } : {}),
     ...(row.paid_at ? { paidAt: row.paid_at } : {}),
     ...(row.sent_at ? { sentAt: row.sent_at } : {}),
     ...(row.sent_to ? { sentTo: row.sent_to } : {}),
     ...(row.sent_error ? { sentError: row.sent_error } : {}),
+    ...(row.voided_at ? { voidedAt: row.voided_at } : {}),
+    ...(row.pdf_path ? { pdfPath: row.pdf_path } : {}),
+    ...(row.sent_message_id ? { sentMessageId: row.sent_message_id } : {}),
     ...(row.delivery_method ? { deliveryMethod: row.delivery_method as InvoiceDeliveryMethod } : {}),
   }
-}
-
-function nextInvoiceNumberFromList(invoices: Invoice[]): string {
-  let max = 0
-  for (const inv of invoices) {
-    const match = inv.invoiceNumber.match(/^INV-(\d+)$/)
-    if (match) {
-      const num = parseInt(match[1], 10)
-      if (num > max) max = num
-    }
-  }
-  const next = max + 1
-  return `INV-${String(next).padStart(4, "0")}`
 }
 
 export function useInvoices() {
@@ -172,6 +169,8 @@ export function useInvoices() {
     createdBy: string
     notes?: string
     id?: string
+    kind?: InvoiceKind
+    creditOf?: string
   }): Promise<Invoice | null> => {
     if (!activeWorkspace || !isSupabaseConfigured()) return null
     const supabase = createClient()
@@ -182,7 +181,17 @@ export function useInvoices() {
     dueDate.setDate(dueDate.getDate() + 30)
     const fmt = (d: Date) => d.toISOString().split("T")[0]
 
-    const invoiceNumber = nextInvoiceNumberFromList(invoices)
+    const { data: numberData, error: numberError } = await supabase.rpc("next_invoice_number", {
+      ws_id: activeWorkspace.id,
+    })
+
+    if (numberError || !numberData) {
+      console.error("Failed to generate invoice number:", numberError?.message)
+      return null
+    }
+
+    const invoiceNumber = numberData as string
+    const kind: InvoiceKind = input.kind || "invoice"
 
     const invoice: Invoice = {
       id: input.id || crypto.randomUUID(),
@@ -200,6 +209,8 @@ export function useInvoices() {
       notes: input.notes || "",
       createdBy: input.createdBy,
       createdAt: today.toISOString(),
+      kind,
+      ...(input.creditOf ? { creditOf: input.creditOf } : {}),
     }
 
     setInvoices((prev) => [...prev, invoice])
@@ -222,6 +233,8 @@ export function useInvoices() {
         total: invoice.total,
         notes: invoice.notes,
         created_by: invoice.createdBy,
+        kind: invoice.kind,
+        credit_of: invoice.creditOf ?? null,
       })
       .select()
       .single()
@@ -239,7 +252,7 @@ export function useInvoices() {
     }
 
     return invoice
-  }, [activeWorkspace, invoices])
+  }, [activeWorkspace])
 
   const updateInvoiceStatus = useCallback(async (id: string, status: InvoiceStatus) => {
     const updates: Partial<Invoice> = { status }
@@ -321,6 +334,14 @@ export function useInvoices() {
   }, [fetchInvoices])
 
   const deleteInvoice = useCallback(async (id: string) => {
+    // Only draft (unsent) invoices may be deleted. Issued invoices are
+    // immutable for audit purposes and must be voided or credited instead.
+    const target = invoices.find((inv) => inv.id === id)
+    if (target && target.status !== "unsent") {
+      console.warn("Only unsent invoices can be deleted. Void or issue a credit note instead.")
+      return
+    }
+
     setInvoices((prev) => prev.filter((inv) => inv.id !== id))
 
     if (!isSupabaseConfigured()) return
@@ -332,7 +353,52 @@ export function useInvoices() {
       console.error("Failed to delete invoice:", error.message)
       fetchInvoices()
     }
+  }, [fetchInvoices, invoices])
+
+  const voidInvoice = useCallback(async (id: string) => {
+    const now = new Date().toISOString()
+    setInvoices((prev) => prev.map((inv) =>
+      inv.id === id ? { ...inv, status: "void" as InvoiceStatus, voidedAt: now } : inv
+    ))
+
+    if (!isSupabaseConfigured()) return
+    const supabase = createClient()
+    if (!supabase) return
+
+    const { error } = await supabase
+      .from("invoices")
+      .update({ status: "void", voided_at: now, updated_at: now })
+      .eq("id", id)
+
+    if (error) {
+      console.error("Failed to void invoice:", error.message)
+      fetchInvoices()
+    }
   }, [fetchInvoices])
+
+  const createCreditNote = useCallback(async (invoice: Invoice): Promise<Invoice | null> => {
+    const creditLineItems: InvoiceLineItem[] = invoice.lineItems.map((li) => ({
+      ...li,
+      id: crypto.randomUUID(),
+      quantity: -li.quantity,
+      amount: -li.amount,
+      ...(li.gstAmount != null ? { gstAmount: -li.gstAmount } : {}),
+    }))
+
+    return addInvoice({
+      clientName: invoice.clientName,
+      clientId: invoice.clientId,
+      taskIds: invoice.taskIds,
+      lineItems: creditLineItems,
+      subtotal: -invoice.subtotal,
+      gst: -invoice.gst,
+      total: -invoice.total,
+      createdBy: invoice.createdBy || "Team Leader",
+      notes: `Credit note for ${invoice.invoiceNumber}`,
+      kind: "credit-note",
+      creditOf: invoice.id,
+    })
+  }, [addInvoice])
 
   const exportInvoiceToCsv = useCallback((invoice: Invoice) => {
     const headers = [
@@ -411,6 +477,8 @@ export function useInvoices() {
     markInvoiceSent,
     markInvoiceSendError,
     deleteInvoice,
+    voidInvoice,
+    createCreditNote,
     exportInvoiceToCsv,
     exportAllToCsv,
     refetch: fetchInvoices,

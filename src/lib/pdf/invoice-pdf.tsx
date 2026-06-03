@@ -89,25 +89,29 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   colDescription: {
-    width: "40%",
+    width: "30%",
+    paddingRight: 8,
+  },
+  colServiceDate: {
+    width: "14%",
     paddingRight: 8,
   },
   colChargeNo: {
-    width: "18%",
+    width: "16%",
     paddingRight: 8,
   },
   colQty: {
-    width: "10%",
+    width: "12%",
     textAlign: "right" as const,
     paddingRight: 8,
   },
   colRate: {
-    width: "16%",
+    width: "14%",
     textAlign: "right" as const,
     paddingRight: 8,
   },
   colAmount: {
-    width: "16%",
+    width: "14%",
     textAlign: "right" as const,
   },
   headerText: {
@@ -162,6 +166,12 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica-Bold",
     color: "#1a1a1a",
     width: 100,
+    textAlign: "right" as const,
+  },
+  gstFreeNote: {
+    fontSize: 8,
+    color: "#999",
+    marginTop: 6,
     textAlign: "right" as const,
   },
   paymentSection: {
@@ -224,6 +234,20 @@ function formatCurrency(amount: number): string {
   return `$${amount.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
+function unitAbbrev(unit: string | undefined): string {
+  if (unit === "hour") return "hr"
+  if (unit === "each") return "ea"
+  if (unit === "km") return "km"
+  return unit || ""
+}
+
+function formatServiceDate(dateStr: string | undefined): string {
+  if (!dateStr) return "—"
+  const parsed = new Date(dateStr + "T00:00:00")
+  if (isNaN(parsed.getTime())) return "—"
+  return parsed.toLocaleDateString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" })
+}
+
 interface InvoicePDFProps {
   invoice: Invoice
   participantNdisNumber?: string
@@ -238,6 +262,13 @@ function InvoicePDFDocument({ invoice, participantNdisNumber, orgSettings }: Inv
     ? new Date(invoice.dueDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })
     : ""
 
+  const documentTitle = invoice.kind === "credit-note"
+    ? "CREDIT NOTE"
+    : invoice.gst > 0
+    ? "TAX INVOICE"
+    : "INVOICE"
+  const isGstFree = invoice.gst <= 0
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -251,7 +282,7 @@ function InvoicePDFDocument({ invoice, participantNdisNumber, orgSettings }: Inv
             {orgSettings.orgEmail && <Text style={styles.orgDetail}>{orgSettings.orgEmail}</Text>}
           </View>
           <View>
-            <Text style={styles.invoiceTitle}>INVOICE</Text>
+            <Text style={styles.invoiceTitle}>{documentTitle}</Text>
             <Text style={styles.invoiceNumber}>{invoice.invoiceNumber}</Text>
           </View>
         </View>
@@ -273,6 +304,7 @@ function InvoicePDFDocument({ invoice, participantNdisNumber, orgSettings }: Inv
         <View style={styles.table}>
           <View style={styles.tableHeader}>
             <View style={styles.colDescription}><Text style={styles.headerText}>Description</Text></View>
+            <View style={styles.colServiceDate}><Text style={styles.headerText}>Service Date</Text></View>
             <View style={styles.colChargeNo}><Text style={styles.headerText}>Item No.</Text></View>
             <View style={styles.colQty}><Text style={styles.headerText}>Qty</Text></View>
             <View style={styles.colRate}><Text style={styles.headerText}>Rate</Text></View>
@@ -284,11 +316,14 @@ function InvoicePDFDocument({ invoice, participantNdisNumber, orgSettings }: Inv
               <View style={styles.colDescription}>
                 <Text style={styles.cellText}>{item.description || item.chargeName}</Text>
               </View>
+              <View style={styles.colServiceDate}>
+                <Text style={styles.cellText}>{formatServiceDate(item.serviceDate)}</Text>
+              </View>
               <View style={styles.colChargeNo}>
                 <Text style={styles.cellText}>{item.chargeItemNumber}</Text>
               </View>
               <View style={styles.colQty}>
-                <Text style={styles.cellText}>{item.quantity.toFixed(2)}</Text>
+                <Text style={styles.cellText}>{item.quantity.toFixed(2)} {unitAbbrev(item.unit)}</Text>
               </View>
               <View style={styles.colRate}>
                 <Text style={styles.cellText}>{formatCurrency(item.rate)}</Text>
@@ -313,6 +348,9 @@ function InvoicePDFDocument({ invoice, participantNdisNumber, orgSettings }: Inv
             <Text style={styles.totalLabelFinal}>Total</Text>
             <Text style={styles.totalValueFinal}>{formatCurrency(invoice.total)}</Text>
           </View>
+          {isGstFree && (
+            <Text style={styles.gstFreeNote}>All supports are GST-free (NDIS)</Text>
+          )}
         </View>
 
         {(orgSettings.bankName || orgSettings.bankBsb || orgSettings.bankAccountNumber) && (

@@ -77,7 +77,7 @@ export async function POST(request: Request) {
 
     const orgName = orgSettings.orgName || "Organisation"
 
-    await sendEmail({
+    const sent = await sendEmail({
       to: recipientEmail,
       subject: `Invoice ${invoice.invoiceNumber} — ${participantName} — ${orgName}`,
       fromName: orgName,
@@ -110,10 +110,42 @@ export async function POST(request: Request) {
       ],
     })
 
+    const sentMessageId = sent?.id ?? null
+
+    // Store the rendered PDF and snapshot the org details / send metadata so
+    // the issued document can be reproduced exactly later. Non-fatal: the
+    // email has already been sent successfully at this point.
+    let pdfPath: string | null = null
+    try {
+      const path = `${workspaceId}/${invoice.invoiceNumber}.pdf`
+      const { error: uploadError } = await supabase.storage
+        .from("invoices")
+        .upload(path, pdfBuffer, { contentType: "application/pdf", upsert: true })
+      if (!uploadError) pdfPath = path
+      else console.error("Failed to store invoice PDF:", uploadError.message)
+
+      if (invoice.id) {
+        await supabase
+          .from("invoices")
+          .update({
+            org_snapshot: orgSettings,
+            sent_message_id: sentMessageId,
+            ...(pdfPath ? { pdf_path: pdfPath } : {}),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", invoice.id)
+          .eq("workspace_id", workspaceId)
+      }
+    } catch (storeErr) {
+      console.error("Failed to persist invoice send metadata:", storeErr)
+    }
+
     return NextResponse.json({
       success: true,
       sentTo: recipientEmail,
       sentAt: new Date().toISOString(),
+      sentMessageId,
+      pdfPath,
     })
   } catch (err: unknown) {
     console.error("Failed to send invoice email:", err)

@@ -55,7 +55,7 @@ import { ProfileNotesTab } from "@/components/profile-notes-tab"
 import { NoteEditorModal } from "@/app/(dashboard)/notes/_components/note-editor-modal"
 import { PlanTab } from "./_components/plan-tab"
 import { BudgetsTab } from "./_components/budgets-tab"
-import { GoalsTab } from "./_components/goals-tab"
+import { GoalsTab, goalTypeConfig, goalStatusConfig } from "./_components/goals-tab"
 import { type GoalFormData } from "./_components/goal-sidebar-form"
 
 const tabs = [
@@ -1074,36 +1074,62 @@ export default function ParticipantProfilePage() {
       {/* Left: header + content */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Profile header bar */}
-        <div ref={headerRef} className="relative flex h-[48px] shrink-0 items-center overflow-hidden bg-[#fafafa] px-[16px]">
-          <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#e5e5e5]" />
+        <div ref={headerRef} className="flex shrink-0 flex-col bg-[#fafafa]">
+          {/* Row 1: name + add new */}
+          <div className="relative flex h-[48px] items-center px-[16px]">
+            <button
+              onClick={() => router.push("/clients")}
+              className="mr-[6px] flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded text-[#999] transition-colors hover:bg-[#ebebeb] hover:text-[#262626]"
+              tabIndex={0}
+              aria-label="Back to clients"
+            >
+              <ArrowLeft className="h-[15px] w-[15px]" strokeWidth={1.75} />
+            </button>
 
-          <button
-            onClick={() => router.push("/clients")}
-            className="mr-[6px] flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded text-[#999] transition-colors hover:bg-[#ebebeb] hover:text-[#262626]"
-            tabIndex={0}
-            aria-label="Back to clients"
-          >
-            <ArrowLeft className="h-[15px] w-[15px]" strokeWidth={1.75} />
-          </button>
+            <ClientIcon client={client} size="sm" />
+            <span className="ml-[8px] mr-[12px] max-w-[420px] shrink-0 truncate text-[15px] font-semibold text-[#262626]">{client.displayName}</span>
+            <SaveIndicator isVisible={isSaved} />
 
-          <ClientIcon client={client} size="sm" />
-          <span className="ml-[8px] mr-[12px] max-w-[180px] shrink-0 truncate text-[14px] font-semibold text-[#262626]">{client.displayName}</span>
-          <SaveIndicator isVisible={isSaved} />
-
-          {/* Hidden measurer for tab widths */}
-          <div data-tab-measurer className="pointer-events-none invisible absolute flex items-center gap-[2px]" aria-hidden="true">
-            {tabs.map((tab) => {
-              const TabIcon = tab.icon
-              return (
-                <div key={tab.key} data-tab-measure className="flex shrink-0 items-center gap-[4px] px-[8px] py-[4px] text-[12px] font-medium">
-                  <TabIcon className="h-[12px] w-[12px]" strokeWidth={1.5} />
-                  <span>{tab.label}</span>
-                </div>
-              )
-            })}
+            <div className="ml-auto flex shrink-0 items-center gap-[6px]">
+              <button
+                onClick={() => setIsQuickAdding(true)}
+                className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
+                tabIndex={0}
+              >
+                <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+                <span>Add new</span>
+              </button>
+              {!isSidebarVisible && (
+                <button
+                  onClick={() => setIsSidebarVisible(true)}
+                  className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                  tabIndex={0}
+                  aria-label="Show account details"
+                >
+                  <PanelRightOpen className="h-[18px] w-[18px]" strokeWidth={1.75} />
+                </button>
+              )}
+            </div>
           </div>
 
-          <div ref={tabsContainerRef} className="flex flex-1 items-center gap-[2px] overflow-hidden">
+          {/* Row 2: section tabs */}
+          <div className="relative flex h-[40px] items-center overflow-hidden px-[16px]">
+            <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#e5e5e5]" />
+
+            {/* Hidden measurer for tab widths */}
+            <div data-tab-measurer className="pointer-events-none invisible absolute flex items-center gap-[2px]" aria-hidden="true">
+              {tabs.map((tab) => {
+                const TabIcon = tab.icon
+                return (
+                  <div key={tab.key} data-tab-measure className="flex shrink-0 items-center gap-[4px] px-[8px] py-[4px] text-[12px] font-medium">
+                    <TabIcon className="h-[12px] w-[12px]" strokeWidth={1.5} />
+                    <span>{tab.label}</span>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div ref={tabsContainerRef} className="flex flex-1 items-center gap-[2px] overflow-hidden">
             {tabs.slice(0, visibleTabCount).map((tab) => {
               const TabIcon = tab.icon
               const isActive = activeTab === tab.key
@@ -1111,12 +1137,11 @@ export default function ParticipantProfilePage() {
                 <button
                   key={tab.key}
                   onClick={() => { setActiveTab(tab.key); resetPlanForm(); resetBudgetForm(); resetItemForm(); resetServiceForm(); resetGoalForm() }}
-                  className={`relative flex shrink-0 items-center gap-[4px] px-[8px] py-[4px] text-[12px] font-medium transition-colors ${isActive ? "text-[#262626]" : "text-[#888] hover:text-[#262626]"}`}
+                  className={`relative flex h-full shrink-0 items-center gap-[4px] px-[8px] text-[12px] font-medium transition-colors ${isActive ? "text-[#111]" : "text-[#888] hover:text-[#262626]"}`}
                   tabIndex={0}
                 >
                   <TabIcon className="h-[12px] w-[12px]" strokeWidth={1.5} />
                   <span>{tab.label}</span>
-                  {isActive && <span className="absolute -bottom-[12px] left-[8px] right-[8px] h-[2px] rounded-full bg-[#262626]" />}
                 </button>
               )
             })}
@@ -1142,7 +1167,7 @@ export default function ParticipantProfilePage() {
                         return { top: rect.bottom + 4, left: rect.left }
                       })()}
                     >
-                      {tabs.map((tab) => {
+                      {tabs.slice(visibleTabCount).map((tab) => {
                         const TabIcon = tab.icon
                         const isActive = activeTab === tab.key
                         return (
@@ -1164,8 +1189,10 @@ export default function ParticipantProfilePage() {
             )}
           </div>
 
-          <div className="flex shrink-0 items-center gap-[6px] pl-[8px]">
-            {isQuickAdding && (
+            </div>
+          </div>
+
+          {isQuickAdding && (
               <>
                 <div className="fixed inset-0 z-[48]" onClick={resetQuickAdd} />
                 <div
@@ -1405,18 +1432,6 @@ export default function ParticipantProfilePage() {
                 </div>
               </>
             )}
-            {!isSidebarVisible && (
-              <button
-                onClick={() => setIsSidebarVisible(true)}
-                className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                tabIndex={0}
-                aria-label="Show account details"
-              >
-                <PanelRightOpen className="h-[18px] w-[18px]" strokeWidth={1.75} />
-              </button>
-            )}
-          </div>
-        </div>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
@@ -1626,6 +1641,40 @@ export default function ParticipantProfilePage() {
                 </div>
               )
             })()}
+
+            {/* Goals */}
+            <div className="mt-[28px]">
+              <div className="flex items-center justify-between">
+                <h3 className="text-[13px] font-medium text-[#888]">Goals</h3>
+              </div>
+              {goals.length === 0 ? (
+                <p className="mt-[10px] text-[13px] text-[#bbb]">No goals yet.</p>
+              ) : (
+                <div className="mt-[12px] flex flex-col gap-[8px]">
+                  {[...goals].reverse().map((goal) => {
+                    const status = goalStatusConfig[goal.status] ?? goalStatusConfig["not-started"]
+                    const type = goalTypeConfig[goal.goalType] ?? goalTypeConfig["short-term"]
+                    const taskCount = goal.linkedTasks?.length ?? 0
+                    return (
+                      <button
+                        key={goal.id}
+                        onClick={() => initEditGoalForm(goal)}
+                        className="flex w-full items-center gap-[12px] rounded-[10px] border border-[#eee] px-[16px] py-[12px] text-left transition-colors hover:border-[#e0e0e0] hover:bg-[#fafafa]"
+                        tabIndex={0}
+                      >
+                        <Target className="h-[15px] w-[15px] shrink-0 text-[#888]" strokeWidth={1.75} />
+                        <span className="min-w-0 flex-1 truncate text-[14px] font-medium text-[#262626]">
+                          {goal.title || <span className="text-[#bbb]">Untitled goal</span>}
+                        </span>
+                        <span className="inline-flex h-[22px] shrink-0 items-center whitespace-nowrap rounded-[6px] bg-[#e8edf2] px-[10px] text-[11px] font-medium text-[#334155]">{type.label}</span>
+                        <span className={`inline-flex h-[22px] shrink-0 items-center whitespace-nowrap rounded-[6px] px-[10px] text-[11px] font-medium ${status.chip}`}>{status.label}</span>
+                        <span className="shrink-0 text-[12px] font-medium text-[#999]">{taskCount} {taskCount === 1 ? "task" : "tasks"}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
 
             {/* Activity Feed */}
             <div className="mt-[28px]">

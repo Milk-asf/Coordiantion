@@ -22,7 +22,7 @@ const emptyForm: Omit<ChargeItem, "id"> = {
 }
 
 export default function ChargesSettingsPage() {
-  const { chargeItems, addChargeItem, removeChargeItem } = useCharges()
+  const { chargeItems, addChargeItem, removeChargeItem, updateChargeItem } = useCharges()
   const [isAdding, setIsAdding] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [searchQuery, setSearchQuery] = useState("")
@@ -121,6 +121,7 @@ export default function ChargesSettingsPage() {
 
   const unitLabel = (u: string) => u === "hour" ? "Hour" : u === "km" ? "Km" : "Each"
   const claimLabel = (val: string) => claimTypes.find((c) => c.value === val)?.label ?? val
+  const gstShortLabel = (code: string) => code === "P1" ? "GST" : code === "P5" ? "Out of scope" : "GST-free"
 
   const visibleDisabledItems = disabledItems.filter((d) => !chargeItems.some((ci) => ci.itemNumber === d.itemNumber))
 
@@ -128,7 +129,7 @@ export default function ChargesSettingsPage() {
     <div
       key={item.id}
       className={cn(
-        "grid grid-cols-[1fr_150px_92px_72px_56px_60px_40px] items-center border-b border-[#f5f5f5] px-[20px] py-[14px] transition-colors",
+        "grid grid-cols-[1fr_140px_88px_64px_48px_108px_56px_40px] items-center border-b border-[#f5f5f5] px-[20px] py-[14px] transition-colors",
         enabled ? "hover:bg-[#fafafa]" : "opacity-60"
       )}
     >
@@ -141,6 +142,20 @@ export default function ChargesSettingsPage() {
       <span className="text-[13px] text-[#888]">{claimLabel(item.claimType)}</span>
       <span className="text-[13px] font-medium text-[#262626] text-right">${item.price.toFixed(2)}</span>
       <span className="text-[13px] text-[#888]">{unitLabel(item.unit)}</span>
+      <div className="pr-[8px]">
+        <select
+          value={item.gstCode}
+          onChange={(e) => updateChargeItem(item.id, { gstCode: e.target.value })}
+          disabled={!enabled}
+          className="w-full rounded-[6px] border border-[#eee] bg-[#fafafa] px-[6px] py-[5px] text-[12px] font-medium text-[#262626] outline-none transition-colors focus:border-[#ddd] disabled:cursor-not-allowed disabled:opacity-60"
+          aria-label="GST treatment"
+          title={gstCodes.find((g) => g.value === item.gstCode)?.label}
+        >
+          {gstCodes.map((g) => (
+            <option key={g.value} value={g.value}>{gstShortLabel(g.value)}</option>
+          ))}
+        </select>
+      </div>
       <div>
         <Switch
           checked={enabled}
@@ -342,12 +357,13 @@ export default function ChargesSettingsPage() {
       ) : (
         <div className="w-full">
           {/* Table header */}
-          <div className="grid grid-cols-[1fr_150px_92px_72px_56px_60px_40px] items-center border-b border-[#f0f0f0] px-[20px] py-[12px]">
+          <div className="grid grid-cols-[1fr_140px_88px_64px_48px_108px_56px_40px] items-center border-b border-[#f0f0f0] px-[20px] py-[12px]">
             <span className="text-[12px] font-medium text-[#888]">Name</span>
             <span className="text-[12px] font-medium text-[#888]">Item Number</span>
             <span className="text-[12px] font-medium text-[#888]">Claim Type</span>
             <span className="text-[12px] font-medium text-[#888] text-right">Price</span>
             <span className="text-[12px] font-medium text-[#888]">Unit</span>
+            <span className="text-[12px] font-medium text-[#888]">GST</span>
             <span className="text-[12px] font-medium text-[#888]">Enabled</span>
             <span />
           </div>

@@ -34,6 +34,8 @@ import {
   formatCurrency,
   formatDecimal,
   formatInvoiceQuantity,
+  roundMoney,
+  computeGstAmount,
   formatFundingType,
   formatBillingType,
   formatInvoiceDate,
@@ -90,7 +92,7 @@ export default function InvoicingPage() {
   const { toast } = useToast()
   const { tasks: allTasks, isLoading: tasksLoading, fetchError: tasksFetchError, updateTask, refetch: refetchTasks } = useTasks()
   const { clients, isLoading: clientsLoading, fetchError: clientsFetchError } = useClients()
-  const { enabledCharges, allCharges } = useCharges()
+  const { enabledCharges, allCharges, chargeItems } = useCharges()
   const { invoices, isLoading: invoicesLoading, fetchError: invoicesFetchError, addInvoice, markInvoiceSent, deleteInvoice, exportInvoiceToCsv } = useInvoices()
   const { activeWorkspace } = useWorkspace()
   const { settings } = useWorkspaceSettings()
@@ -178,8 +180,10 @@ export default function InvoicingPage() {
     const client = getTaskClient(task)
     if (!client) return ""
 
-    const isPlanManaged = client.participant.fundingType === "plan-managed"
-    if (isPlanManaged) return client.participant.planManagerEmail || client.participant.email || ""
+    // Plan-managed invoices must go to the plan manager. Never silently
+    // fall back to the participant's own email (avoids misrouting claims).
+    if (client.participant.fundingType === "plan-managed")
+      return client.participant.planManagerEmail || ""
     return client.participant.email || client.participant.planManagerEmail || ""
   }, [getTaskClient])
 
@@ -212,6 +216,64 @@ export default function InvoicingPage() {
     }
     return total
   }, [getTaskCharge, getSecondaryAmount])
+
+  const getChargeGstCode = useCallback((itemNumber: string): string => {
+    const configured = chargeItems.find((ci) => ci.itemNumber === itemNumber)
+    return configured?.gstCode || "P2"
+  }, [chargeItems])
+
+  const buildTaskLineItems = useCallback((task: Task, client: Client): InvoiceLineItem[] => {
+    const charge = getTaskCharge(task)
+    if (!charge) return []
+
+    const lineItems: InvoiceLineItem[] = []
+
+    const quantity = formatInvoiceQuantity(task, charge.unit)
+    const amount = roundMoney(quantity * charge.price)
+    const gstCode = getChargeGstCode(charge.itemNumber)
+    lineItems.push({
+      id: crypto.randomUUID(),
+      description: task.title || charge.shortName || "Support item",
+      chargeItemNumber: charge.itemNumber,
+      chargeName: charge.shortName,
+      quantity,
+      unit: charge.unit,
+      rate: charge.price,
+      amount,
+      serviceDate: task.dueDate || "",
+      gstCode,
+      gstAmount: computeGstAmount(amount, gstCode),
+      taskId: task.id,
+      clientId: client.id,
+    })
+
+    const secondaryCharge = getTaskSecondaryCharge(task)
+    const secondaryRaw = task.secondaryTimeSpent || 0
+    if (secondaryCharge && secondaryRaw > 0) {
+      const secondaryQuantity = secondaryCharge.unit === "each" || secondaryCharge.unit === "km"
+        ? secondaryRaw
+        : Number((secondaryRaw / 60).toFixed(2))
+      const secondaryAmount = roundMoney(secondaryQuantity * secondaryCharge.price)
+      const secondaryGstCode = getChargeGstCode(secondaryCharge.itemNumber)
+      lineItems.push({
+        id: crypto.randomUUID(),
+        description: `${task.title || "Support item"} — ${secondaryCharge.shortName}`,
+        chargeItemNumber: secondaryCharge.itemNumber,
+        chargeName: secondaryCharge.shortName,
+        quantity: secondaryQuantity,
+        unit: secondaryCharge.unit,
+        rate: secondaryCharge.price,
+        amount: secondaryAmount,
+        serviceDate: task.dueDate || "",
+        gstCode: secondaryGstCode,
+        gstAmount: computeGstAmount(secondaryAmount, secondaryGstCode),
+        taskId: task.id,
+        clientId: client.id,
+      })
+    }
+
+    return lineItems
+  }, [getTaskCharge, getTaskSecondaryCharge, getChargeGstCode])
 
   const getTaskCompletionAction = useCallback((task: Task): {
     mode: "email" | "portal"
@@ -294,7 +356,9 @@ export default function InvoicingPage() {
       issues.push("Add the participant NDIS number before preparing an agency-managed claim.")
 
     if (client?.participant.fundingType !== "ndia-managed" && !completionAction?.sentTo)
-      issues.push("Add an invoicing email on the participant profile before sending.")
+      issues.push(client?.participant.fundingType === "plan-managed"
+        ? "Add the plan manager email on the participant profile before sending."
+        : "Add an invoicing email on the participant profile before sending.")
 
     return issues
   }, [getTaskAmount, getTaskCharge, getTaskSecondaryCharge, getTaskClient, getTaskCompletionAction])
@@ -516,6 +580,15 @@ export default function InvoicingPage() {
     const failedMessages: string[] = []
     const completedTaskIds: string[] = []
 
+    // Group invoiceable tasks by participant so each participant receives a
+    // single invoice covering all of their completed supports.
+    interface InvoiceGroup {
+      client: Client
+      participantName: string
+      tasks: Task[]
+    }
+    const groups = new Map<string, InvoiceGroup>()
+
     for (const task of selectedTasksToInvoice) {
       const client = getTaskClient(task)
       const charge = getTaskCharge(task)
@@ -531,55 +604,33 @@ export default function InvoicingPage() {
 
       if (!client || !charge || !completionAction) continue
 
-      const quantity = formatInvoiceQuantity(task, charge.unit)
+      const existing = groups.get(client.id)
+      if (existing) existing.tasks.push(task)
+      else groups.set(client.id, { client, participantName, tasks: [task] })
+    }
 
-      const lineItems: InvoiceLineItem[] = [
-        {
-          id: crypto.randomUUID(),
-          description: task.title || charge.shortName || "Support item",
-          chargeItemNumber: charge.itemNumber,
-          chargeName: charge.shortName,
-          quantity,
-          unit: charge.unit,
-          rate: charge.price,
-          amount: quantity * charge.price,
-          taskId: task.id,
-          clientId: client.id,
-        },
-      ]
+    for (const group of groups.values()) {
+      const { client, participantName, tasks } = group
+      const completionAction = getTaskCompletionAction(tasks[0])
+      if (!completionAction) continue
 
-      const secondaryCharge = getTaskSecondaryCharge(task)
-      const secondaryRaw = task.secondaryTimeSpent || 0
-      if (secondaryCharge && secondaryRaw > 0) {
-        const secondaryQuantity = secondaryCharge.unit === "each" || secondaryCharge.unit === "km"
-          ? secondaryRaw
-          : Number((secondaryRaw / 60).toFixed(2))
-        lineItems.push({
-          id: crypto.randomUUID(),
-          description: `${task.title || "Support item"} — ${secondaryCharge.shortName}`,
-          chargeItemNumber: secondaryCharge.itemNumber,
-          chargeName: secondaryCharge.shortName,
-          quantity: secondaryQuantity,
-          unit: secondaryCharge.unit,
-          rate: secondaryCharge.price,
-          amount: secondaryQuantity * secondaryCharge.price,
-          taskId: task.id,
-          clientId: client.id,
-        })
-      }
+      const lineItems = tasks.flatMap((task) => buildTaskLineItems(task, client))
+      if (lineItems.length === 0) continue
 
-      const amount = lineItems.reduce((sum, item) => sum + item.amount, 0)
+      const subtotal = roundMoney(lineItems.reduce((sum, item) => sum + item.amount, 0))
+      const gst = roundMoney(lineItems.reduce((sum, item) => sum + (item.gstAmount || 0), 0))
+      const notes = tasks.map((task) => task.description).filter(Boolean).join("\n\n")
 
       const invoice = await addInvoice({
         clientName: participantName,
         clientId: client.id,
-        taskIds: [task.id],
+        taskIds: tasks.map((task) => task.id),
         lineItems,
-        subtotal: amount,
-        gst: 0,
-        total: amount,
+        subtotal,
+        gst,
+        total: subtotal,
         createdBy: "Team Leader",
-        notes: task.description || "",
+        notes,
       })
 
       if (!invoice) {
@@ -597,7 +648,7 @@ export default function InvoicingPage() {
           })
           completedCount += 1
           portalCount += 1
-          completedTaskIds.push(task.id)
+          completedTaskIds.push(...tasks.map((task) => task.id))
           continue
         }
 
@@ -624,7 +675,7 @@ export default function InvoicingPage() {
         })
         completedCount += 1
         emailedCount += 1
-        completedTaskIds.push(task.id)
+        completedTaskIds.push(...tasks.map((task) => task.id))
       } catch (error) {
         await deleteInvoice(invoice.id)
         failedCount += 1

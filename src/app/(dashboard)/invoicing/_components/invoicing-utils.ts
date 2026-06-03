@@ -23,6 +23,18 @@ export function formatInvoiceQuantity(task: Task, unit: "hour" | "each" | "km" |
   return Number((task.timeSpent / 60).toFixed(2))
 }
 
+// Round a monetary value to 2 decimal places, avoiding float drift.
+export function roundMoney(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100
+}
+
+// NDIS price-guide rates are GST-inclusive when GST applies.
+// P1 (GST on income) -> GST = amount / 11. P2/P5/blank -> GST free.
+export function computeGstAmount(amount: number, gstCode: string | undefined): number {
+  if (gstCode === "P1") return roundMoney(amount / 11)
+  return 0
+}
+
 export function formatFundingType(fundingType: FundingType): string {
   if (!fundingType) return "Unknown"
   if (fundingType === "plan-managed") return "Plan managed"

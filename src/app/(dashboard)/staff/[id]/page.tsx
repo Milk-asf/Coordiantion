@@ -586,34 +586,60 @@ export default function StaffProfilePage() {
     <div className="flex h-full">
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Profile header bar */}
-        <div ref={headerRef} className="relative flex h-[48px] shrink-0 items-center overflow-hidden bg-[#fafafa] px-[16px]">
-          <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#e5e5e5]" />
+        <div ref={headerRef} className="flex shrink-0 flex-col bg-[#fafafa]">
+          {/* Row 1: name + add new */}
+          <div className="relative flex h-[48px] items-center px-[16px]">
+            <button
+              onClick={() => router.push("/staff")}
+              className="mr-[6px] flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded text-[#999] transition-colors hover:bg-[#ebebeb] hover:text-[#262626]"
+              tabIndex={0}
+              aria-label="Back to staff"
+            >
+              <ArrowLeft className="h-[15px] w-[15px]" strokeWidth={1.75} />
+            </button>
 
-          <button
-            onClick={() => router.push("/staff")}
-            className="mr-[6px] flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded text-[#999] transition-colors hover:bg-[#ebebeb] hover:text-[#262626]"
-            tabIndex={0}
-            aria-label="Back to staff"
-          >
-            <ArrowLeft className="h-[15px] w-[15px]" strokeWidth={1.75} />
-          </button>
+            <StaffIcon member={member} size="sm" />
+            <span className="ml-[8px] mr-[12px] max-w-[420px] shrink-0 truncate text-[15px] font-semibold text-[#262626]">{member.name}</span>
 
-          <StaffIcon member={member} size="sm" />
-          <span className="ml-[8px] mr-[12px] max-w-[180px] shrink-0 truncate text-[14px] font-semibold text-[#262626]">{member.name}</span>
-
-          <div data-tab-measurer className="pointer-events-none invisible absolute flex items-center gap-[2px]" aria-hidden="true">
-            {tabs.map((tab) => {
-              const TabIcon = tab.icon
-              return (
-                <div key={tab.key} data-tab-measure className="flex shrink-0 items-center gap-[4px] px-[8px] py-[4px] text-[12px] font-medium">
-                  <TabIcon className="h-[12px] w-[12px]" strokeWidth={1.5} />
-                  <span>{tab.label}</span>
-                </div>
-              )
-            })}
+            <div className="ml-auto flex shrink-0 items-center gap-[6px]">
+              <button
+                onClick={() => setIsQuickAdding(true)}
+                className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
+                tabIndex={0}
+              >
+                <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+                <span>Add new</span>
+              </button>
+              {!isSidebarVisible && (
+                <button
+                  onClick={() => setIsSidebarVisible(true)}
+                  className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#262626] transition-colors hover:bg-[#ebebeb]"
+                  tabIndex={0}
+                  aria-label="Show staff details"
+                >
+                  <PanelRightOpen className="h-[18px] w-[18px]" strokeWidth={1.75} />
+                </button>
+              )}
+            </div>
           </div>
 
-          <div ref={tabsContainerRef} className="flex flex-1 items-center gap-[2px] overflow-hidden">
+          {/* Row 2: section tabs */}
+          <div className="relative flex h-[40px] items-center overflow-hidden px-[16px]">
+            <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#e5e5e5]" />
+
+            <div data-tab-measurer className="pointer-events-none invisible absolute flex items-center gap-[2px]" aria-hidden="true">
+              {tabs.map((tab) => {
+                const TabIcon = tab.icon
+                return (
+                  <div key={tab.key} data-tab-measure className="flex shrink-0 items-center gap-[4px] px-[8px] py-[4px] text-[12px] font-medium">
+                    <TabIcon className="h-[12px] w-[12px]" strokeWidth={1.5} />
+                    <span>{tab.label}</span>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div ref={tabsContainerRef} className="flex flex-1 items-center gap-[2px] overflow-hidden">
             {tabs.slice(0, visibleTabCount).map((tab) => {
               const TabIcon = tab.icon
               const isActive = activeTab === tab.key
@@ -621,12 +647,11 @@ export default function StaffProfilePage() {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`relative flex shrink-0 items-center gap-[4px] px-[8px] py-[4px] text-[12px] font-medium transition-colors ${isActive ? "text-[#262626]" : "text-[#888] hover:text-[#262626]"}`}
+                  className={`relative flex h-full shrink-0 items-center gap-[4px] px-[8px] text-[12px] font-medium transition-colors ${isActive ? "text-[#111]" : "text-[#888] hover:text-[#262626]"}`}
                   tabIndex={0}
                 >
                   <TabIcon className="h-[12px] w-[12px]" strokeWidth={1.5} />
                   <span>{tab.label}</span>
-                  {isActive && <span className="absolute -bottom-[12px] left-[8px] right-[8px] h-[2px] rounded-full bg-[#262626]" />}
                 </button>
               )
             })}
@@ -674,17 +699,6 @@ export default function StaffProfilePage() {
             )}
           </div>
 
-          <div className="flex shrink-0 items-center gap-[6px] pl-[8px]">
-            {!isSidebarVisible && (
-              <button
-                onClick={() => setIsSidebarVisible(true)}
-                className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#262626] transition-colors hover:bg-[#ebebeb]"
-                tabIndex={0}
-                aria-label="Show staff details"
-              >
-                <PanelRightOpen className="h-[18px] w-[18px]" strokeWidth={1.75} />
-              </button>
-            )}
           </div>
         </div>
 

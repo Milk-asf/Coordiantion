@@ -69,14 +69,18 @@ function getInvoiceStatusValue(invoice: Invoice): string {
 }
 
 function getInvoiceStatusLabel(value: string | Invoice): string {
+  if (typeof value !== "string" && value.kind === "credit-note") return "Credit note"
   const status = typeof value === "string" ? value : getInvoiceStatusValue(value)
   if (status === "ndia-portal") return "Portal claim"
   if (status === "paid") return "Paid"
   if (status === "overdue") return "Overdue"
+  if (status === "void") return "Void"
   return "Sent"
 }
 
 function getInvoiceStatusClasses(invoice: Invoice): string {
+  if (invoice.kind === "credit-note") return "bg-[#ede8f5] text-[#5b21b6]"
+  if (invoice.status === "void") return "bg-[#f0f0f0] text-[#999] line-through"
   if (invoice.deliveryMethod === "ndia-portal") return "bg-[#e8edf2] text-[#334155]"
   if (invoice.status === "paid") return "bg-green-100 text-green-700"
   if (invoice.status === "overdue") return "bg-red-50 text-red-600"
@@ -92,7 +96,7 @@ function getInvoiceActivityDate(invoice: Invoice): Date | null {
 }
 
 export default function InvoicesPage() {
-  const { invoices, isLoading, fetchError, exportInvoiceToCsv, exportAllToCsv, refetch } = useInvoices()
+  const { invoices, isLoading, fetchError, exportInvoiceToCsv, exportAllToCsv, voidInvoice, createCreditNote, refetch } = useInvoices()
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(defaultVisibleColumnKeys)
   const [displayParticipants, setDisplayParticipants] = useState<string[]>([])
   const [displayEmails, setDisplayEmails] = useState<string[]>([])
@@ -117,7 +121,7 @@ export default function InvoicesPage() {
 
   const sentInvoices = useMemo(() => {
     return invoices
-      .filter((invoice) => invoice.status !== "unsent")
+      .filter((invoice) => invoice.status !== "unsent" || invoice.kind === "credit-note")
       .sort((a, b) => {
         const aDate = getInvoiceActivityDate(a)?.getTime() || 0
         const bDate = getInvoiceActivityDate(b)?.getTime() || 0
@@ -823,6 +827,31 @@ export default function InvoicesPage() {
                       <Download className="h-[13px] w-[13px]" strokeWidth={1.5} />
                       Export
                     </button>
+                    {invoice.kind !== "credit-note" && invoice.status !== "void" && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const creditNote = await createCreditNote(invoice)
+                            if (creditNote) setSelectedInvoiceId(creditNote.id)
+                          }}
+                          className="flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[10px] py-[5px] text-[12px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                          tabIndex={0}
+                          aria-label="Issue credit note"
+                        >
+                          Issue credit note
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => voidInvoice(invoice.id)}
+                          className="flex items-center gap-[5px] rounded border border-[#e7caca] bg-white px-[10px] py-[5px] text-[12px] font-medium text-[#cf5b5b] transition-colors hover:bg-[#faf5f5]"
+                          tabIndex={0}
+                          aria-label="Void invoice"
+                        >
+                          Void
+                        </button>
+                      </>
+                    )}
                     <button
                       type="button"
                       onClick={() => setSelectedInvoiceId(null)}
