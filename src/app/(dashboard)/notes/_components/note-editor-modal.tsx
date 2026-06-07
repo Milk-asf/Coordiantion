@@ -2,15 +2,17 @@
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import { sanitizeHtml } from "@/lib/sanitize"
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import {
   Plus,
   Trash2,
   X,
   Star,
   List,
-  Minus,
-  Maximize2,
-  MoreVertical,
+  Paperclip,
+  Check,
+  FileText,
+  Download,
   Bold,
   Italic,
   Underline,
@@ -21,15 +23,18 @@ import {
   Quote,
   Code,
 } from "lucide-react"
-import type { Note } from "@/lib/types"
+import type { Attachment, Note } from "@/lib/types"
 
 interface NoteEditorModalProps {
   note: Note
   editTitle: string
   editContent: string
+  editAttachments: Attachment[]
   onEditTitle: (title: string) => void
   onEditContent: (content: string) => void
+  onEditAttachments: (attachments: Attachment[]) => void
   onClose: () => void
+  onSaveAndClose: () => void
   onDelete: (id: string) => void
   onToggleFavorite: (id: string) => void
   isFavorite: boolean
@@ -37,13 +42,22 @@ interface NoteEditorModalProps {
   recordIcon: { iconText: string; name: string }
 }
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 export function NoteEditorModal({
   note,
   editTitle,
   editContent,
+  editAttachments,
   onEditTitle,
   onEditContent,
+  onEditAttachments,
   onClose,
+  onSaveAndClose,
   onDelete,
   onToggleFavorite,
   isFavorite,
@@ -51,12 +65,17 @@ export function NoteEditorModal({
   recordIcon,
 }: NoteEditorModalProps) {
   const [isFormatMenuOpen, setIsFormatMenuOpen] = useState(false)
-  const [isNoteMenuOpen, setIsNoteMenuOpen] = useState(false)
   const [activeFormats, setActiveFormats] = useState<Record<string, boolean>>({})
+  const [isUploading, setIsUploading] = useState(false)
   const formatMenuRef = useRef<HTMLDivElement>(null)
-  const noteMenuRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const contentEditableRef = useRef<HTMLDivElement>(null)
   const initialContentRef = useRef(editContent)
+
+  const isDirty =
+    editTitle !== note.title ||
+    editContent !== note.content ||
+    JSON.stringify(editAttachments) !== JSON.stringify(note.attachments ?? [])
 
   useEffect(() => {
     if (contentEditableRef.current) {
@@ -67,11 +86,48 @@ export function NoteEditorModal({
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (formatMenuRef.current && !formatMenuRef.current.contains(e.target as Node)) setIsFormatMenuOpen(false)
-      if (noteMenuRef.current && !noteMenuRef.current.contains(e.target as Node)) setIsNoteMenuOpen(false)
     }
     document.addEventListener("mousedown", handleClick)
     return () => document.removeEventListener("mousedown", handleClick)
   }, [])
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return
+    const files = Array.from(e.target.files)
+    e.target.value = ""
+    if (files.length === 0) return
+
+    setIsUploading(true)
+    const supabase = isSupabaseConfigured() ? createClient() : null
+    const newAttachments: Attachment[] = []
+
+    for (const file of files) {
+      const id = crypto.randomUUID()
+      if (supabase) {
+        const storagePath = `note-attachments/${note.id}/${id}-${file.name}`
+        const { error } = await supabase.storage.from("documents").upload(storagePath, file)
+        if (!error) {
+          const { data: urlData } = supabase.storage.from("documents").getPublicUrl(storagePath)
+          newAttachments.push({ id, name: file.name, size: file.size, storagePath, url: urlData.publicUrl })
+        } else {
+          newAttachments.push({ id, name: file.name, size: file.size })
+        }
+      } else {
+        newAttachments.push({ id, name: file.name, size: file.size })
+      }
+    }
+
+    onEditAttachments([...editAttachments, ...newAttachments])
+    setIsUploading(false)
+  }
+
+  const handleRemoveAttachment = async (attachment: Attachment) => {
+    if (attachment.storagePath && isSupabaseConfigured()) {
+      const supabase = createClient()
+      if (supabase) await supabase.storage.from("documents").remove([attachment.storagePath])
+    }
+    onEditAttachments(editAttachments.filter((a) => a.id !== attachment.id))
+  }
 
   const updateActiveFormats = useCallback(() => {
     const editor = contentEditableRef.current
@@ -127,65 +183,63 @@ export function NoteEditorModal({
               </div>
               <span className="text-[13px] font-medium text-[#262626]">{recordIcon.name}</span>
             </div>
-            <div className="flex items-center gap-[4px]">
+            <div className="flex items-center gap-[6px]">
               <button
-                onClick={onClose}
-                className="flex h-[26px] w-[26px] items-center justify-center rounded-[4px] text-[#999] transition-colors hover:bg-[#f0f0f0] hover:text-[#555]"
+                onClick={() => onToggleFavorite(note.id)}
+                className={`flex h-[30px] items-center gap-[5px] rounded-[6px] border px-[10px] text-[12px] font-medium transition-colors ${isFavorite ? "border-amber-200 bg-amber-50 text-amber-600" : "border-[#e8e8e8] text-[#666] hover:bg-[#f5f5f5]"}`}
                 tabIndex={0}
-                aria-label="Minimize"
+                aria-label={isFavorite ? "Unfavorite note" : "Favorite note"}
+                aria-pressed={isFavorite}
               >
-                <Minus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+                <Star className="h-[14px] w-[14px]" strokeWidth={1.75} fill={isFavorite ? "currentColor" : "none"} />
+                {isFavorite ? "Favorited" : "Favorite"}
               </button>
               <button
-                className="flex h-[26px] w-[26px] items-center justify-center rounded-[4px] text-[#999] transition-colors hover:bg-[#f0f0f0] hover:text-[#555]"
+                onClick={() => onDelete(note.id)}
+                className="flex h-[30px] items-center gap-[5px] rounded-[6px] border border-[#e8e8e8] px-[10px] text-[12px] font-medium text-[#666] transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
                 tabIndex={0}
-                aria-label="Expand"
+                aria-label="Delete note"
               >
-                <Maximize2 className="h-[12px] w-[12px]" strokeWidth={1.5} />
+                <Trash2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
+                Delete
               </button>
+              <div className="mx-[2px] h-[20px] w-[1px] bg-[#e8e8e8]" />
               <button
                 onClick={onClose}
-                className="flex h-[26px] w-[26px] items-center justify-center rounded-[4px] text-[#999] transition-colors hover:bg-[#f0f0f0] hover:text-[#555]"
+                className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] text-[#999] transition-colors hover:bg-[#f0f0f0] hover:text-[#555]"
                 tabIndex={0}
                 aria-label="Close"
               >
-                <X className="h-[13px] w-[13px]" strokeWidth={1.5} />
+                <X className="h-[15px] w-[15px]" strokeWidth={1.75} />
               </button>
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-[10px] px-[20px] py-[10px]">
-            <div className="flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-full bg-[#2563EB] text-[10px] font-semibold text-white">
-              {currentUserName ? currentUserName.split(" ").map((w) => w[0]).join("").slice(0, 1).toUpperCase() : "U"}
+          <div className="flex items-center justify-between gap-[10px] px-[20px] py-[10px]">
+            <div className="flex items-center gap-[8px]">
+              <div className="flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-full bg-[#2563EB] text-[10px] font-semibold text-white">
+                {currentUserName ? currentUserName.split(" ").map((w) => w[0]).join("").slice(0, 1).toUpperCase() : "U"}
+              </div>
+              {isDirty && <span className="text-[12px] font-medium text-[#bbb]">Unsaved changes</span>}
             </div>
-            <div className="relative" ref={noteMenuRef}>
-              <button
-                onClick={() => setIsNoteMenuOpen(!isNoteMenuOpen)}
-                className="flex h-[28px] w-[28px] items-center justify-center rounded-[4px] text-[#999] transition-colors hover:bg-[#f0f0f0] hover:text-[#555]"
-                tabIndex={0}
-                aria-label="More options"
-              >
-                <MoreVertical className="h-[14px] w-[14px]" strokeWidth={1.5} />
-              </button>
-              {isNoteMenuOpen && (
-                <div className="absolute right-0 top-full z-50 mt-[4px] w-[180px] rounded-[8px] border border-[#e8e8e8] bg-white py-[4px] shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
-                  <button
-                    onClick={() => { onToggleFavorite(note.id); setIsNoteMenuOpen(false) }}
-                    className="flex w-full items-center gap-[8px] px-[12px] py-[8px] text-[12px] font-medium text-[#555] transition-colors hover:bg-[#f5f5f5]"
-                    tabIndex={0}
-                  >
-                    <Star className="h-[13px] w-[13px]" strokeWidth={1.5} />
-                    {isFavorite ? "Unfavorite" : "Favorite"}
-                  </button>
-                  <button
-                    onClick={() => { setIsNoteMenuOpen(false); onDelete(note.id) }}
-                    className="flex w-full items-center gap-[8px] px-[12px] py-[8px] text-[12px] font-medium text-red-500 transition-colors hover:bg-red-50"
-                    tabIndex={0}
-                  >
-                    <Trash2 className="h-[13px] w-[13px]" strokeWidth={1.5} />
-                    Delete note
-                  </button>
-                </div>
+            <div className="flex items-center gap-[6px]">
+              {isDirty ? (
+                <button
+                  onClick={onSaveAndClose}
+                  className="primary-btn flex h-[30px] items-center gap-[5px] rounded-[6px] px-[12px] text-[12px] font-medium transition-colors"
+                  tabIndex={0}
+                >
+                  <Check className="h-[14px] w-[14px]" strokeWidth={2} />
+                  Save &amp; close
+                </button>
+              ) : (
+                <button
+                  onClick={onClose}
+                  className="flex h-[30px] items-center rounded-[6px] border border-[#e8e8e8] px-[12px] text-[12px] font-medium text-[#666] transition-colors hover:bg-[#f5f5f5]"
+                  tabIndex={0}
+                >
+                  Close
+                </button>
               )}
             </div>
           </div>
@@ -214,9 +268,54 @@ export function NoteEditorModal({
               data-placeholder="Start typing, or create a template"
               className="note-editable min-h-[120px] w-full text-[14px] leading-[1.8] text-[#444] outline-none empty:before:text-[#bbb] empty:before:content-[attr(data-placeholder)]"
             />
+
+            {editAttachments.length > 0 && (
+              <div className="mt-[20px] flex flex-col gap-[6px]">
+                <span className="text-[11px] font-medium uppercase tracking-[0.03em] text-[#a3a3a3]">Attachments</span>
+                {editAttachments.map((attachment) => (
+                  <div
+                    key={attachment.id}
+                    className="group flex items-center gap-[10px] rounded-[8px] border border-[#eee] bg-[#fafafa] px-[12px] py-[8px]"
+                  >
+                    <FileText className="h-[16px] w-[16px] shrink-0 text-[#888]" strokeWidth={1.5} />
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <span className="truncate text-[13px] font-medium text-[#262626]">{attachment.name}</span>
+                      <span className="text-[11px] text-[#999]">{formatFileSize(attachment.size)}</span>
+                    </div>
+                    {attachment.url && (
+                      <a
+                        href={attachment.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex h-[26px] w-[26px] items-center justify-center rounded-[4px] text-[#999] transition-colors hover:bg-[#f0f0f0] hover:text-[#555]"
+                        tabIndex={0}
+                        aria-label={`Download ${attachment.name}`}
+                      >
+                        <Download className="h-[14px] w-[14px]" strokeWidth={1.5} />
+                      </a>
+                    )}
+                    <button
+                      onClick={() => handleRemoveAttachment(attachment)}
+                      className="flex h-[26px] w-[26px] items-center justify-center rounded-[4px] text-[#999] transition-colors hover:bg-red-50 hover:text-red-500"
+                      tabIndex={0}
+                      aria-label={`Remove ${attachment.name}`}
+                    >
+                      <X className="h-[14px] w-[14px]" strokeWidth={1.5} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="relative border-t border-[#f0f0f0] px-[40px] py-[12px]" ref={formatMenuRef}>
+          <div className="relative flex items-center gap-[6px] border-t border-[#f0f0f0] px-[40px] py-[12px]" ref={formatMenuRef}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              onChange={handleFileSelect}
+              className="hidden"
+            />
             <button
               onClick={() => setIsFormatMenuOpen(!isFormatMenuOpen)}
               className={`flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border transition-colors ${isFormatMenuOpen ? "border-[#d0d0d0] bg-[#f0f0f0] text-[#555]" : "border-[#e8e8e8] text-[#888] hover:border-[#d0d0d0] hover:bg-[#f5f5f5] hover:text-[#555]"}`}
@@ -224,6 +323,16 @@ export function NoteEditorModal({
               aria-label="Formatting options"
             >
               <Plus className="h-[14px] w-[14px]" strokeWidth={1.5} />
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="flex h-[30px] items-center gap-[5px] rounded-[6px] border border-[#e8e8e8] px-[10px] text-[12px] font-medium text-[#666] transition-colors hover:border-[#d0d0d0] hover:bg-[#f5f5f5] hover:text-[#555] disabled:opacity-50"
+              tabIndex={0}
+              aria-label="Attach files"
+            >
+              <Paperclip className="h-[14px] w-[14px]" strokeWidth={1.75} />
+              {isUploading ? "Uploading…" : "Attach"}
             </button>
 
             {isFormatMenuOpen && (

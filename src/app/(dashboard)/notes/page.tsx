@@ -27,7 +27,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog"
 import { RecordPickerModal } from "./_components/record-picker-modal"
 import { NoteEditorModal } from "./_components/note-editor-modal"
 import type { RecordItem } from "./_components/record-picker-modal"
-import type { Note } from "@/lib/types"
+import type { Attachment, Note } from "@/lib/types"
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return ""
@@ -39,8 +39,6 @@ function truncate(text: string, max: number) {
   if (text.length <= max) return text
   return text.slice(0, max) + "…"
 }
-
-type SortOption = "created" | "updated" | "title"
 
 function getTimeGroup(dateStr: string): string {
   const d = new Date(dateStr)
@@ -66,9 +64,8 @@ export default function NotesPage() {
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState("")
   const [editContent, setEditContent] = useState("")
+  const [editAttachments, setEditAttachments] = useState<Attachment[]>([])
   const [currentUserName, setCurrentUserName] = useState("")
-  const [sortBy, setSortBy] = useState<SortOption>("created")
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
   const [isSortOpen, setIsSortOpen] = useState(false)
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [isDisplayOpen, setIsDisplayOpen] = useState(false)
@@ -130,13 +127,10 @@ export default function NotesPage() {
     }
     if (clientFilter.length > 0) filtered = filtered.filter((n) => clientFilter.includes(n.clientName))
     if (creatorFilter.length > 0) filtered = filtered.filter((n) => creatorFilter.includes(n.createdBy))
-    const sorted = [...filtered]
-    const dir = sortDirection === "asc" ? 1 : -1
-    if (sortBy === "created") sorted.sort((a, b) => dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()))
-    else if (sortBy === "updated") sorted.sort((a, b) => dir * (new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()))
-    else sorted.sort((a, b) => dir * a.title.localeCompare(b.title))
-    return sorted
-  }, [notes, searchQuery, sortBy, sortDirection, clientFilter, creatorFilter])
+    return [...filtered].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )
+  }, [notes, searchQuery, clientFilter, creatorFilter])
 
   const favoriteNotes = useMemo(() => sortedNotes.filter((n) => favorites.includes(n.id)), [sortedNotes, favorites])
   const nonFavoriteNotes = useMemo(() => sortedNotes.filter((n) => !favorites.includes(n.id)), [sortedNotes, favorites])
@@ -201,18 +195,25 @@ export default function NotesPage() {
     setSelectedNoteId(note.id)
     setEditTitle(note.title)
     setEditContent(note.content)
+    setEditAttachments(note.attachments ?? [])
   }
 
   const handleCloseEditor = () => {
     setSelectedNoteId(null)
     setEditTitle("")
     setEditContent("")
+    setEditAttachments([])
   }
 
   const handleSaveNote = useCallback(async () => {
     if (!selectedNoteId) return
-    await updateNote(selectedNoteId, { title: editTitle, content: editContent })
-  }, [selectedNoteId, editTitle, editContent, updateNote])
+    await updateNote(selectedNoteId, { title: editTitle, content: editContent, attachments: editAttachments })
+  }, [selectedNoteId, editTitle, editContent, editAttachments, updateNote])
+
+  const handleSaveAndClose = useCallback(async () => {
+    await handleSaveNote()
+    handleCloseEditor()
+  }, [handleSaveNote])
 
   const handleDeleteNote = (id: string) => {
     setDeleteConfirmId(id)
@@ -226,6 +227,7 @@ export default function NotesPage() {
       setSelectedNoteId(null)
       setEditTitle("")
       setEditContent("")
+      setEditAttachments([])
     }
     setDeleteConfirmId(null)
   }
@@ -234,7 +236,7 @@ export default function NotesPage() {
     if (!selectedNoteId) return
     const timeout = setTimeout(() => { handleSaveNote() }, 800)
     return () => clearTimeout(timeout)
-  }, [editTitle, editContent, selectedNoteId, handleSaveNote])
+  }, [editTitle, editContent, editAttachments, selectedNoteId, handleSaveNote])
 
   // Open a specific note when deep-linked from a profile (e.g. /notes?note=<id>)
   const [pendingNoteId, setPendingNoteId] = useState<string | null>(null)
@@ -249,6 +251,7 @@ export default function NotesPage() {
       setSelectedNoteId(note.id)
       setEditTitle(note.title)
       setEditContent(note.content)
+      setEditAttachments(note.attachments ?? [])
     }
     setPendingNoteId(null)
   }, [pendingNoteId, notes])
@@ -281,9 +284,12 @@ export default function NotesPage() {
         note={selectedNote}
         editTitle={editTitle}
         editContent={editContent}
+        editAttachments={editAttachments}
         onEditTitle={setEditTitle}
         onEditContent={setEditContent}
+        onEditAttachments={setEditAttachments}
         onClose={handleCloseEditor}
+        onSaveAndClose={handleSaveAndClose}
         onDelete={handleDeleteNote}
         onToggleFavorite={toggleFavorite}
         isFavorite={favorites.includes(selectedNote.id)}
@@ -448,7 +454,7 @@ export default function NotesPage() {
 
                   <div className="flex items-center px-[20px] py-[12px]">
                     <button
-                      onClick={() => { setSortBy("created"); setSortDirection("desc"); setViewMode("grid"); setPerPage(10) }}
+                      onClick={() => { setViewMode("grid"); setPerPage(10) }}
                       className="text-[13px] font-medium text-[#bbb] transition-colors hover:text-[#262626]"
                       tabIndex={0}
                     >
@@ -548,7 +554,7 @@ export default function NotesPage() {
                   const isActive = clientFilter.includes(name)
                   return (
                     <button key={name} onClick={() => setClientFilter((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
-                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
+                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
                         {isActive && <span className="text-[10px] text-white">✓</span>}
                       </div>
                       <span className="text-[#262626]">{name}</span>
@@ -573,7 +579,7 @@ export default function NotesPage() {
                   const isActive = creatorFilter.includes(name)
                   return (
                     <button key={name} onClick={() => setCreatorFilter((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
-                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
+                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
                         {isActive && <span className="text-[10px] text-white">✓</span>}
                       </div>
                       <span className="text-[#262626]">{name}</span>

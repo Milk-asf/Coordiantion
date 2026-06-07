@@ -18,9 +18,6 @@ import {
   Plus,
   ListFilter,
   SlidersHorizontal,
-  ArrowUpDown,
-  ArrowDown,
-  ArrowUp,
   ChevronDown,
 } from "lucide-react"
 import { useDocuments } from "@/lib/hooks/use-documents"
@@ -118,8 +115,6 @@ export default function DocumentsPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [isDisplayOpen, setIsDisplayOpen] = useState(false)
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>([...defaultDocVisibleKeys])
-  const [sortKey, setSortKey] = useState<string | null>(null)
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const uploadPickerRef = useRef<HTMLDivElement>(null)
@@ -280,27 +275,11 @@ export default function DocumentsPage() {
 
   const displayDocs = isGlobalSearchActive ? globalSearchResults : visibleDocs
 
-  const sortedDocs = useMemo(() => {
-    if (!sortKey) return displayDocs
-    return [...displayDocs].sort((a, b) => {
-      let valA = ""
-      let valB = ""
-      switch (sortKey) {
-        case "name": valA = a.name.toLowerCase(); valB = b.name.toLowerCase(); break
-        case "type": valA = getDocTypeKey(a.mimeType); valB = getDocTypeKey(b.mimeType); break
-        case "size": return sortDirection === "asc" ? a.size - b.size : b.size - a.size
-        case "modified": valA = a.createdAt; valB = b.createdAt; break
-      }
-      const cmp = valA.localeCompare(valB)
-      return sortDirection === "asc" ? cmp : -cmp
-    })
-  }, [displayDocs, sortKey, sortDirection])
-
   const allItems: { kind: "folder" | "document"; data: { path: string; name: string } | Document }[] = isGlobalSearchActive
-    ? sortedDocs.map((d) => ({ kind: "document" as const, data: d }))
+    ? displayDocs.map((d) => ({ kind: "document" as const, data: d }))
     : [
         ...childFiles.map((f) => ({ kind: "folder" as const, data: f })),
-        ...sortedDocs.map((d) => ({ kind: "document" as const, data: d })),
+        ...displayDocs.map((d) => ({ kind: "document" as const, data: d })),
       ]
 
   const handleToggleColumn = (key: string) => {
@@ -536,40 +515,6 @@ export default function DocumentsPage() {
                   return { top: rect.bottom + 4, right: window.innerWidth - rect.right }
                 })()}
               >
-                <div className="flex items-center justify-between border-b border-[#f0f0f0] px-[20px] py-[14px]">
-                  <div className="flex items-center gap-[8px] text-[13px] font-semibold text-[#262626]">
-                    <ArrowUpDown className="h-[14px] w-[14px] text-[#888]" strokeWidth={1.75} />
-                    <span>Sorting</span>
-                  </div>
-                  <div className="flex items-center gap-[6px]">
-                    <button
-                      onClick={() => {
-                        const keys = ["name", "type", "size", "modified"]
-                        const currentIdx = sortKey ? keys.indexOf(sortKey) : -1
-                        const nextIdx = (currentIdx + 1) % keys.length
-                        setSortKey(keys[nextIdx])
-                      }}
-                      className="flex items-center gap-[6px] rounded-[4px] border border-[#dcdcdc] px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                      tabIndex={0}
-                    >
-                      <span>{sortKey ? docColumnDefs.find((c) => c.key === sortKey)?.label || "Name" : "Name"}</span>
-                      <ChevronDown className="h-[12px] w-[12px] text-[#888]" strokeWidth={1.5} />
-                    </button>
-                    <button
-                      onClick={() => setSortDirection((d) => d === "asc" ? "desc" : "asc")}
-                      className="flex h-[32px] w-[32px] items-center justify-center rounded-[4px] border border-[#dcdcdc] text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                      tabIndex={0}
-                      aria-label={sortDirection === "asc" ? "Sort ascending" : "Sort descending"}
-                    >
-                      {sortDirection === "asc" ? (
-                        <ArrowUp className="h-[14px] w-[14px]" strokeWidth={1.75} />
-                      ) : (
-                        <ArrowDown className="h-[14px] w-[14px]" strokeWidth={1.75} />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
                 <div className="px-[20px] pb-[16px] pt-[14px]">
                   <div className="pb-[12px] text-[13px] font-medium text-[#888]">Display properties</div>
                   <div className="flex flex-wrap gap-[8px]">
@@ -593,7 +538,7 @@ export default function DocumentsPage() {
 
                 <div className="flex items-center gap-[20px] border-t border-[#f0f0f0] px-[20px] py-[12px]">
                   <button
-                    onClick={() => { setVisibleColumnKeys([...defaultDocVisibleKeys]); setSortKey(null); setSortDirection("asc") }}
+                    onClick={() => setVisibleColumnKeys([...defaultDocVisibleKeys])}
                     className="text-[13px] font-medium text-[#bbb] transition-colors hover:text-[#262626]"
                     tabIndex={0}
                   >
@@ -818,7 +763,7 @@ export default function DocumentsPage() {
         <span className="text-[12px] font-medium text-[#999]">
           {isGlobalSearchActive
             ? `${globalSearchResults.length} ${globalSearchResults.length === 1 ? "result" : "results"}`
-            : `${childFiles.length} ${childFiles.length === 1 ? "file" : "files"} · ${sortedDocs.length} ${sortedDocs.length === 1 ? "document" : "documents"}`
+            : `${childFiles.length} ${childFiles.length === 1 ? "file" : "files"} · ${displayDocs.length} ${displayDocs.length === 1 ? "document" : "documents"}`
           }
           {typeFilter !== "all" && ` · Filtered: ${activeFilterLabel}`}
         </span>

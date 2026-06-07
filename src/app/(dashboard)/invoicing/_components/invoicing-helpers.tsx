@@ -107,7 +107,7 @@ export function MultiSelectDropdown({
             className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`}
             tabIndex={0}
           >
-            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
+            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
               {isActive && <span className="text-[10px] text-white">✓</span>}
             </div>
             <span className="text-[#262626]">{item.label}</span>

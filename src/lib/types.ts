@@ -95,6 +95,7 @@ export interface ParticipantDetails {
   serviceCommencementDate: string
   serviceExitDate: string
   checkInPeriod: string
+  checkInStartDate: string
   fundingType: FundingType
   planManagerName: string
   planManagerEmail: string
@@ -127,7 +128,7 @@ export const emptyParticipant: ParticipantDetails = {
   preferredContactMethod: "", preferredSignMethod: "",
   ndisNumber: "", medicareNumber: "", centrelinkNumber: "", externalId: "",
   serviceCommencementDate: "", serviceExitDate: "",
-  checkInPeriod: "",
+  checkInPeriod: "", checkInStartDate: "",
   fundingType: "", planManagerName: "", planManagerEmail: "", planManagerPhone: "", planManagerOrg: "",
   planStartDate: "", planEndDate: "",
 }
@@ -317,6 +318,7 @@ export interface Note {
   content: string
   clientId: string | null
   clientName: string
+  attachments: Attachment[]
   createdBy: string
   createdAt: string
   updatedAt: string

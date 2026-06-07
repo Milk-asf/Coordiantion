@@ -128,9 +128,6 @@ export default function TasksPage() {
   const [visibleTaskColumnKeys, setVisibleTaskColumnKeys] = useState<string[]>(defaultTaskVisibleKeys)
   const [isTaskDisplayOpen, setIsTaskDisplayOpen] = useState(false)
   const taskDisplayBtnRef = useRef<HTMLButtonElement>(null)
-  const [displayParticipants, setDisplayParticipants] = useState<string[]>([])
-  const [displayAssignees, setDisplayAssignees] = useState<string[]>([])
-  const [displayCharges, setDisplayCharges] = useState<string[]>([])
 
   const [viewMode, setViewMode] = useState<"list" | "week">("list")
   const [weekOffset, setWeekOffset] = useState(0)
@@ -144,28 +141,12 @@ export default function TasksPage() {
   const applyTaskView = useCallback((view: TaskSavedView) => {
     setViewMode(view.viewMode)
     setVisibleTaskColumnKeys(view.visibleColumnKeys)
-    setDisplayParticipants(view.displayParticipants)
-    setDisplayAssignees(view.displayAssignees)
-    setDisplayCharges(view.displayCharges)
-    setStatusFilter(view.statusFilter)
-    setDateFilter(view.dateFilter)
-    setParticipantFilter(view.participantFilter)
-    setAssigneeFilter(view.assigneeFilter)
-    setChargeFilter(view.chargeFilter)
     setWeekOffset(0)
   }, [])
 
   const resetTaskViewState = useCallback(() => {
     setViewMode("list")
     setVisibleTaskColumnKeys(defaultTaskVisibleKeys)
-    setDisplayParticipants([])
-    setDisplayAssignees([])
-    setDisplayCharges([])
-    setStatusFilter([])
-    setDateFilter([])
-    setParticipantFilter([])
-    setAssigneeFilter([])
-    setChargeFilter([])
     setWeekOffset(0)
   }, [])
 
@@ -185,14 +166,6 @@ export default function TasksPage() {
       name,
       viewMode,
       visibleColumnKeys: [...visibleTaskColumnKeys],
-      displayParticipants: [...displayParticipants],
-      displayAssignees: [...displayAssignees],
-      displayCharges: [...displayCharges],
-      statusFilter: [...statusFilter],
-      dateFilter: [...dateFilter],
-      participantFilter: [...participantFilter],
-      assigneeFilter: [...assigneeFilter],
-      chargeFilter: [...chargeFilter],
     }),
     applyView: applyTaskView,
     resetState: resetTaskViewState,
@@ -200,28 +173,12 @@ export default function TasksPage() {
       ...view,
       viewMode,
       visibleColumnKeys: [...visibleTaskColumnKeys],
-      displayParticipants: [...displayParticipants],
-      displayAssignees: [...displayAssignees],
-      displayCharges: [...displayCharges],
-      statusFilter: [...statusFilter],
-      dateFilter: [...dateFilter],
-      participantFilter: [...participantFilter],
-      assigneeFilter: [...assigneeFilter],
-      chargeFilter: [...chargeFilter],
     }),
   })
 
   useEffect(() => {
     syncActiveTaskView()
   }, [
-    assigneeFilter,
-    chargeFilter,
-    dateFilter,
-    displayAssignees,
-    displayCharges,
-    displayParticipants,
-    participantFilter,
-    statusFilter,
     syncActiveTaskView,
     viewMode,
     visibleTaskColumnKeys,
@@ -288,17 +245,10 @@ export default function TasksPage() {
   const taskGridTemplate = visibleTaskColumns.map((c) => c.width).join(" ")
 
 
-  const toggleDisplayItem = (list: string[], setList: (v: string[]) => void, value: string) => {
-    setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value])
-  }
-
-  const hasDisplayFilters = displayParticipants.length > 0 || displayAssignees.length > 0 || displayCharges.length > 0
-
   const handleResetDisplay = () => {
+    setViewMode("list")
     setVisibleTaskColumnKeys(defaultTaskVisibleKeys)
-    setDisplayParticipants([])
-    setDisplayAssignees([])
-    setDisplayCharges([])
+    setWeekOffset(0)
   }
 
   const [isQuickAdding, setIsQuickAdding] = useState(false)
@@ -415,10 +365,10 @@ export default function TasksPage() {
   }
 
   const toggleSelectAll = () => {
-    const visibleIds = filtered.map((t) => t.id)
-    const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedTaskIds.has(id))
+    const incompleteIds = filtered.filter((t) => t.status !== "done").map((t) => t.id)
+    const allSelected = incompleteIds.length > 0 && incompleteIds.every((id) => selectedTaskIds.has(id))
     if (allSelected) setSelectedTaskIds(new Set())
-    else setSelectedTaskIds(new Set(visibleIds))
+    else setSelectedTaskIds(new Set(incompleteIds))
   }
 
   const handleBulkMarkDone = async () => {
@@ -506,9 +456,6 @@ export default function TasksPage() {
       })
       if (!matchesAny) return false
     }
-    if (displayParticipants.length > 0 && !displayParticipants.includes(t.client)) return false
-    if (displayAssignees.length > 0 && !displayAssignees.includes(t.assignee)) return false
-    if (displayCharges.length > 0 && !displayCharges.includes(t.chargeType)) return false
     return true
   })
 
@@ -560,6 +507,7 @@ export default function TasksPage() {
     const dateStr = formatRowDate(task.dueDate)
     const clientInitials = task.client ? task.client.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2) : ""
     const assigneeInitials = task.assignee ? task.assignee.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2) : ""
+    const isSelected = selectedTaskIds.has(task.id)
     return (
       <div
         key={task.id}
@@ -575,13 +523,15 @@ export default function TasksPage() {
             onClick={(e) => { e.stopPropagation(); handleToggleComplete(task.id) }}
             className={`flex h-[18px] w-[18px] items-center justify-center rounded border-[1.5px] transition-colors ${
               task.status === "done"
-                ? "border-blue-500 bg-blue-500 text-white"
-                : "border-[#ccc] hover:border-[#999]"
+                ? "border-[#2563EB] bg-[#2563EB] text-white"
+                : isSelected
+                  ? "border-[#bbb] bg-[#ededed] text-[#999]"
+                  : "border-[#ccc] hover:border-[#999]"
             }`}
             tabIndex={0}
             aria-label={task.status === "done" ? "Mark as incomplete" : "Mark as complete"}
           >
-            {task.status === "done" && <span className="text-[9px]">✓</span>}
+            {(task.status === "done" || isSelected) && <span className="text-[9px]">✓</span>}
           </button>
         </div>
         {isColVisible("date") && (
@@ -964,7 +914,13 @@ export default function TasksPage() {
               {isFilterMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-[55]" onClick={() => setIsFilterMenuOpen(false)} />
-                  <div className="absolute left-0 top-full z-[60] mt-[4px] w-[180px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                  <div
+                    className="fixed z-[60] w-[180px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+                    style={{
+                      top: (filterBtnRef.current?.getBoundingClientRect().bottom ?? 0) + 4,
+                      left: filterBtnRef.current?.getBoundingClientRect().left ?? 0,
+                    }}
+                  >
                     <p className="px-[16px] py-[6px] text-[11px] font-medium text-[#888]">Filter by</p>
                     {[
                       { key: "status", label: "Status", icon: CheckSquare },
@@ -996,7 +952,7 @@ export default function TasksPage() {
               tabIndex={0}
             >
               <CheckSquare className="h-[13px] w-[13px]" strokeWidth={1.5} />
-              <span>{filtered.length > 0 && filtered.every((t) => selectedTaskIds.has(t.id)) ? "Deselect all" : "Select all"}</span>
+              <span>{(() => { const incomplete = filtered.filter((t) => t.status !== "done"); return incomplete.length > 0 && incomplete.every((t) => selectedTaskIds.has(t.id)) ? "Deselect all" : "Select all" })()}</span>
             </button>
             {statusFilter.length > 0 && (
               <div className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626]">
@@ -1080,16 +1036,11 @@ export default function TasksPage() {
             <button
               ref={taskDisplayBtnRef}
               onClick={() => setIsTaskDisplayOpen(!isTaskDisplayOpen)}
-              className={`flex items-center gap-[5px] rounded border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${hasDisplayFilters ? "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100" : "border-[#dcdcdc] text-[#262626] hover:bg-[#f5f5f5]"}`}
+              className="flex items-center gap-[5px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
               tabIndex={0}
             >
               <SlidersHorizontal className="h-[13px] w-[13px]" strokeWidth={1.5} />
               <span className="hidden sm:inline">Display</span>
-              {hasDisplayFilters && (
-                <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded-[4px] bg-[#e8edf2] px-[4px] text-[10px] font-bold text-[#334155]">
-                  {displayParticipants.length + displayAssignees.length + displayCharges.length}
-                </span>
-              )}
             </button>
             {isTaskDisplayOpen && (
               <>
@@ -1124,70 +1075,7 @@ export default function TasksPage() {
                         })}
                       </div>
                     </div>
-                    {uniqueParticipants.length > 0 && (
-                      <div className="px-[20px] pb-[16px] pt-[14px]">
-                        <div className="pb-[12px] text-[13px] font-medium text-[#888]">Clients</div>
-                        <div className="flex flex-wrap gap-[8px]">
-                          {uniqueParticipants.map((name) => {
-                            const isActive = displayParticipants.includes(name)
-                            return (
-                              <button
-                                key={name}
-                                onClick={() => toggleDisplayItem(displayParticipants, setDisplayParticipants, name)}
-                                className={`inline-flex items-center rounded-[4px] border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
-                                tabIndex={0}
-                              >
-                                {name}
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {uniqueAssignees.length > 0 && (
-                      <div className="px-[20px] pb-[16px] pt-[2px]">
-                        <div className="pb-[12px] text-[13px] font-medium text-[#888]">Assignees</div>
-                        <div className="flex flex-wrap gap-[8px]">
-                          {uniqueAssignees.map((name) => {
-                            const isActive = displayAssignees.includes(name)
-                            return (
-                              <button
-                                key={name}
-                                onClick={() => toggleDisplayItem(displayAssignees, setDisplayAssignees, name)}
-                                className={`inline-flex items-center rounded-[4px] border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
-                                tabIndex={0}
-                              >
-                                {name}
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {uniqueCharges.length > 0 && (
-                      <div className="px-[20px] pb-[16px] pt-[2px]">
-                        <div className="pb-[12px] text-[13px] font-medium text-[#888]">Charges</div>
-                        <div className="flex flex-wrap gap-[8px]">
-                          {uniqueCharges.map((val) => {
-                            const isActive = displayCharges.includes(val)
-                            return (
-                              <button
-                                key={val}
-                                onClick={() => toggleDisplayItem(displayCharges, setDisplayCharges, val)}
-                                className={`inline-flex items-center rounded-[4px] border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
-                                tabIndex={0}
-                              >
-                                {chargeLabel(val)}
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="px-[20px] pb-[16px] pt-[2px]">
+                    <div className="px-[20px] pb-[16px] pt-[14px]">
                       <div className="flex items-center justify-between">
                         <span className="text-[13px] font-medium text-[#888]">Show completed</span>
                         <Switch
@@ -1246,7 +1134,7 @@ export default function TasksPage() {
                         const isActive = statusFilter.includes(opt.key)
                         return (
                           <button key={opt.key} onClick={() => setStatusFilter((prev) => isActive ? prev.filter((f) => f !== opt.key) : [...prev, opt.key])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
-                            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
+                            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
                               {isActive && <span className="text-[10px] text-white">✓</span>}
                             </div>
                             <span className="text-[#262626]">{opt.label}</span>
@@ -1279,7 +1167,7 @@ export default function TasksPage() {
                         const isActive = dateFilter.includes(opt.key)
                         return (
                           <button key={opt.key} onClick={() => setDateFilter((prev) => isActive ? prev.filter((f) => f !== opt.key) : [...prev, opt.key])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
-                            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
+                            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
                               {isActive && <span className="text-[10px] text-white">✓</span>}
                             </div>
                             <span className="text-[#262626]">{opt.label}</span>
@@ -1304,7 +1192,7 @@ export default function TasksPage() {
                       const isActive = participantFilter.includes(name)
                       return (
                         <button key={name} onClick={() => setParticipantFilter((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
-                          <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
+                          <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
                             {isActive && <span className="text-[10px] text-white">✓</span>}
                           </div>
                           <span className="text-[#262626]">{name}</span>
@@ -1329,7 +1217,7 @@ export default function TasksPage() {
                       const isActive = assigneeFilter.includes(name)
                       return (
                         <button key={name} onClick={() => setAssigneeFilter((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
-                          <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
+                          <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
                             {isActive && <span className="text-[10px] text-white">✓</span>}
                           </div>
                           <span className="text-[#262626]">{name}</span>
@@ -1354,7 +1242,7 @@ export default function TasksPage() {
                       const isActive = chargeFilter.includes(val)
                       return (
                         <button key={val} onClick={() => setChargeFilter((prev) => isActive ? prev.filter((f) => f !== val) : [...prev, val])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
-                          <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
+                          <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
                             {isActive && <span className="text-[10px] text-white">✓</span>}
                           </div>
                           <span className="text-[#262626]">{chargeLabel(val)}</span>
@@ -1739,7 +1627,7 @@ export default function TasksPage() {
               className="flex items-center gap-[6px] rounded-lg px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
               tabIndex={0}
             >
-              <CheckSquare className="h-[14px] w-[14px] text-green-600" strokeWidth={1.75} />
+              <CheckSquare className="h-[14px] w-[14px] text-[#2563EB]" strokeWidth={1.75} />
               Mark done
             </button>
             <button

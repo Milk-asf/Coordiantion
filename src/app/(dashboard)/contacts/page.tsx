@@ -5,8 +5,6 @@ import {
   Handshake,
   ListFilter,
   Plus,
-  ArrowDown,
-  ArrowUpDown,
   Table2,
   UserRound,
   Building2,
@@ -42,8 +40,6 @@ interface SavedView {
   id: string
   name: string
   columnKeys: string[]
-  sortKey: string | null
-  sortDirection: "asc" | "desc"
   displayRelationships: string[]
 }
 
@@ -67,8 +63,6 @@ export default function ContactsPage() {
 
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(defaultVisibleKeys)
   const [isDisplayOpen, setIsDisplayOpen] = useState(false)
-  const [sortKey, setSortKey] = useState<string | null>(null)
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
   const [displayRelationships, setDisplayRelationships] = useState<string[]>([])
 
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false)
@@ -88,15 +82,11 @@ export default function ContactsPage() {
 
   const applySavedView = useCallback((view: SavedView) => {
     setVisibleColumnKeys(view.columnKeys)
-    setSortKey(view.sortKey)
-    setSortDirection(view.sortDirection)
     setDisplayRelationships(view.displayRelationships || [])
   }, [])
 
   const resetSavedViewState = useCallback(() => {
     setVisibleColumnKeys(defaultVisibleKeys)
-    setSortKey(null)
-    setSortDirection("asc")
     setDisplayRelationships([])
   }, [])
 
@@ -115,8 +105,6 @@ export default function ContactsPage() {
       id,
       name,
       columnKeys: [...visibleColumnKeys],
-      sortKey,
-      sortDirection,
       displayRelationships: [...displayRelationships],
     }),
     applyView: applySavedView,
@@ -124,15 +112,13 @@ export default function ContactsPage() {
     syncView: (view) => ({
       ...view,
       columnKeys: [...visibleColumnKeys],
-      sortKey,
-      sortDirection,
       displayRelationships: [...displayRelationships],
     }),
   })
 
   useEffect(() => {
     syncActiveView()
-  }, [displayRelationships, sortDirection, sortKey, syncActiveView, visibleColumnKeys])
+  }, [displayRelationships, syncActiveView, visibleColumnKeys])
 
   const visibleColumns = visibleColumnKeys
     .filter((key) => key === "name" || !contactDisabled.has(key))
@@ -388,22 +374,6 @@ export default function ContactsPage() {
                   return { top: rect.bottom + 4, right: window.innerWidth - rect.right }
                 })()}
               >
-                <div className="flex items-center justify-between border-b border-[#f0f0f0] px-[20px] py-[14px]">
-                  <div className="flex items-center gap-[8px] text-[13px] font-semibold text-[#262626]">
-                    <ArrowUpDown className="h-[14px] w-[14px] text-[#888]" strokeWidth={1.75} />
-                    <span>Sorting</span>
-                  </div>
-                  <div className="flex items-center gap-[6px]">
-                    <button className="flex items-center gap-[6px] rounded-[4px] border border-[#dcdcdc] px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
-                      <span>Name</span>
-                      <ChevronDown className="h-[12px] w-[12px] text-[#888]" strokeWidth={1.5} />
-                    </button>
-                    <button className="flex h-[32px] w-[32px] items-center justify-center rounded-[4px] border border-[#dcdcdc] text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
-                      <ArrowDown className="h-[14px] w-[14px]" strokeWidth={1.75} />
-                    </button>
-                  </div>
-                </div>
-
                 <div className="px-[20px] pb-[16px] pt-[14px]">
                   <div className="pb-[12px] text-[13px] font-medium text-[#888]">Display properties</div>
                   <div className="flex flex-wrap gap-[8px]">
@@ -444,7 +414,10 @@ export default function ContactsPage() {
 
                 <div className="flex items-center gap-[20px] border-t border-[#f0f0f0] px-[20px] py-[12px]">
                   <button
-                    onClick={() => { setVisibleColumnKeys(defaultVisibleKeys); setDisplayRelationships([]) }}
+                    onClick={() => {
+                      setVisibleColumnKeys(defaultVisibleKeys)
+                      setDisplayRelationships([])
+                    }}
                     className="text-[13px] font-medium text-[#bbb] transition-colors hover:text-[#262626]"
                     tabIndex={0}
                   >
@@ -484,7 +457,7 @@ export default function ContactsPage() {
                   const isActive = filterClients.includes(name)
                   return (
                     <button key={name} onClick={() => setFilterClients((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
-                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
+                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
                         {isActive && <span className="text-[10px] text-white">✓</span>}
                       </div>
                       <span className="text-[#262626]">{name}</span>
@@ -510,7 +483,7 @@ export default function ContactsPage() {
                   const label = relationshipConfig[key]?.label || key
                   return (
                     <button key={key} onClick={() => setFilterRelationships((prev) => isActive ? prev.filter((f) => f !== key) : [...prev, key])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
-                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
+                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
                         {isActive && <span className="text-[10px] text-white">✓</span>}
                       </div>
                       <span className="text-[#262626]">{label}</span>

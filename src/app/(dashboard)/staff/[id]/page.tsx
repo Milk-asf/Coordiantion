@@ -188,7 +188,7 @@ function StaffProfileTasksTab({
                   onClick={() => onToggleComplete(task)}
                   className={`flex h-[18px] w-[18px] items-center justify-center rounded border-[1.5px] transition-colors ${
                     isDone
-                      ? "border-blue-500 bg-blue-500 text-white hover:border-blue-400 hover:bg-blue-400"
+                      ? "border-[#2563EB] bg-[#2563EB] text-white hover:border-[#1d4ed8] hover:bg-[#1d4ed8]"
                       : "border-[#ccc] hover:border-[#999]"
                   }`}
                   tabIndex={0}

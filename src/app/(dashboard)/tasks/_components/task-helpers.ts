@@ -13,14 +13,6 @@ export interface TaskSavedView {
   name: string
   viewMode: "list" | "week"
   visibleColumnKeys: string[]
-  displayParticipants: string[]
-  displayAssignees: string[]
-  displayCharges: string[]
-  statusFilter: string[]
-  dateFilter: string[]
-  participantFilter: string[]
-  assigneeFilter: string[]
-  chargeFilter: string[]
 }
 
 export const taskColumnDefs = [

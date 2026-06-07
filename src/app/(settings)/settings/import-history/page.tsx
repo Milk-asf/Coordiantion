@@ -831,7 +831,7 @@ export default function ImportHistorySettingsPage() {
       {step === "complete" && (
         <div className="flex flex-col items-center justify-center px-[20px] py-[48px]">
           <div className="flex h-[48px] w-[48px] items-center justify-center rounded-full bg-green-100">
-            <Check className="h-[24px] w-[24px] text-green-600" strokeWidth={2} />
+            <Check className="h-[24px] w-[24px] text-[#2563EB]" strokeWidth={2} />
           </div>
           <p className="mt-[16px] text-[16px] font-semibold text-[#262626]">Import complete</p>
           <p className="mt-[4px] text-[13px] text-[#888]">

@@ -41,9 +41,6 @@ import {
   Stethoscope,
   ChevronDown,
   ChevronLeft,
-  ArrowUpDown,
-  ArrowDown,
-  ArrowUp,
   ArrowRight,
   ArrowLeft,
   EyeOff,
@@ -515,8 +512,6 @@ interface SavedView {
   id: string
   name: string
   columnKeys: string[]
-  sortKey: string | null
-  sortDirection: "asc" | "desc"
 }
 
 export default function ClientsPage() {
@@ -533,13 +528,12 @@ export default function ClientsPage() {
     () => allPropertyColumns.filter((col) => !participantDisabled.has(col.key)),
     [participantDisabled]
   )
+
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(defaultVisibleKeys)
   const [isDisplayOpen, setIsDisplayOpen] = useState(false)
   const [columnMenuKey, setColumnMenuKey] = useState<string | null>(null)
   const [columnMenuPos, setColumnMenuPos] = useState<{ top: number; left: number } | null>(null)
-  const [sortKey, setSortKey] = useState<string | null>(null)
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
   const [isCreateViewOpen, setIsCreateViewOpen] = useState(false)
   const [newViewName, setNewViewName] = useState("")
   const [isCreateClientOpen, setIsCreateClientOpen] = useState(false)
@@ -557,14 +551,10 @@ export default function ClientsPage() {
 
   const applySavedView = useCallback((view: SavedView) => {
     setVisibleColumnKeys(view.columnKeys)
-    setSortKey(view.sortKey)
-    setSortDirection(view.sortDirection)
   }, [])
 
   const resetSavedViewState = useCallback(() => {
     setVisibleColumnKeys(defaultVisibleKeys)
-    setSortKey(null)
-    setSortDirection("asc")
   }, [])
 
   const {
@@ -582,22 +572,18 @@ export default function ClientsPage() {
       id,
       name,
       columnKeys: [...visibleColumnKeys],
-      sortKey,
-      sortDirection,
     }),
     applyView: applySavedView,
     resetState: resetSavedViewState,
     syncView: (view) => ({
       ...view,
       columnKeys: [...visibleColumnKeys],
-      sortKey,
-      sortDirection,
     }),
   })
 
   useEffect(() => {
     syncActiveView()
-  }, [sortDirection, sortKey, syncActiveView, visibleColumnKeys])
+  }, [syncActiveView, visibleColumnKeys])
 
   const visibleColumns = visibleColumnKeys
     .filter((key) => !participantDisabled.has(key))
@@ -861,48 +847,6 @@ export default function ClientsPage() {
     toast(`${clientMsg}${contactMsg}`, "success")
   }, [addClient, addContact, toast])
 
-  const sortedClients = (() => {
-    if (!sortKey) return filteredClients
-    return [...filteredClients].sort((a, b) => {
-      const pA = getParticipantData(a)
-      const pB = getParticipantData(b)
-      let valA = ""
-      let valB = ""
-      switch (sortKey) {
-        case "name": valA = a.name; valB = b.name; break
-        case "ndisNumber": valA = pA.ndisNumber; valB = pB.ndisNumber; break
-        case "diagnosis": valA = pA.primaryDiagnosis; valB = pB.primaryDiagnosis; break
-        case "email": valA = pA.email; valB = pB.email; break
-        case "phone": valA = pA.phone; valB = pB.phone; break
-        case "dob": valA = pA.dateOfBirth; valB = pB.dateOfBirth; break
-        case "gender": valA = pA.gender; valB = pB.gender; break
-        case "pronouns": valA = pA.pronouns; valB = pB.pronouns; break
-        case "ethnicity": valA = pA.ethnicity; valB = pB.ethnicity; break
-        case "language": valA = pA.language; valB = pB.language; break
-        case "preferredName": valA = pA.preferredName; valB = pB.preferredName; break
-        case "medicareNumber": valA = pA.medicareNumber; valB = pB.medicareNumber; break
-        case "centrelinkNumber": valA = pA.centrelinkNumber; valB = pB.centrelinkNumber; break
-        case "externalId": valA = pA.externalId; valB = pB.externalId; break
-        case "preferredContactMethod": valA = pA.preferredContactMethod; valB = pB.preferredContactMethod; break
-        case "preferredSignMethod": valA = pA.preferredSignMethod; valB = pB.preferredSignMethod; break
-        case "serviceCommencementDate": valA = pA.serviceCommencementDate; valB = pB.serviceCommencementDate; break
-        case "serviceExitDate": valA = pA.serviceExitDate; valB = pB.serviceExitDate; break
-        case "nextCheckUp": valA = getNextCheckUp(a.id, a.name) || "9999"; valB = getNextCheckUp(b.id, b.name) || "9999"; break
-        default: {
-          if (sortKey.startsWith("contact-")) {
-            const relKey = sortKey.replace("contact-", "")
-            const cA = getContactsForClient(a.name).find((c) => c.relationship === relKey)
-            const cB = getContactsForClient(b.name).find((c) => c.relationship === relKey)
-            valA = cA?.name || ""; valB = cB?.name || ""
-          }
-          break
-        }
-      }
-      const cmp = valA.localeCompare(valB)
-      return sortDirection === "asc" ? cmp : -cmp
-    })
-  })()
-
   if (isLoading) return <PageLoader label="Loading clients…" />
   if (fetchError) return <PageError message="Failed to load clients" onRetry={refetch} />
 
@@ -1044,22 +988,6 @@ export default function ClientsPage() {
                     return { top: rect.bottom + 4, right: window.innerWidth - rect.right }
                   })()}
                 >
-                  <div className="flex items-center justify-between border-b border-[#f0f0f0] px-[20px] py-[14px]">
-                    <div className="flex items-center gap-[8px] text-[13px] font-semibold text-[#262626]">
-                      <ArrowUpDown className="h-[14px] w-[14px] text-[#888]" strokeWidth={1.75} />
-                      <span>Sorting</span>
-                    </div>
-                    <div className="flex items-center gap-[6px]">
-                      <button className="flex items-center gap-[6px] rounded-[4px] border border-[#dcdcdc] px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
-                        <span>Last interaction</span>
-                        <ChevronDown className="h-[12px] w-[12px] text-[#888]" strokeWidth={1.5} />
-                      </button>
-                      <button className="flex h-[32px] w-[32px] items-center justify-center rounded-[4px] border border-[#dcdcdc] text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
-                        <ArrowDown className="h-[14px] w-[14px]" strokeWidth={1.75} />
-                      </button>
-                    </div>
-                  </div>
-
                   <div className="px-[20px] pb-[16px] pt-[14px]">
                     <div className="pb-[12px] text-[13px] font-medium text-[#888]">Display properties</div>
                     <div className="flex flex-wrap gap-[8px]">
@@ -1153,23 +1081,6 @@ export default function ClientsPage() {
                             style={{ top: columnMenuPos.top, left: columnMenuPos.left }}
                           >
                             <button
-                              onClick={() => { setSortKey(col.key); setSortDirection("asc"); setColumnMenuKey(null); setColumnMenuPos(null) }}
-                              className="flex w-full items-center gap-[12px] px-[16px] py-[10px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                              tabIndex={0}
-                            >
-                              <ArrowUp className="h-[15px] w-[15px] text-[#888]" strokeWidth={1.75} />
-                              <span>Sort ascending</span>
-                            </button>
-                            <button
-                              onClick={() => { setSortKey(col.key); setSortDirection("desc"); setColumnMenuKey(null); setColumnMenuPos(null) }}
-                              className="flex w-full items-center gap-[12px] px-[16px] py-[10px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                              tabIndex={0}
-                            >
-                              <ArrowDown className="h-[15px] w-[15px] text-[#888]" strokeWidth={1.75} />
-                              <span>Sort descending</span>
-                            </button>
-                            <div className="my-[4px] border-t border-[#f0f0f0]" />
-                            <button
                               onClick={() => handleMoveColumn(col.key, "left")}
                               disabled={isFirst}
                               className={`flex w-full items-center gap-[12px] px-[16px] py-[10px] text-[13px] font-medium transition-colors ${isFirst ? "text-[#bbb]" : "text-[#262626] hover:bg-[#f5f5f5]"}`}
@@ -1209,7 +1120,7 @@ export default function ClientsPage() {
               </tr>
             </thead>
             <tbody>
-              {sortedClients.map((client) => {
+              {filteredClients.map((client) => {
                 const isSelected = selectedClient?.id === client.id
                 const rowBg = isSelected ? "bg-[#f5f5ff]" : "bg-[#fafafa]"
                 const rowHover = isSelected ? "" : "group-hover:bg-[#f5f5f5]"
@@ -1425,7 +1336,7 @@ export default function ClientsPage() {
                   const isActive = statusFilter.includes(val)
                   return (
                     <button key={val} onClick={() => setStatusFilter((prev) => isActive ? prev.filter((f) => f !== val) : [...prev, val])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
-                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
+                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
                         {isActive && <span className="text-[10px] text-white">✓</span>}
                       </div>
                       <span className="text-[#262626] capitalize">{val}</span>
@@ -1450,7 +1361,7 @@ export default function ClientsPage() {
                   const isActive = coordinatorFilter.includes(name)
                   return (
                     <button key={name} onClick={() => setCoordinatorFilter((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
-                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
+                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
                         {isActive && <span className="text-[10px] text-white">✓</span>}
                       </div>
                       <span className="text-[#262626]">{name}</span>

@@ -28,9 +28,6 @@ import {
   CalendarDays,
   Heart,
   ChevronDown,
-  ArrowUpDown,
-  ArrowDown,
-  ArrowUp,
   ArrowRight,
   ArrowLeft,
   ChevronLeft,
@@ -194,8 +191,6 @@ interface SavedView {
   id: string
   name: string
   columnKeys: string[]
-  sortKey: string | null
-  sortDirection: "asc" | "desc"
 }
 
 export default function StaffPage() {
@@ -209,13 +204,12 @@ export default function StaffPage() {
     () => allPropertyColumns.filter((col) => !staffDisabled.has(col.key)),
     [staffDisabled]
   )
+
   const [selectedMember, setSelectedMember] = useState<StaffMember | null>(null)
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(defaultVisibleKeys)
   const [isDisplayOpen, setIsDisplayOpen] = useState(false)
   const [columnMenuKey, setColumnMenuKey] = useState<string | null>(null)
   const [columnMenuPos, setColumnMenuPos] = useState<{ top: number; left: number } | null>(null)
-  const [sortKey, setSortKey] = useState<string | null>(null)
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
   const [isCreateViewOpen, setIsCreateViewOpen] = useState(false)
   const [newViewName, setNewViewName] = useState("")
   const [viewContextMenu, setViewContextMenu] = useState<{ viewId: string; x: number; y: number } | null>(null)
@@ -230,14 +224,10 @@ export default function StaffPage() {
 
   const applySavedView = useCallback((view: SavedView) => {
     setVisibleColumnKeys(view.columnKeys)
-    setSortKey(view.sortKey)
-    setSortDirection(view.sortDirection)
   }, [])
 
   const resetSavedViewState = useCallback(() => {
     setVisibleColumnKeys(defaultVisibleKeys)
-    setSortKey(null)
-    setSortDirection("asc")
   }, [])
 
   const {
@@ -255,22 +245,18 @@ export default function StaffPage() {
       id,
       name,
       columnKeys: [...visibleColumnKeys],
-      sortKey,
-      sortDirection,
     }),
     applyView: applySavedView,
     resetState: resetSavedViewState,
     syncView: (view) => ({
       ...view,
       columnKeys: [...visibleColumnKeys],
-      sortKey,
-      sortDirection,
     }),
   })
 
   useEffect(() => {
     syncActiveView()
-  }, [sortDirection, sortKey, syncActiveView, visibleColumnKeys])
+  }, [syncActiveView, visibleColumnKeys])
 
   const visibleColumns = visibleColumnKeys
     .filter((key) => !staffDisabled.has(key))
@@ -404,40 +390,6 @@ export default function StaffPage() {
     }
   }, [addStaff])
 
-  const sortedStaff = (() => {
-    if (!sortKey) return activeStaff
-    return [...activeStaff].sort((a, b) => {
-      if (sortKey === "clients") {
-        const countA = clients.filter((c) => c.owner === a.name).length
-        const countB = clients.filter((c) => c.owner === b.name).length
-        const cmp = countA - countB
-        return sortDirection === "asc" ? cmp : -cmp
-      }
-      let valA = "", valB = ""
-      switch (sortKey) {
-        case "name": valA = a.name; valB = b.name; break
-        case "email": valA = a.details.email; valB = b.details.email; break
-        case "phone": valA = a.details.phone; valB = b.details.phone; break
-        case "role": valA = a.details.role; valB = b.details.role; break
-        case "department": valA = a.details.department; valB = b.details.department; break
-        case "employmentType": valA = a.details.employmentType; valB = b.details.employmentType; break
-        case "startDate": valA = a.details.startDate; valB = b.details.startDate; break
-        case "endDate": valA = a.details.endDate; valB = b.details.endDate; break
-        case "status": valA = a.status; valB = b.status; break
-        case "qualifications": valA = a.details.qualifications; valB = b.details.qualifications; break
-        case "certifications": valA = a.details.certifications; valB = b.details.certifications; break
-        case "dob": valA = a.details.dateOfBirth; valB = b.details.dateOfBirth; break
-        case "gender": valA = a.details.gender; valB = b.details.gender; break
-        case "pronouns": valA = a.details.pronouns; valB = b.details.pronouns; break
-        case "preferredName": valA = a.details.preferredName; valB = b.details.preferredName; break
-        case "emergencyContactName": valA = a.details.emergencyContactName; valB = b.details.emergencyContactName; break
-        case "emergencyContactPhone": valA = a.details.emergencyContactPhone; valB = b.details.emergencyContactPhone; break
-      }
-      const cmp = valA.localeCompare(valB)
-      return sortDirection === "asc" ? cmp : -cmp
-    })
-  })()
-
   if (isLoading) return <PageLoader label="Loading staff…" />
   if (fetchError) return <PageError message="Failed to load staff" onRetry={refetch} />
 
@@ -540,12 +492,6 @@ export default function StaffPage() {
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setIsDisplayOpen(false)} />
                 <div className="fixed z-50 w-[420px] rounded-lg border border-[#dcdcdc] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={(() => { const rect = displayBtnRef.current?.getBoundingClientRect(); if (!rect) return {}; return { top: rect.bottom + 4, right: window.innerWidth - rect.right } })()}>
-                  <div className="flex items-center justify-between border-b border-[#f0f0f0] px-[20px] py-[14px]">
-                    <div className="flex items-center gap-[8px] text-[13px] font-semibold text-[#262626]">
-                      <ArrowUpDown className="h-[14px] w-[14px] text-[#888]" strokeWidth={1.75} />
-                      <span>Sorting</span>
-                    </div>
-                  </div>
                   <div className="px-[20px] pb-[16px] pt-[14px]">
                     <div className="pb-[12px] text-[13px] font-medium text-[#888]">Display properties</div>
                     <div className="flex flex-wrap gap-[8px]">
@@ -588,7 +534,7 @@ export default function StaffPage() {
                     const isActive = statusFilter.includes(val)
                     return (
                       <button key={val} onClick={() => setStatusFilter((prev) => isActive ? prev.filter((f) => f !== val) : [...prev, val])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
-                        <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
+                        <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
                           {isActive && <span className="text-[10px] text-white">&#10003;</span>}
                         </div>
                         <span className="text-[#262626]">{val.charAt(0).toUpperCase() + val.slice(1)}</span>
@@ -644,9 +590,6 @@ export default function StaffPage() {
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => { setColumnMenuKey(null); setColumnMenuPos(null) }} />
                           <div className="fixed z-50 w-[200px] overflow-hidden rounded-lg border border-[#dcdcdc] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={{ top: columnMenuPos.top, left: columnMenuPos.left }}>
-                            <button onClick={() => { setSortKey(col.key); setSortDirection("asc"); setColumnMenuKey(null); setColumnMenuPos(null) }} className="flex w-full items-center gap-[12px] px-[16px] py-[10px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}><ArrowUp className="h-[15px] w-[15px] text-[#888]" strokeWidth={1.75} /><span>Sort ascending</span></button>
-                            <button onClick={() => { setSortKey(col.key); setSortDirection("desc"); setColumnMenuKey(null); setColumnMenuPos(null) }} className="flex w-full items-center gap-[12px] px-[16px] py-[10px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}><ArrowDown className="h-[15px] w-[15px] text-[#888]" strokeWidth={1.75} /><span>Sort descending</span></button>
-                            <div className="my-[4px] border-t border-[#f0f0f0]" />
                             <button onClick={() => handleMoveColumn(col.key, "left")} disabled={isFirst} className={`flex w-full items-center gap-[12px] px-[16px] py-[10px] text-[13px] font-medium transition-colors ${isFirst ? "text-[#bbb]" : "text-[#262626] hover:bg-[#f5f5f5]"}`} tabIndex={0}><ArrowLeft className={`h-[15px] w-[15px] ${isFirst ? "text-[#ccc]" : "text-[#888]"}`} strokeWidth={1.75} /><span>Move left</span></button>
                             <button onClick={() => handleMoveColumn(col.key, "right")} disabled={isLast} className={`flex w-full items-center gap-[12px] px-[16px] py-[10px] text-[13px] font-medium transition-colors ${isLast ? "text-[#bbb]" : "text-[#262626] hover:bg-[#f5f5f5]"}`} tabIndex={0}><ArrowRight className={`h-[15px] w-[15px] ${isLast ? "text-[#ccc]" : "text-[#888]"}`} strokeWidth={1.75} /><span>Move right</span></button>
                             <div className="my-[4px] border-t border-[#f0f0f0]" />
@@ -664,7 +607,7 @@ export default function StaffPage() {
               </tr>
             </thead>
             <tbody>
-              {sortedStaff.map((member) => {
+              {activeStaff.map((member) => {
                 const isSelected = selectedMember?.id === member.id
                 const rowBg = isSelected ? "bg-[#f5f5ff]" : "bg-[#fafafa]"
                 const rowHover = isSelected ? "" : "group-hover:bg-[#f5f5f5]"

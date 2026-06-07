@@ -26,7 +26,7 @@ export function SaveIndicator({ isVisible }: { isVisible: boolean }) {
   if (!isVisible) return null
 
   return (
-    <div className="flex items-center gap-[4px] text-[12px] text-green-600 animate-in fade-in duration-200">
+    <div className="flex items-center gap-[4px] text-[12px] text-[#2563EB] animate-in fade-in duration-200">
       <Check className="h-[12px] w-[12px]" strokeWidth={2} />
       <span>Saved</span>
     </div>

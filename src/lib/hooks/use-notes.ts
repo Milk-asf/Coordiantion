@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
-import type { Note } from "@/lib/types"
+import type { Attachment, Note } from "@/lib/types"
 
 interface NoteRow {
   id: string
@@ -12,6 +12,7 @@ interface NoteRow {
   content: string
   client_id: string | null
   client_name: string
+  attachments: Attachment[] | null
   created_by: string
   created_at: string
   updated_at: string
@@ -25,6 +26,7 @@ function dbToNote(row: NoteRow): Note {
     content: row.content,
     clientId: row.client_id,
     clientName: row.client_name,
+    attachments: Array.isArray(row.attachments) ? row.attachments : [],
     createdBy: row.created_by,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -91,6 +93,7 @@ export function useNotes() {
       content: input.content,
       client_id: input.clientId ?? null,
       client_name: input.clientName ?? "",
+      attachments: [],
       created_by: input.createdBy,
       created_at: now,
       updated_at: now,
@@ -109,7 +112,7 @@ export function useNotes() {
     return note
   }, [activeWorkspace])
 
-  const updateNote = useCallback(async (id: string, updates: { title?: string; content?: string; clientId?: string | null; clientName?: string }) => {
+  const updateNote = useCallback(async (id: string, updates: { title?: string; content?: string; clientId?: string | null; clientName?: string; attachments?: Attachment[] }) => {
     if (!activeWorkspace || !isSupabaseConfigured()) return
     const supabase = createClient()
     if (!supabase) return
@@ -119,6 +122,7 @@ export function useNotes() {
     if (updates.content !== undefined) dbUpdates.content = updates.content
     if (updates.clientId !== undefined) dbUpdates.client_id = updates.clientId
     if (updates.clientName !== undefined) dbUpdates.client_name = updates.clientName
+    if (updates.attachments !== undefined) dbUpdates.attachments = updates.attachments
 
     await supabase.from("notes").update(dbUpdates).eq("id", id)
 

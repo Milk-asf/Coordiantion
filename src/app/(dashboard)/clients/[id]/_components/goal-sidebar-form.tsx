@@ -176,7 +176,7 @@ export function GoalSidebarForm({ goal, onSave, onDelete, onClose, onOpenTask, r
                       className={`group flex items-center justify-between gap-[8px] rounded-[8px] border border-[#f0f0f0] bg-[#fafafa] px-[10px] py-[8px] ${canOpen ? "cursor-pointer transition-colors hover:border-[#dcdcdc] hover:bg-[#f5f5f5]" : ""}`}
                     >
                       <div className="flex min-w-0 items-center gap-[8px]">
-                        <CheckSquare className={`h-[14px] w-[14px] shrink-0 ${status === "done" ? "text-green-600" : "text-[#bbb]"}`} strokeWidth={1.5} />
+                        <CheckSquare className={`h-[14px] w-[14px] shrink-0 ${status === "done" ? "text-[#2563EB]" : "text-[#bbb]"}`} strokeWidth={1.5} />
                         <span className="truncate text-[13px] font-medium text-[#262626]">{title}</span>
                       </div>
                       <div className="flex shrink-0 items-center gap-[6px]">

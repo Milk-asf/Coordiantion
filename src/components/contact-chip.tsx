@@ -121,8 +121,8 @@ export function ContactChip({
           type="button"
           onClick={handleCopy}
           className={size === "compact"
-            ? `shrink-0 rounded p-[2px] transition-all ${isCopied ? "text-green-600" : `text-[#bbb] opacity-0 group-hover/chip:opacity-100 ${copyHoverBg} hover:text-[#666]`}`
-            : `shrink-0 rounded p-[3px] transition-all ${isCopied ? "text-green-600" : `text-[#bbb] opacity-0 group-hover/chip:opacity-100 ${copyHoverBg} hover:text-[#666]`}`}
+            ? `shrink-0 rounded p-[2px] transition-all ${isCopied ? "text-[#2563EB]" : `text-[#bbb] opacity-0 group-hover/chip:opacity-100 ${copyHoverBg} hover:text-[#666]`}`
+            : `shrink-0 rounded p-[3px] transition-all ${isCopied ? "text-[#2563EB]" : `text-[#bbb] opacity-0 group-hover/chip:opacity-100 ${copyHoverBg} hover:text-[#666]`}`}
           tabIndex={0}
           aria-label={`Copy ${placeholder}`}
         >

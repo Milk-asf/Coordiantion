@@ -748,7 +748,7 @@ export default function InvoicingPage() {
               }}
               className={`flex h-[18px] w-[18px] items-center justify-center rounded border-[1.5px] transition-colors ${
                 isReviewed
-                  ? "border-blue-500 bg-blue-500 text-white"
+                  ? "border-[#2563EB] bg-[#2563EB] text-white"
                   : "border-[#ccc] hover:border-[#999]"
               }`}
               tabIndex={0}

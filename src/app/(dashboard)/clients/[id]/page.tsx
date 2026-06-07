@@ -16,7 +16,7 @@ import { useDocuments } from "@/lib/hooks/use-documents"
 import { useNotes } from "@/lib/hooks/use-notes"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
-import type { ParticipantDetails, Document, NdisPlan, PlanService, FundingReleasePeriod, Budget, BudgetLineItem, BudgetPeriod, ActivityEntry, ClientGoal } from "@/lib/types"
+import type { ParticipantDetails, Document, NdisPlan, PlanService, FundingReleasePeriod, Budget, BudgetLineItem, BudgetPeriod, ActivityEntry, ClientGoal, Attachment } from "@/lib/types"
 import { DocumentPreview } from "@/components/document-preview"
 import {
   FileText,
@@ -40,6 +40,8 @@ import {
   DollarSign,
   MoreHorizontal,
   Target,
+  CalendarDays,
+  TrendingUp,
 } from "lucide-react"
 import {
   type ProfileContact,
@@ -55,7 +57,7 @@ import { ProfileNotesTab } from "@/components/profile-notes-tab"
 import { NoteEditorModal } from "@/app/(dashboard)/notes/_components/note-editor-modal"
 import { PlanTab } from "./_components/plan-tab"
 import { BudgetsTab } from "./_components/budgets-tab"
-import { GoalsTab, goalTypeConfig, goalStatusConfig } from "./_components/goals-tab"
+import { GoalsTab, goalStatusConfig } from "./_components/goals-tab"
 import { type GoalFormData } from "./_components/goal-sidebar-form"
 
 const tabs = [
@@ -180,6 +182,7 @@ export default function ParticipantProfilePage() {
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
   const [noteEditTitle, setNoteEditTitle] = useState("")
   const [noteEditContent, setNoteEditContent] = useState("")
+  const [noteEditAttachments, setNoteEditAttachments] = useState<Attachment[]>([])
   const [noteFavorites, setNoteFavorites] = useState<string[]>(() => {
     if (typeof window === "undefined") return []
     try { return JSON.parse(localStorage.getItem("note-favorites") || "[]") } catch { return [] }
@@ -196,12 +199,14 @@ export default function ParticipantProfilePage() {
     setSelectedNoteId(note.id)
     setNoteEditTitle(note.title)
     setNoteEditContent(note.content)
+    setNoteEditAttachments(note.attachments ?? [])
   }, [notes])
 
   const closeNoteEditor = useCallback(() => {
     setSelectedNoteId(null)
     setNoteEditTitle("")
     setNoteEditContent("")
+    setNoteEditAttachments([])
   }, [])
 
   const toggleNoteFavorite = useCallback((noteId: string) => {
@@ -217,11 +222,16 @@ export default function ParticipantProfilePage() {
     if (selectedNoteId === noteId) closeNoteEditor()
   }, [deleteNote, selectedNoteId, closeNoteEditor])
 
+  const saveAndCloseNote = useCallback(async () => {
+    if (selectedNoteId) await updateNote(selectedNoteId, { title: noteEditTitle, content: noteEditContent, attachments: noteEditAttachments })
+    closeNoteEditor()
+  }, [selectedNoteId, noteEditTitle, noteEditContent, noteEditAttachments, updateNote, closeNoteEditor])
+
   useEffect(() => {
     if (!selectedNoteId) return
-    const timeout = setTimeout(() => { updateNote(selectedNoteId, { title: noteEditTitle, content: noteEditContent }) }, 800)
+    const timeout = setTimeout(() => { updateNote(selectedNoteId, { title: noteEditTitle, content: noteEditContent, attachments: noteEditAttachments }) }, 800)
     return () => clearTimeout(timeout)
-  }, [noteEditTitle, noteEditContent, selectedNoteId, updateNote])
+  }, [noteEditTitle, noteEditContent, noteEditAttachments, selectedNoteId, updateNote])
 
   const handleCreateNote = useCallback(async () => {
     if (!client || isCreatingNote) return
@@ -232,6 +242,7 @@ export default function ParticipantProfilePage() {
       setSelectedNoteId(created.id)
       setNoteEditTitle(created.title)
       setNoteEditContent(created.content)
+      setNoteEditAttachments(created.attachments ?? [])
     }
   }, [client, isCreatingNote, addNote, id, currentUserName])
 
@@ -1598,7 +1609,7 @@ export default function ParticipantProfilePage() {
               )}
             </div>
 
-            {/* NDIS Plan Graph */}
+            {/* Highlights */}
             {(() => {
               if (plans.length === 0) return null
               const latest = plans[plans.length - 1]
@@ -1612,69 +1623,203 @@ export default function ParticipantProfilePage() {
 
               const totalBudget = services.reduce((sum, svc) => sum + svc.budget, 0)
               const totalUsed = services.reduce((sum, svc) => sum + getServiceUsed(svc), 0)
-              const usedPct = totalBudget > 0 ? (totalUsed / totalBudget) * 100 : 0
+              const usedPct = totalBudget > 0 ? Math.round((totalUsed / totalBudget) * 100) : 0
               const daysLeft = endDate ? Math.max(0, Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))) : 0
 
               const fmt = (n: number) => `$${n.toLocaleString("en-AU", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-              const fillColor = usedPct >= 90 ? "bg-red-500" : usedPct >= 70 ? "bg-amber-400" : "bg-[#2563EB]"
+              const daysValueColor = daysLeft <= 30 ? "text-amber-500" : "text-[#262626]"
+              const usedFill = usedPct >= 90 ? "bg-red-500" : usedPct >= 70 ? "bg-amber-400" : "bg-[#2563EB]"
+
+              interface Highlight {
+                label: string
+                icon: typeof DollarSign
+                value?: string
+                valueClass?: string
+                progress?: number
+                target: string
+              }
+              const highlights: Highlight[] = [
+                { label: "Plan amount", icon: DollarSign, value: fmt(totalBudget), valueClass: "text-[#7c3aed]", target: "plan" },
+                { label: "Amount used", icon: TrendingUp, progress: usedPct, target: "budgets" },
+                { label: "Days left", icon: CalendarDays, value: `${daysLeft} ${daysLeft === 1 ? "day" : "days"}`, valueClass: daysValueColor, target: "plan" },
+              ]
 
               return (
-                <div className="mt-[28px] rounded-[12px] border border-[#eee] px-[24px] py-[18px]">
-                  <div className="flex items-center justify-between gap-[12px]">
-                    <span className="text-[18px] font-semibold text-[#262626]">{fmt(totalBudget)}</span>
-                    <div className="flex items-center gap-[12px] text-[12px]">
-                      <span>
-                        <span className="font-semibold text-[#262626]">{Math.round(usedPct)}%</span>{" "}
-                        <span className="text-[#999]">used</span>
-                      </span>
-                      <span className="h-[12px] w-px bg-[#e5e5e5]" />
-                      <span>
-                        <span className="font-semibold text-[#262626]">{daysLeft}</span>{" "}
-                        <span className="text-[#999]">days left</span>
-                      </span>
-                    </div>
+                <div className="mt-[28px]">
+                  <h3 className="mb-[12px] text-[13px] font-medium text-[#888]">Highlights</h3>
+                  <div className="grid grid-cols-1 gap-[12px] sm:grid-cols-3">
+                    {highlights.map(({ label, icon: Icon, value, valueClass, progress, target }) => (
+                      <button
+                        key={label}
+                        onClick={() => setActiveTab(target)}
+                        className="flex flex-col rounded-[12px] border border-[#eee] bg-[#fafafa] px-[16px] py-[14px] text-left transition-colors hover:border-[#e0e0e0] hover:bg-[#f5f5f5]"
+                        tabIndex={0}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-[12px] font-medium text-[#888]">{label}</span>
+                          <Icon className="h-[14px] w-[14px] text-[#bbb]" strokeWidth={1.5} />
+                        </div>
+                        {progress !== undefined ? (
+                          <div className="mt-[14px] flex w-full items-center gap-[12px]">
+                            <div className="h-[16px] flex-1 overflow-hidden rounded-full bg-[#ececec]">
+                              <div className={`h-full rounded-full ${usedFill} transition-all`} style={{ width: `${Math.min(100, progress)}%` }} />
+                            </div>
+                            <span className="text-[16px] font-semibold text-[#999]">{progress}%</span>
+                          </div>
+                        ) : (
+                          <p className={`mt-[12px] text-[18px] font-semibold ${valueClass}`}>{value}</p>
+                        )}
+                      </button>
+                    ))}
                   </div>
 
-                  <div className="mt-[14px] h-[10px] w-full overflow-hidden rounded-full bg-[#f0f0f0]">
-                    <div className={`h-full rounded-full ${fillColor} transition-all`} style={{ width: `${Math.min(100, usedPct)}%` }} />
-                  </div>
+                  {/* Goal / recent task / recent note */}
+                  {(() => {
+                    const latestGoal = goals.length > 0 ? goals[goals.length - 1] : null
+                    const recentTask = clientTasks.find((t) => t.status !== "done") ?? clientTasks[0] ?? null
+
+                    const todayStart = new Date()
+                    todayStart.setHours(0, 0, 0, 0)
+
+                    const cadence = client.participant.checkInPeriod
+                    const advanceByCadence = (dateStr: string) => {
+                      const d = new Date(dateStr + "T00:00:00")
+                      switch (cadence) {
+                        case "Weekly": d.setDate(d.getDate() + 7); break
+                        case "Fortnightly": d.setDate(d.getDate() + 14); break
+                        case "Monthly": d.setMonth(d.getMonth() + 1); break
+                        case "Quarterly": d.setMonth(d.getMonth() + 3); break
+                        default: d.setMonth(d.getMonth() + 1); break
+                      }
+                      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+                    }
+
+                    let nextCheckInDate: string | null = null
+                    let nextCheckInTaskId: string | null = null
+                    if (cadence && cadence !== "As needed") {
+                      const incompleteCheckIns = clientTasks
+                        .filter((t) => t.isCheckUp && t.status !== "done" && t.dueDate)
+                        .sort((a, b) => (a.dueDate! < b.dueDate! ? -1 : 1))
+                      if (incompleteCheckIns.length > 0) {
+                        nextCheckInDate = incompleteCheckIns[0].dueDate!
+                        nextCheckInTaskId = incompleteCheckIns[0].id
+                      } else {
+                        const lastCompleted = clientTasks
+                          .filter((t) => t.isCheckUp && t.status === "done" && t.dueDate)
+                          .sort((a, b) => (a.dueDate! < b.dueDate! ? 1 : -1))[0]
+                        if (lastCompleted) nextCheckInDate = advanceByCadence(lastCompleted.dueDate!)
+                        else if (client.participant.checkInStartDate) nextCheckInDate = client.participant.checkInStartDate
+                      }
+                    }
+
+                    const checkInDaysUntil = nextCheckInDate
+                      ? Math.ceil((new Date(nextCheckInDate + "T00:00:00").getTime() - todayStart.getTime()) / 86400000)
+                      : null
+                    const checkInDaysLabel = checkInDaysUntil === null
+                      ? ""
+                      : checkInDaysUntil < 0
+                        ? `Overdue by ${Math.abs(checkInDaysUntil)} ${Math.abs(checkInDaysUntil) === 1 ? "day" : "days"}`
+                        : checkInDaysUntil === 0
+                          ? "Due today"
+                          : `In ${checkInDaysUntil} ${checkInDaysUntil === 1 ? "day" : "days"}`
+
+                    const goalStatus = latestGoal ? (goalStatusConfig[latestGoal.status] ?? goalStatusConfig["not-started"]) : null
+                    const taskStatusLabel: Record<string, string> = { todo: "To do", "in-progress": "In progress", done: "Done" }
+                    const initialsOf = (name: string) => name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+                    const taskClientInitials = recentTask?.client ? initialsOf(recentTask.client) : ""
+                    const taskAssigneeInitials = recentTask?.assignee ? initialsOf(recentTask.assignee) : ""
+
+                    return (
+                      <div className="mt-[12px] grid grid-cols-1 gap-[12px] sm:grid-cols-3">
+                        <button
+                          onClick={() => latestGoal && initEditGoalForm(latestGoal)}
+                          disabled={!latestGoal}
+                          className="flex flex-col rounded-[12px] border border-[#eee] bg-[#fafafa] px-[16px] py-[14px] text-left transition-colors enabled:hover:border-[#e0e0e0] enabled:hover:bg-[#f5f5f5] disabled:cursor-default"
+                          tabIndex={0}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[12px] font-medium text-[#888]">Goal</span>
+                            <Target className="h-[14px] w-[14px] text-[#bbb]" strokeWidth={1.5} />
+                          </div>
+                          {latestGoal ? (
+                            <>
+                              <p className="mt-[12px] truncate text-[15px] font-semibold text-[#262626]">{latestGoal.title || "Untitled goal"}</p>
+                              {goalStatus && <p className="mt-[2px] text-[12px] text-[#999]">{goalStatus.label}</p>}
+                            </>
+                          ) : (
+                            <p className="mt-[12px] text-[15px] font-medium text-[#ccc]">No goals yet</p>
+                          )}
+                        </button>
+
+                        <button
+                          onClick={() => recentTask && router.push(`/tasks?task=${recentTask.id}`)}
+                          disabled={!recentTask}
+                          className="flex flex-col rounded-[12px] border border-[#eee] bg-[#fafafa] px-[16px] py-[14px] text-left transition-colors enabled:hover:border-[#e0e0e0] enabled:hover:bg-[#f5f5f5] disabled:cursor-default"
+                          tabIndex={0}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[12px] font-medium text-[#888]">Recent task</span>
+                            <CheckSquare className="h-[14px] w-[14px] text-[#bbb]" strokeWidth={1.5} />
+                          </div>
+                          {recentTask ? (
+                            <>
+                              <p className="mt-[12px] truncate text-[15px] font-semibold text-[#262626]">{recentTask.title || "Untitled task"}</p>
+                              <div className="mt-[6px] flex items-center justify-between gap-[8px]">
+                                <p className="text-[12px] text-[#999]">
+                                  {recentTask.dueDate
+                                    ? new Date(recentTask.dueDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short" })
+                                    : taskStatusLabel[recentTask.status]}
+                                </p>
+                                {(taskClientInitials || taskAssigneeInitials) && (
+                                  <div className="flex shrink-0 items-center">
+                                    {taskAssigneeInitials && (
+                                      <span className="group/avatar relative">
+                                        <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#e5e5e5] text-[9px] font-bold text-[#555] ring-2 ring-[#fafafa]">{taskAssigneeInitials}</span>
+                                        <span className="pointer-events-none absolute bottom-[calc(100%+5px)] left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-[4px] bg-[#262626] px-[6px] py-[3px] text-[10px] font-medium text-white opacity-0 transition-opacity duration-75 group-hover/avatar:opacity-100">{recentTask.assignee}</span>
+                                      </span>
+                                    )}
+                                    {taskClientInitials && (
+                                      <span className={`group/avatar relative ${taskAssigneeInitials ? "-ml-[6px]" : ""}`}>
+                                        <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-blue-100 text-[9px] font-bold text-blue-600 ring-2 ring-[#fafafa]">{taskClientInitials}</span>
+                                        <span className="pointer-events-none absolute bottom-[calc(100%+5px)] left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-[4px] bg-[#262626] px-[6px] py-[3px] text-[10px] font-medium text-white opacity-0 transition-opacity duration-75 group-hover/avatar:opacity-100">{recentTask.client}</span>
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            <p className="mt-[12px] text-[15px] font-medium text-[#ccc]">No tasks yet</p>
+                          )}
+                        </button>
+
+                        <button
+                          onClick={() => nextCheckInTaskId && router.push(`/tasks?task=${nextCheckInTaskId}`)}
+                          disabled={!nextCheckInTaskId}
+                          className="flex flex-col rounded-[12px] border border-[#eee] bg-[#fafafa] px-[16px] py-[14px] text-left transition-colors enabled:hover:border-[#e0e0e0] enabled:hover:bg-[#f5f5f5] disabled:cursor-default"
+                          tabIndex={0}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[12px] font-medium text-[#888]">Next check-in</span>
+                            <CalendarDays className="h-[14px] w-[14px] text-[#bbb]" strokeWidth={1.5} />
+                          </div>
+                          {nextCheckInDate ? (
+                            <>
+                              <p className="mt-[12px] truncate text-[15px] font-semibold text-[#262626]">
+                                {new Date(nextCheckInDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "long" })}
+                              </p>
+                              <p className="mt-[2px] text-[12px] text-[#999]">{checkInDaysLabel}</p>
+                            </>
+                          ) : (
+                            <p className="mt-[12px] text-[15px] font-medium text-[#ccc]">No check-in scheduled</p>
+                          )}
+                        </button>
+                      </div>
+                    )
+                  })()}
                 </div>
               )
             })()}
-
-            {/* Goals */}
-            <div className="mt-[28px]">
-              <div className="flex items-center justify-between">
-                <h3 className="text-[13px] font-medium text-[#888]">Goals</h3>
-              </div>
-              {goals.length === 0 ? (
-                <p className="mt-[10px] text-[13px] text-[#bbb]">No goals yet.</p>
-              ) : (
-                <div className="mt-[12px] flex flex-col gap-[8px]">
-                  {[...goals].reverse().map((goal) => {
-                    const status = goalStatusConfig[goal.status] ?? goalStatusConfig["not-started"]
-                    const type = goalTypeConfig[goal.goalType] ?? goalTypeConfig["short-term"]
-                    const taskCount = goal.linkedTasks?.length ?? 0
-                    return (
-                      <button
-                        key={goal.id}
-                        onClick={() => initEditGoalForm(goal)}
-                        className="flex w-full items-center gap-[12px] rounded-[10px] border border-[#eee] px-[16px] py-[12px] text-left transition-colors hover:border-[#e0e0e0] hover:bg-[#fafafa]"
-                        tabIndex={0}
-                      >
-                        <Target className="h-[15px] w-[15px] shrink-0 text-[#888]" strokeWidth={1.75} />
-                        <span className="min-w-0 flex-1 truncate text-[14px] font-medium text-[#262626]">
-                          {goal.title || <span className="text-[#bbb]">Untitled goal</span>}
-                        </span>
-                        <span className="inline-flex h-[22px] shrink-0 items-center whitespace-nowrap rounded-[6px] bg-[#e8edf2] px-[10px] text-[11px] font-medium text-[#334155]">{type.label}</span>
-                        <span className={`inline-flex h-[22px] shrink-0 items-center whitespace-nowrap rounded-[6px] px-[10px] text-[11px] font-medium ${status.chip}`}>{status.label}</span>
-                        <span className="shrink-0 text-[12px] font-medium text-[#999]">{taskCount} {taskCount === 1 ? "task" : "tasks"}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
 
             {/* Activity Feed */}
             <div className="mt-[28px]">
@@ -2001,9 +2146,12 @@ export default function ParticipantProfilePage() {
           note={selectedNote}
           editTitle={noteEditTitle}
           editContent={noteEditContent}
+          editAttachments={noteEditAttachments}
           onEditTitle={setNoteEditTitle}
           onEditContent={setNoteEditContent}
+          onEditAttachments={setNoteEditAttachments}
           onClose={closeNoteEditor}
+          onSaveAndClose={saveAndCloseNote}
           onDelete={handleDeleteNote}
           onToggleFavorite={toggleNoteFavorite}
           isFavorite={noteFavorites.includes(selectedNote.id)}

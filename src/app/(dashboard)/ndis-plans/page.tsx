@@ -18,9 +18,6 @@ import {
   ArrowUpRight,
   ListFilter,
   SlidersHorizontal,
-  ArrowUpDown,
-  ArrowDown,
-  ArrowUp,
   ArrowLeft,
   ArrowRight,
   EyeOff,
@@ -96,8 +93,6 @@ export default function NdisPlansPage() {
   const { invoices } = useInvoices()
 
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(defaultVisibleKeys)
-  const [sortKey, setSortKey] = useState<string | null>(null)
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
   const [isDisplayOpen, setIsDisplayOpen] = useState(false)
   const [columnMenuKey, setColumnMenuKey] = useState<string | null>(null)
   const [columnMenuPos, setColumnMenuPos] = useState<{ top: number; left: number } | null>(null)
@@ -223,41 +218,13 @@ export default function NdisPlansPage() {
     return rows
   }, [planRows, statusFilter, clientFilter])
 
-  const sortedRows = useMemo(() => {
-    if (!sortKey) {
-      return [...filteredRows].sort((a, b) => {
-        if (a.status.label === "Active" && b.status.label !== "Active") return -1
-        if (a.status.label !== "Active" && b.status.label === "Active") return 1
-        return (b.plan.startDate || "").localeCompare(a.plan.startDate || "")
-      })
-    }
-
+  const displayRows = useMemo(() => {
     return [...filteredRows].sort((a, b) => {
-      let valA = 0, valB = 0
-      let strA = "", strB = ""
-      let isNumeric = false
-
-      switch (sortKey) {
-        case "participant": strA = a.clientName; strB = b.clientName; break
-        case "total": valA = a.totalBudget; valB = b.totalBudget; isNumeric = true; break
-        case "used": valA = a.totalUsed; valB = b.totalUsed; isNumeric = true; break
-        case "remaining": valA = a.remaining; valB = b.remaining; isNumeric = true; break
-        case "usage": valA = a.usagePct; valB = b.usagePct; isNumeric = true; break
-        case "burnRate": valA = a.usagePct - a.timePct; valB = b.usagePct - b.timePct; isNumeric = true; break
-        case "daysRemaining": valA = a.daysRemaining; valB = b.daysRemaining; isNumeric = true; break
-        case "timeElapsed": valA = a.timePct; valB = b.timePct; isNumeric = true; break
-        case "monthlySpend": valA = a.monthlySpend; valB = b.monthlySpend; isNumeric = true; break
-        case "projectedEnd": valA = a.projectedEnd; valB = b.projectedEnd; isNumeric = true; break
-        case "startDate": strA = a.plan.startDate || ""; strB = b.plan.startDate || ""; break
-        case "endDate": strA = a.plan.endDate || ""; strB = b.plan.endDate || ""; break
-        case "status": strA = a.status.label; strB = b.status.label; break
-        default: break
-      }
-
-      const cmp = isNumeric ? valA - valB : strA.localeCompare(strB)
-      return sortDirection === "asc" ? cmp : -cmp
+      if (a.status.label === "Active" && b.status.label !== "Active") return -1
+      if (a.status.label !== "Active" && b.status.label === "Active") return 1
+      return (b.plan.startDate || "").localeCompare(a.plan.startDate || "")
     })
-  }, [filteredRows, sortKey, sortDirection])
+  }, [filteredRows])
 
   if (isLoading) return <PageLoader label="Loading plans…" />
   if (fetchError) return <PageError message="Failed to load plans" onRetry={refetch} />
@@ -367,7 +334,7 @@ export default function NdisPlansPage() {
     }
   }
 
-  const selectedRow = sortedRows.find((r) => `${r.clientId}-${r.plan.id}` === selectedRowKey) || null
+  const selectedRow = displayRows.find((r) => `${r.clientId}-${r.plan.id}` === selectedRowKey) || null
 
   return (
     <div className="flex h-full flex-col">
@@ -559,30 +526,6 @@ export default function NdisPlansPage() {
                   return { top: rect.bottom + 4, right: window.innerWidth - rect.right }
                 })()}
               >
-                <div className="flex items-center justify-between border-b border-[#f0f0f0] px-[20px] py-[14px]">
-                  <div className="flex items-center gap-[8px] text-[13px] font-semibold text-[#262626]">
-                    <ArrowUpDown className="h-[14px] w-[14px] text-[#888]" strokeWidth={1.75} />
-                    <span>Sorting</span>
-                  </div>
-                  <div className="flex items-center gap-[6px]">
-                    <button className="flex items-center gap-[6px] rounded-[4px] border border-[#dcdcdc] px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
-                      <span>{sortKey ? (allColumns.find((c) => c.key === sortKey)?.label || "Default") : "Default"}</span>
-                      <ChevronDown className="h-[12px] w-[12px] text-[#888]" strokeWidth={1.5} />
-                    </button>
-                    <button
-                      onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
-                      className="flex h-[32px] w-[32px] items-center justify-center rounded-[4px] border border-[#dcdcdc] text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                      tabIndex={0}
-                    >
-                      {sortDirection === "asc" ? (
-                        <ArrowUp className="h-[14px] w-[14px]" strokeWidth={1.75} />
-                      ) : (
-                        <ArrowDown className="h-[14px] w-[14px]" strokeWidth={1.75} />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
                 <div className="border-b border-[#f0f0f0] px-[20px] py-[14px]">
                   <div className="flex items-center gap-[8px]">
                     <button
@@ -627,7 +570,7 @@ export default function NdisPlansPage() {
 
                 <div className="flex items-center gap-[20px] border-t border-[#f0f0f0] px-[20px] py-[12px]">
                   <button
-                    onClick={() => { setVisibleColumnKeys(defaultVisibleKeys); setSortKey(null); setSortDirection("asc"); setViewMode("list") }}
+                    onClick={() => { setVisibleColumnKeys(defaultVisibleKeys); setViewMode("list") }}
                     className="text-[13px] font-medium text-[#bbb] transition-colors hover:text-[#262626]"
                     tabIndex={0}
                   >
@@ -660,7 +603,7 @@ export default function NdisPlansPage() {
                   const isActive = statusFilter.includes(label)
                   return (
                     <button key={label} onClick={() => setStatusFilter((prev) => isActive ? prev.filter((f) => f !== label) : [...prev, label])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
-                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
+                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
                         {isActive && <span className="text-[10px] text-white">✓</span>}
                       </div>
                       <span className="text-[#262626]">{label}</span>
@@ -685,7 +628,7 @@ export default function NdisPlansPage() {
                   const isActive = clientFilter.includes(name)
                   return (
                     <button key={name} onClick={() => setClientFilter((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
-                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#262626] bg-[#262626]" : "border-[#d0d0d0]"}`}>
+                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
                         {isActive && <span className="text-[10px] text-white">✓</span>}
                       </div>
                       <span className="text-[#262626]">{name}</span>
@@ -714,46 +657,7 @@ export default function NdisPlansPage() {
                     <div className="flex items-center gap-[6px]">
                       <UserRound className="h-[13px] w-[13px] shrink-0 text-[#999]" strokeWidth={1.5} />
                       <span className="truncate">Participant</span>
-                      <button
-                        onClick={(e) => {
-                          if (columnMenuKey === "participant") { setColumnMenuKey(null); setColumnMenuPos(null); return }
-                          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                          setColumnMenuPos({ top: rect.bottom + 4, left: Math.max(8, rect.right - 200) })
-                          setColumnMenuKey("participant")
-                        }}
-                        className={`ml-auto flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded transition-all ${columnMenuKey === "participant" ? "bg-[#ebebeb] text-[#262626] opacity-100" : "text-[#999] opacity-0 hover:bg-[#ebebeb] hover:text-[#262626] group-hover/col:opacity-100"}`}
-                        tabIndex={0}
-                        aria-label="Column options for Participant"
-                      >
-                        <ChevronDown className="h-[12px] w-[12px]" strokeWidth={2} />
-                      </button>
                     </div>
-                    {columnMenuKey === "participant" && columnMenuPos && (
-                      <>
-                        <div className="fixed inset-0 z-40" onClick={() => { setColumnMenuKey(null); setColumnMenuPos(null) }} />
-                        <div
-                          className="fixed z-50 w-[200px] overflow-hidden rounded-lg border border-[#dcdcdc] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-                          style={{ top: columnMenuPos.top, left: columnMenuPos.left }}
-                        >
-                          <button
-                            onClick={() => { setSortKey("participant"); setSortDirection("asc"); setColumnMenuKey(null); setColumnMenuPos(null) }}
-                            className="flex w-full items-center gap-[12px] px-[16px] py-[10px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                            tabIndex={0}
-                          >
-                            <ArrowUp className="h-[15px] w-[15px] text-[#888]" strokeWidth={1.75} />
-                            <span>Sort ascending</span>
-                          </button>
-                          <button
-                            onClick={() => { setSortKey("participant"); setSortDirection("desc"); setColumnMenuKey(null); setColumnMenuPos(null) }}
-                            className="flex w-full items-center gap-[12px] px-[16px] py-[10px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                            tabIndex={0}
-                          >
-                            <ArrowDown className="h-[15px] w-[15px] text-[#888]" strokeWidth={1.75} />
-                            <span>Sort descending</span>
-                          </button>
-                        </div>
-                      </>
-                    )}
                   </th>
                   {visibleColumns.map((col, i) => {
                     const ColIcon = col.icon
@@ -795,23 +699,6 @@ export default function NdisPlansPage() {
                               style={{ top: columnMenuPos.top, left: columnMenuPos.left }}
                             >
                               <button
-                                onClick={() => { setSortKey(col.key); setSortDirection("asc"); setColumnMenuKey(null); setColumnMenuPos(null) }}
-                                className="flex w-full items-center gap-[12px] px-[16px] py-[10px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                                tabIndex={0}
-                              >
-                                <ArrowUp className="h-[15px] w-[15px] text-[#888]" strokeWidth={1.75} />
-                                <span>Sort ascending</span>
-                              </button>
-                              <button
-                                onClick={() => { setSortKey(col.key); setSortDirection("desc"); setColumnMenuKey(null); setColumnMenuPos(null) }}
-                                className="flex w-full items-center gap-[12px] px-[16px] py-[10px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                                tabIndex={0}
-                              >
-                                <ArrowDown className="h-[15px] w-[15px] text-[#888]" strokeWidth={1.75} />
-                                <span>Sort descending</span>
-                              </button>
-                              <div className="my-[4px] border-t border-[#f0f0f0]" />
-                              <button
                                 onClick={() => handleMoveColumn(col.key, "left")}
                                 disabled={isFirst}
                                 className={`flex w-full items-center gap-[12px] px-[16px] py-[10px] text-[13px] font-medium transition-colors ${isFirst ? "text-[#bbb]" : "text-[#262626] hover:bg-[#f5f5f5]"}`}
@@ -851,14 +738,14 @@ export default function NdisPlansPage() {
                 </tr>
               </thead>
               <tbody>
-                {sortedRows.length === 0 ? (
+                {displayRows.length === 0 ? (
                   <tr>
                     <td colSpan={visibleColumns.length + 1} className="h-[200px] text-center text-[13px] font-medium text-[#bbb]">
                       No NDIS plans found
                     </td>
                   </tr>
                 ) : (
-                  sortedRows.map((row) => {
+                  displayRows.map((row) => {
                     const rowKey = `${row.clientId}-${row.plan.id}`
                     const isSelected = selectedRowKey === rowKey
                     const cellBase = `h-[44px] overflow-hidden whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] ${isSelected ? "bg-[#eef4ff]" : "bg-[#fafafa] group-hover:bg-[#f5f5f5]"}`
@@ -894,20 +781,20 @@ export default function NdisPlansPage() {
 
           <div className="shrink-0 border-t border-[#dcdcdc] px-[20px] py-[10px]">
             <span className="text-[12px] font-medium text-[#999]">
-              {sortedRows.length} {sortedRows.length === 1 ? "plan" : "plans"}
+              {displayRows.length} {displayRows.length === 1 ? "plan" : "plans"}
             </span>
           </div>
         </>
       ) : (
         <>
           <div className="flex-1 overflow-auto bg-[#fafafa] px-[24px] py-[24px]">
-            {sortedRows.length === 0 ? (
+            {displayRows.length === 0 ? (
               <div className="flex h-[200px] items-center justify-center">
                 <span className="text-[13px] font-medium text-[#bbb]">No NDIS plans found</span>
               </div>
             ) : (
               <div className="grid grid-cols-3 gap-[20px]">
-                {sortedRows.map((row) => {
+                {displayRows.map((row) => {
                   const usedPct = Math.min(100, row.usagePct)
                   const remPct = 100 - usedPct
                   const sz = 120
@@ -981,7 +868,7 @@ export default function NdisPlansPage() {
 
           <div className="shrink-0 border-t border-[#dcdcdc] px-[20px] py-[10px]">
             <span className="text-[12px] font-medium text-[#999]">
-              {sortedRows.length} {sortedRows.length === 1 ? "plan" : "plans"}
+              {displayRows.length} {displayRows.length === 1 ? "plan" : "plans"}
             </span>
           </div>
         </>

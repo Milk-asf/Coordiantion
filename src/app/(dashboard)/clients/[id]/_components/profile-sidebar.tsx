@@ -10,6 +10,7 @@ import { GoalSidebarForm, type GoalFormData, type ResolvedGoalTask } from "./goa
 import {
   SidebarDetailRow,
   SidebarEditableField,
+  SidebarCheckInField,
   SidebarContactChip,
   SidebarDiagnosisChip,
 } from "./client-profile-helpers"
@@ -22,6 +23,7 @@ import {
   PanelRightClose,
   X,
   Upload,
+  Info,
 } from "lucide-react"
 
 interface ProfileSidebarProps {
@@ -454,7 +456,7 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
                                         className={`flex w-full items-center gap-[10px] px-[12px] py-[7px] text-left transition-colors hover:bg-[#f5f5f5] ${isChecked ? "bg-[#f0f0f0]" : ""}`}
                                         tabIndex={0}
                                       >
-                                        <div className={`flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-[4px] border transition-colors ${isChecked ? "border-[#262626] bg-[#262626]" : "border-[#d4d4d4] bg-white"}`}>
+                                        <div className={`flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-[4px] border transition-colors ${isChecked ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d4d4d4] bg-white"}`}>
                                           {isChecked && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                                         </div>
                                         <div className="min-w-0 flex-1">
@@ -620,7 +622,7 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
                                 className={`flex w-full items-center gap-[10px] px-[12px] py-[7px] text-left transition-colors hover:bg-[#f5f5f5] ${isChecked ? "bg-[#f0f0f0]" : ""}`}
                                 tabIndex={0}
                               >
-                                <div className={`flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-[4px] border transition-colors ${isChecked ? "border-[#262626] bg-[#262626]" : "border-[#d4d4d4] bg-white"}`}>
+                                <div className={`flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-[4px] border transition-colors ${isChecked ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d4d4d4] bg-white"}`}>
                                   {isChecked && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                                 </div>
                                 <div className="min-w-0 flex-1">
@@ -855,7 +857,7 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
                                   className={`flex w-full items-center gap-[10px] px-[12px] py-[7px] text-left transition-colors hover:bg-[#f5f5f5] ${isSelected ? "bg-[#f0f0f0]" : ""}`}
                                   tabIndex={0}
                                 >
-                                  <div className={`flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full border transition-colors ${isSelected ? "border-[#262626] bg-[#262626]" : "border-[#d4d4d4] bg-white"}`}>
+                                  <div className={`flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full border transition-colors ${isSelected ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d4d4d4] bg-white"}`}>
                                     {isSelected && <div className="h-[6px] w-[6px] rounded-full bg-white" />}
                                   </div>
                                   <div className="min-w-0 flex-1">
@@ -917,7 +919,7 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
                                   className={`flex w-full items-center gap-[10px] px-[12px] py-[7px] text-left transition-colors hover:bg-[#f5f5f5] ${isSelected ? "bg-[#f0f0f0]" : ""}`}
                                   tabIndex={0}
                                 >
-                                  <div className={`flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full border transition-colors ${isSelected ? "border-[#262626] bg-[#262626]" : "border-[#d4d4d4] bg-white"}`}>
+                                  <div className={`flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full border transition-colors ${isSelected ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d4d4d4] bg-white"}`}>
                                     {isSelected && <div className="h-[6px] w-[6px] rounded-full bg-white" />}
                                   </div>
                                   <span className="text-[12px] font-medium text-[#262626]">{label}</span>
@@ -1046,7 +1048,7 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
                           className={`flex w-full items-center gap-[10px] px-[12px] py-[7px] text-left transition-colors hover:bg-[#f5f5f5] ${isSelected ? "bg-[#f0f0f0]" : ""}`}
                           tabIndex={0}
                         >
-                          <div className={`flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full border transition-colors ${isSelected ? "border-[#262626] bg-[#262626]" : "border-[#d4d4d4] bg-white"}`}>
+                          <div className={`flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full border transition-colors ${isSelected ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d4d4d4] bg-white"}`}>
                             {isSelected && <div className="h-[6px] w-[6px] rounded-full bg-white" />}
                           </div>
                           <div className="min-w-0 flex-1">
@@ -1108,7 +1110,7 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
                           className={`flex w-full items-center gap-[10px] px-[12px] py-[7px] text-left transition-colors hover:bg-[#f5f5f5] ${isSelected ? "bg-[#f0f0f0]" : ""}`}
                           tabIndex={0}
                         >
-                          <div className={`flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full border transition-colors ${isSelected ? "border-[#262626] bg-[#262626]" : "border-[#d4d4d4] bg-white"}`}>
+                          <div className={`flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full border transition-colors ${isSelected ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d4d4d4] bg-white"}`}>
                             {isSelected && <div className="h-[6px] w-[6px] rounded-full bg-white" />}
                           </div>
                           <span className="text-[12px] font-medium text-[#262626]">{label}</span>
@@ -1340,13 +1342,22 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
         {p.fundingType !== "ndia-managed" && (
           <>
             <SidebarDetailRow label="Invoice Email">
-              {p.fundingType === "self-managed" ? (
-                <SidebarContactChip value={p.email} onChange={(v) => onUpdateField("email", v)} placeholder="Invoice email" variant="white" />
-              ) : (
-                <SidebarContactChip value={p.planManagerEmail} onChange={(v) => onUpdateField("planManagerEmail", v)} placeholder="Invoice email" variant="white" />
-              )}
+              <div className="flex min-w-0 flex-1 items-center gap-[6px]">
+                <div className="min-w-0 flex-1">
+                  {p.fundingType === "self-managed" ? (
+                    <SidebarContactChip value={p.email} onChange={(v) => onUpdateField("email", v)} placeholder="Invoice email" variant="white" />
+                  ) : (
+                    <SidebarContactChip value={p.planManagerEmail} onChange={(v) => onUpdateField("planManagerEmail", v)} placeholder="Invoice email" variant="white" />
+                  )}
+                </div>
+                <span className="group/info relative flex shrink-0">
+                  <Info className="h-[13px] w-[13px] cursor-help text-[#bbb] transition-colors hover:text-[#888]" strokeWidth={1.5} />
+                  <span className="pointer-events-none absolute bottom-[calc(100%+6px)] right-0 z-20 w-[170px] rounded-[6px] bg-[#262626] px-[8px] py-[5px] text-[11px] leading-[1.4] text-white opacity-0 transition-opacity duration-75 group-hover/info:opacity-100">
+                    Invoices are sent to this email address.
+                  </span>
+                </span>
+              </div>
             </SidebarDetailRow>
-            <p className="mt-[4px] px-[2px] text-[11px] leading-[1.45] text-[#999]">Invoices are sent to this email address.</p>
           </>
         )}
 
@@ -1359,7 +1370,12 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
           <SidebarEditableField value={p.serviceExitDate} onChange={(v) => onUpdateField("serviceExitDate", v)} type="date" placeholder="Exit date" />
         </SidebarDetailRow>}
         <SidebarDetailRow label="Check-in">
-          <SidebarEditableField value={p.checkInPeriod} onChange={(v) => onUpdateField("checkInPeriod", v)} type="select" options={["Weekly", "Fortnightly", "Monthly", "Quarterly", "As needed"]} />
+          <SidebarCheckInField
+            period={p.checkInPeriod}
+            startDate={p.checkInStartDate}
+            onChangePeriod={(v) => onUpdateField("checkInPeriod", v)}
+            onChangeStartDate={(v) => onUpdateField("checkInStartDate", v)}
+          />
         </SidebarDetailRow>
       </div>
       </>

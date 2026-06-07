@@ -177,7 +177,7 @@ export default function GeneralSettingsPage() {
         </div>
         <div className="flex items-center gap-[8px]">
           {saved && !isDirty && (
-            <div className="flex items-center gap-[6px] text-[13px] font-medium text-green-600">
+            <div className="flex items-center gap-[6px] text-[13px] font-medium text-[#2563EB]">
               <Check className="h-[14px] w-[14px]" strokeWidth={2} />
               Saved
             </div>

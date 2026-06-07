@@ -13,9 +13,12 @@ interface DatePickerProps {
   onChange: (value: string) => void
   onClose: () => void
   quickPresets?: QuickPreset[]
+  bare?: boolean
+  hideQuickDates?: boolean
+  selectedClassName?: string
 }
 
-export function DatePicker({ value, onChange, onClose, quickPresets }: DatePickerProps) {
+export function DatePicker({ value, onChange, onClose, quickPresets, bare = false, hideQuickDates = false, selectedClassName = "bg-[#2563EB] text-white" }: DatePickerProps) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
@@ -63,7 +66,8 @@ export function DatePicker({ value, onChange, onClose, quickPresets }: DatePicke
   ]
 
   return (
-    <div className="w-[260px] rounded-lg border border-[#e0e0e0] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+    <div className={bare ? "w-full" : "w-[260px] rounded-lg border border-[#e0e0e0] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]"}>
+      {!hideQuickDates && (
       <div className="flex gap-[4px] border-b border-[#f0f0f0] px-[12px] py-[8px]">
         {quickDates.map((quickDate) => {
           const quickDateValue = new Date(today)
@@ -80,7 +84,7 @@ export function DatePicker({ value, onChange, onClose, quickPresets }: DatePicke
                 onChange(dateStr)
                 onClose()
               }}
-              className={`rounded px-[8px] py-[4px] text-[11px] font-medium transition-colors ${isSelected ? "bg-[#262626] text-white" : "text-[#555] hover:bg-[#f5f5f5]"}`}
+              className={`rounded px-[8px] py-[4px] text-[11px] font-medium transition-colors ${isSelected ? "bg-[#2563EB] text-white" : "text-[#555] hover:bg-[#f5f5f5]"}`}
               tabIndex={0}
             >
               {quickDate.label}
@@ -88,6 +92,7 @@ export function DatePicker({ value, onChange, onClose, quickPresets }: DatePicke
           )
         })}
       </div>
+      )}
 
       <div className="flex items-center justify-between px-[12px] py-[8px]">
         <button
@@ -136,7 +141,7 @@ export function DatePicker({ value, onChange, onClose, quickPresets }: DatePicke
                 onClick={() => handleSelect(day)}
                 className={`flex h-[30px] w-full items-center justify-center rounded text-[12px] font-medium transition-colors ${
                   isSelected
-                    ? "bg-[#262626] text-white"
+                    ? selectedClassName
                     : isToday
                       ? "bg-[#f0f0f0] text-[#262626] hover:bg-[#e5e5e5]"
                       : "text-[#555] hover:bg-[#f5f5f5]"
@@ -163,7 +168,7 @@ export function DatePicker({ value, onChange, onClose, quickPresets }: DatePicke
                   onClick={() => { onChange(preset.value); onClose() }}
                   className={`rounded-[5px] border px-[8px] py-[3px] text-[11px] font-medium transition-colors ${
                     isSelected
-                      ? "border-[#262626] bg-[#262626] text-white"
+                      ? "border-[#2563EB] bg-[#2563EB] text-white"
                       : "border-[#e0e0e0] bg-white text-[#555] hover:border-[#ccc] hover:bg-[#f5f5f5]"
                   }`}
                   tabIndex={0}

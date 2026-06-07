@@ -1,16 +1,20 @@
 "use client"
 
 import type React from "react"
+import { useRef, useState } from "react"
 import { EntityIcon } from "@/components/entity-icon"
 import { EditableField } from "@/components/editable-field"
 import { ContactChip } from "@/components/contact-chip"
 import { DetailRow } from "@/components/detail-row"
+import { DatePicker } from "@/components/date-picker"
 import {
   FileImage,
   FileSpreadsheet,
   FileVideo,
   FileText,
   File,
+  ChevronDown,
+  Check,
 } from "lucide-react"
 import type { Client } from "@/lib/types"
 
@@ -88,6 +92,101 @@ export function SidebarEditableField({
       size="compact"
       displayClassName={displayClassName}
     />
+  )
+}
+
+export function SidebarCheckInField({
+  period,
+  startDate,
+  onChangePeriod,
+  onChangeStartDate,
+}: {
+  period: string
+  startDate: string
+  onChangePeriod: (val: string) => void
+  onChangeStartDate: (val: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({})
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const cadenceOptions = ["Weekly", "Fortnightly", "Monthly", "Quarterly"]
+  const MENU_WIDTH = 260
+
+  function openMenu() {
+    const trigger = triggerRef.current
+    if (!trigger) {
+      setOpen(true)
+      return
+    }
+    const rect = trigger.getBoundingClientRect()
+    const estHeight = 440
+    const gap = 4
+    const left = Math.max(8, Math.min(rect.right - MENU_WIDTH, window.innerWidth - MENU_WIDTH - 8))
+    const spaceBelow = window.innerHeight - rect.bottom
+    const openUp = spaceBelow < estHeight && rect.top > spaceBelow
+    const style: React.CSSProperties = { left }
+    if (openUp) style.bottom = window.innerHeight - rect.top + gap
+    else style.top = rect.bottom + gap
+    setMenuStyle(style)
+    setOpen(true)
+  }
+
+  const summary = startDate
+    ? `${new Date(startDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short" })}${period ? ` · ${period}` : ""}`
+    : period || ""
+
+  return (
+    <div className="relative flex-1">
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => (open ? setOpen(false) : openMenu())}
+        className="flex w-full items-center justify-between gap-[8px] rounded-[6px] px-[6px] py-[4px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5]"
+        tabIndex={0}
+        aria-label="Set check-in cadence and start date"
+      >
+        <span className={summary ? "text-[#262626]" : "text-[#bbb]"}>{summary || "Set check-in"}</span>
+        <ChevronDown className="h-[14px] w-[14px] shrink-0 text-[#999]" strokeWidth={1.5} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-[59]" onClick={() => setOpen(false)} />
+          <div style={menuStyle} className="fixed z-[60] max-h-[calc(100vh-16px)] w-[260px] overflow-auto rounded-lg border border-[#e0e0e0] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
+            <div className="px-[10px] pb-[8px] pt-[10px]">
+              <p className="mb-[6px] px-[2px] text-[10px] font-semibold uppercase tracking-wide text-[#999]">Date</p>
+              <DatePicker
+                value={startDate}
+                onChange={(v) => onChangeStartDate(v)}
+                onClose={() => setOpen(false)}
+                bare
+                hideQuickDates
+                selectedClassName="bg-[#2563EB] text-white"
+              />
+            </div>
+            <div className="border-t border-[#f0f0f0] py-[4px]">
+              <p className="mb-[2px] px-[12px] pt-[6px] text-[10px] font-semibold uppercase tracking-wide text-[#999]">How often</p>
+              {cadenceOptions.map((opt) => {
+                const isSelected = period === opt
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => onChangePeriod(opt)}
+                    className={`flex w-full items-center justify-between px-[12px] py-[6px] text-left text-[13px] font-medium transition-colors ${
+                      isSelected ? "bg-blue-50 text-[#2563EB]" : "text-[#555] hover:bg-[#f5f5f5]"
+                    }`}
+                    tabIndex={0}
+                  >
+                    {opt}
+                    {isSelected && <Check className="h-[14px] w-[14px] text-[#2563EB]" strokeWidth={2} />}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
   )
 }
 
