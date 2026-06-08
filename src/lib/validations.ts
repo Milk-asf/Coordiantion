@@ -100,3 +100,19 @@ export const inviteMemberSchema = z.object({
   workspaceId: z.string().uuid("A valid workspace ID is required"),
   role: z.enum(["super-admin", "admin", "coordinator"]).optional().default("coordinator"),
 })
+
+export const xeroWorkspaceSchema = z.object({
+  workspaceId: z.string().uuid("A valid workspace ID is required"),
+})
+
+export const xeroSettingsSchema = z.object({
+  workspaceId: z.string().uuid("A valid workspace ID is required"),
+  revenueAccountCode: z.string().min(1, "A revenue account code is required"),
+  salesTaxType: z.string().min(1, "A tax type is required"),
+})
+
+export const pushInvoiceSchema = z.object({
+  workspaceId: z.string().uuid("A valid workspace ID is required"),
+  invoiceId: z.string().uuid("A valid invoice ID is required"),
+  contactEmail: z.string().email("A valid contact email is required").optional(),
+})

@@ -9,7 +9,7 @@ function isConfigured() {
 
 export async function updateSession(request: NextRequest) {
   const authPaths = ["/login", "/signup", "/reset-password", "/update-password"]
-  const publicPaths = ["/auth/callback", "/auth/confirm", "/privacy", "/support"]
+  const publicPaths = ["/auth/callback", "/auth/confirm", "/privacy", "/support", "/api/xero/webhook"]
   const path = request.nextUrl.pathname
   const isAuthPage = authPaths.includes(path)
   const isPublicPath = publicPaths.includes(path)

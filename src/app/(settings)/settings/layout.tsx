@@ -15,6 +15,7 @@ import {
   Upload,
   CreditCard,
   Tag,
+  Plug,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { usePermissions } from "@/lib/hooks/use-permissions"
@@ -48,6 +49,7 @@ const settingsNav: SettingsNavSection[] = [
       { label: "Participants", href: "/settings/participants", icon: UserRound, requiredPermission: "canManageWorkspaceSettings" },
       { label: "Data model", href: "/settings/data-model", icon: Database, requiredPermission: "canManageWorkspaceSettings" },
       { label: "Charges", href: "/settings/charges", icon: Tag, requiredPermission: "canManageWorkspaceSettings" },
+      { label: "Integrations", href: "/settings/integrations", icon: Plug, requiredPermission: "canManageWorkspaceSettings" },
       { label: "Import", href: "/settings/import-history", icon: Upload, requiredPermission: "canManageWorkspaceSettings" },
       { label: "Billing", href: "/settings/billing", icon: CreditCard, requiredPermission: "canAccessBilling" },
     ],
