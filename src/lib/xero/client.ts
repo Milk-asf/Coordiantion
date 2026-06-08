@@ -150,7 +150,6 @@ export function toXeroLineItems(invoice: AppInvoice, connection: IntegrationConn
     unitAmount: li.rate,
     accountCode: connection.revenue_account_code,
     taxType: connection.sales_tax_type,
-    ...(li.chargeItemNumber ? { itemCode: undefined } : {}),
   }))
 }
 

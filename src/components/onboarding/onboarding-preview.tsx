@@ -15,7 +15,7 @@ export function OnboardingPreview({ step }: OnboardingPreviewProps) {
 function SidebarPreview() {
   return (
     <div className="pointer-events-none flex h-full w-full select-none items-center justify-center">
-      <div className="flex h-[420px] w-full max-w-[480px] overflow-hidden rounded-[12px] border border-[#ececec] bg-white shadow-[0_8px_32px_rgba(0,0,0,0.04)]">
+      <div className="flex h-[420px] w-full max-w-[480px] overflow-hidden rounded-[12px] border border-[#e2e2e2] bg-white shadow-[0_8px_32px_rgba(0,0,0,0.04)]">
         <div className="flex w-[160px] shrink-0 flex-col gap-[8px] border-r border-[#f0f0f0] bg-[#fafafa] p-[12px]">
           <div className="flex items-center gap-[6px]">
             <div className="flex h-[20px] w-[20px] items-center justify-center rounded-[5px] bg-green-600 text-[9px] font-semibold text-white">
@@ -54,7 +54,7 @@ function SidebarPreview() {
 function TablePreview() {
   return (
     <div className="pointer-events-none flex h-full w-full select-none items-center justify-center">
-      <div className="flex h-[420px] w-full max-w-[480px] flex-col overflow-hidden rounded-[12px] border border-[#ececec] bg-white shadow-[0_8px_32px_rgba(0,0,0,0.04)]">
+      <div className="flex h-[420px] w-full max-w-[480px] flex-col overflow-hidden rounded-[12px] border border-[#e2e2e2] bg-white shadow-[0_8px_32px_rgba(0,0,0,0.04)]">
         <div className="flex items-center gap-[8px] border-b border-[#f0f0f0] px-[16px] py-[12px]">
           <div className="h-[8px] w-[80px] rounded bg-[#e5e5e5]" />
           <div className="ml-auto h-[8px] w-[40px] rounded bg-[#e5e5e5]" />

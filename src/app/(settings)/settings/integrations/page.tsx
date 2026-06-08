@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
-import { Check, Plug, RefreshCw, AlertCircle } from "lucide-react"
+import { Check, RefreshCw, AlertCircle, Plus } from "lucide-react"
 import { useXero } from "@/lib/hooks/use-xero"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 
@@ -84,12 +84,15 @@ function IntegrationsContent() {
         </div>
       )}
 
-      <div className="rounded-[14px] border border-[#ececec] bg-white p-[20px]">
+      <div className="rounded-[14px] border border-[#e2e2e2] bg-white p-[20px]">
         <div className="flex items-start justify-between gap-[16px]">
           <div className="flex items-start gap-[12px]">
-            <div className="flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-[10px] bg-[#13b5ea]/10 text-[#13b5ea]">
-              <Plug className="h-[20px] w-[20px]" strokeWidth={1.75} />
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/xero/xero-logo-square.png"
+              alt="Xero"
+              className="h-[40px] w-[40px] shrink-0 rounded-[10px]"
+            />
             <div>
               <h2 className="text-[15px] font-semibold text-[#262626]">Xero</h2>
               <p className="mt-[2px] text-[13px] text-[#888]">
@@ -108,10 +111,11 @@ function IntegrationsContent() {
           ) : (
             <a
               href={connectUrl}
-              className="shrink-0 rounded-[8px] bg-[#262626] px-[14px] py-[8px] text-[13px] font-medium text-white transition-colors hover:bg-[#333]"
+              className="primary-btn flex shrink-0 items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
               tabIndex={0}
             >
-              Connect to Xero
+              <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+              <span>Connect to Xero</span>
             </a>
           )}
         </div>
