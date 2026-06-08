@@ -1,7 +1,7 @@
 import { XeroClient, type TokenSet, Invoice, LineItem, LineAmountTypes } from "xero-node"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { encryptSecret, decryptSecret } from "@/lib/crypto/secure-store"
-import type { Invoice as AppInvoice } from "@/lib/types"
+import type { Invoice as AppInvoice, InvoiceLineItem } from "@/lib/types"
 
 // Scopes: identity + offline access (for refresh tokens) + accounting invoices/contacts.
 export const XERO_SCOPES = [
@@ -24,6 +24,8 @@ export interface IntegrationConnection {
   expires_at: string
   revenue_account_code: string
   sales_tax_type: string
+  auto_push_invoices: boolean
+  include_pay_now: boolean
   connected_by: string | null
 }
 
@@ -180,5 +182,117 @@ export function xeroStatusToAppStatus(xeroStatus: string): "sent" | "paid" | "vo
       return "void"
     default:
       return null
+  }
+}
+
+/** Escapes a value for use inside a Xero `where` string filter. */
+function escapeForWhere(value: string): string {
+  return value.replace(/"/g, '\\"')
+}
+
+export interface PushInvoiceResult {
+  xeroInvoiceId: string
+  xeroStatus: string | null
+  onlineInvoiceUrl: string | null
+  alreadyPushed: boolean
+}
+
+/**
+ * Pushes a workspace invoice to Xero (creating the contact if needed) and,
+ * optionally, returns the Xero hosted online-invoice URL for a "Pay now" link.
+ *
+ * Idempotent: if the invoice is already linked to a Xero record it is not
+ * recreated; the existing link (and online URL, when requested) is returned.
+ * Throws a user-friendly error if Xero is not connected or the push fails.
+ */
+export async function pushInvoiceToXero(params: {
+  workspaceId: string
+  invoiceId: string
+  contactEmail?: string
+  withOnlineUrl?: boolean
+}): Promise<PushInvoiceResult> {
+  const { workspaceId, invoiceId, contactEmail, withOnlineUrl } = params
+
+  const db = createAdminClient()
+  if (!db) throw new Error("Server is not configured for integrations")
+
+  const { data: row } = await db
+    .from("invoices")
+    .select("id, invoice_number, client_name, issue_date, due_date, line_items, xero_invoice_id")
+    .eq("id", invoiceId)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle()
+
+  if (!row) throw new Error("Invoice not found in this workspace")
+
+  const { xero, tenantId, connection } = await getXeroForWorkspace(workspaceId)
+
+  // Already linked: don't recreate. Fetch the online URL if requested.
+  if (row.xero_invoice_id) {
+    const onlineInvoiceUrl = withOnlineUrl
+      ? await getOnlineInvoiceUrl(xero, tenantId, row.xero_invoice_id)
+      : null
+    return { xeroInvoiceId: row.xero_invoice_id, xeroStatus: null, onlineInvoiceUrl, alreadyPushed: true }
+  }
+
+  const appInvoice = {
+    invoiceNumber: row.invoice_number,
+    issueDate: row.issue_date,
+    dueDate: row.due_date,
+    clientName: row.client_name,
+    lineItems: (row.line_items ?? []) as InvoiceLineItem[],
+  } as AppInvoice
+
+  if (appInvoice.lineItems.length === 0) throw new Error("Invoice has no line items to send")
+
+  const clientName = (row.client_name || "Participant").trim()
+  let contactID: string | undefined
+  const existing = await xero.accountingApi.getContacts(tenantId, undefined, `Name=="${escapeForWhere(clientName)}"`)
+  contactID = existing.body.contacts?.[0]?.contactID
+  if (!contactID) {
+    const created = await xero.accountingApi.createContacts(tenantId, {
+      contacts: [{ name: clientName, ...(contactEmail ? { emailAddress: contactEmail } : {}) }],
+    })
+    contactID = created.body.contacts?.[0]?.contactID
+  }
+  if (!contactID) throw new Error("Could not resolve a Xero contact for this client")
+
+  const result = await xero.accountingApi.createInvoices(tenantId, {
+    invoices: [toXeroInvoice(appInvoice, contactID, connection)],
+  })
+
+  const xeroInvoice = result.body.invoices?.[0]
+  if (!xeroInvoice?.invoiceID) throw new Error("Xero did not return an invoice id")
+
+  const onlineInvoiceUrl = withOnlineUrl
+    ? await getOnlineInvoiceUrl(xero, tenantId, xeroInvoice.invoiceID)
+    : null
+
+  await db
+    .from("invoices")
+    .update({
+      xero_invoice_id: xeroInvoice.invoiceID,
+      xero_status: xeroInvoice.status ?? null,
+      xero_synced_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", invoiceId)
+    .eq("workspace_id", workspaceId)
+
+  return {
+    xeroInvoiceId: xeroInvoice.invoiceID,
+    xeroStatus: xeroInvoice.status ? String(xeroInvoice.status) : null,
+    onlineInvoiceUrl,
+    alreadyPushed: false,
+  }
+}
+
+/** Fetches the Xero hosted online-invoice URL for a "Pay now" link; null on failure. */
+async function getOnlineInvoiceUrl(xero: XeroClient, tenantId: string, xeroInvoiceId: string): Promise<string | null> {
+  try {
+    const res = await xero.accountingApi.getOnlineInvoice(tenantId, xeroInvoiceId)
+    return res.body.onlineInvoices?.[0]?.onlineInvoiceUrl ?? null
+  } catch {
+    return null
   }
 }

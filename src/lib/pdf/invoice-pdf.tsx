@@ -5,6 +5,7 @@ import {
   Text,
   View,
   Image,
+  Link,
   StyleSheet,
   renderToBuffer,
 } from "@react-pdf/renderer"
@@ -174,6 +175,25 @@ const styles = StyleSheet.create({
     marginTop: 6,
     textAlign: "right" as const,
   },
+  payNowSection: {
+    alignItems: "center" as const,
+    marginBottom: 24,
+  },
+  payNowButton: {
+    backgroundColor: "#1a1a1a",
+    borderRadius: 6,
+    color: "#ffffff",
+    fontFamily: "Helvetica-Bold",
+    fontSize: 11,
+    paddingVertical: 10,
+    paddingHorizontal: 28,
+    textDecoration: "none",
+  },
+  payNowHint: {
+    color: "#999",
+    fontSize: 8,
+    marginTop: 6,
+  },
   paymentSection: {
     backgroundColor: "#fafafa",
     borderRadius: 4,
@@ -252,9 +272,10 @@ interface InvoicePDFProps {
   invoice: Invoice
   participantNdisNumber?: string
   orgSettings: Partial<WorkspaceEmailSettings>
+  payNowUrl?: string
 }
 
-function InvoicePDFDocument({ invoice, participantNdisNumber, orgSettings }: InvoicePDFProps) {
+function InvoicePDFDocument({ invoice, participantNdisNumber, orgSettings, payNowUrl }: InvoicePDFProps) {
   const issueDate = invoice.issueDate
     ? new Date(invoice.issueDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })
     : ""
@@ -353,6 +374,13 @@ function InvoicePDFDocument({ invoice, participantNdisNumber, orgSettings }: Inv
           )}
         </View>
 
+        {payNowUrl && (
+          <View style={styles.payNowSection}>
+            <Link src={payNowUrl} style={styles.payNowButton}>Pay now</Link>
+            <Text style={styles.payNowHint}>Secure online payment via Xero</Text>
+          </View>
+        )}
+
         {(orgSettings.bankName || orgSettings.bankBsb || orgSettings.bankAccountNumber) && (
           <View style={styles.paymentSection}>
             <Text style={styles.paymentTitle}>Payment Details</Text>
@@ -404,12 +432,14 @@ export async function generateInvoicePDF(
   invoice: Invoice,
   orgSettings: Partial<WorkspaceEmailSettings>,
   participantNdisNumber?: string,
+  payNowUrl?: string,
 ): Promise<Buffer> {
   const buffer = await renderToBuffer(
     <InvoicePDFDocument
       invoice={invoice}
       orgSettings={orgSettings}
       participantNdisNumber={participantNdisNumber}
+      payNowUrl={payNowUrl}
     />
   )
   return Buffer.from(buffer)

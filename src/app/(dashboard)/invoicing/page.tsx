@@ -107,6 +107,7 @@ export default function InvoicingPage() {
     failedCount: number
     skippedCount: number
     failedMessages: string[]
+    xeroWarnings: string[]
   } | null>(null)
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(defaultVisibleColumnKeys)
   const [displayParticipants, setDisplayParticipants] = useState<string[]>([])
@@ -578,6 +579,7 @@ export default function InvoicingPage() {
     let failedCount = 0
     let skippedCount = 0
     const failedMessages: string[] = []
+    const xeroWarnings: string[] = []
     const completedTaskIds: string[] = []
 
     // Group invoiceable tasks by participant so each participant receives a
@@ -669,6 +671,8 @@ export default function InvoicingPage() {
         const result = await response.json()
         if (!response.ok) throw new Error(result.error || "Failed to send invoice")
 
+        if (result.xeroWarning) xeroWarnings.push(`${participantName}: ${result.xeroWarning}`)
+
         await markInvoiceSent(invoice.id, {
           sentTo: completionAction.sentTo,
           deliveryMethod: completionAction.deliveryMethod,
@@ -693,6 +697,7 @@ export default function InvoicingPage() {
       failedCount,
       skippedCount,
       failedMessages,
+      xeroWarnings,
     })
     setIsSendingInvoices(false)
     if (completedCount > 0 && failedCount === 0) toast(`${completedCount} invoice${completedCount > 1 ? "s" : ""} sent successfully`, "success")
@@ -1657,6 +1662,13 @@ export default function InvoicingPage() {
                     <div className="mt-[14px] max-h-[180px] overflow-y-auto rounded-[14px] border border-[#ececec] bg-[#fafafa] px-[12px] py-[10px]">
                       <div className="text-[12px] font-medium text-[#666]">
                         {sendInvoicesSummary.failedMessages.join(" | ")}
+                      </div>
+                    </div>
+                  )}
+                  {sendInvoicesSummary.xeroWarnings.length > 0 && (
+                    <div className="mt-[14px] max-h-[180px] overflow-y-auto rounded-[14px] border border-amber-200 bg-amber-50 px-[12px] py-[10px]">
+                      <div className="text-[12px] font-medium text-amber-700">
+                        Sent, but not added to Xero: {sendInvoicesSummary.xeroWarnings.join(" | ")}
                       </div>
                     </div>
                   )}

@@ -109,6 +109,8 @@ export const xeroSettingsSchema = z.object({
   workspaceId: z.string().uuid("A valid workspace ID is required"),
   revenueAccountCode: z.string().min(1, "A revenue account code is required"),
   salesTaxType: z.string().min(1, "A tax type is required"),
+  autoPush: z.boolean().optional().default(false),
+  includePayNow: z.boolean().optional().default(false),
 })
 
 export const pushInvoiceSchema = z.object({

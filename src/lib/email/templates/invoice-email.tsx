@@ -2,6 +2,7 @@ import {
   Html,
   Head,
   Body,
+  Button,
   Container,
   Section,
   Text,
@@ -27,6 +28,7 @@ interface InvoiceEmailProps {
   bankAccountNumber?: string
   bankAccountName?: string
   emailFooter?: string
+  payNowUrl?: string
 }
 
 export function InvoiceEmail({
@@ -47,6 +49,7 @@ export function InvoiceEmail({
   bankAccountNumber,
   bankAccountName,
   emailFooter,
+  payNowUrl,
 }: InvoiceEmailProps) {
   return (
     <Html>
@@ -93,6 +96,15 @@ export function InvoiceEmail({
                 </tbody>
               </table>
             </Section>
+
+            {payNowUrl && (
+              <Section style={payNowSectionStyle}>
+                <Button href={payNowUrl} style={payNowButtonStyle}>
+                  Pay now
+                </Button>
+                <Text style={payNowHintStyle}>Secure online payment via Xero</Text>
+              </Section>
+            )}
 
             {lineItemsSummary && (
               <Text style={paragraphStyle}>
@@ -215,6 +227,29 @@ const subheadingStyle: React.CSSProperties = {
   fontSize: 14,
   fontWeight: 600,
   margin: "0 0 12px",
+}
+
+const payNowSectionStyle: React.CSSProperties = {
+  textAlign: "center" as const,
+  margin: "4px 0 24px",
+}
+
+const payNowButtonStyle: React.CSSProperties = {
+  backgroundColor: "#1a1a1a",
+  borderRadius: 8,
+  color: "#ffffff",
+  display: "inline-block",
+  fontSize: 14,
+  fontWeight: 600,
+  padding: "12px 28px",
+  textDecoration: "none",
+}
+
+const payNowHintStyle: React.CSSProperties = {
+  color: "#999",
+  fontSize: 12,
+  margin: "8px 0 0",
+  textAlign: "center" as const,
 }
 
 const invoiceBoxStyle: React.CSSProperties = {

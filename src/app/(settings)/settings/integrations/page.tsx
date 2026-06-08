@@ -27,6 +27,8 @@ function IntegrationsContent() {
 
   const [accountCode, setAccountCode] = useState("200")
   const [taxType, setTaxType] = useState("EXEMPTOUTPUT")
+  const [autoPush, setAutoPush] = useState(false)
+  const [includePayNow, setIncludePayNow] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isDisconnecting, setIsDisconnecting] = useState(false)
   const [savedNote, setSavedNote] = useState(false)
@@ -35,6 +37,8 @@ function IntegrationsContent() {
     if (status?.connected) {
       setAccountCode(status.revenueAccountCode || "200")
       setTaxType(status.salesTaxType || "EXEMPTOUTPUT")
+      setAutoPush(status.autoPush ?? false)
+      setIncludePayNow(status.includePayNow ?? false)
     }
   }, [status])
 
@@ -44,7 +48,12 @@ function IntegrationsContent() {
   const handleSave = async () => {
     setIsSaving(true)
     setSavedNote(false)
-    const ok = await saveSettings(accountCode.trim(), taxType)
+    const ok = await saveSettings({
+      revenueAccountCode: accountCode.trim(),
+      salesTaxType: taxType,
+      autoPush,
+      includePayNow,
+    })
     setIsSaving(false)
     if (ok) {
       setSavedNote(true)
@@ -158,6 +167,23 @@ function IntegrationsContent() {
               </div>
             </div>
 
+            <div className="mt-[20px] flex flex-col gap-[16px] border-t border-[#f0f0f0] pt-[20px]">
+              <Toggle
+                id="auto-push"
+                label="Automatically send invoices to Xero"
+                description="When you send an invoice, also create it in Xero automatically."
+                checked={autoPush}
+                onToggle={() => setAutoPush((prev) => !prev)}
+              />
+              <Toggle
+                id="pay-now"
+                label="Include a Pay now button on invoices"
+                description="Adds a Pay now button (your Xero hosted invoice link) to the invoice email and PDF. Sending pushes the invoice to Xero to generate the link, and requires online payments to be enabled in your Xero account."
+                checked={includePayNow}
+                onToggle={() => setIncludePayNow((prev) => !prev)}
+              />
+            </div>
+
             <div className="mt-[20px] flex items-center justify-between">
               <button
                 type="button"
@@ -186,6 +212,45 @@ function IntegrationsContent() {
         )}
       </div>
     </>
+  )
+}
+
+interface ToggleProps {
+  id: string
+  label: string
+  description: string
+  checked: boolean
+  onToggle: () => void
+}
+
+function Toggle({ id, label, description, checked, onToggle }: ToggleProps) {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault()
+      onToggle()
+    }
+  }
+
+  return (
+    <div className="flex items-start justify-between gap-[16px]">
+      <div className="max-w-[440px]">
+        <label htmlFor={id} className="block text-[13px] font-medium text-[#262626]">{label}</label>
+        <p className="mt-[2px] text-[11px] leading-[16px] text-[#aaa]">{description}</p>
+      </div>
+      <button
+        id={id}
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        onClick={onToggle}
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+        className={`relative mt-[2px] inline-flex h-[22px] w-[38px] shrink-0 items-center rounded-full transition-colors ${checked ? "bg-[#262626]" : "bg-[#d4d4d4]"}`}
+      >
+        <span className={`inline-block h-[16px] w-[16px] transform rounded-full bg-white transition-transform ${checked ? "translate-x-[19px]" : "translate-x-[3px]"}`} />
+      </button>
+    </div>
   )
 }
 

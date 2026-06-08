@@ -55,12 +55,35 @@ export async function POST(request: Request) {
     }
   }
 
+  // Push to Xero first (when enabled) so a "Pay now" link can be embedded in
+  // the PDF + email. Push failures are non-fatal: the email still goes out.
+  let payNowUrl: string | undefined
+  let xeroWarning: string | undefined
+  if (invoice.id) {
+    try {
+      const { loadConnection, pushInvoiceToXero } = await import("@/lib/xero/client")
+      const connection = await loadConnection(workspaceId)
+      if (connection && (connection.auto_push_invoices || connection.include_pay_now)) {
+        const result = await pushInvoiceToXero({
+          workspaceId,
+          invoiceId: invoice.id,
+          contactEmail: recipientEmail,
+          withOnlineUrl: connection.include_pay_now,
+        })
+        if (connection.include_pay_now && result.onlineInvoiceUrl) payNowUrl = result.onlineInvoiceUrl
+      }
+    } catch (xeroErr) {
+      console.error("Xero push during invoice send failed:", xeroErr)
+      xeroWarning = xeroErr instanceof Error ? xeroErr.message : "Failed to push invoice to Xero"
+    }
+  }
+
   try {
     const { sendEmail } = await import("@/lib/email/send")
     const { generateInvoicePDF } = await import("@/lib/pdf/invoice-pdf")
     const { InvoiceEmail } = await import("@/lib/email/templates/invoice-email")
 
-    const pdfBuffer = await generateInvoicePDF(invoice, orgSettings, ndisNumber)
+    const pdfBuffer = await generateInvoicePDF(invoice, orgSettings, ndisNumber, payNowUrl)
 
     const issueDate = invoice.issueDate
       ? new Date(invoice.issueDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
@@ -100,6 +123,7 @@ export async function POST(request: Request) {
         bankAccountNumber: orgSettings.bankAccountNumber,
         bankAccountName: orgSettings.bankAccountName,
         emailFooter: orgSettings.emailFooter,
+        payNowUrl,
       }),
       attachments: [
         {
@@ -146,6 +170,7 @@ export async function POST(request: Request) {
       sentAt: new Date().toISOString(),
       sentMessageId,
       pdfPath,
+      ...(xeroWarning ? { xeroWarning } : {}),
     })
   } catch (err: unknown) {
     console.error("Failed to send invoice email:", err)

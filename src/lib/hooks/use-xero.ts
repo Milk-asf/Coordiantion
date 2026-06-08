@@ -8,7 +8,16 @@ export interface XeroStatus {
   tenantId?: string
   revenueAccountCode?: string
   salesTaxType?: string
+  autoPush?: boolean
+  includePayNow?: boolean
   connectedAt?: string
+}
+
+interface SaveXeroSettings {
+  revenueAccountCode: string
+  salesTaxType: string
+  autoPush: boolean
+  includePayNow: boolean
 }
 
 export function useXero() {
@@ -43,12 +52,12 @@ export function useXero() {
 
   const connectUrl = activeWorkspace ? `/api/xero/connect?workspaceId=${activeWorkspace.id}` : "#"
 
-  const saveSettings = useCallback(async (revenueAccountCode: string, salesTaxType: string): Promise<boolean> => {
+  const saveSettings = useCallback(async ({ revenueAccountCode, salesTaxType, autoPush, includePayNow }: SaveXeroSettings): Promise<boolean> => {
     if (!activeWorkspace) return false
     const res = await fetch("/api/xero/status", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ workspaceId: activeWorkspace.id, revenueAccountCode, salesTaxType }),
+      body: JSON.stringify({ workspaceId: activeWorkspace.id, revenueAccountCode, salesTaxType, autoPush, includePayNow }),
     })
     if (res.ok) { await refresh(); return true }
     return false
