@@ -3,13 +3,13 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { encryptSecret, decryptSecret } from "@/lib/crypto/secure-store"
 import type { Invoice as AppInvoice } from "@/lib/types"
 
-// Scopes: identity + offline access (for refresh tokens) + accounting read/write.
+// Scopes: identity + offline access (for refresh tokens) + accounting invoices/contacts.
 export const XERO_SCOPES = [
   "openid",
   "profile",
   "email",
   "offline_access",
-  "accounting.transactions",
+  "accounting.invoices",
   "accounting.contacts",
 ]
 
