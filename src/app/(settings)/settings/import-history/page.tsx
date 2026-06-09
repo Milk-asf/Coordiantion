@@ -106,6 +106,7 @@ const STAFF_COLUMNS: ColDef<keyof StaffCsvRow>[] = [
 
 const VALID_FUNDING_TYPES = ["plan-managed", "ndia-managed", "self-managed", ""]
 const VALID_CHECK_IN_PERIODS = ["Weekly", "Fortnightly", "Monthly", "Quarterly", ""]
+const isValidCheckInPeriod = (v: string) => VALID_CHECK_IN_PERIODS.includes(v) || /^\d+$/.test(v)
 const VALID_EMPLOYMENT_TYPES = ["Full-time", "Part-time", "Casual", "Contract", ""]
 
 function parseCsvLine(line: string): string[] {
@@ -186,8 +187,8 @@ function validateParticipantRow(data: ParticipantCsvRow): { errors: string[]; wa
   if (data.email && !data.email.includes("@")) errors.push("Invalid email format")
   if (data.fundingType && !VALID_FUNDING_TYPES.includes(data.fundingType.toLowerCase().replace(/\s+/g, "-")))
     warnings.push(`Funding type "${data.fundingType}" not recognised — will be left empty`)
-  if (data.checkInPeriod && !VALID_CHECK_IN_PERIODS.includes(data.checkInPeriod))
-    warnings.push(`Check-in period "${data.checkInPeriod}" not recognised — will be left empty`)
+  if (data.checkInPeriod && !isValidCheckInPeriod(data.checkInPeriod))
+    warnings.push(`Check-in period "${data.checkInPeriod}" not recognised — use a number of days (e.g. 30) — will be left empty`)
   if (data.dateOfBirth && !parseDate(data.dateOfBirth)) warnings.push("Date of birth format not recognised — use DD/MM/YYYY")
   return { errors, warnings }
 }
@@ -227,7 +228,7 @@ function rowToParticipant(row: ParticipantCsvRow): Partial<ParticipantDetails> {
     centrelinkNumber: row.centrelinkNumber.trim(), externalId: row.externalId.trim(),
     planManagerName: row.planManagerName.trim(), planManagerEmail: row.planManagerEmail.trim(),
     planManagerOrg: row.planManagerOrg.trim(),
-    checkInPeriod: VALID_CHECK_IN_PERIODS.includes(row.checkInPeriod) ? row.checkInPeriod : "",
+    checkInPeriod: isValidCheckInPeriod(row.checkInPeriod) ? row.checkInPeriod : "",
   }
 }
 

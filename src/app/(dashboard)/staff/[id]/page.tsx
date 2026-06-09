@@ -18,41 +18,26 @@ import { ContactChip } from "@/components/contact-chip"
 import { DetailRow } from "@/components/detail-row"
 import { DocumentPreview } from "@/components/document-preview"
 import { ProfileNotesTab } from "@/components/profile-notes-tab"
+import { FilesTab } from "@/app/(dashboard)/clients/[id]/_components/files-tab"
 import { EmptyState } from "@/components/empty-state"
 import { UsageBar } from "@/components/usage-bar"
 import {
-  User,
   FileText,
-  Mail,
-  Phone,
-  MessageSquare,
   CalendarDays,
-  Heart,
   Clock,
   Hash,
   Plus,
   SquarePen,
   CheckSquare,
   ArrowLeft,
+  ChevronRight,
   FolderOpen,
-  FilePlus,
   PanelRightOpen,
   PanelRightClose,
-  Briefcase,
-  GraduationCap,
-  ShieldCheck,
   UserPlus,
   Users,
-  Upload,
-  Download,
-  Trash2,
-  File,
-  FileImage,
-  FileSpreadsheet,
-  FileVideo,
   Tag,
   Building2,
-  X,
   ListFilter,
 } from "lucide-react"
 
@@ -93,28 +78,6 @@ function formatTaskDate(dateStr: string | null): string {
   if (diff === dayMs) return "Tomorrow"
   if (diff === -dayMs) return "Yesterday"
   return d.toLocaleDateString("en-AU", { day: "numeric", month: "short" })
-}
-
-function getDocIcon(mimeType: string) {
-  if (mimeType.startsWith("image/")) return FileImage
-  if (mimeType.includes("spreadsheet") || mimeType.includes("csv") || mimeType.includes("excel")) return FileSpreadsheet
-  if (mimeType.startsWith("video/")) return FileVideo
-  if (mimeType.includes("pdf")) return FileText
-  return File
-}
-
-function formatFileSize(bytes: number) {
-  if (bytes === 0) return "0 B"
-  const k = 1024
-  const sizes = ["B", "KB", "MB", "GB"]
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
-}
-
-function formatDate(dateStr: string) {
-  if (!dateStr) return "—"
-  const d = new Date(dateStr)
-  return d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
 }
 
 function StaffProfileTasksTab({
@@ -218,10 +181,9 @@ function StaffIcon({ member, size = "md" }: { member: StaffMember; size?: "sm" |
   )
 }
 
-function SidebarDetailRow({ icon: Icon, label, children }: { icon: React.ComponentType<{ className?: string; strokeWidth?: number }>; label: string; children: React.ReactNode }) {
+function SidebarDetailRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <DetailRow
-      icon={Icon}
       label={label}
       labelWidthClassName="w-[130px]"
       rowClassName="flex items-center py-[6px]"
@@ -293,7 +255,7 @@ export default function StaffProfilePage() {
   const { staff, isLoading, updateStaff } = useStaff()
   const { clients, clientNames, updateClient } = useClients()
   const { tasks: allTasks, updateTask, addTask } = useTasks()
-  const { documents, uploadDocument, deleteDocument, getDownloadUrl, createFile } = useDocuments()
+  const { documents, files, uploadDocument, deleteDocument, getDownloadUrl, createFile, deleteFile } = useDocuments()
   const { allCharges, enabledCharges } = useCharges()
   const { invoices } = useInvoices()
   const { canAssignClients } = usePermissions()
@@ -326,11 +288,7 @@ export default function StaffProfilePage() {
   const quickTimeRef = useRef<HTMLInputElement>(null)
   const quickChargeInputRef = useRef<HTMLInputElement>(null)
   const quickChargeListRef = useRef<HTMLDivElement>(null)
-  const fileUploadRef = useRef<HTMLInputElement>(null)
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null)
-  const [isFilesAddNewOpen, setIsFilesAddNewOpen] = useState(false)
-  const [isNewSubfileOpen, setIsNewSubfileOpen] = useState(false)
-  const [newSubfileName, setNewSubfileName] = useState("")
 
   const [isAssignClientOpen, setIsAssignClientOpen] = useState(false)
   const [assignClientSearch, setAssignClientSearch] = useState("")
@@ -413,11 +371,9 @@ export default function StaffProfilePage() {
 
   useEffect(() => {
     const handleResize = () => {
-      if (!headerRef.current) return
-      const headerWidth = headerRef.current.offsetWidth
-      const padding = 48
-      const availableWidth = headerWidth - padding
-      const overflowBtnWidth = 36
+      if (!tabsContainerRef.current) return
+      const availableWidth = tabsContainerRef.current.offsetWidth
+      const overflowBtnWidth = 40
       const widths = tabWidthsRef.current
 
       if (widths.length === 0) { setVisibleTabCount(tabs.length); return }
@@ -464,11 +420,6 @@ export default function StaffProfilePage() {
   }, [memberName, isCreatingNote, addNote, router])
 
   const staffFolder = memberName
-  const staffDocuments = useMemo(() =>
-    documents.filter((doc) => doc.folder === staffFolder || doc.folder.startsWith(staffFolder + "/"))
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-    [documents, staffFolder]
-  )
 
   const unassignedClients = useMemo(() =>
     clients.filter((c) => c.owner !== memberName),
@@ -544,13 +495,11 @@ export default function StaffProfilePage() {
     return charge?.shortName || itemNumber
   }
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.length) return
-    createFile(staffFolder)
-    for (const file of Array.from(e.target.files)) {
-      await uploadDocument(file, staffFolder)
+  const handleUploadFiles = async (fileList: FileList, destination: string) => {
+    if (!files.includes(staffFolder)) createFile(staffFolder)
+    for (const file of Array.from(fileList)) {
+      await uploadDocument(file, destination)
     }
-    e.target.value = ""
   }
 
   const handleDownloadDoc = async (doc: Document) => {
@@ -583,62 +532,53 @@ export default function StaffProfilePage() {
   }
 
   return (
-    <div className="flex h-full">
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* Profile header bar */}
-        <div ref={headerRef} className="flex shrink-0 flex-col bg-[#fafafa]">
-          {/* Row 1: name + add new */}
-          <div className="relative flex h-[48px] items-center px-[16px]">
-            <button
-              onClick={() => router.push("/staff")}
-              className="mr-[6px] flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded text-[#999] transition-colors hover:bg-[#ebebeb] hover:text-[#262626]"
-              tabIndex={0}
-              aria-label="Back to staff"
-            >
-              <ArrowLeft className="h-[15px] w-[15px]" strokeWidth={1.75} />
-            </button>
-
+    <div className="flex h-full flex-col">
+      {/* Top header — breadcrumbs + name span the full width over content and account details */}
+      <div ref={headerRef} className="flex shrink-0 flex-col bg-[#fafafa]">
+        {/* Level 1: breadcrumbs */}
+        <div className="flex h-[44px] shrink-0 items-center gap-[8px] border-b border-[#ececec] px-[16px]">
+          <button
+            onClick={() => router.push("/staff")}
+            className="mr-[2px] flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded text-[#999] transition-colors hover:bg-[#ebebeb] hover:text-[#262626]"
+            tabIndex={0}
+            aria-label="Back to staff"
+          >
+            <ArrowLeft className="h-[15px] w-[15px]" strokeWidth={1.75} />
+          </button>
+          <button
+            onClick={() => router.push("/staff")}
+            className="text-[13px] font-medium text-[#888] transition-colors hover:text-[#262626]"
+            tabIndex={0}
+          >
+            Staff
+          </button>
+          <ChevronRight className="h-[14px] w-[14px] shrink-0 text-[#c4c4c4]" strokeWidth={1.75} />
+          <span className="flex min-w-0 items-center gap-[6px]">
             <StaffIcon member={member} size="sm" />
-            <span className="ml-[8px] mr-[12px] max-w-[420px] shrink-0 truncate text-[15px] font-semibold text-[#262626]">{member.name}</span>
+            <span className="max-w-[420px] truncate text-[13px] font-medium text-[#262626]">{member.name}</span>
+          </span>
+        </div>
 
-            <div className="ml-auto flex shrink-0 items-center gap-[6px]">
-              <button
-                onClick={() => setIsQuickAdding(true)}
-                className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
-                tabIndex={0}
-              >
-                <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-                <span>Add new</span>
-              </button>
-              {!isSidebarVisible && (
-                <button
-                  onClick={() => setIsSidebarVisible(true)}
-                  className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#262626] transition-colors hover:bg-[#ebebeb]"
-                  tabIndex={0}
-                  aria-label="Show staff details"
-                >
-                  <PanelRightOpen className="h-[18px] w-[18px]" strokeWidth={1.75} />
-                </button>
-              )}
-            </div>
-          </div>
+        {/* Hidden measurer for tab widths (kept inside headerRef) */}
+        <div data-tab-measurer className="pointer-events-none invisible absolute flex items-center gap-[2px]" aria-hidden="true">
+          {tabs.map((tab) => {
+            const TabIcon = tab.icon
+            return (
+              <div key={tab.key} data-tab-measure className="flex shrink-0 items-center gap-[4px] px-[8px] py-[4px] text-[12px] font-medium">
+                <TabIcon className="h-[12px] w-[12px]" strokeWidth={1.5} />
+                <span>{tab.label}</span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
 
-          {/* Row 2: section tabs */}
-          <div className="relative flex h-[40px] items-center overflow-hidden px-[16px]">
-            <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#e5e5e5]" />
-
-            <div data-tab-measurer className="pointer-events-none invisible absolute flex items-center gap-[2px]" aria-hidden="true">
-              {tabs.map((tab) => {
-                const TabIcon = tab.icon
-                return (
-                  <div key={tab.key} data-tab-measure className="flex shrink-0 items-center gap-[4px] px-[8px] py-[4px] text-[12px] font-medium">
-                    <TabIcon className="h-[12px] w-[12px]" strokeWidth={1.5} />
-                    <span>{tab.label}</span>
-                  </div>
-                )
-              })}
-            </div>
-
+      {/* Body — section content (left) + account details (right) */}
+      <div className="flex min-h-0 flex-1">
+        {/* Left: section tabs + content */}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          {/* Level 3: section tabs (sits inline with the account details title on the right) */}
+          <div className="relative flex h-[48px] items-center overflow-hidden border-b border-[#ececec] bg-[#fafafa] px-[16px]">
             <div ref={tabsContainerRef} className="flex flex-1 items-center gap-[2px] overflow-hidden">
             {tabs.slice(0, visibleTabCount).map((tab) => {
               const TabIcon = tab.icon
@@ -699,8 +639,19 @@ export default function StaffProfilePage() {
             )}
           </div>
 
+            <div className="ml-[8px] flex shrink-0 items-center gap-[6px]">
+              {!isSidebarVisible && (
+                <button
+                  onClick={() => setIsSidebarVisible(true)}
+                  className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#262626] transition-colors hover:bg-[#ebebeb]"
+                  tabIndex={0}
+                  aria-label="Show staff details"
+                >
+                  <PanelRightOpen className="h-[18px] w-[18px]" strokeWidth={1.75} />
+                </button>
+              )}
+            </div>
           </div>
-        </div>
 
         {/* Quick-add task popup */}
         {isQuickAdding && (
@@ -1047,152 +998,17 @@ export default function StaffProfilePage() {
               onToggleComplete={(task) => updateTask(task.id, { status: task.status === "done" ? "todo" : "done" })}
             />
           ) : activeTab === "files" ? (
-            <div className="relative flex h-full flex-col">
-              <input ref={fileUploadRef} type="file" multiple className="hidden" onChange={handleFileUpload} />
-              <div className="flex h-[41px] shrink-0 items-center justify-between border-b border-[#dcdcdc] px-[16px]">
-                <span className="text-[12px] font-medium text-[#888]">{staffDocuments.length} {staffDocuments.length === 1 ? "file" : "files"}</span>
-                <div className="relative">
-                  <button
-                    onClick={() => setIsFilesAddNewOpen(!isFilesAddNewOpen)}
-                    className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
-                    tabIndex={0}
-                    aria-label="Add new"
-                  >
-                    <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-                    <span>Add new</span>
-                  </button>
-                  {isFilesAddNewOpen && (
-                    <>
-                      <div className="fixed inset-0 z-[29]" onClick={() => setIsFilesAddNewOpen(false)} />
-                      <div className="absolute right-0 top-full z-[30] mt-[4px] w-[180px] rounded-[6px] border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-                        <button
-                          onClick={() => { setIsFilesAddNewOpen(false); fileUploadRef.current?.click() }}
-                          className="flex w-full items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                          tabIndex={0}
-                        >
-                          <Upload className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
-                          Upload
-                        </button>
-                        <button
-                          onClick={() => { setIsFilesAddNewOpen(false); setIsNewSubfileOpen(true) }}
-                          className="flex w-full items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                          tabIndex={0}
-                        >
-                          <FilePlus className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
-                          New file
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {isNewSubfileOpen && (
-                <div className="flex items-center gap-[8px] border-b border-[#dcdcdc] px-[16px] py-[8px]">
-                  <FilePlus className="h-[14px] w-[14px] shrink-0 text-[#888]" strokeWidth={1.5} />
-                  <input
-                    autoFocus
-                    value={newSubfileName}
-                    onChange={(e) => setNewSubfileName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && newSubfileName.trim()) {
-                        createFile(newSubfileName.trim(), staffFolder)
-                        setNewSubfileName("")
-                        setIsNewSubfileOpen(false)
-                      }
-                      if (e.key === "Escape") { setNewSubfileName(""); setIsNewSubfileOpen(false) }
-                    }}
-                    placeholder="File name"
-                    className="min-w-0 flex-1 rounded border border-[#a3c4f3] bg-white px-[8px] py-[4px] text-[13px] font-medium text-[#262626] outline-none shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
-                  />
-                  <button
-                    onClick={() => {
-                      if (newSubfileName.trim()) {
-                        createFile(newSubfileName.trim(), staffFolder)
-                        setNewSubfileName("")
-                        setIsNewSubfileOpen(false)
-                      }
-                    }}
-                    className="primary-btn rounded px-[10px] py-[4px] text-[12px] font-medium transition-colors"
-                    tabIndex={0}
-                  >
-                    Create
-                  </button>
-                  <button
-                    onClick={() => { setNewSubfileName(""); setIsNewSubfileOpen(false) }}
-                    className="rounded p-[4px] text-[#999] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
-                    tabIndex={0}
-                    aria-label="Cancel"
-                  >
-                    <X className="h-[14px] w-[14px]" strokeWidth={1.75} />
-                  </button>
-                </div>
-              )}
-
-              {staffDocuments.length === 0 && !isNewSubfileOpen ? (
-                <EmptyState
-                  icon={FolderOpen}
-                  title="No files yet"
-                  description="Upload documents or create a file to organise them."
-                  action={{ label: "Add new", onClick: () => setIsFilesAddNewOpen(true) }}
-                  className="flex-1"
-                />
-              ) : (
-                <div className="flex-1 overflow-auto">
-                  <table className="w-full border-separate border-spacing-0 text-left">
-                    <thead>
-                      <tr>
-                        <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Name</th>
-                        <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Size</th>
-                        <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Uploaded</th>
-                        <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {staffDocuments.map((doc) => {
-                        const DocIcon = getDocIcon(doc.mimeType)
-                        return (
-                          <tr key={doc.id} className="group transition-colors hover:bg-[#f5f5f5]">
-                            <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626]">
-                              <button
-                                onClick={() => setPreviewDoc(doc)}
-                                className="flex items-center gap-[8px] transition-colors hover:text-blue-600"
-                                tabIndex={0}
-                              >
-                                <DocIcon className="h-[14px] w-[14px] shrink-0 text-[#888]" strokeWidth={1.5} />
-                                <span className="truncate">{doc.name}</span>
-                              </button>
-                            </td>
-                            <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] text-[#666]">{formatFileSize(doc.size)}</td>
-                            <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] text-[#666]">{formatDate(doc.createdAt)}</td>
-                            <td className="h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px]">
-                              <div className="flex items-center gap-[4px] opacity-0 transition-opacity group-hover:opacity-100">
-                                <button
-                                  onClick={() => handleDownloadDoc(doc)}
-                                  className="rounded p-[4px] text-[#888] transition-colors hover:bg-[#eee] hover:text-[#262626]"
-                                  tabIndex={0}
-                                  aria-label={`Download ${doc.name}`}
-                                >
-                                  <Download className="h-[14px] w-[14px]" strokeWidth={1.5} />
-                                </button>
-                                <button
-                                  onClick={() => deleteDocument(doc)}
-                                  className="rounded p-[4px] text-[#888] transition-colors hover:bg-[#fee] hover:text-red-500"
-                                  tabIndex={0}
-                                  aria-label={`Delete ${doc.name}`}
-                                >
-                                  <Trash2 className="h-[14px] w-[14px]" strokeWidth={1.5} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
+            <FilesTab
+              rootFolder={staffFolder}
+              documents={documents}
+              files={files}
+              onUploadFiles={handleUploadFiles}
+              onCreateFile={createFile}
+              onDeleteFile={deleteFile}
+              onDownloadDoc={handleDownloadDoc}
+              onDeleteDocument={deleteDocument}
+              onPreviewDoc={setPreviewDoc}
+            />
           ) : activeTab === "notes" ? (
             <ProfileNotesTab
               notes={staffNotes}
@@ -1284,11 +1100,14 @@ export default function StaffProfilePage() {
             className="w-[4px] shrink-0 cursor-col-resize border-l border-[#f0f0f0] transition-colors hover:border-[#aaa] hover:bg-[#f0f0f0]"
           />
           <div className="shrink-0 overflow-y-auto bg-white" style={{ width: sidebarWidth }}>
-          <div className="flex items-center justify-between px-[24px] pb-[4px] pt-[20px]">
-            <h2 className="text-[13px] font-semibold text-[#262626]">Account details</h2>
+          <div className="flex items-center justify-between gap-[8px] border-b border-[#ececec] px-[24px] py-[14px]">
+            <div className="flex min-w-0 items-center gap-[10px]">
+              <StaffIcon member={member} size="lg" />
+              <span className="min-w-0 truncate text-[16px] font-semibold text-[#262626]">{member.name}</span>
+            </div>
             <button
               onClick={() => setIsSidebarVisible(false)}
-              className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+              className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
               tabIndex={0}
               aria-label="Hide sidebar"
             >
@@ -1296,71 +1115,69 @@ export default function StaffProfilePage() {
             </button>
           </div>
 
-          <div className="px-[24px] pb-[20px]">
-            <h3 className="mb-[2px] ml-[22px] mt-[10px] text-[11px] font-medium tracking-wide text-[#888]">Personal Information</h3>
-            {sf("s-first-name") && <SidebarDetailRow icon={User} label="First Name">
+          <div className="border-b border-[#f0f0f0] px-[24px] pb-[12px] pt-[12px]">
+            {sf("s-first-name") && <SidebarDetailRow label="First Name">
               <SidebarEditableField value={d.firstName} onChange={(v) => handleUpdateField("firstName", v)} placeholder="First name" />
             </SidebarDetailRow>}
-            {sf("s-last-name") && <SidebarDetailRow icon={User} label="Last Name">
+            {sf("s-last-name") && <SidebarDetailRow label="Last Name">
               <SidebarEditableField value={d.lastName} onChange={(v) => handleUpdateField("lastName", v)} placeholder="Last name" />
             </SidebarDetailRow>}
-            {sf("s-preferred-name") && <SidebarDetailRow icon={Heart} label="Preferred">
+            {sf("s-address") && <SidebarDetailRow label="Address">
+              <SidebarEditableField value={d.address} onChange={(v) => handleUpdateField("address", v)} placeholder="Address" />
+            </SidebarDetailRow>}
+
+            <div className="my-[12px] h-px bg-[#e8e8e8]" />
+            <h3 className="mb-[6px] text-[12px] font-semibold text-[#262626]">Personal details</h3>
+            {sf("s-preferred-name") && <SidebarDetailRow label="Preferred">
               <SidebarEditableField value={d.preferredName} onChange={(v) => handleUpdateField("preferredName", v)} placeholder="Preferred name" />
             </SidebarDetailRow>}
-            {sf("s-date-of-birth") && <SidebarDetailRow icon={CalendarDays} label="Date of Birth">
+            {sf("s-date-of-birth") && <SidebarDetailRow label="Date of Birth">
               <SidebarEditableField value={d.dateOfBirth} onChange={(v) => handleUpdateField("dateOfBirth", v)} type="date" placeholder="Date of birth" />
             </SidebarDetailRow>}
-            {sf("s-gender") && <SidebarDetailRow icon={User} label="Gender">
+            {sf("s-gender") && <SidebarDetailRow label="Gender">
               <SidebarEditableField value={d.gender} onChange={(v) => handleUpdateField("gender", v)} type="select" options={["Male", "Female", "Non-binary", "Other", "Prefer not to say"]} />
             </SidebarDetailRow>}
-            {sf("s-pronouns") && <SidebarDetailRow icon={MessageSquare} label="Pronouns">
+            {sf("s-pronouns") && <SidebarDetailRow label="Pronouns">
               <SidebarEditableField value={d.pronouns} onChange={(v) => handleUpdateField("pronouns", v)} type="select" options={["He/Him", "She/Her", "They/Them", "Other"]} />
             </SidebarDetailRow>}
 
-            <h3 className="mb-[2px] ml-[22px] mt-[10px] text-[11px] font-medium tracking-wide text-[#888]">Contact Information</h3>
-            {sf("s-email") && <SidebarDetailRow icon={Mail} label="Email">
+            <div className="my-[12px] h-px bg-[#e8e8e8]" />
+            <h3 className="mb-[6px] text-[12px] font-semibold text-[#262626]">Contact Information</h3>
+            {sf("s-email") && <SidebarDetailRow label="Email">
               <SidebarContactChip value={d.email} onChange={(v) => handleUpdateField("email", v)} placeholder="Email address" />
             </SidebarDetailRow>}
-            {sf("s-phone") && <SidebarDetailRow icon={Phone} label="Phone">
+            {sf("s-phone") && <SidebarDetailRow label="Phone">
               <SidebarContactChip value={d.phone} onChange={(v) => handleUpdateField("phone", v)} placeholder="Phone number" />
             </SidebarDetailRow>}
 
-            <h3 className="mb-[2px] ml-[22px] mt-[10px] text-[11px] font-medium tracking-wide text-[#888]">Employment</h3>
-            {sf("s-role") && <SidebarDetailRow icon={Briefcase} label="Role">
+            <div className="my-[12px] h-px bg-[#e8e8e8]" />
+            <h3 className="mb-[6px] text-[12px] font-semibold text-[#262626]">Employment</h3>
+            {sf("s-role") && <SidebarDetailRow label="Role">
               <SidebarEditableField value={d.role} onChange={(v) => handleUpdateField("role", v)} placeholder="Job role" />
             </SidebarDetailRow>}
-            {sf("s-department") && <SidebarDetailRow icon={Briefcase} label="Department">
-              <SidebarEditableField value={d.department} onChange={(v) => handleUpdateField("department", v)} placeholder="Department" />
-            </SidebarDetailRow>}
-            {sf("s-employment-type") && <SidebarDetailRow icon={Briefcase} label="Type">
+            {sf("s-employment-type") && <SidebarDetailRow label="Type">
               <SidebarEditableField value={d.employmentType} onChange={(v) => handleUpdateField("employmentType", v)} type="select" options={["Full-time", "Part-time", "Casual", "Contract"]} />
             </SidebarDetailRow>}
-            {sf("s-start-date") && <SidebarDetailRow icon={CalendarDays} label="Start Date">
+            {sf("s-start-date") && <SidebarDetailRow label="Start Date">
               <SidebarEditableField value={d.startDate} onChange={(v) => handleUpdateField("startDate", v)} type="date" placeholder="Start date" />
             </SidebarDetailRow>}
-            {sf("s-end-date") && <SidebarDetailRow icon={CalendarDays} label="End Date">
+            {sf("s-end-date") && <SidebarDetailRow label="End Date">
               <SidebarEditableField value={d.endDate} onChange={(v) => handleUpdateField("endDate", v)} type="date" placeholder="End date" />
             </SidebarDetailRow>}
 
-            <h3 className="mb-[2px] ml-[22px] mt-[10px] text-[11px] font-medium tracking-wide text-[#888]">Qualifications</h3>
-            {sf("s-qualifications") && <SidebarDetailRow icon={GraduationCap} label="Qualifications">
-              <SidebarEditableField value={d.qualifications} onChange={(v) => handleUpdateField("qualifications", v)} placeholder="Qualifications" />
-            </SidebarDetailRow>}
-            {sf("s-certifications") && <SidebarDetailRow icon={ShieldCheck} label="Certifications">
-              <SidebarEditableField value={d.certifications} onChange={(v) => handleUpdateField("certifications", v)} placeholder="Certifications" />
-            </SidebarDetailRow>}
-
-            <h3 className="mb-[2px] ml-[22px] mt-[10px] text-[11px] font-medium tracking-wide text-[#888]">Emergency Contact</h3>
-            {sf("s-emergency-contact") && <SidebarDetailRow icon={User} label="Name">
+            <div className="my-[12px] h-px bg-[#e8e8e8]" />
+            <h3 className="mb-[6px] text-[12px] font-semibold text-[#262626]">Emergency Contact</h3>
+            {sf("s-emergency-contact") && <SidebarDetailRow label="Name">
               <SidebarEditableField value={d.emergencyContactName} onChange={(v) => handleUpdateField("emergencyContactName", v)} placeholder="Emergency contact" />
             </SidebarDetailRow>}
-            {sf("s-emergency-phone") && <SidebarDetailRow icon={Phone} label="Phone">
+            {sf("s-emergency-phone") && <SidebarDetailRow label="Phone">
               <SidebarContactChip value={d.emergencyContactPhone} onChange={(v) => handleUpdateField("emergencyContactPhone", v)} placeholder="Phone number" />
             </SidebarDetailRow>}
           </div>
           </div>
         </>
       ) : null}
+      </div>
 
       {previewDoc && (
         <DocumentPreview

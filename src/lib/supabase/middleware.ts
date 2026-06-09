@@ -61,7 +61,7 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse
   }
 
-  if (path === "/update-password") {
+  if (path === "/update-password" || path === "/create-password") {
     return supabaseResponse
   }
 

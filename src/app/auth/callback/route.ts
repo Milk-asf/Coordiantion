@@ -70,9 +70,8 @@ export async function GET(request: Request) {
     }
   }
 
-  if (explicitNext) return NextResponse.redirect(`${origin}${explicitNext}`)
-
   // Invited members skip onboarding (workspace already exists; mark complete)
+  // then go through the branded create-password flow before entering the app.
   if (isInvitedMember && user) {
     if (!user.user_metadata?.onboarding_completed_at) {
       await supabase.auth.updateUser({
@@ -82,8 +81,10 @@ export async function GET(request: Request) {
         },
       })
     }
-    return NextResponse.redirect(`${origin}/tasks`)
+    return NextResponse.redirect(`${origin}${explicitNext || "/create-password"}`)
   }
+
+  if (explicitNext) return NextResponse.redirect(`${origin}${explicitNext}`)
 
   if (user?.user_metadata?.onboarding_completed_at) {
     return NextResponse.redirect(`${origin}/tasks`)

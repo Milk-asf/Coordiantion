@@ -26,6 +26,7 @@ import {
   Quote,
   Code,
   Target,
+  AlertTriangle,
 } from "lucide-react"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { DatePicker } from "@/components/date-picker"
@@ -45,13 +46,18 @@ interface EnabledCharge {
   price?: number
 }
 
+export interface InvoiceInfoItem {
+  label: string
+  value: string
+}
+
 export interface TaskDetailModalProps {
   selectedTask: Task
   selectedTaskId: string
   tasks: Task[]
   onUpdateTask: (field: keyof Task, value: string | Attachment[] | boolean | number) => void
   onLinkGoal: (goalId: string | null) => void
-  onDeleteTask: (id: string) => void
+  onDeleteTask?: (id: string) => void
   onClose: () => void
   chargeTypes: ChargeType[]
   chargeLabel: (val: string) => string
@@ -61,6 +67,11 @@ export interface TaskDetailModalProps {
   staffNames: string[]
   canAssignTasks: boolean
   enabledCharges: EnabledCharge[]
+  // Optional invoicing extras: when provided, an "Invoice information" section
+  // and issues banner are rendered, plus a "Move back to tasks" action.
+  onMoveBackToTasks?: () => void
+  invoiceInfo?: InvoiceInfoItem[]
+  invoiceIssues?: string[]
 }
 
 export function TaskDetailModal({
@@ -79,6 +90,9 @@ export function TaskDetailModal({
   staffNames,
   canAssignTasks,
   enabledCharges,
+  onMoveBackToTasks,
+  invoiceInfo,
+  invoiceIssues,
 }: TaskDetailModalProps) {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
   const [detailClientIdx, setDetailClientIdx] = useState(-1)
@@ -326,6 +340,17 @@ export function TaskDetailModal({
                   <Upload className="h-[14px] w-[14px]" strokeWidth={1.5} />
                 </button>
 
+                {onMoveBackToTasks && (
+                  <button
+                    type="button"
+                    onClick={onMoveBackToTasks}
+                    className="flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[10px] py-[5px] text-[12px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                    tabIndex={0}
+                  >
+                    Move back to tasks
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={handleCloseDetail}
@@ -339,14 +364,16 @@ export function TaskDetailModal({
 
             <div className="flex min-h-0 flex-col border-l border-[#ececec] px-[20px] py-[18px]">
               <div className="flex justify-end gap-[4px]">
-                <button
-                  onClick={() => { onDeleteTask(selectedTask.id) }}
-                  className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#bbb] transition-colors hover:bg-[#f5f5f5] hover:text-red-500"
-                  tabIndex={0}
-                  aria-label="Delete task"
-                >
-                  <Trash2 className="h-[14px] w-[14px]" strokeWidth={1.5} />
-                </button>
+                {onDeleteTask && (
+                  <button
+                    onClick={() => { onDeleteTask(selectedTask.id) }}
+                    className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#bbb] transition-colors hover:bg-[#f5f5f5] hover:text-red-500"
+                    tabIndex={0}
+                    aria-label="Delete task"
+                  >
+                    <Trash2 className="h-[14px] w-[14px]" strokeWidth={1.5} />
+                  </button>
+                )}
                 <button
                   onClick={handleCloseDetail}
                   className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
@@ -357,7 +384,21 @@ export function TaskDetailModal({
                 </button>
               </div>
 
-              <div className="mt-[18px] flex flex-col gap-[14px]">
+              <div className="mt-[18px] flex flex-col gap-[14px] overflow-y-auto">
+                {invoiceIssues && invoiceIssues.length > 0 && (
+                  <div className="grid grid-cols-[84px_minmax(0,1fr)] items-start gap-[12px]">
+                    <span className="pt-[6px] text-[13px] font-medium text-[#8d8d8d]">Issues</span>
+                    <div className="min-w-0 space-y-[6px]">
+                      {invoiceIssues.map((issue) => (
+                        <div key={issue} className="flex items-start gap-[8px] rounded-[10px] bg-[#fff6f6] px-[8px] py-[6px] text-[12px] leading-[1.45] text-[#a14e4e]">
+                          <AlertTriangle className="mt-[1px] h-[12px] w-[12px] shrink-0" strokeWidth={1.75} />
+                          <span>{issue}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
                   <span className="text-[13px] font-medium text-[#8d8d8d]">Client</span>
                   <button
@@ -663,6 +704,24 @@ export function TaskDetailModal({
                     />
                   </div>
                 </div>
+
+                {invoiceInfo && invoiceInfo.length > 0 && (
+                  <div className="mt-[4px] border-t border-[#efefef] pt-[14px]">
+                    <div className="mb-[10px] px-[8px] text-[11px] font-semibold uppercase tracking-[0.08em] text-[#a3a3a3]">
+                      Invoice information
+                    </div>
+                    <div className="flex flex-col gap-[14px]">
+                      {invoiceInfo.map((item) => (
+                        <div key={item.label} className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
+                          <span className="text-[13px] font-medium text-[#8d8d8d]">{item.label}</span>
+                          <span className={`px-[8px] py-[6px] text-[13px] font-medium ${item.value && item.value !== "Empty" ? "text-[#262626]" : "text-[#ccc]"}`}>
+                            {item.value || "Empty"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
             </div>

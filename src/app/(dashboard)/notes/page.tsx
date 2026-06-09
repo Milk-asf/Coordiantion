@@ -178,7 +178,7 @@ export default function NotesPage() {
 
   const handleSelectRecord = async (record: RecordItem) => {
     const clientId = record.type === "Client" ? record.id : null
-    await addNote({
+    const created = await addNote({
       title: "Untitled",
       content: "",
       clientId,
@@ -186,9 +186,7 @@ export default function NotesPage() {
       createdBy: currentUserName,
     })
     setIsModalOpen(false)
-    await refetch()
-    const latest = notes[0]
-    if (latest) handleSelectNote(latest)
+    if (created) handleSelectNote(created)
   }
 
   const handleSelectNote = (note: Note) => {

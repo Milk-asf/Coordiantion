@@ -83,6 +83,7 @@ export interface ParticipantDetails {
   language: string
   primaryDiagnosis: string
   secondaryDiagnosis: string
+  address: string
   email: string
   mobile: string
   phone: string
@@ -123,7 +124,7 @@ export interface ActivityEntry {
 export const emptyParticipant: ParticipantDetails = {
   firstName: "", middleName: "", lastName: "", preferredName: "",
   dateOfBirth: "", gender: "", pronouns: "", ethnicity: "", language: "",
-  primaryDiagnosis: "", secondaryDiagnosis: "",
+  primaryDiagnosis: "", secondaryDiagnosis: "", address: "",
   email: "", mobile: "", phone: "",
   preferredContactMethod: "", preferredSignMethod: "",
   ndisNumber: "", medicareNumber: "", centrelinkNumber: "", externalId: "",
@@ -216,6 +217,7 @@ export interface StaffDetails {
   dateOfBirth: string
   gender: string
   pronouns: string
+  address: string
   email: string
   mobile: string
   phone: string
@@ -233,7 +235,7 @@ export interface StaffDetails {
 
 export const emptyStaffDetails: StaffDetails = {
   firstName: "", lastName: "", preferredName: "",
-  dateOfBirth: "", gender: "", pronouns: "",
+  dateOfBirth: "", gender: "", pronouns: "", address: "",
   email: "", mobile: "", phone: "",
   role: "", department: "", employmentType: "",
   startDate: "", endDate: "",

@@ -70,7 +70,7 @@ export async function POST(request: Request) {
   }
 
   const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
-    redirectTo: getAuthCallbackUrl("/tasks"),
+    redirectTo: getAuthCallbackUrl("/create-password"),
   })
 
   let userId: string | null = null

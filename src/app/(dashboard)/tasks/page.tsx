@@ -83,13 +83,7 @@ export default function TasksPage() {
   const chargeCode = (val: string) => {
     if (!val) return ""
     const match = allCharges.find((c) => c.itemNumber === val)
-    if (!match) return val
-    const s = match.shortName
-    if (s.startsWith("SC-L")) return s
-    if (s.includes("PRC")) return "PRC"
-    if (s.includes("Travel")) return "Travel"
-    if (s.includes("Transport")) return "Trans"
-    return s.slice(0, 6)
+    return match ? match.shortName : val
   }
 
   const secondaryChargeLabel = (val: string) => {

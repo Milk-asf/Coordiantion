@@ -3,8 +3,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import {
-  AlertTriangle,
-  SquareCheck,
   CalendarDays,
   ChevronDown,
   ChevronLeft,
@@ -15,17 +13,19 @@ import {
   Table2,
   Tag,
   User,
-  X,
   Building2,
 } from "lucide-react"
-import { DatePicker } from "@/components/date-picker"
 import { useCharges } from "@/lib/hooks/use-charges"
 import { useClients } from "@/lib/hooks/use-clients"
 import { useInvoices } from "@/lib/hooks/use-invoices"
 import { useSavedViews } from "@/lib/hooks/use-saved-views"
 import { useTasks } from "@/lib/hooks/use-tasks"
+import { useStaff } from "@/lib/hooks/use-staff"
+import { usePermissions } from "@/lib/hooks/use-permissions"
 import { useWorkspace } from "@/lib/workspace-context"
 import { useWorkspaceSettings } from "@/lib/hooks/use-workspace-settings"
+import { serviceChargeTypes } from "@/lib/ndis-charges"
+import { TaskDetailModal } from "@/app/(dashboard)/tasks/_components/task-detail-modal"
 import type { Client, InvoiceDeliveryMethod, InvoiceLineItem, Task } from "@/lib/types"
 import { PageLoader, PageError } from "@/components/page-state"
 import { useToast } from "@/components/toast"
@@ -48,8 +48,6 @@ import {
   FilterPill,
   DisplaySection,
   MultiSelectDropdown,
-  SidebarField,
-  SidebarStaticField,
   EmptyState,
 } from "./_components/invoicing-helpers"
 
@@ -91,7 +89,9 @@ const weekDayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 export default function InvoicingPage() {
   const { toast } = useToast()
   const { tasks: allTasks, isLoading: tasksLoading, fetchError: tasksFetchError, updateTask, refetch: refetchTasks } = useTasks()
-  const { clients, isLoading: clientsLoading, fetchError: clientsFetchError } = useClients()
+  const { clients, clientNames, updateClient, isLoading: clientsLoading, fetchError: clientsFetchError } = useClients()
+  const { staffNames } = useStaff()
+  const { canAssignTasks } = usePermissions()
   const { enabledCharges, allCharges, chargeItems } = useCharges()
   const { invoices, isLoading: invoicesLoading, fetchError: invoicesFetchError, addInvoice, markInvoiceSent, deleteInvoice, exportInvoiceToCsv } = useInvoices()
   const { activeWorkspace } = useWorkspace()
@@ -128,12 +128,10 @@ export default function InvoicingPage() {
   const [isCreateViewOpen, setIsCreateViewOpen] = useState(false)
   const [newViewName, setNewViewName] = useState("")
   const [viewContextMenu, setViewContextMenu] = useState<{ viewId: string; x: number; y: number } | null>(null)
-  const [datePickerField, setDatePickerField] = useState<"dueDate" | null>(null)
   const filterButtonRef = useRef<HTMLButtonElement>(null)
   const filterPillRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const pageSizeButtonRef = useRef<HTMLButtonElement>(null)
   const displayButtonRef = useRef<HTMLButtonElement>(null)
-  const detailDueDateButtonRef = useRef<HTMLButtonElement>(null)
   const newViewInputRef = useRef<HTMLInputElement>(null)
 
   const sentTaskIds = useMemo(() => {
@@ -158,6 +156,20 @@ export default function InvoicingPage() {
     const charge = allCharges.find((item) => item.itemNumber === value)
     if (!charge) return value
     return charge.shortName
+  }, [allCharges])
+
+  const chargeTypes = useMemo(
+    () => [{ value: "", label: "No charge" }, ...enabledCharges.map((c) => ({ value: c.itemNumber, label: c.shortName }))],
+    [enabledCharges]
+  )
+
+  const secondaryChargeLabel = useCallback((value: string) => {
+    if (!value) return ""
+    const svc = serviceChargeTypes.find((s) => s.value === value)
+    if (svc) return svc.label
+    const ndis = allCharges.find((c) => c.itemNumber === value)
+    if (ndis) return ndis.shortName
+    return value
   }, [allCharges])
 
   const getTaskCharge = useCallback((task: Task) => {
@@ -561,6 +573,26 @@ export default function InvoicingPage() {
     updateTask(taskId, updates)
   }
 
+  const handleLinkGoal = useCallback((goalId: string | null) => {
+    if (!selectedTask) return
+    const client = clients.find((c) => c.id === selectedTask.clientId)
+      || clients.find((c) => c.name === selectedTask.client || c.displayName === selectedTask.client)
+    if (!client) return
+    const existingGoals = client.participant.goals || []
+    const snapshot = {
+      taskId: selectedTask.id,
+      title: selectedTask.title,
+      status: selectedTask.status,
+      linkedAt: new Date().toISOString(),
+    }
+    const updatedGoals = existingGoals.map((g) => {
+      const without = g.linkedTasks.filter((lt) => lt.taskId !== selectedTask.id)
+      if (g.id === goalId) return { ...g, linkedTasks: [...without, snapshot] }
+      return { ...g, linkedTasks: without }
+    })
+    updateClient(client.id, { participant: { ...client.participant, goals: updatedGoals } })
+  }, [selectedTask, clients, updateClient])
+
   const handleCloseSendInvoicesModal = () => {
     if (isSendingInvoices) return
     setIsSendInvoicesOpen(false)
@@ -789,13 +821,6 @@ export default function InvoicingPage() {
           <td className={tdClass("charge")}>
             {task.chargeType ? (
               <span className="truncate">{chargeLabel(task.chargeType)}</span>
-            ) : <span className="text-[#ccc]">—</span>}
-          </td>
-        )}
-        {isColumnVisible("charge-number") && (
-          <td className={tdClass("charge-number")}>
-            {task.chargeType ? (
-              <span className="text-[#666]">{task.chargeType}</span>
             ) : <span className="text-[#ccc]">—</span>}
           </td>
         )}
@@ -1399,207 +1424,42 @@ export default function InvoicingPage() {
         </span>
       </div>
 
-      {selectedTask && (
-        <>
-          {(() => {
-            const selectedClient = getTaskClient(selectedTask)
-            const selectedInvoiceEmail = getInvoiceEmail(selectedTask)
-            const selectedAmount = getTaskAmount(selectedTask)
-            const selectedSecondaryCharge = getTaskSecondaryCharge(selectedTask)
-            const selectedSecondaryRaw = selectedTask.secondaryTimeSpent || 0
-            const selectedSecondaryValue = selectedSecondaryCharge && selectedSecondaryRaw > 0
-              ? (selectedSecondaryCharge.unit === "km"
-                ? `${selectedSecondaryRaw} km`
-                : selectedSecondaryCharge.unit === "each"
-                ? `${selectedSecondaryRaw} ea`
-                : formatTime(selectedSecondaryRaw))
-              : ""
-            const selectedFunding = formatFundingType(selectedClient?.participant.fundingType || "")
-            const isSelectedTaskReviewed = reviewedTaskIds.includes(selectedTask.id)
-            const selectedTaskInvoiceIssues = getTaskInvoiceIssues(selectedTask)
-            const hasSelectedTaskInvoiceIssues = selectedTaskInvoiceIssues.length > 0
+      {selectedTask && selectedTaskId && (() => {
+        const selectedClient = getTaskClient(selectedTask)
+        const selectedInvoiceEmail = getInvoiceEmail(selectedTask)
+        const selectedAmount = getTaskAmount(selectedTask)
+        const selectedFunding = formatFundingType(selectedClient?.participant.fundingType || "")
+        const isSelectedTaskReviewed = reviewedTaskIds.includes(selectedTask.id)
 
-            return (
-        <>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-[16px]">
-            <div className="absolute inset-0 bg-black/20" onClick={() => setSelectedTaskId(null)} />
-            <div className="relative z-10 flex h-[680px] max-h-[calc(100vh-32px)] w-[960px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[20px] border border-[#e7e7e7] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
-              <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_320px]">
-                <div className="flex min-h-0 flex-col px-[28px] py-[22px]">
-                  <div className="flex items-center gap-[6px] text-[11px] font-medium uppercase tracking-[0.03em] text-[#a3a3a3]">
-                    <SquareCheck className="h-[12px] w-[12px]" strokeWidth={1.5} />
-                    <span>Task</span>
-                  </div>
+        const invoiceInfo = [
+          { label: "Amount", value: selectedAmount > 0 ? formatCurrency(selectedAmount) : "Empty" },
+          { label: "Funding", value: selectedFunding || "Empty" },
+          { label: "Email", value: selectedInvoiceEmail || "Empty" },
+          { label: "Status", value: isSelectedTaskReviewed ? "Reviewed" : "Review pending" },
+        ]
 
-                  <div className="mt-[14px] rounded-[10px] bg-[#f7f7f7] px-[12px] py-[10px]">
-                    <input
-                      type="text"
-                      placeholder="Enter a title for this task..."
-                      value={selectedTask.title}
-                      onChange={(event) => handleUpdateTask(selectedTask.id, { title: event.target.value })}
-                      className="w-full bg-transparent text-[18px] font-semibold text-[#262626] placeholder-[#8f8f8f] outline-none"
-                    />
-                  </div>
-
-                  <textarea
-                    value={selectedTask.description}
-                    onChange={(event) => handleUpdateTask(selectedTask.id, { description: event.target.value })}
-                    placeholder="Start typing a description..."
-                    className="mt-[14px] min-h-[80px] flex-1 resize-none overflow-y-auto bg-transparent text-[14px] leading-[1.6] text-[#4b4b4b] outline-none placeholder:text-[#b5b5b5]"
-                  />
-
-                  <div className="mt-[16px] flex items-center gap-[8px] border-t border-[#f1f1f1] pt-[14px]">
-                    <button
-                      type="button"
-                      onClick={() => handleMoveBackToTasks(selectedTask.id)}
-                      className="flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[10px] py-[5px] text-[12px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                      tabIndex={0}
-                    >
-                      Move back to tasks
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedTaskId(null)}
-                      className="ml-auto flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[10px] py-[5px] text-[12px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                      tabIndex={0}
-                    >
-                      Done
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex min-h-0 flex-col border-l border-[#ececec] px-[20px] py-[18px]">
-                  <div className="flex justify-end gap-[4px]">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedTaskId(null)}
-                      className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
-                      tabIndex={0}
-                      aria-label="Close"
-                    >
-                      <X className="h-[14px] w-[14px]" strokeWidth={1.5} />
-                    </button>
-                  </div>
-
-                  <div className="mt-[18px] flex flex-col gap-[14px] overflow-y-auto">
-                    {hasSelectedTaskInvoiceIssues && (
-                      <div className="grid grid-cols-[84px_minmax(0,1fr)] items-start gap-[12px]">
-                        <span className="pt-[6px] text-[13px] font-medium text-[#8d8d8d]">Issues</span>
-                        <div className="min-w-0 space-y-[6px]">
-                          {selectedTaskInvoiceIssues.map((issue) => (
-                            <div key={issue} className="flex items-start gap-[8px] rounded-[10px] bg-[#fff6f6] px-[8px] py-[6px] text-[12px] leading-[1.45] text-[#a14e4e]">
-                              <AlertTriangle className="mt-[1px] h-[12px] w-[12px] shrink-0" strokeWidth={1.75} />
-                              <span>{issue}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="space-y-[10px]">
-                      <div className="px-[8px] text-[11px] font-semibold uppercase tracking-[0.08em] text-[#a3a3a3]">
-                        Task information
-                      </div>
-                      <SidebarField
-                        label="Customer"
-                        value={selectedTask.client}
-                        onChange={(value) => handleUpdateTask(selectedTask.id, { client: value })}
-                        placeholder="Empty"
-                      />
-                      <SidebarField
-                        label="Assignee"
-                        value={selectedTask.assignee}
-                        onChange={(value) => handleUpdateTask(selectedTask.id, { assignee: value })}
-                        placeholder="Empty"
-                      />
-                      <SidebarField
-                        label="Charge"
-                        value={selectedTask.chargeType}
-                        onChange={(value) => handleUpdateTask(selectedTask.id, { chargeType: value })}
-                        placeholder="Empty"
-                        type="select"
-                        options={enabledCharges.map((charge) => charge.itemNumber)}
-                        formatValue={chargeLabel}
-                      />
-                      <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
-                        <span className="text-[13px] font-medium text-[#8d8d8d]">Due date</span>
-                        <div>
-                          <button
-                            ref={detailDueDateButtonRef}
-                            type="button"
-                            onClick={() => setDatePickerField(datePickerField ? null : "dueDate")}
-                            className="flex min-w-0 items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
-                            tabIndex={0}
-                          >
-                            <CalendarDays className={`h-[13px] w-[13px] shrink-0 ${selectedTask.dueDate ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
-                            <span className={`truncate text-[13px] font-medium ${selectedTask.dueDate ? "text-[#262626]" : "text-[#ccc]"}`}>
-                              {selectedTask.dueDate
-                                ? new Date(selectedTask.dueDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short" })
-                                : "Empty"}
-                            </span>
-                          </button>
-                          {datePickerField === "dueDate" && (
-                            <div
-                              className="fixed z-[70]"
-                              style={(() => {
-                                const rect = detailDueDateButtonRef.current?.getBoundingClientRect()
-                                if (!rect) return {}
-
-                                const pickerWidth = 260
-                                const viewportPadding = 16
-                                const left = Math.min(
-                                  Math.max(viewportPadding, rect.right - pickerWidth),
-                                  window.innerWidth - pickerWidth - viewportPadding
-                                )
-
-                                const maxTop = window.innerHeight - 320 - viewportPadding
-                                const top = Math.min(rect.bottom + 6, Math.max(viewportPadding, maxTop))
-
-                                return { top, left }
-                              })()}
-                            >
-                              <DatePicker
-                                value={selectedTask.dueDate || ""}
-                                onChange={(value) => {
-                                  handleUpdateTask(selectedTask.id, { dueDate: value })
-                                  setDatePickerField(null)
-                                }}
-                                onClose={() => setDatePickerField(null)}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="border-t border-[#efefef] pt-[14px]">
-                      <div className="space-y-[10px]">
-                        <div className="px-[8px] text-[11px] font-semibold uppercase tracking-[0.08em] text-[#a3a3a3]">
-                          Invoice information
-                        </div>
-                        <SidebarStaticField label="Amount" value={selectedAmount > 0 ? formatCurrency(selectedAmount) : "Empty"} />
-                        <SidebarStaticField label="Funding" value={selectedFunding} />
-                        <SidebarStaticField label="Email" value={selectedInvoiceEmail || "Empty"} />
-                        <SidebarStaticField label="Time" value={selectedTask.timeSpent > 0 ? formatTime(selectedTask.timeSpent) : "Empty"} />
-                        {selectedSecondaryCharge && (
-                          <SidebarStaticField
-                            label={selectedSecondaryCharge.shortName}
-                            value={selectedSecondaryValue || "Empty"}
-                          />
-                        )}
-                        <SidebarStaticField label="Status" value={isSelectedTaskReviewed ? "Reviewed" : "Review pending"} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </>
-            )
-          })()}
-        </>
-      )}
+        return (
+          <TaskDetailModal
+            selectedTask={selectedTask}
+            selectedTaskId={selectedTaskId}
+            tasks={allTasks}
+            onUpdateTask={(field, value) => handleUpdateTask(selectedTask.id, { [field]: value } as Partial<Task>)}
+            onLinkGoal={handleLinkGoal}
+            onClose={() => setSelectedTaskId(null)}
+            chargeTypes={chargeTypes}
+            chargeLabel={chargeLabel}
+            secondaryChargeLabel={secondaryChargeLabel}
+            clientNames={clientNames}
+            clients={clients}
+            staffNames={staffNames}
+            canAssignTasks={canAssignTasks}
+            enabledCharges={enabledCharges}
+            onMoveBackToTasks={() => handleMoveBackToTasks(selectedTask.id)}
+            invoiceInfo={invoiceInfo}
+            invoiceIssues={getTaskInvoiceIssues(selectedTask)}
+          />
+        )
+      })()}
 
       {isCreateViewOpen && (
         <>

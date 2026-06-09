@@ -386,7 +386,7 @@ export default function DocumentsPage() {
                       tabIndex={0}
                     >
                       <FilePlus className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
-                      New file
+                      New folder
                     </button>
                   </div>
                 </>
@@ -561,7 +561,7 @@ export default function DocumentsPage() {
             value={newFileName}
             onChange={(e) => setNewFileName(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") handleCreateFile(); if (e.key === "Escape") { setIsNewFileOpen(false); setNewFileName("") } }}
-            placeholder="File name"
+            placeholder="Folder name"
             className="h-[28px] w-[200px] rounded border border-[#dcdcdc] bg-[#fafafa] px-[8px] text-[12px] font-medium text-[#262626] placeholder-[#bbb] outline-none focus:border-[#a3c4f3]"
           />
           <button onClick={handleCreateFile} disabled={!newFileName.trim()} className="primary-btn rounded px-[10px] py-[4px] text-[11px] font-medium disabled:opacity-40" tabIndex={0}>Create</button>

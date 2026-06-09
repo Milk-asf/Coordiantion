@@ -23,6 +23,7 @@ import {
   User,
   Clock,
   ChevronDown,
+  ChevronRight,
   Plus,
   SquarePen,
   CheckSquare,
@@ -89,7 +90,7 @@ export default function ParticipantProfilePage() {
   const { staffNames } = useStaff()
   const assignableCoordinators = useAssignableCoordinators()
   const { canAssignTasks, canAssignClients } = usePermissions()
-  const { documents, uploadDocument, deleteDocument, getDownloadUrl, createFile } = useDocuments()
+  const { documents, files, uploadDocument, deleteDocument, getDownloadUrl, createFile, deleteFile } = useDocuments()
   const { activeWorkspace, currentUserName } = useWorkspace()
   const pf = isFieldEnabled
 
@@ -314,16 +315,7 @@ export default function ParticipantProfilePage() {
   }, [isSidebarVisible, sidebarWidth])
 
   const clientFolder = client?.displayName ?? ""
-  const clientDocuments = useMemo(() =>
-    documents.filter((d) => d.folder === clientFolder || d.folder.startsWith(clientFolder + "/"))
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-    [documents, clientFolder]
-  )
-  const fileUploadRef = useRef<HTMLInputElement>(null)
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null)
-  const [isFilesAddNewOpen, setIsFilesAddNewOpen] = useState(false)
-  const [isNewSubfileOpen, setIsNewSubfileOpen] = useState(false)
-  const [newSubfileName, setNewSubfileName] = useState("")
 
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null)
@@ -360,8 +352,6 @@ export default function ParticipantProfilePage() {
   const [budgetEndDate, setBudgetEndDate] = useState("")
   const [budgetStartPickerOpen, setBudgetStartPickerOpen] = useState(false)
   const [budgetEndPickerOpen, setBudgetEndPickerOpen] = useState(false)
-  const [isEditingDescription, setIsEditingDescription] = useState(false)
-  const [descriptionDraft, setDescriptionDraft] = useState("")
   const [isActivityCollapsed, setIsActivityCollapsed] = useState(false)
   const [inlineSvcOpen, setInlineSvcOpen] = useState(false)
   const [inlineSvcEditingId, setInlineSvcEditingId] = useState<string | null>(null)
@@ -429,27 +419,6 @@ export default function ParticipantProfilePage() {
     updateParticipantField(client.id, field, value)
   }
 
-  const handleSaveDescription = async () => {
-    const trimmed = descriptionDraft.trim()
-    const prev = client.participant.description || ""
-    if (trimmed === prev) {
-      setIsEditingDescription(false)
-      return
-    }
-    const entry: ActivityEntry = {
-      id: crypto.randomUUID(),
-      type: "description_updated",
-      message: "Updated the participant description",
-      user: currentUserName,
-      createdAt: new Date().toISOString(),
-    }
-    const existingLog = client.participant.activityLog || []
-    await saveClient(client.id, {
-      participant: { ...client.participant, description: trimmed, activityLog: [entry, ...existingLog] },
-    })
-    setIsEditingDescription(false)
-  }
-
   const activityLog = client.participant.activityLog || []
 
   const clientContacts = getContactsForClient(client.name)
@@ -469,13 +438,11 @@ export default function ParticipantProfilePage() {
     return a.dueDate.localeCompare(b.dueDate)
   })
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.length) return
-    createFile(clientFolder)
-    for (const file of Array.from(e.target.files)) {
-      await uploadDocument(file, clientFolder)
+  const handleUploadFiles = async (fileList: FileList, destination: string) => {
+    if (!files.includes(clientFolder)) createFile(clientFolder)
+    for (const file of Array.from(fileList)) {
+      await uploadDocument(file, destination)
     }
-    e.target.value = ""
   }
 
   const handleDownloadDoc = async (doc: Document) => {
@@ -1081,64 +1048,53 @@ export default function ParticipantProfilePage() {
   }
 
   return (
-    <div className="flex h-full">
-      {/* Left: header + content */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* Profile header bar */}
-        <div ref={headerRef} className="flex shrink-0 flex-col bg-[#fafafa]">
-          {/* Row 1: name + add new */}
-          <div className="relative flex h-[48px] items-center px-[16px]">
-            <button
-              onClick={() => router.push("/clients")}
-              className="mr-[6px] flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded text-[#999] transition-colors hover:bg-[#ebebeb] hover:text-[#262626]"
-              tabIndex={0}
-              aria-label="Back to clients"
-            >
-              <ArrowLeft className="h-[15px] w-[15px]" strokeWidth={1.75} />
-            </button>
-
+    <div className="flex h-full flex-col">
+      {/* Top header — breadcrumbs + name span the full width over content and account details */}
+      <div ref={headerRef} className="flex shrink-0 flex-col bg-[#fafafa]">
+        {/* Level 1: breadcrumbs */}
+        <div className="flex h-[44px] shrink-0 items-center gap-[8px] border-b border-[#ececec] px-[16px]">
+          <button
+            onClick={() => router.push("/clients")}
+            className="mr-[2px] flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded text-[#999] transition-colors hover:bg-[#ebebeb] hover:text-[#262626]"
+            tabIndex={0}
+            aria-label="Back to clients"
+          >
+            <ArrowLeft className="h-[15px] w-[15px]" strokeWidth={1.75} />
+          </button>
+          <button
+            onClick={() => router.push("/clients")}
+            className="text-[13px] font-medium text-[#888] transition-colors hover:text-[#262626]"
+            tabIndex={0}
+          >
+            Clients
+          </button>
+          <ChevronRight className="h-[14px] w-[14px] shrink-0 text-[#c4c4c4]" strokeWidth={1.75} />
+          <span className="flex min-w-0 items-center gap-[6px]">
             <ClientIcon client={client} size="sm" />
-            <span className="ml-[8px] mr-[12px] max-w-[420px] shrink-0 truncate text-[15px] font-semibold text-[#262626]">{client.displayName}</span>
-            <SaveIndicator isVisible={isSaved} />
+            <span className="max-w-[420px] truncate text-[13px] font-medium text-[#262626]">{client.displayName}</span>
+          </span>
+        </div>
 
-            <div className="ml-auto flex shrink-0 items-center gap-[6px]">
-              <button
-                onClick={() => setIsQuickAdding(true)}
-                className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
-                tabIndex={0}
-              >
-                <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-                <span>Add new</span>
-              </button>
-              {!isSidebarVisible && (
-                <button
-                  onClick={() => setIsSidebarVisible(true)}
-                  className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                  tabIndex={0}
-                  aria-label="Show account details"
-                >
-                  <PanelRightOpen className="h-[18px] w-[18px]" strokeWidth={1.75} />
-                </button>
-              )}
-            </div>
-          </div>
+        {/* Hidden measurer for tab widths (kept inside headerRef) */}
+        <div data-tab-measurer className="pointer-events-none invisible absolute flex items-center gap-[2px]" aria-hidden="true">
+          {tabs.map((tab) => {
+            const TabIcon = tab.icon
+            return (
+              <div key={tab.key} data-tab-measure className="flex shrink-0 items-center gap-[4px] px-[8px] py-[4px] text-[12px] font-medium">
+                <TabIcon className="h-[12px] w-[12px]" strokeWidth={1.5} />
+                <span>{tab.label}</span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
 
-          {/* Row 2: section tabs */}
-          <div className="relative flex h-[40px] items-center overflow-hidden px-[16px]">
-            <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-[#e5e5e5]" />
-
-            {/* Hidden measurer for tab widths */}
-            <div data-tab-measurer className="pointer-events-none invisible absolute flex items-center gap-[2px]" aria-hidden="true">
-              {tabs.map((tab) => {
-                const TabIcon = tab.icon
-                return (
-                  <div key={tab.key} data-tab-measure className="flex shrink-0 items-center gap-[4px] px-[8px] py-[4px] text-[12px] font-medium">
-                    <TabIcon className="h-[12px] w-[12px]" strokeWidth={1.5} />
-                    <span>{tab.label}</span>
-                  </div>
-                )
-              })}
-            </div>
+      {/* Body — section content (left) + account details (right) */}
+      <div className="flex min-h-0 flex-1">
+        {/* Left: section tabs + content */}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          {/* Level 3: section tabs (sits inline with the account details title on the right) */}
+          <div className="relative flex h-[48px] items-center overflow-hidden border-b border-[#ececec] bg-[#fafafa] px-[16px]">
 
             <div ref={tabsContainerRef} className="flex flex-1 items-center gap-[2px] overflow-hidden">
             {tabs.slice(0, visibleTabCount).map((tab) => {
@@ -1200,8 +1156,20 @@ export default function ParticipantProfilePage() {
             )}
           </div>
 
+            <div className="ml-[8px] flex shrink-0 items-center gap-[6px]">
+              <SaveIndicator isVisible={isSaved} />
+              {!isSidebarVisible && (
+                <button
+                  onClick={() => setIsSidebarVisible(true)}
+                  className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                  tabIndex={0}
+                  aria-label="Show account details"
+                >
+                  <PanelRightOpen className="h-[18px] w-[18px]" strokeWidth={1.75} />
+                </button>
+              )}
             </div>
-          </div>
+            </div>
 
           {isQuickAdding && (
               <>
@@ -1544,19 +1512,14 @@ export default function ParticipantProfilePage() {
             />
           ) : activeTab === "files" ? (
             <FilesTab
-              clientDocuments={clientDocuments}
-              clientFolder={clientFolder}
-              fileUploadRef={fileUploadRef}
-              isFilesAddNewOpen={isFilesAddNewOpen}
-              isNewSubfileOpen={isNewSubfileOpen}
-              newSubfileName={newSubfileName}
-              onSetFilesAddNewOpen={setIsFilesAddNewOpen}
-              onSetNewSubfileOpen={setIsNewSubfileOpen}
-              onSetNewSubfileName={setNewSubfileName}
-              onFileUpload={handleFileUpload}
+              rootFolder={clientFolder}
+              documents={documents}
+              files={files}
+              onUploadFiles={handleUploadFiles}
+              onCreateFile={createFile}
+              onDeleteFile={deleteFile}
               onDownloadDoc={handleDownloadDoc}
               onDeleteDocument={deleteDocument}
-              onCreateFile={createFile}
               onPreviewDoc={setPreviewDoc}
             />
           ) : activeTab === "notes" ? (
@@ -1573,42 +1536,6 @@ export default function ParticipantProfilePage() {
             </div>
           ) : (
           <div className="mx-auto flex w-full max-w-[1120px] flex-col px-[32px] py-[32px]">
-            <div className="flex items-center gap-[14px]">
-              <ClientIcon client={client} size="xl" />
-              <div>
-                <h1 className="text-[24px] font-semibold text-[#262626]">{client.displayName}</h1>
-              </div>
-            </div>
-
-            {/* Description */}
-            <div className="mt-[28px]">
-              {isEditingDescription ? (
-                <textarea
-                  ref={(el) => { if (el) { el.focus(); el.selectionStart = el.value.length } }}
-                  value={descriptionDraft}
-                  onChange={(e) => setDescriptionDraft(e.target.value)}
-                  onBlur={() => handleSaveDescription()}
-                  onKeyDown={(e) => { if (e.key === "Escape") { setDescriptionDraft(client.participant.description || ""); setIsEditingDescription(false) } }}
-                  className="mt-[4px] w-full resize-none rounded-lg border border-[#a3c4f3] bg-[#fafafa] px-[10px] py-[8px] text-[14px] leading-[1.6] text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
-                  rows={3}
-                  placeholder="Add a description..."
-                />
-              ) : (
-                <div
-                  className="mt-[4px] cursor-text rounded-lg px-[10px] py-[8px] transition-colors hover:bg-[#f5f5f5]"
-                  onClick={() => { setDescriptionDraft(client.participant.description || ""); setIsEditingDescription(true) }}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === "Enter") { setDescriptionDraft(client.participant.description || ""); setIsEditingDescription(true) } }}
-                  aria-label="Click to edit description"
-                >
-                  <span className={`text-[14px] leading-[1.6] ${client.participant.description ? "text-[#262626]" : "text-[#bbb]"}`}>
-                    {client.participant.description || "Add a description..."}
-                  </span>
-                </div>
-              )}
-            </div>
-
             {/* Highlights */}
             {(() => {
               if (plans.length === 0) return null
@@ -1645,14 +1572,14 @@ export default function ParticipantProfilePage() {
               ]
 
               return (
-                <div className="mt-[28px]">
+                <div>
                   <h3 className="mb-[12px] text-[13px] font-medium text-[#888]">Highlights</h3>
                   <div className="grid grid-cols-1 gap-[12px] sm:grid-cols-3">
                     {highlights.map(({ label, icon: Icon, value, valueClass, progress, target }) => (
                       <button
                         key={label}
                         onClick={() => setActiveTab(target)}
-                        className="flex flex-col rounded-[12px] border border-[#eee] bg-[#fafafa] px-[16px] py-[14px] text-left transition-colors hover:border-[#e0e0e0] hover:bg-[#f5f5f5]"
+                        className="flex flex-col rounded-[12px] border border-[#e2e2e2] bg-white px-[16px] py-[14px] text-left shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-colors hover:border-[#d4d4d4] hover:bg-[#fafafa]"
                         tabIndex={0}
                       >
                         <div className="flex items-center justify-between">
@@ -1684,12 +1611,17 @@ export default function ParticipantProfilePage() {
                     const cadence = client.participant.checkInPeriod
                     const advanceByCadence = (dateStr: string) => {
                       const d = new Date(dateStr + "T00:00:00")
-                      switch (cadence) {
-                        case "Weekly": d.setDate(d.getDate() + 7); break
-                        case "Fortnightly": d.setDate(d.getDate() + 14); break
-                        case "Monthly": d.setMonth(d.getMonth() + 1); break
-                        case "Quarterly": d.setMonth(d.getMonth() + 3); break
-                        default: d.setMonth(d.getMonth() + 1); break
+                      const cadenceDays = parseInt(cadence, 10)
+                      if (/^\d+$/.test(cadence) && cadenceDays > 0) {
+                        d.setDate(d.getDate() + cadenceDays)
+                      } else {
+                        switch (cadence) {
+                          case "Weekly": d.setDate(d.getDate() + 7); break
+                          case "Fortnightly": d.setDate(d.getDate() + 14); break
+                          case "Monthly": d.setMonth(d.getMonth() + 1); break
+                          case "Quarterly": d.setMonth(d.getMonth() + 3); break
+                          default: d.setMonth(d.getMonth() + 1); break
+                        }
                       }
                       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
                     }
@@ -1734,7 +1666,7 @@ export default function ParticipantProfilePage() {
                         <button
                           onClick={() => latestGoal && initEditGoalForm(latestGoal)}
                           disabled={!latestGoal}
-                          className="flex flex-col rounded-[12px] border border-[#eee] bg-[#fafafa] px-[16px] py-[14px] text-left transition-colors enabled:hover:border-[#e0e0e0] enabled:hover:bg-[#f5f5f5] disabled:cursor-default"
+                          className="flex flex-col rounded-[12px] border border-[#e2e2e2] bg-white px-[16px] py-[14px] text-left shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-colors enabled:hover:border-[#d4d4d4] enabled:hover:bg-[#fafafa] disabled:cursor-default"
                           tabIndex={0}
                         >
                           <div className="flex items-center justify-between">
@@ -1754,7 +1686,7 @@ export default function ParticipantProfilePage() {
                         <button
                           onClick={() => recentTask && router.push(`/tasks?task=${recentTask.id}`)}
                           disabled={!recentTask}
-                          className="flex flex-col rounded-[12px] border border-[#eee] bg-[#fafafa] px-[16px] py-[14px] text-left transition-colors enabled:hover:border-[#e0e0e0] enabled:hover:bg-[#f5f5f5] disabled:cursor-default"
+                          className="flex flex-col rounded-[12px] border border-[#e2e2e2] bg-white px-[16px] py-[14px] text-left shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-colors enabled:hover:border-[#d4d4d4] enabled:hover:bg-[#fafafa] disabled:cursor-default"
                           tabIndex={0}
                         >
                           <div className="flex items-center justify-between">
@@ -1796,7 +1728,7 @@ export default function ParticipantProfilePage() {
                         <button
                           onClick={() => nextCheckInTaskId && router.push(`/tasks?task=${nextCheckInTaskId}`)}
                           disabled={!nextCheckInTaskId}
-                          className="flex flex-col rounded-[12px] border border-[#eee] bg-[#fafafa] px-[16px] py-[14px] text-left transition-colors enabled:hover:border-[#e0e0e0] enabled:hover:bg-[#f5f5f5] disabled:cursor-default"
+                          className="flex flex-col rounded-[12px] border border-[#e2e2e2] bg-white px-[16px] py-[14px] text-left shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-colors enabled:hover:border-[#d4d4d4] enabled:hover:bg-[#fafafa] disabled:cursor-default"
                           tabIndex={0}
                         >
                           <div className="flex items-center justify-between">
@@ -1976,7 +1908,6 @@ export default function ParticipantProfilePage() {
           addingItemToBudgetId={addingItemToBudgetId}
           editingItemBudgetId={editingItemBudgetId}
           itemChargeItemNumber={itemChargeItemNumber}
-          itemBillingCode={itemBillingCode}
           itemServiceName={itemServiceName}
           itemQuantity={itemQuantity}
           itemUnit={itemUnit}
@@ -2009,6 +1940,7 @@ export default function ParticipantProfilePage() {
           periodLabels={periodLabels}
         />
       ) : null}
+      </div>
 
       {/* Create contact modal — rendered at component level so it works from any tab */}
       {isAddContactOpen && (

@@ -147,7 +147,10 @@ export async function upsertConnection(params: {
 /** Maps an app invoice's line items to Xero line items using the connection's mapping settings. */
 export function toXeroLineItems(invoice: AppInvoice, connection: IntegrationConnection): LineItem[] {
   return invoice.lineItems.map((li) => ({
-    description: li.chargeName ? `${li.chargeName} (${li.chargeItemNumber})` : li.description || "Service",
+    description:
+      li.description && li.description !== li.chargeName
+        ? `${li.description} (${li.chargeItemNumber})`
+        : li.chargeItemNumber || li.description || "Service",
     quantity: li.quantity,
     unitAmount: li.rate,
     accountCode: connection.revenue_account_code,

@@ -62,12 +62,17 @@ function dbToTask(row: TaskRow): Task {
 function getNextCheckUpDate(currentDue: string | null, period: string): string {
   const base = currentDue ? new Date(currentDue + "T00:00:00") : new Date()
   const next = new Date(base)
-  switch (period) {
-    case "Weekly": next.setDate(next.getDate() + 7); break
-    case "Fortnightly": next.setDate(next.getDate() + 14); break
-    case "Monthly": next.setMonth(next.getMonth() + 1); break
-    case "Quarterly": next.setMonth(next.getMonth() + 3); break
-    default: next.setMonth(next.getMonth() + 1); break
+  const days = parseInt(period, 10)
+  if (/^\d+$/.test(period) && days > 0) {
+    next.setDate(next.getDate() + days)
+  } else {
+    switch (period) {
+      case "Weekly": next.setDate(next.getDate() + 7); break
+      case "Fortnightly": next.setDate(next.getDate() + 14); break
+      case "Monthly": next.setMonth(next.getMonth() + 1); break
+      case "Quarterly": next.setMonth(next.getMonth() + 3); break
+      default: next.setMonth(next.getMonth() + 1); break
+    }
   }
   return next.toISOString().split("T")[0]
 }

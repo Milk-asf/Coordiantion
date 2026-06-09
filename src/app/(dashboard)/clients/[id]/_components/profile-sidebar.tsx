@@ -8,6 +8,7 @@ import { DatePicker } from "@/components/date-picker"
 import { Switch } from "@/components/switch"
 import { GoalSidebarForm, type GoalFormData, type ResolvedGoalTask } from "./goal-sidebar-form"
 import {
+  ClientIcon,
   SidebarDetailRow,
   SidebarEditableField,
   SidebarCheckInField,
@@ -109,7 +110,6 @@ interface ProfileSidebarProps {
   addingItemToBudgetId: string | null
   editingItemBudgetId: string | null
   itemChargeItemNumber: string
-  itemBillingCode: string
   itemServiceName: string
   itemQuantity: string
   itemUnit: "hour" | "each" | "km"
@@ -165,7 +165,7 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
     onSetBudgetStartPickerOpen, onSetBudgetEndPickerOpen, onResetBudgetForm, onSaveBudget, onUsePlanDates,
     isGoalFormOpen, editingGoal, onResetGoalForm, onSaveGoal, onDeleteGoal, onOpenGoalTask, onResolveGoalTask,
     isItemFormOpen, editingItemId, addingItemToBudgetId, editingItemBudgetId,
-    itemChargeItemNumber, itemBillingCode, itemServiceName, itemQuantity, itemUnit, itemPeriod, itemDescription,
+    itemChargeItemNumber, itemServiceName, itemQuantity, itemUnit, itemPeriod, itemDescription,
     isItemChargeDropdownOpen, isItemPeriodDropdownOpen,
     onSetItemChargeItemNumber, onSetItemBillingCode, onSetItemServiceName,
     onSetItemQuantity, onSetItemUnit, onSetItemPeriod, onSetItemDescription,
@@ -874,11 +874,6 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
                   </div>
 
                   <div className="mb-[14px]">
-                    <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Billing code</label>
-                    <input type="text" value={itemBillingCode} readOnly className="h-[36px] w-full rounded-[8px] border border-[#e0e0e0] bg-[#f5f5f5] px-[12px] text-[13px] font-medium text-[#888] outline-none" title={itemBillingCode} />
-                  </div>
-
-                  <div className="mb-[14px]">
                     <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Service name</label>
                     <input type="text" value={itemServiceName} readOnly className="h-[36px] w-full rounded-[8px] border border-[#e0e0e0] bg-[#f5f5f5] px-[12px] text-[13px] font-medium text-[#888] outline-none" />
                   </div>
@@ -1065,11 +1060,6 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
           </div>
 
           <div>
-            <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Billing code</label>
-            <input type="text" value={itemBillingCode} readOnly className="h-[36px] w-full rounded-[8px] border border-[#e0e0e0] bg-[#f5f5f5] px-[12px] text-[13px] font-medium text-[#888] outline-none" title={itemBillingCode} />
-          </div>
-
-          <div>
             <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Service name</label>
             <input type="text" value={itemServiceName} readOnly className="h-[36px] w-full rounded-[8px] border border-[#e0e0e0] bg-[#f5f5f5] px-[12px] text-[13px] font-medium text-[#888] outline-none" />
           </div>
@@ -1161,11 +1151,14 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
         </>
       ) : (
       <>
-      <div className="flex items-center justify-between px-[24px] pb-[4px] pt-[20px]">
-        <h2 className="text-[13px] font-semibold text-[#262626]">Account details</h2>
+      <div className="flex items-center justify-between gap-[8px] border-b border-[#ececec] px-[24px] py-[14px]">
+        <div className="flex min-w-0 items-center gap-[10px]">
+          <ClientIcon client={client} size="lg" />
+          <span className="min-w-0 truncate text-[16px] font-semibold text-[#262626]">{client.displayName}</span>
+        </div>
         <button
           onClick={() => onSetSidebarVisible(false)}
-          className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+          className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
           tabIndex={0}
           aria-label="Hide sidebar"
         >
@@ -1173,15 +1166,15 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
         </button>
       </div>
 
-      <div className="border-b border-[#f0f0f0] px-[24px] pb-[12px]">
+      <div className="border-b border-[#f0f0f0] px-[24px] pb-[12px] pt-[12px]">
         {pf("p-first-name") && <SidebarDetailRow label="First Name">
           <SidebarEditableField value={p.firstName} onChange={(v) => onUpdateField("firstName", v)} placeholder="First name" />
         </SidebarDetailRow>}
-        {pf("p-middle-name") && <SidebarDetailRow label="Middle Name">
-          <SidebarEditableField value={p.middleName} onChange={(v) => onUpdateField("middleName", v)} placeholder="Middle name" />
-        </SidebarDetailRow>}
         {pf("p-last-name") && <SidebarDetailRow label="Last Name">
           <SidebarEditableField value={p.lastName} onChange={(v) => onUpdateField("lastName", v)} placeholder="Last name" />
+        </SidebarDetailRow>}
+        {pf("p-address") && <SidebarDetailRow label="Address">
+          <SidebarEditableField value={p.address} onChange={(v) => onUpdateField("address", v)} placeholder="Address" />
         </SidebarDetailRow>}
         <SidebarDetailRow label="Coordinator">
           {canAssignClients ? (
@@ -1266,6 +1259,20 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
             </div>
           )}
         </SidebarDetailRow>
+        <SidebarDetailRow label="Check-in">
+          <SidebarCheckInField
+            period={p.checkInPeriod}
+            startDate={p.checkInStartDate}
+            onChangePeriod={(v) => onUpdateField("checkInPeriod", v)}
+            onChangeStartDate={(v) => onUpdateField("checkInStartDate", v)}
+          />
+        </SidebarDetailRow>
+
+        <div className="my-[12px] h-px bg-[#e8e8e8]" />
+        <h3 className="mb-[6px] text-[12px] font-semibold text-[#262626]">Personal details</h3>
+        {pf("p-middle-name") && <SidebarDetailRow label="Middle Name">
+          <SidebarEditableField value={p.middleName} onChange={(v) => onUpdateField("middleName", v)} placeholder="Middle name" />
+        </SidebarDetailRow>}
         {pf("p-date-of-birth") && <SidebarDetailRow label="Date of Birth">
           <SidebarEditableField value={p.dateOfBirth} onChange={(v) => onUpdateField("dateOfBirth", v)} type="date" placeholder="Date of birth" />
         </SidebarDetailRow>}
@@ -1369,14 +1376,6 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
         {pf("p-service-exit") && <SidebarDetailRow label="Service Exit">
           <SidebarEditableField value={p.serviceExitDate} onChange={(v) => onUpdateField("serviceExitDate", v)} type="date" placeholder="Exit date" />
         </SidebarDetailRow>}
-        <SidebarDetailRow label="Check-in">
-          <SidebarCheckInField
-            period={p.checkInPeriod}
-            startDate={p.checkInStartDate}
-            onChangePeriod={(v) => onUpdateField("checkInPeriod", v)}
-            onChangeStartDate={(v) => onUpdateField("checkInStartDate", v)}
-          />
-        </SidebarDetailRow>
       </div>
       </>
       )}

@@ -61,6 +61,7 @@ export const defaultParticipantFields: FieldDefinition[] = [
   { id: "p-language", name: "Language", type: "text", description: "Primary language spoken", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
   { id: "p-primary-diagnosis", name: "Primary diagnosis", type: "text", description: "Primary medical or disability diagnosis", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
   { id: "p-secondary-diagnosis", name: "Secondary diagnosis", type: "text", description: "Secondary or co-occurring diagnosis", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
+  { id: "p-address", name: "Address", type: "text", description: "Participant residential address", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
   { id: "p-email", name: "Email", type: "email", description: "Participant email address", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
 
   { id: "p-phone", name: "Phone", type: "phone", description: "Landline or secondary phone number", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
@@ -98,6 +99,7 @@ export const defaultStaffFields: FieldDefinition[] = [
   { id: "s-date-of-birth", name: "Date of birth", type: "date", description: "Staff member date of birth", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "staff" },
   { id: "s-gender", name: "Gender", type: "single-select", description: "Gender identity", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "staff" },
   { id: "s-pronouns", name: "Pronouns", type: "single-select", description: "Preferred pronouns", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "staff" },
+  { id: "s-address", name: "Address", type: "text", description: "Staff residential address", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "staff" },
   { id: "s-email", name: "Email", type: "email", description: "Work email address", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "staff" },
 
   { id: "s-phone", name: "Phone", type: "phone", description: "Work phone number", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "staff" },

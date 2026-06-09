@@ -14,7 +14,6 @@ import {
   FileText,
   File,
   ChevronDown,
-  Check,
 } from "lucide-react"
 import type { Client } from "@/lib/types"
 
@@ -109,8 +108,13 @@ export function SidebarCheckInField({
   const [open, setOpen] = useState(false)
   const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({})
   const triggerRef = useRef<HTMLButtonElement>(null)
-  const cadenceOptions = ["Weekly", "Fortnightly", "Monthly", "Quarterly"]
-  const MENU_WIDTH = 260
+  const MENU_WIDTH = 240
+  const legacyPeriodToDays: Record<string, string> = { Weekly: "7", Fortnightly: "14", Monthly: "30", Quarterly: "90" }
+  const days = /^\d+$/.test(period) ? period : legacyPeriodToDays[period] || ""
+
+  function handleDaysChange(raw: string) {
+    onChangePeriod(raw.replace(/\D/g, ""))
+  }
 
   function openMenu() {
     const trigger = triggerRef.current
@@ -119,7 +123,7 @@ export function SidebarCheckInField({
       return
     }
     const rect = trigger.getBoundingClientRect()
-    const estHeight = 440
+    const estHeight = 340
     const gap = 4
     const left = Math.max(8, Math.min(rect.right - MENU_WIDTH, window.innerWidth - MENU_WIDTH - 8))
     const spaceBelow = window.innerHeight - rect.bottom
@@ -131,9 +135,11 @@ export function SidebarCheckInField({
     setOpen(true)
   }
 
-  const summary = startDate
-    ? `${new Date(startDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short" })}${period ? ` · ${period}` : ""}`
-    : period || ""
+  const dateLabel = startDate
+    ? new Date(startDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short" })
+    : ""
+  const everyLabel = days ? `Every ${days}d` : ""
+  const summary = [dateLabel, everyLabel].filter(Boolean).join(" · ")
 
   return (
     <div className="relative flex-1">
@@ -151,7 +157,7 @@ export function SidebarCheckInField({
       {open && (
         <>
           <div className="fixed inset-0 z-[59]" onClick={() => setOpen(false)} />
-          <div style={menuStyle} className="fixed z-[60] max-h-[calc(100vh-16px)] w-[260px] overflow-auto rounded-lg border border-[#e0e0e0] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
+          <div style={menuStyle} className="fixed z-[60] max-h-[calc(100vh-16px)] w-[240px] overflow-auto rounded-lg border border-[#e0e0e0] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
             <div className="px-[10px] pb-[8px] pt-[10px]">
               <p className="mb-[6px] px-[2px] text-[10px] font-semibold uppercase tracking-wide text-[#999]">Date</p>
               <DatePicker
@@ -163,25 +169,21 @@ export function SidebarCheckInField({
                 selectedClassName="bg-[#2563EB] text-white"
               />
             </div>
-            <div className="border-t border-[#f0f0f0] py-[4px]">
-              <p className="mb-[2px] px-[12px] pt-[6px] text-[10px] font-semibold uppercase tracking-wide text-[#999]">How often</p>
-              {cadenceOptions.map((opt) => {
-                const isSelected = period === opt
-                return (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => onChangePeriod(opt)}
-                    className={`flex w-full items-center justify-between px-[12px] py-[6px] text-left text-[13px] font-medium transition-colors ${
-                      isSelected ? "bg-blue-50 text-[#2563EB]" : "text-[#555] hover:bg-[#f5f5f5]"
-                    }`}
-                    tabIndex={0}
-                  >
-                    {opt}
-                    {isSelected && <Check className="h-[14px] w-[14px] text-[#2563EB]" strokeWidth={2} />}
-                  </button>
-                )
-              })}
+            <div className="border-t border-[#f0f0f0] px-[12px] py-[10px]">
+              <p className="mb-[6px] text-[10px] font-semibold uppercase tracking-wide text-[#999]">How often</p>
+              <div className="flex items-center gap-[8px] text-[13px] font-medium text-[#555]">
+                <span>Every</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={days}
+                  onChange={(e) => handleDaysChange(e.target.value)}
+                  placeholder="30"
+                  className="h-[30px] w-[60px] rounded-[6px] border border-[#e0e0e0] bg-[#fafafa] px-[8px] text-center text-[13px] font-medium text-[#262626] outline-none transition-colors hover:border-[#ccc] focus:border-[#a3c4f3]"
+                  aria-label="Check-in interval in days"
+                />
+                <span>days</span>
+              </div>
             </div>
           </div>
         </>
