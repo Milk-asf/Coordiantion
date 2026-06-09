@@ -10,7 +10,8 @@ import { useNotes } from "@/lib/hooks/use-notes"
 import { useCharges } from "@/lib/hooks/use-charges"
 import { useInvoices } from "@/lib/hooks/use-invoices"
 import { usePermissions } from "@/lib/hooks/use-permissions"
-import type { StaffMember, StaffDetails, Task, Document } from "@/lib/types"
+import type { StaffMember, StaffDetails, Task, Document, Attachment } from "@/lib/types"
+import { useWorkspace } from "@/lib/workspace-context"
 import { useFieldConfig } from "@/lib/hooks/use-field-config"
 import { EntityIcon } from "@/components/entity-icon"
 import { EditableField } from "@/components/editable-field"
@@ -18,19 +19,21 @@ import { ContactChip } from "@/components/contact-chip"
 import { DetailRow } from "@/components/detail-row"
 import { DocumentPreview } from "@/components/document-preview"
 import { ProfileNotesTab } from "@/components/profile-notes-tab"
+import { NoteEditorModal } from "@/app/(dashboard)/notes/_components/note-editor-modal"
 import { FilesTab } from "@/app/(dashboard)/clients/[id]/_components/files-tab"
+import { mergeDiagnoses } from "@/app/(dashboard)/clients/[id]/_components/client-profile-helpers"
 import { EmptyState } from "@/components/empty-state"
+import { SectionToolbar } from "@/components/section-toolbar"
 import { UsageBar } from "@/components/usage-bar"
 import {
   FileText,
-  CalendarDays,
   Clock,
-  Hash,
   Plus,
   SquarePen,
   CheckSquare,
   ArrowLeft,
   ChevronRight,
+  ChevronDown,
   FolderOpen,
   PanelRightOpen,
   PanelRightClose,
@@ -84,36 +87,27 @@ function StaffProfileTasksTab({
   tasks,
   chargeCode,
   onToggleComplete,
+  onCreateTask,
 }: {
   tasks: Task[]
   chargeCode: (itemNumber: string) => string
   onToggleComplete: (task: Task) => void
+  onCreateTask?: () => void
 }) {
   const gridTemplate = "90px 1fr 40px 64px 56px 40px"
 
-  if (tasks.length === 0) {
-    return (
-      <EmptyState
-        icon={CheckSquare}
-        title="No tasks yet"
-        description="Tasks assigned to this staff member will appear here."
-        className="h-full"
-      />
-    )
-  }
-
   return (
     <div className="flex h-full flex-col">
+      <SectionToolbar onAddNew={onCreateTask} />
+      {tasks.length === 0 ? (
+        <EmptyState
+          icon={CheckSquare}
+          title="No tasks yet"
+          description="Tasks assigned to this staff member will appear here."
+          className="flex-1"
+        />
+      ) : (
       <div className="flex-1 overflow-y-auto bg-[#fafafa]">
-        <div className="sticky top-0 z-[1] grid items-center border-b border-[#e0e0e0] bg-[#fafafa] px-[24px]" style={{ gridTemplateColumns: gridTemplate }}>
-          <div className="flex items-center py-[9px]"><CalendarDays className="h-[14px] w-[14px] text-[#ccc]" strokeWidth={1.5} /></div>
-          <div className="flex items-center py-[9px] pl-[8px]"><FileText className="h-[14px] w-[14px] text-[#ccc]" strokeWidth={1.5} /></div>
-          <div className="flex items-center justify-center py-[9px]"><Building2 className="h-[14px] w-[14px] text-[#ccc]" strokeWidth={1.5} /></div>
-          <div className="flex items-center justify-center py-[9px]"><Hash className="h-[14px] w-[14px] text-[#ccc]" strokeWidth={1.5} /></div>
-          <div className="flex items-center justify-center py-[9px]"><Clock className="h-[14px] w-[14px] text-[#ccc]" strokeWidth={1.5} /></div>
-          <div className="flex items-center justify-center py-[9px]"><CheckSquare className="h-[14px] w-[14px] text-[#ccc]" strokeWidth={1.5} /></div>
-        </div>
-
         {tasks.map((task) => {
           const dateStr = formatTaskDate(task.dueDate)
           const isDone = task.status === "done"
@@ -164,6 +158,7 @@ function StaffProfileTasksTab({
           )
         })}
       </div>
+      )}
     </div>
   )
 }
@@ -291,9 +286,12 @@ export default function StaffProfilePage() {
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null)
 
   const [isAssignClientOpen, setIsAssignClientOpen] = useState(false)
+  const [isSidebarAssignOpen, setIsSidebarAssignOpen] = useState(false)
   const [assignClientSearch, setAssignClientSearch] = useState("")
   const assignClientInputRef = useRef<HTMLInputElement>(null)
   const assignBtnRef = useRef<HTMLButtonElement>(null)
+  const sidebarAssignBtnRef = useRef<HTMLButtonElement>(null)
+  const sidebarAssignInputRef = useRef<HTMLInputElement>(null)
 
   const chargeTypes = useMemo(() => [
     { value: "", label: "No charge" },
@@ -405,19 +403,75 @@ export default function StaffProfilePage() {
 
   const memberName = member?.name ?? ""
 
-  const { notes, addNote } = useNotes()
+  const { notes, addNote, updateNote, deleteNote } = useNotes()
+  const { currentUserName } = useWorkspace()
   const [isCreatingNote, setIsCreatingNote] = useState(false)
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
+  const [noteEditTitle, setNoteEditTitle] = useState("")
+  const [noteEditContent, setNoteEditContent] = useState("")
+  const [noteEditAttachments, setNoteEditAttachments] = useState<Attachment[]>([])
+  const [noteFavorites, setNoteFavorites] = useState<string[]>(() => {
+    if (typeof window === "undefined") return []
+    try { return JSON.parse(localStorage.getItem("note-favorites") || "[]") } catch { return [] }
+  })
   const staffNotes = useMemo(
     () => notes.filter((n) => !!memberName && n.createdBy === memberName),
     [notes, memberName]
   )
+  const selectedNote = useMemo(() => notes.find((n) => n.id === selectedNoteId) ?? null, [notes, selectedNoteId])
+
+  const openNote = useCallback((noteId: string) => {
+    const note = notes.find((n) => n.id === noteId)
+    if (!note) return
+    setSelectedNoteId(note.id)
+    setNoteEditTitle(note.title)
+    setNoteEditContent(note.content)
+    setNoteEditAttachments(note.attachments ?? [])
+  }, [notes])
+
+  const closeNoteEditor = useCallback(() => {
+    setSelectedNoteId(null)
+    setNoteEditTitle("")
+    setNoteEditContent("")
+    setNoteEditAttachments([])
+  }, [])
+
+  const toggleNoteFavorite = useCallback((noteId: string) => {
+    setNoteFavorites((prev) => {
+      const next = prev.includes(noteId) ? prev.filter((f) => f !== noteId) : [...prev, noteId]
+      if (typeof window !== "undefined") localStorage.setItem("note-favorites", JSON.stringify(next))
+      return next
+    })
+  }, [])
+
+  const handleDeleteNote = useCallback(async (noteId: string) => {
+    await deleteNote(noteId)
+    if (selectedNoteId === noteId) closeNoteEditor()
+  }, [deleteNote, selectedNoteId, closeNoteEditor])
+
+  const saveAndCloseNote = useCallback(async () => {
+    if (selectedNoteId) await updateNote(selectedNoteId, { title: noteEditTitle, content: noteEditContent, attachments: noteEditAttachments })
+    closeNoteEditor()
+  }, [selectedNoteId, noteEditTitle, noteEditContent, noteEditAttachments, updateNote, closeNoteEditor])
+
+  useEffect(() => {
+    if (!selectedNoteId) return
+    const timeout = setTimeout(() => { updateNote(selectedNoteId, { title: noteEditTitle, content: noteEditContent, attachments: noteEditAttachments }) }, 800)
+    return () => clearTimeout(timeout)
+  }, [noteEditTitle, noteEditContent, noteEditAttachments, selectedNoteId, updateNote])
+
   const handleCreateNote = useCallback(async () => {
     if (!memberName || isCreatingNote) return
     setIsCreatingNote(true)
     const created = await addNote({ title: "Untitled", content: "", clientId: null, clientName: "", createdBy: memberName })
     setIsCreatingNote(false)
-    if (created) router.push(`/notes?note=${created.id}`)
-  }, [memberName, isCreatingNote, addNote, router])
+    if (created) {
+      setSelectedNoteId(created.id)
+      setNoteEditTitle(created.title)
+      setNoteEditContent(created.content)
+      setNoteEditAttachments(created.attachments ?? [])
+    }
+  }, [memberName, isCreatingNote, addNote])
 
   const staffFolder = memberName
 
@@ -507,6 +561,12 @@ export default function StaffProfilePage() {
     if (url) window.open(url, "_blank")
   }
 
+  const openQuickAddTask = () => {
+    setIsQuickAdding(true)
+    setQuickActiveField("title")
+    setTimeout(() => quickInputRef.current?.focus(), 50)
+  }
+
   const handleQuickFinish = async () => {
     const title = quickTitle.trim()
     if (!title) return
@@ -528,6 +588,7 @@ export default function StaffProfilePage() {
   const handleAssignClient = (clientId: string) => {
     updateClient(clientId, { owner: member.name })
     setIsAssignClientOpen(false)
+    setIsSidebarAssignOpen(false)
     setAssignClientSearch("")
   }
 
@@ -934,7 +995,7 @@ export default function StaffProfilePage() {
                     <tr>
                       <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Client name</th>
                       <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">NDIS Number</th>
-                      <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Primary Diagnosis</th>
+                      <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Diagnosis</th>
                       <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Email</th>
                       <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Plan usage</th>
                     </tr>
@@ -967,7 +1028,7 @@ export default function StaffProfilePage() {
                             {client.participant.ndisNumber || <span className="text-[#bbb]">—</span>}
                           </td>
                           <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626]">
-                            {client.participant.primaryDiagnosis || <span className="text-[#bbb]">—</span>}
+                            {mergeDiagnoses(client.participant.primaryDiagnosis, client.participant.secondaryDiagnosis) || <span className="text-[#bbb]">—</span>}
                           </td>
                           <td className="h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626]">
                             {client.participant.email || <span className="text-[#bbb]">—</span>}
@@ -996,6 +1057,7 @@ export default function StaffProfilePage() {
               tasks={staffTasks}
               chargeCode={chargeCode}
               onToggleComplete={(task) => updateTask(task.id, { status: task.status === "done" ? "todo" : "done" })}
+              onCreateTask={openQuickAddTask}
             />
           ) : activeTab === "files" ? (
             <FilesTab
@@ -1012,7 +1074,7 @@ export default function StaffProfilePage() {
           ) : activeTab === "notes" ? (
             <ProfileNotesTab
               notes={staffNotes}
-              onOpenNote={(noteId) => router.push(`/notes?note=${noteId}`)}
+              onOpenNote={openNote}
               onCreateNote={handleCreateNote}
               isCreating={isCreatingNote}
               emptyDescription="Notes created by this staff member will appear here."
@@ -1023,43 +1085,6 @@ export default function StaffProfilePage() {
             </div>
           ) : (
           <div className="mx-auto max-w-[720px] px-[40px] py-[32px]">
-            {/* Assigned clients */}
-            <div className="mb-[24px]">
-              <div className="flex items-center justify-between">
-                <h3 className="text-[13px] font-medium text-[#888]">Assigned clients</h3>
-                <button onClick={() => setActiveTab("clients")} className="text-[12px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>See all</button>
-              </div>
-              {assignedClients.length === 0 ? (
-                <p className="mt-[8px] text-[13px] font-medium text-[#bbb]">No clients assigned</p>
-              ) : (
-                <div className="mt-[8px] flex flex-col gap-[4px]">
-                  {assignedClients.slice(0, 5).map((client) => (
-                    <div
-                      key={client.id}
-                      className="flex cursor-pointer items-center gap-[8px] rounded-md px-[8px] py-[6px] transition-colors hover:bg-[#f5f5f5]"
-                      onClick={() => router.push(`/clients/${client.id}`)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => { if (e.key === "Enter") router.push(`/clients/${client.id}`) }}
-                    >
-                      <div className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-[6px] bg-[#DBEAFE] text-[9px] font-semibold text-[#2563EB]">
-                        {client.iconText}
-                      </div>
-                      <span className="text-[13px] font-medium text-[#262626]">{client.displayName}</span>
-                      {client.participant.ndisNumber && (
-                        <span className="text-[12px] text-[#bbb]">· {client.participant.ndisNumber}</span>
-                      )}
-                    </div>
-                  ))}
-                  {assignedClients.length > 5 && (
-                    <button onClick={() => setActiveTab("clients")} className="mt-[2px] text-left text-[12px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
-                      +{assignedClients.length - 5} more
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-
             {/* Activity */}
             <div>
               <h3 className="mb-[12px] text-[13px] font-medium text-[#888]">Activity</h3>
@@ -1125,6 +1150,97 @@ export default function StaffProfilePage() {
             {sf("s-address") && <SidebarDetailRow label="Address">
               <SidebarEditableField value={d.address} onChange={(v) => handleUpdateField("address", v)} placeholder="Address" />
             </SidebarDetailRow>}
+            <SidebarDetailRow label="Assigned clients">
+              <div className="relative min-w-0 flex-1">
+                {canAssignClients ? (
+                  <button
+                    ref={sidebarAssignBtnRef}
+                    onClick={() => { setIsSidebarAssignOpen(!isSidebarAssignOpen); setTimeout(() => sidebarAssignInputRef.current?.focus(), 50) }}
+                    className="flex w-full min-w-0 items-center justify-between gap-[6px] rounded px-[6px] py-[3px] text-left transition-colors hover:bg-[#f5f5f5]"
+                    tabIndex={0}
+                    aria-label="Manage assigned clients"
+                  >
+                    {assignedClients.length === 0 ? (
+                      <span className="text-[13px] font-medium text-[#ccc]">Assign clients</span>
+                    ) : (
+                      <div className="flex min-w-0 flex-1 flex-wrap gap-[4px]">
+                        {assignedClients.map((client) => (
+                          <span
+                            key={client.id}
+                            onClick={(e) => { e.stopPropagation(); router.push(`/clients/${client.id}`) }}
+                            onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); router.push(`/clients/${client.id}`) } }}
+                            role="link"
+                            tabIndex={0}
+                            className="inline-flex max-w-full items-center gap-[4px] rounded-[6px] bg-[#e8edf2] px-[8px] py-[2px] text-[12px] font-medium text-[#334155] transition-colors hover:bg-[#dde5ec]"
+                          >
+                            <span className="flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-[4px] bg-[#DBEAFE] text-[8px] font-semibold text-[#2563EB]">
+                              {client.iconText}
+                            </span>
+                            <span className="truncate">{client.displayName}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <ChevronDown className="ml-[2px] h-[10px] w-[10px] shrink-0 text-[#bbb]" strokeWidth={1.5} />
+                  </button>
+                ) : assignedClients.length === 0 ? (
+                  <span className="px-[6px] py-[3px] text-[13px] font-medium text-[#ccc]">No clients assigned</span>
+                ) : (
+                  <div className="flex flex-wrap gap-[4px] px-[6px] py-[3px]">
+                    {assignedClients.map((client) => (
+                      <button
+                        key={client.id}
+                        onClick={() => router.push(`/clients/${client.id}`)}
+                        className="inline-flex max-w-full items-center gap-[4px] rounded-[6px] bg-[#e8edf2] px-[8px] py-[2px] text-[12px] font-medium text-[#334155] transition-colors hover:bg-[#dde5ec]"
+                        tabIndex={0}
+                      >
+                        <span className="flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-[4px] bg-[#DBEAFE] text-[8px] font-semibold text-[#2563EB]">
+                          {client.iconText}
+                        </span>
+                        <span className="truncate">{client.displayName}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {isSidebarAssignOpen && canAssignClients && (
+                  <>
+                    <div className="fixed inset-0 z-[49]" onClick={() => { setIsSidebarAssignOpen(false); setAssignClientSearch("") }} />
+                    <div className="absolute left-0 top-full z-[50] mt-[4px] w-[260px] overflow-hidden rounded-lg border border-[#e0e0e0] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                      <div className="border-b border-[#f0f0f0] px-[12px] py-[8px]">
+                        <input
+                          ref={sidebarAssignInputRef}
+                          value={assignClientSearch}
+                          onChange={(e) => setAssignClientSearch(e.target.value)}
+                          placeholder="Search participants..."
+                          className="w-full text-[13px] text-[#262626] placeholder-[#ccc] outline-none"
+                          autoFocus
+                        />
+                      </div>
+                      <div className="max-h-[200px] overflow-y-auto py-[4px]">
+                        {filteredUnassignedClients.length === 0 ? (
+                          <p className="px-[12px] py-[8px] text-[13px] text-[#999]">
+                            {unassignedClients.length === 0 ? "All participants are assigned" : "No matches"}
+                          </p>
+                        ) : filteredUnassignedClients.map((c) => (
+                          <button
+                            key={c.id}
+                            onClick={() => handleAssignClient(c.id)}
+                            className="flex w-full items-center gap-[8px] px-[12px] py-[8px] text-left text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                            tabIndex={0}
+                          >
+                            <div className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-[6px] bg-[#DBEAFE] text-[9px] font-semibold text-[#2563EB]">
+                              {c.iconText}
+                            </div>
+                            <span className="truncate">{c.displayName}</span>
+                            {c.owner && <span className="ml-auto shrink-0 text-[11px] text-[#bbb]">{c.owner}</span>}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </SidebarDetailRow>
 
             <div className="my-[12px] h-px bg-[#e8e8e8]" />
             <h3 className="mb-[6px] text-[12px] font-semibold text-[#262626]">Personal details</h3>
@@ -1184,6 +1300,25 @@ export default function StaffProfilePage() {
           doc={previewDoc}
           getDownloadUrl={getDownloadUrl}
           onClose={() => setPreviewDoc(null)}
+        />
+      )}
+
+      {selectedNoteId && selectedNote && (
+        <NoteEditorModal
+          note={selectedNote}
+          editTitle={noteEditTitle}
+          editContent={noteEditContent}
+          editAttachments={noteEditAttachments}
+          onEditTitle={setNoteEditTitle}
+          onEditContent={setNoteEditContent}
+          onEditAttachments={setNoteEditAttachments}
+          onClose={closeNoteEditor}
+          onSaveAndClose={saveAndCloseNote}
+          onDelete={handleDeleteNote}
+          onToggleFavorite={toggleNoteFavorite}
+          isFavorite={noteFavorites.includes(selectedNote.id)}
+          currentUserName={currentUserName}
+          recordIcon={{ iconText: member?.iconText || "?", name: member?.name || "Unknown" }}
         />
       )}
     </div>

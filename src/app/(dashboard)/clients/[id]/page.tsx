@@ -81,7 +81,7 @@ export default function ParticipantProfilePage() {
   const [activeTab, setActiveTab] = useState(initialTab)
   const [isSidebarVisible, setIsSidebarVisible] = useState(true)
   const [sidebarWidth, setSidebarWidth] = useState(404)
-  const { clients, isLoading, updateParticipantField, updateClient } = useClients()
+  const { clients, isLoading, updateParticipantField, updateParticipantFields, updateClient } = useClients()
   const { addContact, getContactsForClient } = useContacts()
   const { tasks: allTasks, updateTask, addTask } = useTasks()
   const { allCharges, enabledCharges } = useCharges()
@@ -189,8 +189,8 @@ export default function ParticipantProfilePage() {
     try { return JSON.parse(localStorage.getItem("note-favorites") || "[]") } catch { return [] }
   })
   const clientNotes = useMemo(
-    () => notes.filter((n) => n.clientId === id || (!!client && n.createdBy === client.displayName)),
-    [notes, id, client]
+    () => notes.filter((n) => n.clientId === id),
+    [notes, id]
   )
   const selectedNote = useMemo(() => notes.find((n) => n.id === selectedNoteId) ?? null, [notes, selectedNoteId])
 
@@ -419,9 +419,19 @@ export default function ParticipantProfilePage() {
     updateParticipantField(client.id, field, value)
   }
 
+  const handleUpdateFields = (fields: Partial<ParticipantDetails>) => {
+    updateParticipantFields(client.id, fields)
+  }
+
+  const openQuickAddTask = () => {
+    setIsQuickAdding(true)
+    setQuickActiveField("title")
+    setTimeout(() => quickInputRef.current?.focus(), 50)
+  }
+
   const activityLog = client.participant.activityLog || []
 
-  const clientContacts = getContactsForClient(client.name)
+  const clientContacts = getContactsForClient(client.name, client.id)
   const allContacts: ProfileContact[] = [
     { id: "owner", firstName: client.owner, email: p.email, phone: p.phone || p.mobile, relationship: "support-coordinator" },
     ...clientContacts.map((c) => ({ id: c.id, firstName: c.name, email: c.email, phone: c.phone, relationship: c.relationship })),
@@ -1509,6 +1519,7 @@ export default function ParticipantProfilePage() {
               tasks={clientTasks}
               chargeCode={chargeCode}
               onToggleComplete={(task) => updateTask(task.id, { status: task.status === "done" ? "todo" : "done" })}
+              onCreateTask={openQuickAddTask}
             />
           ) : activeTab === "files" ? (
             <FilesTab
@@ -1933,9 +1944,12 @@ export default function ParticipantProfilePage() {
           coordinatorInputRef={coordinatorInputRef}
           onSetIsCoordinatorOpen={setIsCoordinatorOpen}
           onSetCoordinatorSearch={setCoordinatorSearch}
+          stakeholders={clientContacts}
+          onAddStakeholder={() => setIsAddContactOpen(true)}
           onSetSidebarVisible={setIsSidebarVisible}
           onMouseDown={handleMouseDown}
           onUpdateField={handleUpdateField}
+          onUpdateFields={handleUpdateFields}
           onUpdateClient={updateClient}
           periodLabels={periodLabels}
         />

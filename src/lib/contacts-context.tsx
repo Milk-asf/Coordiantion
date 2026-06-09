@@ -31,7 +31,7 @@ interface ContactsContextValue {
   bulkAddContacts: (inputs: Omit<Contact, "id">[]) => Promise<Contact[]>
   updateContact: (id: string, updates: Partial<Contact>) => Promise<void>
   deleteContact: (id: string) => Promise<void>
-  getContactsForClient: (clientName: string) => Contact[]
+  getContactsForClient: (clientName: string, clientId?: string | null) => Contact[]
   refetch: () => Promise<void>
 }
 
@@ -198,8 +198,10 @@ export function ContactsProvider({ children }: { children: ReactNode }) {
     await supabase.from("contacts").delete().eq("id", id)
   }, [])
 
-  const getContactsForClient = useCallback((clientName: string) => {
-    return contacts.filter((c) => c.clientName === clientName)
+  const getContactsForClient = useCallback((clientName: string, clientId?: string | null) => {
+    return contacts.filter((c) =>
+      (clientId && c.clientId === clientId) || c.clientName === clientName
+    )
   }, [contacts])
 
   return (

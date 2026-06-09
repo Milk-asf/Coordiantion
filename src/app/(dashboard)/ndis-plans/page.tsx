@@ -343,7 +343,7 @@ export default function NdisPlansPage() {
       </div>
 
       <div className="shrink-0 bg-[#fafafa] px-[24px] py-[20px]">
-        <div className="rounded-[8px] border border-[#e8e8e8] px-[28px] py-[24px]">
+        <div className="rounded-[8px] border border-[#e2e2e2] px-[28px] py-[24px]">
           {selectedRow ? (() => {
             const row = selectedRow
             const usedPct = Math.min(100, row.usagePct)
@@ -808,7 +808,7 @@ export default function NdisPlansPage() {
                   return (
                     <div
                       key={`${row.clientId}-${row.plan.id}`}
-                      className="group cursor-pointer rounded-[8px] border border-[#e8e8e8] p-[20px] transition-colors hover:border-[#d0d0d0] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+                      className="group cursor-pointer rounded-[8px] border border-[#e2e2e2] p-[20px] transition-colors hover:border-[#d4d4d4] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
                       onClick={() => router.push(`/clients/${row.clientId}?tab=plan`)}
                     >
                       <div className="flex items-center gap-[8px]">

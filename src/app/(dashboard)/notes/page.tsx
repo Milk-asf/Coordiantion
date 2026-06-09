@@ -630,7 +630,7 @@ function NoteCard({ note, viewMode, isFavorite, onSelect, onToggleFavorite, onDe
         role="button"
         onClick={() => onSelect(note)}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(note) } }}
-        className="group flex w-full cursor-pointer items-center gap-[16px] rounded-[8px] border border-[#f0f0f0] bg-white px-[16px] py-[12px] text-left transition-all hover:border-[#e0e0e0] hover:shadow-sm"
+        className="group flex w-full cursor-pointer items-center gap-[16px] rounded-[8px] border border-[#e2e2e2] bg-white px-[16px] py-[12px] text-left transition-all hover:border-[#d4d4d4] hover:shadow-sm"
         tabIndex={0}
       >
         <div className="min-w-0 flex-1">
@@ -672,7 +672,7 @@ function NoteCard({ note, viewMode, isFavorite, onSelect, onToggleFavorite, onDe
       role="button"
       onClick={() => onSelect(note)}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(note) } }}
-      className="group flex min-h-[180px] w-full cursor-pointer flex-col rounded-[8px] border border-[#f0f0f0] bg-white p-[20px] text-left transition-all hover:border-[#e0e0e0] hover:shadow-sm"
+      className="group flex min-h-[180px] w-full cursor-pointer flex-col rounded-[8px] border border-[#e2e2e2] bg-white p-[20px] text-left transition-all hover:border-[#d4d4d4] hover:shadow-sm"
       tabIndex={0}
     >
       <div className="mb-[10px] flex items-center justify-between">

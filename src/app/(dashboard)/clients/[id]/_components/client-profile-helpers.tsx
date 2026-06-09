@@ -5,6 +5,7 @@ import { useRef, useState } from "react"
 import { EntityIcon } from "@/components/entity-icon"
 import { EditableField } from "@/components/editable-field"
 import { ContactChip } from "@/components/contact-chip"
+import { MultiChip } from "@/components/multi-chip"
 import { DetailRow } from "@/components/detail-row"
 import { DatePicker } from "@/components/date-picker"
 import {
@@ -205,18 +206,19 @@ export function SidebarContactChip({ value, onChange, placeholder, variant = "gr
   )
 }
 
-export function SidebarDiagnosisChip({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
-  return (
-    <ContactChip
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      variant="white"
-      size="compact"
-      emptyPrefix="+"
-      enableCopy={false}
-    />
+export function mergeDiagnoses(...values: string[]): string {
+  const items = values
+    .flatMap((v) => (v || "").split(","))
+    .map((item) => item.trim())
+    .filter(Boolean)
+  const deduped = items.filter(
+    (item, idx) => items.findIndex((other) => other.toLowerCase() === item.toLowerCase()) === idx,
   )
+  return deduped.join(", ")
+}
+
+export function SidebarDiagnosisChip({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
+  return <MultiChip value={value} onChange={onChange} placeholder={placeholder} size="compact" />
 }
 
 export function SidebarSection({ title, emptyText, actionLabel }: { title: string; emptyText: string; actionLabel?: string }) {

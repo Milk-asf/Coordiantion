@@ -18,7 +18,6 @@ import {
   Plus,
   ListFilter,
   SlidersHorizontal,
-  ChevronDown,
 } from "lucide-react"
 import { useDocuments } from "@/lib/hooks/use-documents"
 import { usePermissions } from "@/lib/hooks/use-permissions"
@@ -108,6 +107,7 @@ export default function DocumentsPage() {
   const [renamingFilePath, setRenamingFilePath] = useState<string | null>(null)
   const [renameFileValue, setRenameFileValue] = useState("")
   const [isAddNewOpen, setIsAddNewOpen] = useState(false)
+  const [addNewAnchor, setAddNewAnchor] = useState<{ top: number; right: number } | null>(null)
   const [isUploadPickerOpen, setIsUploadPickerOpen] = useState(false)
   const [uploadDestination, setUploadDestination] = useState("")
   const [globalSearch, setGlobalSearch] = useState("")
@@ -171,6 +171,14 @@ export default function DocumentsPage() {
     } finally {
       setIsUploading(false)
     }
+  }
+
+  const openAddNew = (el: HTMLElement | null) => {
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    setAddNewAnchor({ top: rect.bottom + 4, right: window.innerWidth - rect.right })
+    setIsUploadPickerOpen(false)
+    setIsAddNewOpen(true)
   }
 
   const handleUploadClick = () => {
@@ -344,7 +352,7 @@ export default function DocumentsPage() {
           {canManageDocuments && (
             <div className="relative" ref={uploadPickerRef}>
               <button
-                onClick={() => { setIsAddNewOpen(!isAddNewOpen); setIsUploadPickerOpen(false) }}
+                onClick={(e) => { if (isAddNewOpen) { setIsAddNewOpen(false) } else { openAddNew(e.currentTarget) } }}
                 className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
                 tabIndex={0}
                 aria-label="Add new"
@@ -371,7 +379,10 @@ export default function DocumentsPage() {
               {isAddNewOpen && !isUploadPickerOpen && (
                 <>
                   <div className="fixed inset-0 z-[29]" onClick={() => setIsAddNewOpen(false)} />
-                  <div className="absolute right-0 top-full z-[30] mt-[4px] w-[180px] rounded-[6px] border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                  <div
+                    className="fixed z-[30] w-[180px] rounded-[6px] border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+                    style={addNewAnchor ?? undefined}
+                  >
                     <button
                       onClick={() => { setIsAddNewOpen(false); handleUploadClick() }}
                       className="flex w-full items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
@@ -394,7 +405,10 @@ export default function DocumentsPage() {
               {isUploadPickerOpen && (
                 <>
                   <div className="fixed inset-0 z-[29]" onClick={() => { setIsUploadPickerOpen(false); setIsAddNewOpen(false) }} />
-                  <div className="absolute right-0 top-full z-[30] mt-[4px] w-[260px] overflow-hidden rounded-[6px] border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                  <div
+                    className="fixed z-[30] w-[260px] overflow-hidden rounded-[6px] border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+                    style={addNewAnchor ?? undefined}
+                  >
                     <p className="px-[12px] py-[6px] text-[11px] font-medium tracking-wide text-[#999]">DESTINATION</p>
                     <button
                       onClick={() => setUploadDestination("")}
@@ -593,7 +607,7 @@ export default function DocumentsPage() {
             icon={Folder}
             title={isInsideFile ? "This file is empty" : "No files yet"}
             description={isInsideFile ? "Upload documents or create a file inside" : "Create a file to organise your documents"}
-            action={canManageDocuments ? { label: "Add new", onClick: () => { setIsAddNewOpen(!isAddNewOpen); setIsUploadPickerOpen(false) } } : undefined}
+            action={canManageDocuments ? { label: "Add new", onClick: (e) => openAddNew(e.currentTarget) } : undefined}
           />
         ) : (
           <table className="w-full border-separate border-spacing-0 text-left" style={{ tableLayout: "fixed", minWidth: 700 }}>

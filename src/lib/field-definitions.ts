@@ -59,8 +59,7 @@ export const defaultParticipantFields: FieldDefinition[] = [
   { id: "p-pronouns", name: "Pronouns", type: "single-select", description: "Preferred pronouns", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
   { id: "p-ethnicity", name: "Ethnicity", type: "text", description: "Cultural or ethnic background", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
   { id: "p-language", name: "Language", type: "text", description: "Primary language spoken", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
-  { id: "p-primary-diagnosis", name: "Primary diagnosis", type: "text", description: "Primary medical or disability diagnosis", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
-  { id: "p-secondary-diagnosis", name: "Secondary diagnosis", type: "text", description: "Secondary or co-occurring diagnosis", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
+  { id: "p-primary-diagnosis", name: "Diagnosis", type: "text", description: "Medical or disability diagnoses (one or more)", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
   { id: "p-address", name: "Address", type: "text", description: "Participant residential address", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
   { id: "p-email", name: "Email", type: "email", description: "Participant email address", editableBy: "anyone", isSystem: false, isEnabled: true, isCustom: false, entity: "participants" },
 
@@ -126,7 +125,6 @@ export function getDefaultFields(): FieldDefinition[] {
 export const participantFieldToColumnKey: Record<string, string> = {
   "p-ndis-number": "ndisNumber",
   "p-primary-diagnosis": "diagnosis",
-  "p-secondary-diagnosis": "diagnosis",
   "p-email": "email",
   "p-phone": "phone",
 

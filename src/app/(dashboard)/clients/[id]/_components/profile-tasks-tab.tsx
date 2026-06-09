@@ -1,51 +1,36 @@
 "use client"
 
-import {
-  FileText,
-  User,
-  Hash,
-  CalendarDays,
-  Clock,
-  CheckSquare,
-} from "lucide-react"
+import { CheckSquare } from "lucide-react"
 import type { Task } from "@/lib/types"
 import { formatTaskDate } from "./client-profile-helpers"
 import { EmptyState } from "@/components/empty-state"
+import { SectionToolbar } from "@/components/section-toolbar"
 
 export function ProfileTasksTab({
   tasks,
   chargeCode,
   onToggleComplete,
+  onCreateTask,
 }: {
   tasks: Task[]
   chargeCode: (itemNumber: string) => string
   onToggleComplete: (task: Task) => void
+  onCreateTask?: () => void
 }) {
   const gridTemplate = "90px 1fr 40px 64px 56px 40px"
 
-  if (tasks.length === 0) {
-    return (
-      <EmptyState
-        icon={CheckSquare}
-        title="No tasks yet"
-        description="Tasks assigned to this participant will appear here."
-        className="h-full"
-      />
-    )
-  }
-
   return (
     <div className="flex h-full flex-col">
+      <SectionToolbar onAddNew={onCreateTask} />
+      {tasks.length === 0 ? (
+        <EmptyState
+          icon={CheckSquare}
+          title="No tasks yet"
+          description="Tasks assigned to this participant will appear here."
+          className="flex-1"
+        />
+      ) : (
       <div className="flex-1 overflow-y-auto bg-[#fafafa]">
-        <div className="sticky top-0 z-[1] grid items-center border-b border-[#e0e0e0] bg-[#fafafa] px-[24px]" style={{ gridTemplateColumns: gridTemplate }}>
-          <div className="flex items-center py-[9px]"><CalendarDays className="h-[14px] w-[14px] text-[#ccc]" strokeWidth={1.5} /></div>
-          <div className="flex items-center py-[9px] pl-[8px]"><FileText className="h-[14px] w-[14px] text-[#ccc]" strokeWidth={1.5} /></div>
-          <div className="flex items-center justify-center py-[9px]"><User className="h-[14px] w-[14px] text-[#ccc]" strokeWidth={1.5} /></div>
-          <div className="flex items-center justify-center py-[9px]"><Hash className="h-[14px] w-[14px] text-[#ccc]" strokeWidth={1.5} /></div>
-          <div className="flex items-center justify-center py-[9px]"><Clock className="h-[14px] w-[14px] text-[#ccc]" strokeWidth={1.5} /></div>
-          <div className="flex items-center justify-center py-[9px]"><CheckSquare className="h-[14px] w-[14px] text-[#ccc]" strokeWidth={1.5} /></div>
-        </div>
-
         {tasks.map((task) => {
           const dateStr = formatTaskDate(task.dueDate)
           const isDone = task.status === "done"
@@ -96,6 +81,7 @@ export function ProfileTasksTab({
           )
         })}
       </div>
+      )}
     </div>
   )
 }

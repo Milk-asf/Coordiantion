@@ -143,6 +143,7 @@ interface ClientsContextValue {
   bulkAddClients: (inputs: { name: string; participant: Partial<ParticipantDetails> }[]) => Promise<Client[]>
   updateClient: (id: string, updates: Partial<Client>) => Promise<void>
   updateParticipantField: (id: string, field: keyof ParticipantDetails, value: string) => Promise<void>
+  updateParticipantFields: (id: string, fields: Partial<ParticipantDetails>) => Promise<void>
   deleteClient: (id: string) => Promise<void>
   refetch: () => Promise<void>
 }
@@ -370,6 +371,31 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
     }
   }, [fetchClients])
 
+  const updateParticipantFields = useCallback(async (id: string, fields: Partial<ParticipantDetails>) => {
+    let mergedParticipant: ParticipantDetails | null = null
+
+    setClients((prev) => prev.map((c) => {
+      if (c.id !== id) return c
+      mergedParticipant = { ...c.participant, ...fields }
+      return {
+        ...c,
+        participant: mergedParticipant,
+        displayName: deriveDisplayName(mergedParticipant, c.name),
+        iconText: deriveInitials(mergedParticipant, c.name),
+      }
+    }))
+
+    if (!mergedParticipant || !isSupabaseConfigured()) return
+    const supabase = createClient()
+    if (!supabase) return
+
+    const { error, transient } = await updateClientRowWithRetry(supabase, id, { participant: mergedParticipant })
+    if (error) {
+      console.error("Failed to update participant fields:", error.message)
+      if (!transient) fetchClients()
+    }
+  }, [fetchClients])
+
   const deleteClient = useCallback(async (id: string) => {
     setClients((prev) => prev.filter((c) => c.id !== id))
 
@@ -382,7 +408,7 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
   const clientNames = clients.map((c) => c.name)
 
   return (
-    <ClientsContext.Provider value={{ clients, clientNames, isLoading, fetchError, hasMore, isLoadingMore, loadMore, addClient, bulkAddClients, updateClient, updateParticipantField, deleteClient, refetch: fetchClients }}>
+    <ClientsContext.Provider value={{ clients, clientNames, isLoading, fetchError, hasMore, isLoadingMore, loadMore, addClient, bulkAddClients, updateClient, updateParticipantField, updateParticipantFields, deleteClient, refetch: fetchClients }}>
       {children}
     </ClientsContext.Provider>
   )

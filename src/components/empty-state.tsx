@@ -1,11 +1,11 @@
 "use client"
 
 import { Plus } from "lucide-react"
-import type { ComponentType } from "react"
+import type { ComponentType, MouseEvent } from "react"
 
 interface EmptyStateAction {
   label: string
-  onClick: () => void
+  onClick: (e: MouseEvent<HTMLButtonElement>) => void
   icon?: ComponentType<{ className?: string; strokeWidth?: number }>
   disabled?: boolean
 }

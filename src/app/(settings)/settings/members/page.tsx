@@ -40,6 +40,7 @@ export default function MembersSettingsPage() {
   const [inviteRole, setInviteRole] = useState<Role>("coordinator")
   const [isInviting, setIsInviting] = useState(false)
   const [inviteError, setInviteError] = useState<string | null>(null)
+  const [inviteWarning, setInviteWarning] = useState<string | null>(null)
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string; email: string } | null>(null)
   const inviteInputRef = useRef<HTMLInputElement>(null)
 
@@ -78,6 +79,11 @@ export default function MembersSettingsPage() {
       setInviteEmail("")
       setInviteRole("coordinator")
       setIsInviteOpen(false)
+      setInviteWarning(
+        data.emailSent === false
+          ? (data.warning || "Member added, but the invite email couldn't be sent. Use \u201CResend invite\u201D to try again.")
+          : null,
+      )
     } catch (err) {
       setInviteError(err instanceof Error ? err.message : "Failed to invite member")
     }
@@ -230,6 +236,20 @@ export default function MembersSettingsPage() {
             </div>
           </div>
         </>
+      )}
+
+      {inviteWarning && (
+        <div className="mb-[12px] flex items-start justify-between gap-[12px] rounded-[8px] border border-amber-100 bg-amber-50 px-[14px] py-[10px]">
+          <p className="text-[13px] text-amber-700">{inviteWarning}</p>
+          <button
+            onClick={() => setInviteWarning(null)}
+            className="shrink-0 text-amber-500 transition-colors hover:text-amber-700"
+            tabIndex={0}
+            aria-label="Dismiss"
+          >
+            <X className="h-[15px] w-[15px]" strokeWidth={1.75} />
+          </button>
+        </div>
       )}
 
       <div className="mb-[16px] flex items-center gap-[10px]">

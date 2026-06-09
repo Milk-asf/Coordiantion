@@ -36,9 +36,18 @@ export async function POST(request: Request) {
     .select("role")
     .eq("workspace_id", workspaceId)
     .eq("user_id", caller.id)
-    .single()
+    .maybeSingle()
 
-  if (!callerMembership || !["super-admin", "admin"].includes(callerMembership.role)) {
+  const { data: workspace } = await adminClient
+    .from("workspaces")
+    .select("created_by")
+    .eq("id", workspaceId)
+    .maybeSingle()
+
+  const isOwner = !!workspace && workspace.created_by === caller.id
+  const isAdmin = !!callerMembership && ["super-admin", "admin"].includes(callerMembership.role)
+
+  if (!isOwner && !isAdmin) {
     return NextResponse.json({ error: "You don't have permission to invite members" }, { status: 403 })
   }
 
@@ -86,9 +95,10 @@ export async function POST(request: Request) {
 
     if (existing) {
       userId = existing.id
-    } else {
-      return NextResponse.json({ error: inviteError.message }, { status: 400 })
     }
+    // Otherwise the membership row still stands — the person is invited to the
+    // workspace even though the invite email couldn't be sent (e.g. the email
+    // provider isn't configured or hit a rate limit). The admin can resend.
   }
 
   if (userId && memberId) {
@@ -99,5 +109,11 @@ export async function POST(request: Request) {
       .is("user_id", null)
   }
 
-  return NextResponse.json({ success: true, memberId, userId, emailSent })
+  return NextResponse.json({
+    success: true,
+    memberId,
+    userId,
+    emailSent,
+    warning: emailSent ? null : (inviteError?.message ?? "The invite email could not be sent. You can resend it later."),
+  })
 }

@@ -1,7 +1,8 @@
 "use client"
 
 import type { RefObject } from "react"
-import type { Client, ParticipantDetails, NdisPlan, PlanService, FundingReleasePeriod, Budget, BudgetLineItem, BudgetPeriod, ClientGoal } from "@/lib/types"
+import type { Client, ParticipantDetails, NdisPlan, PlanService, FundingReleasePeriod, Budget, BudgetLineItem, BudgetPeriod, ClientGoal, Contact } from "@/lib/types"
+import { relationshipConfig } from "@/lib/types"
 import type { NdisChargeItem } from "@/lib/ndis-charges"
 import { ndisCharges, chargeCategories } from "@/lib/ndis-charges"
 import { DatePicker } from "@/components/date-picker"
@@ -14,6 +15,7 @@ import {
   SidebarCheckInField,
   SidebarContactChip,
   SidebarDiagnosisChip,
+  mergeDiagnoses,
 } from "./client-profile-helpers"
 import {
   FileText,
@@ -137,9 +139,13 @@ interface ProfileSidebarProps {
   onSetIsCoordinatorOpen: (open: boolean) => void
   onSetCoordinatorSearch: (search: string) => void
 
+  stakeholders: Contact[]
+  onAddStakeholder: () => void
+
   onSetSidebarVisible: (visible: boolean) => void
   onMouseDown: () => void
   onUpdateField: (field: keyof ParticipantDetails, value: string) => void
+  onUpdateFields: (fields: Partial<ParticipantDetails>) => void
   onUpdateClient: (id: string, data: Partial<Client>) => void
 
   periodLabels: Record<BudgetPeriod, string>
@@ -173,7 +179,8 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
     onInitItemForm, onInitEditItemForm, onResetItemForm, onSaveItem,
     isCoordinatorOpen, coordinatorSearch, coordinatorInputRef,
     onSetIsCoordinatorOpen, onSetCoordinatorSearch,
-    onSetSidebarVisible, onMouseDown, onUpdateField, onUpdateClient,
+    stakeholders, onAddStakeholder,
+    onSetSidebarVisible, onMouseDown, onUpdateField, onUpdateFields, onUpdateClient,
     periodLabels,
   } = props
 
@@ -1276,11 +1283,12 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
         {pf("p-date-of-birth") && <SidebarDetailRow label="Date of Birth">
           <SidebarEditableField value={p.dateOfBirth} onChange={(v) => onUpdateField("dateOfBirth", v)} type="date" placeholder="Date of birth" />
         </SidebarDetailRow>}
-        {pf("p-primary-diagnosis") && <SidebarDetailRow label="Primary Dx">
-          <SidebarDiagnosisChip value={p.primaryDiagnosis} onChange={(v) => onUpdateField("primaryDiagnosis", v)} placeholder="Add diagnosis" />
-        </SidebarDetailRow>}
-        {pf("p-secondary-diagnosis") && <SidebarDetailRow label="Secondary Dx">
-          <SidebarDiagnosisChip value={p.secondaryDiagnosis} onChange={(v) => onUpdateField("secondaryDiagnosis", v)} placeholder="Add diagnosis" />
+        {pf("p-primary-diagnosis") && <SidebarDetailRow label="Diagnosis">
+          <SidebarDiagnosisChip
+            value={mergeDiagnoses(p.primaryDiagnosis, p.secondaryDiagnosis)}
+            onChange={(v) => onUpdateFields(p.secondaryDiagnosis ? { primaryDiagnosis: v, secondaryDiagnosis: "" } : { primaryDiagnosis: v })}
+            placeholder="Add diagnosis"
+          />
         </SidebarDetailRow>}
         {pf("p-gender") && <SidebarDetailRow label="Gender">
           <SidebarEditableField value={p.gender} onChange={(v) => onUpdateField("gender", v)} type="select" options={["Male", "Female", "Non-binary", "Other", "Prefer not to say"]} />
@@ -1294,6 +1302,41 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
         {pf("p-language") && <SidebarDetailRow label="Language">
           <SidebarEditableField value={p.language} onChange={(v) => onUpdateField("language", v)} placeholder="Language" />
         </SidebarDetailRow>}
+
+        <div className="my-[12px] h-px bg-[#e8e8e8]" />
+        <div className="mb-[6px] flex items-center justify-between">
+          <h3 className="text-[12px] font-semibold text-[#262626]">Stakeholders</h3>
+          <button
+            onClick={onAddStakeholder}
+            className="flex h-[18px] w-[18px] items-center justify-center rounded text-[#999] transition-colors hover:bg-[#f0f0f0] hover:text-[#262626]"
+            tabIndex={0}
+            aria-label="Add stakeholder"
+          >
+            <Plus className="h-[12px] w-[12px]" strokeWidth={1.75} />
+          </button>
+        </div>
+        {stakeholders.length === 0 ? (
+          <p className="text-[13px] font-medium text-[#bbb]">No stakeholders added</p>
+        ) : (
+          <div className="space-y-[6px]">
+            {stakeholders.map((c) => {
+              const rel = relationshipConfig[c.relationship]
+              const relLabel = rel?.label ?? c.relationship
+              const initials = c.name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+              return (
+                <div key={c.id} className="flex items-center gap-[8px] rounded-[8px] border border-[#e2e2e2] px-[10px] py-[8px]">
+                  <div className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-[#DBEAFE] text-[9px] font-semibold text-[#2563EB]">
+                    {initials || "?"}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-medium text-[#262626]">{c.name}</p>
+                    {relLabel && <p className="truncate text-[11px] text-[#888]">{relLabel}</p>}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
 
         <div className="my-[12px] h-px bg-[#e8e8e8]" />
         <h3 className="mb-[6px] text-[12px] font-semibold text-[#262626]">Contact Information</h3>

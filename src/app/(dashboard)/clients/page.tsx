@@ -15,6 +15,8 @@ import type { Client, ParticipantDetails } from "@/lib/types"
 import { EntityIcon } from "@/components/entity-icon"
 import { EditableField } from "@/components/editable-field"
 import { ContactChip } from "@/components/contact-chip"
+import { MultiChip } from "@/components/multi-chip"
+import { mergeDiagnoses } from "@/app/(dashboard)/clients/[id]/_components/client-profile-helpers"
 import { DetailRow } from "@/components/detail-row"
 import {
   UserRound,
@@ -235,6 +237,7 @@ function ClientProfile({
   client,
   participantData,
   onUpdateField,
+  onUpdateFields,
   onClose,
   staffNames,
   canAssignClients,
@@ -243,6 +246,7 @@ function ClientProfile({
   client: Client
   participantData: ParticipantDetails
   onUpdateField: (field: keyof ParticipantDetails, value: string) => void
+  onUpdateFields: (fields: Partial<ParticipantDetails>) => void
   onClose: () => void
   staffNames: string[]
   canAssignClients: boolean
@@ -386,11 +390,13 @@ function ClientProfile({
           {pf("p-date-of-birth") && <DetailRow label="Date of Birth" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
             <EditableField value={participantData.dateOfBirth} onChange={(v) => onUpdateField("dateOfBirth", v)} type="date" placeholder="Date of birth" size="compact" />
           </DetailRow>}
-          {pf("p-primary-diagnosis") && <DetailRow label="Primary Dx" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
-            <ContactChip value={participantData.primaryDiagnosis} onChange={(v) => onUpdateField("primaryDiagnosis", v)} placeholder="Add diagnosis" variant="white" enableCopy={false} size="compact" emptyPrefix="+" />
-          </DetailRow>}
-          {pf("p-secondary-diagnosis") && <DetailRow label="Secondary Dx" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
-            <ContactChip value={participantData.secondaryDiagnosis} onChange={(v) => onUpdateField("secondaryDiagnosis", v)} placeholder="Add diagnosis" variant="white" enableCopy={false} size="compact" emptyPrefix="+" />
+          {pf("p-primary-diagnosis") && <DetailRow label="Diagnosis" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+            <MultiChip
+              value={mergeDiagnoses(participantData.primaryDiagnosis, participantData.secondaryDiagnosis)}
+              onChange={(v) => onUpdateFields(participantData.secondaryDiagnosis ? { primaryDiagnosis: v, secondaryDiagnosis: "" } : { primaryDiagnosis: v })}
+              placeholder="Add diagnosis"
+              size="compact"
+            />
           </DetailRow>}
 
           {!isPersonalExpanded && (
@@ -517,7 +523,7 @@ interface SavedView {
 export default function ClientsPage() {
   const { toast } = useToast()
   const router = useRouter()
-  const { clients, isLoading, fetchError, hasMore, isLoadingMore, loadMore, addClient, updateClient, updateParticipantField, refetch } = useClients()
+  const { clients, isLoading, fetchError, hasMore, isLoadingMore, loadMore, addClient, updateClient, updateParticipantField, updateParticipantFields, refetch } = useClients()
   const { getContactsForClient, addContact } = useContacts()
   const { participantDisabled } = useFieldConfig()
   const staffNames = useAssignableCoordinators()
@@ -643,6 +649,10 @@ export default function ClientsPage() {
   const handleUpdateField = useCallback((clientId: string, field: keyof ParticipantDetails, value: string) => {
     updateParticipantField(clientId, field, value)
   }, [updateParticipantField])
+
+  const handleUpdateFields = useCallback((clientId: string, fields: Partial<ParticipantDetails>) => {
+    updateParticipantFields(clientId, fields)
+  }, [updateParticipantFields])
 
   // Resolve the open panel's client from live context data so optimistic
   // edits (e.g. participant name fields) appear immediately and persist,
@@ -1125,7 +1135,7 @@ export default function ClientsPage() {
                 const rowBg = isSelected ? "bg-[#f5f5ff]" : "bg-[#fafafa]"
                 const rowHover = isSelected ? "" : "group-hover:bg-[#f5f5f5]"
                 const p = getParticipantData(client)
-                const clientContacts = getContactsForClient(client.name)
+                const clientContacts = getContactsForClient(client.name, client.id)
                 const cellClass = `h-[44px] overflow-hidden whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] ${rowBg} ${rowHover}`
 
                 const renderCell = (key: string, isLast: boolean) => {
@@ -1139,16 +1149,21 @@ export default function ClientsPage() {
                   switch (key) {
                     case "ndisNumber":
                       return <td key={key} className={cls}>{p.ndisNumber ? <span className={whiteChip}>{p.ndisNumber}</span> : dash}</td>
-                    case "diagnosis":
+                    case "diagnosis": {
+                      const diagnoses = mergeDiagnoses(p.primaryDiagnosis, p.secondaryDiagnosis)
+                        .split(",")
+                        .map((dx) => dx.trim())
+                        .filter(Boolean)
                       return (
                         <td key={key} className={cls}>
-                          <div className="flex items-center gap-[6px]">
-                            {p.primaryDiagnosis && <span className={whiteChip}>{p.primaryDiagnosis}</span>}
-                            {p.secondaryDiagnosis && <span className={whiteChip}>{p.secondaryDiagnosis}</span>}
-                            {!p.primaryDiagnosis && !p.secondaryDiagnosis && dash}
+                          <div className="flex flex-wrap items-center gap-[6px]">
+                            {diagnoses.length > 0
+                              ? diagnoses.map((dx) => <span key={dx} className={whiteChip}>{dx}</span>)
+                              : dash}
                           </div>
                         </td>
                       )
+                    }
                     case "email":
                       return <td key={key} className={textCls}>{p.email || dash}</td>
                     case "phone":
@@ -1386,6 +1401,7 @@ export default function ClientsPage() {
             client={openClient}
             participantData={getParticipantData(openClient)}
             onUpdateField={(field, value) => handleUpdateField(openClient.id, field, value)}
+            onUpdateFields={(fields) => handleUpdateFields(openClient.id, fields)}
             onClose={() => setSelectedClient(null)}
             staffNames={staffNames}
             canAssignClients={canAssignClients}

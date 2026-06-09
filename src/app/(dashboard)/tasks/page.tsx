@@ -11,7 +11,6 @@ import {
   CheckSquare,
   CalendarDays,
   Building2,
-  FileText,
   Clock,
   Tag,
   ChevronDown,
@@ -1255,19 +1254,8 @@ export default function TasksPage() {
             </>
           )}
 
-          {/* Column headers + task list share same scrollable container for alignment */}
+          {/* Task list scroll container */}
           <div className="flex-1 overflow-auto bg-[#fafafa]">
-            <div className="sticky top-0 z-[1] grid items-center border-b border-[#e0e0e0] bg-[#fafafa] px-[24px]" style={{ gridTemplateColumns: taskGridTemplate }}>
-              {visibleTaskColumns.map((col) => {
-                const Icon = col.icon
-                return (
-                  <div key={col.key} className={`flex items-center py-[9px] ${col.key === "title" ? "pl-[8px]" : "justify-center"}`}>
-                    <Icon className="h-[14px] w-[14px] text-[#ccc]" strokeWidth={1.5} />
-                  </div>
-                )
-              })}
-            </div>
-
             {viewMode === "list" ? (
               isInvoicingMode ? (
                 <>

@@ -41,9 +41,7 @@ export function useMembers() {
         .eq("workspace_id", activeWorkspace.id)
         .order("created_at", { ascending: true })
 
-      if (error || !data) {
-        setMembers([])
-      } else {
+      if (!error && data) {
         const enriched = data.map((row: any) => {
           const member = dbToMember(row)
           member.name = row.user_full_name || member.invited_email || member.name || ""
@@ -51,6 +49,23 @@ export function useMembers() {
           return member
         })
         setMembers(enriched)
+      } else {
+        // The profile view joins auth.users and can fail for non-privileged
+        // callers; fall back to the base table so members (including newly
+        // invited ones) still load, using the invited email as the label.
+        const { data: baseData } = await supabase
+          .from("workspace_members")
+          .select("*")
+          .eq("workspace_id", activeWorkspace.id)
+          .order("created_at", { ascending: true })
+
+        const fallback = (baseData || []).map((row: any) => {
+          const member = dbToMember(row)
+          member.name = member.invited_email || member.name || ""
+          member.email = member.invited_email || member.email || ""
+          return member
+        })
+        setMembers(fallback)
       }
     } catch {
       setMembers([])
