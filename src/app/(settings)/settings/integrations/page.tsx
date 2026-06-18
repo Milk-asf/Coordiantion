@@ -71,7 +71,7 @@ function IntegrationsContent() {
     return (
       <>
         <Header />
-        <p className="text-[14px] text-[#888]">You don&apos;t have permission to manage integrations.</p>
+        <p className="text-[14px] text-folk-secondary">You don&apos;t have permission to manage integrations.</p>
       </>
     )
   }
@@ -81,37 +81,37 @@ function IntegrationsContent() {
       <Header />
 
       {connectedFlag === "xero" && (
-        <div className="mb-[20px] flex items-center gap-[8px] rounded-[10px] border border-green-200 bg-green-50 px-[14px] py-[10px] text-[13px] text-green-700">
+        <div className="mb-[20px] flex items-center gap-[8px] rounded-none border border-green-200 bg-green-50 px-[14px] py-[10px] text-[13px] text-green-700">
           <Check className="h-[15px] w-[15px]" strokeWidth={2} />
           Xero connected successfully.
         </div>
       )}
       {errorFlag && (
-        <div className="mb-[20px] flex items-center gap-[8px] rounded-[10px] border border-red-200 bg-red-50 px-[14px] py-[10px] text-[13px] text-red-700">
+        <div className="mb-[20px] flex items-center gap-[8px] rounded-none border border-red-200 bg-red-50 px-[14px] py-[10px] text-[13px] text-red-700">
           <AlertCircle className="h-[15px] w-[15px]" strokeWidth={2} />
           {errorMessages[errorFlag] || "Something went wrong."}
         </div>
       )}
 
-      <div className="rounded-[14px] border border-[#e2e2e2] bg-white p-[20px]">
+      <div className="rounded-[14px] border border-[#e2e2e2] bg-folk-surface p-[20px]">
         <div className="flex items-start justify-between gap-[16px]">
           <div className="flex items-start gap-[12px]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/xero/xero-logo-square.png"
               alt="Xero"
-              className="h-[40px] w-[40px] shrink-0 rounded-[10px]"
+              className="h-[40px] w-[40px] shrink-0 rounded-none"
             />
             <div>
-              <h2 className="text-[15px] font-semibold text-[#262626]">Xero</h2>
-              <p className="mt-[2px] text-[13px] text-[#888]">
+              <h2 className="text-[15px] font-semibold text-folk-text">Xero</h2>
+              <p className="mt-[2px] text-[13px] text-folk-secondary">
                 Send invoices to Xero and keep their paid/sent status in sync.
               </p>
             </div>
           </div>
 
           {isLoading ? (
-            <RefreshCw className="h-[16px] w-[16px] animate-spin text-[#bbb]" />
+            <RefreshCw className="h-[16px] w-[16px] animate-spin text-folk-placeholder" />
           ) : status?.connected ? (
             <span className="inline-flex shrink-0 items-center gap-[5px] rounded-full bg-green-50 px-[10px] py-[4px] text-[12px] font-semibold text-green-700">
               <Check className="h-[12px] w-[12px]" strokeWidth={2.5} />
@@ -120,7 +120,7 @@ function IntegrationsContent() {
           ) : (
             <a
               href={connectUrl}
-              className="primary-btn flex shrink-0 items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
+              className="outline-btn flex shrink-0 items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
               tabIndex={0}
             >
               <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -134,10 +134,10 @@ function IntegrationsContent() {
         )}
 
         {status?.connected && (
-          <div className="mt-[20px] border-t border-[#f0f0f0] pt-[20px]">
+          <div className="mt-[20px] border-t border-folk-border-subtle pt-[20px]">
             <div className="grid gap-[16px] sm:grid-cols-2">
               <div>
-                <label htmlFor="account-code" className="mb-[6px] block text-[13px] font-medium text-[#262626]">
+                <label htmlFor="account-code" className="mb-[6px] block text-[13px] font-medium text-folk-text">
                   Revenue account code
                 </label>
                 <input
@@ -145,20 +145,20 @@ function IntegrationsContent() {
                   type="text"
                   value={accountCode}
                   onChange={(e) => setAccountCode(e.target.value)}
-                  className="w-full rounded-[8px] border border-[#e0e0e0] px-[12px] py-[8px] text-[13px] text-[#262626] outline-none focus:border-[#262626]"
+                  className="w-full rounded-none border border-folk-border px-[12px] py-[8px] text-[13px] text-folk-text outline-none focus:border-[#1a1a1a]"
                   placeholder="200"
                 />
                 <p className="mt-[4px] text-[11px] text-[#aaa]">The Xero Chart of Accounts code applied to invoice lines.</p>
               </div>
               <div>
-                <label htmlFor="tax-type" className="mb-[6px] block text-[13px] font-medium text-[#262626]">
+                <label htmlFor="tax-type" className="mb-[6px] block text-[13px] font-medium text-folk-text">
                   Tax type
                 </label>
                 <select
                   id="tax-type"
                   value={taxType}
                   onChange={(e) => setTaxType(e.target.value)}
-                  className="w-full rounded-[8px] border border-[#e0e0e0] px-[12px] py-[8px] text-[13px] text-[#262626] outline-none focus:border-[#262626]"
+                  className="w-full rounded-none border border-folk-border px-[12px] py-[8px] text-[13px] text-folk-text outline-none focus:border-[#1a1a1a]"
                 >
                   {taxTypeOptions.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -167,7 +167,7 @@ function IntegrationsContent() {
               </div>
             </div>
 
-            <div className="mt-[20px] flex flex-col gap-[16px] border-t border-[#f0f0f0] pt-[20px]">
+            <div className="mt-[20px] flex flex-col gap-[16px] border-t border-folk-border-subtle pt-[20px]">
               <Toggle
                 id="auto-push"
                 label="Automatically send invoices to Xero"
@@ -189,7 +189,7 @@ function IntegrationsContent() {
                 type="button"
                 onClick={handleDisconnect}
                 disabled={isDisconnecting}
-                className="rounded-[8px] border border-[#e0e0e0] px-[14px] py-[8px] text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+                className="rounded-none border border-folk-border px-[14px] py-[8px] text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
                 tabIndex={0}
               >
                 {isDisconnecting ? "Disconnecting…" : "Disconnect"}
@@ -201,7 +201,7 @@ function IntegrationsContent() {
                   type="button"
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="rounded-[8px] bg-[#262626] px-[14px] py-[8px] text-[13px] font-medium text-white transition-colors hover:bg-[#333] disabled:opacity-50"
+                  className="rounded-none bg-[#1a1a1a] px-[14px] py-[8px] text-[13px] font-medium text-white transition-colors hover:bg-[#333] disabled:opacity-50"
                   tabIndex={0}
                 >
                   {isSaving ? "Saving…" : "Save settings"}
@@ -234,7 +234,7 @@ function Toggle({ id, label, description, checked, onToggle }: ToggleProps) {
   return (
     <div className="flex items-start justify-between gap-[16px]">
       <div className="max-w-[440px]">
-        <label htmlFor={id} className="block text-[13px] font-medium text-[#262626]">{label}</label>
+        <label htmlFor={id} className="block text-[13px] font-medium text-folk-text">{label}</label>
         <p className="mt-[2px] text-[11px] leading-[16px] text-[#aaa]">{description}</p>
       </div>
       <button
@@ -246,9 +246,9 @@ function Toggle({ id, label, description, checked, onToggle }: ToggleProps) {
         onClick={onToggle}
         onKeyDown={handleKeyDown}
         tabIndex={0}
-        className={`relative mt-[2px] inline-flex h-[22px] w-[38px] shrink-0 items-center rounded-full transition-colors ${checked ? "bg-[#262626]" : "bg-[#d4d4d4]"}`}
+        className={`relative mt-[2px] inline-flex h-[22px] w-[38px] shrink-0 items-center rounded-full transition-colors ${checked ? "bg-[#1a1a1a]" : "bg-[var(--folk-border)]"}`}
       >
-        <span className={`inline-block h-[16px] w-[16px] transform rounded-full bg-white transition-transform ${checked ? "translate-x-[19px]" : "translate-x-[3px]"}`} />
+        <span className={`inline-block h-[16px] w-[16px] transform rounded-full bg-folk-surface transition-transform ${checked ? "translate-x-[19px]" : "translate-x-[3px]"}`} />
       </button>
     </div>
   )
@@ -257,8 +257,8 @@ function Toggle({ id, label, description, checked, onToggle }: ToggleProps) {
 function Header() {
   return (
     <div className="mb-[32px]">
-      <h1 className="text-[20px] font-bold text-[#262626]">Integrations</h1>
-      <p className="mt-[4px] text-[14px] text-[#888]">Connect Coordination to your other tools.</p>
+      <h1 className="text-[20px] font-bold text-folk-text">Integrations</h1>
+      <p className="mt-[4px] text-[14px] text-folk-secondary">Connect Coordination to your other tools.</p>
     </div>
   )
 }

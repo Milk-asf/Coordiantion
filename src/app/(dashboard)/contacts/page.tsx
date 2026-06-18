@@ -16,15 +16,32 @@ import {
   UserPlus,
   SlidersHorizontal,
 } from "lucide-react"
+import { EntityIcon } from "@/components/entity-icon"
 import { useContacts } from "@/lib/hooks/use-contacts"
 import { useClients } from "@/lib/hooks/use-clients"
 import { useFieldConfig } from "@/lib/hooks/use-field-config"
 import { useSavedViews } from "@/lib/hooks/use-saved-views"
 import { useColumnResize } from "@/lib/hooks/use-column-resize"
 import { relationshipConfig } from "@/lib/types"
+import { CategoryChip } from "@/components/category-chip"
 import { CsvDropdown } from "@/components/csv-dropdown"
+import { FixedDropdownMenu } from "@/components/fixed-dropdown-menu"
 import { PageLoader, PageError } from "@/components/page-state"
+import {
+  TABLE_CELL_BASE,
+  TABLE_CELL_INNER,
+  TABLE_CELL_LAST,
+  TABLE_CHIP,
+  TABLE_FULL,
+  TABLE_HEADER_CELL,
+  TABLE_HEADER_CELL_LAST,
+  TABLE_TEXT_CELL,
+} from "@/lib/table-styles"
 import { useToast } from "@/components/toast"
+import { ProfileTabButton } from "@/components/profile-tab-button"
+import { DisplayFieldList, TableDisplayPopover } from "@/components/display-popover"
+import { ExpandableTableSearch } from "@/components/expandable-table-search"
+import { matchesTableSearch } from "@/lib/table-search"
 
 const allColumns = [
   { key: "name", label: "Name", icon: UserRound, isSystem: true },
@@ -63,6 +80,7 @@ export default function ContactsPage() {
 
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(defaultVisibleKeys)
   const [isDisplayOpen, setIsDisplayOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
   const [displayRelationships, setDisplayRelationships] = useState<string[]>([])
 
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false)
@@ -125,6 +143,33 @@ export default function ContactsPage() {
     .map((key) => allColumns.find((col) => col.key === key))
     .filter(Boolean) as typeof allColumns
 
+  const displayFields = useMemo(
+    () =>
+      allColumns
+        .filter((col) => !contactDisabled.has(col.key))
+        .map((col) => ({ key: col.key, label: col.label, locked: col.key === "name" })),
+    [contactDisabled]
+  )
+
+  const relationshipFields = useMemo(
+    () => Object.entries(relationshipConfig).map(([key, config]) => ({ key, label: config.label })),
+    []
+  )
+
+  const allRelationshipKeys = useMemo(() => relationshipFields.map((field) => field.key), [relationshipFields])
+
+  const visibleRelationshipKeys = displayRelationships.length === 0 ? allRelationshipKeys : displayRelationships
+
+  const handleRelationshipDisplayToggle = useCallback((key: string) => {
+    const current = displayRelationships.length === 0 ? allRelationshipKeys : displayRelationships
+    if (current.includes(key)) {
+      setDisplayRelationships(current.filter((k) => k !== key))
+      return
+    }
+    const next = [...current, key]
+    setDisplayRelationships(next.length === allRelationshipKeys.length ? [] : next)
+  }, [allRelationshipKeys, displayRelationships])
+
   const { getWidth, handleMouseDown: handleColResize } = useColumnResize(
     visibleColumns.map((c) => c.key),
     { minWidth: 80, maxWidth: 500, defaultWidth: 200 }
@@ -150,8 +195,18 @@ export default function ContactsPage() {
     if (displayRelationships.length > 0) result = result.filter((c) => displayRelationships.includes(c.relationship))
     if (filterClients.length > 0) result = result.filter((c) => filterClients.includes(c.clientName))
     if (filterRelationships.length > 0) result = result.filter((c) => filterRelationships.includes(c.relationship))
-    return result
-  }, [contacts, displayRelationships, filterClients, filterRelationships])
+    if (!searchQuery.trim()) return result
+    return result.filter((contact) =>
+      matchesTableSearch(
+        searchQuery,
+        contact.name,
+        contact.email,
+        contact.phone,
+        contact.clientName,
+        contact.relationship
+      )
+    )
+  }, [contacts, displayRelationships, filterClients, filterRelationships, searchQuery])
 
   const handleCreateView = () => {
     const createdView = createView(newViewName)
@@ -241,37 +296,35 @@ export default function ContactsPage() {
   return (
     <div className="flex h-full flex-col">
       {/* View tabs */}
-      <div className="flex h-[44px] shrink-0 items-center justify-between gap-[8px] border-b border-[#f0f0f0] px-[16px]">
+      <div className="flex h-[44px] shrink-0 items-center justify-between gap-[8px] border-b border-folk-border bg-folk-nav px-[16px]">
         <div className="flex min-w-0 flex-1 items-center gap-[8px] overflow-x-auto">
-          <span className="shrink-0 text-[13px] font-medium text-[#262626]">Contacts</span>
-          <div className="h-[16px] w-px bg-[#e5e5e5]" />
-          <button
+          <span className="shrink-0 text-[13px] font-medium text-folk-text">Contacts</span>
+          <div className="h-[16px] w-px bg-[var(--folk-border)]" />
+          <ProfileTabButton
+            variant="toolbar"
+            isActive={activeViewId === null}
             onClick={handleSelectAllView}
-            className={`flex items-center gap-[6px] rounded-[4px] border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === null ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
-            tabIndex={0}
-          >
-            <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
-            <span>All</span>
-          </button>
-          {savedViews.length > 0 && <div className="h-[16px] w-px bg-[#dcdcdc]" />}
+            icon={Table2}
+            label="All"
+          />
+          {savedViews.length > 0 && <div className="h-[16px] w-px bg-[var(--folk-border)]" />}
           {savedViews.map((view) => (
-            <button
+            <ProfileTabButton
               key={view.id}
+              variant="toolbar"
+              isActive={activeViewId === view.id}
               onClick={() => handleSelectView(view)}
               onContextMenu={(e) => {
                 e.preventDefault()
                 setViewContextMenu({ viewId: view.id, x: e.clientX, y: e.clientY })
               }}
-              className={`flex items-center gap-[6px] rounded-[4px] border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === view.id ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
-              tabIndex={0}
-            >
-              <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
-              <span>{view.name}</span>
-            </button>
+              icon={Table2}
+              label={view.name}
+            />
           ))}
           <button
             onClick={() => { setIsCreateViewOpen(true); setTimeout(() => viewNameInputRef.current?.focus(), 50) }}
-            className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#999] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+            className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
             aria-label="Add view"
             tabIndex={0}
           >
@@ -288,7 +341,7 @@ export default function ContactsPage() {
           />
           <button
             onClick={() => setIsModalOpen(true)}
-            className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
+            className="outline-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
             tabIndex={0}
           >
             <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -298,225 +351,193 @@ export default function ContactsPage() {
       </div>
 
       {/* Filter & display bar */}
-      <div className="flex h-[41px] shrink-0 items-center gap-[8px] border-b border-[#dcdcdc] px-[16px]">
+      <div className="flex h-[41px] shrink-0 items-center gap-[8px] border-b border-folk-border bg-folk-nav px-[16px]">
         <div className="relative">
           <button
             ref={filterBtnRef}
             onClick={() => { setIsFilterMenuOpen(!isFilterMenuOpen); setActiveFilterDropdown(null) }}
-            className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+            className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
             tabIndex={0}
           >
             <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
             <span>Filter</span>
           </button>
           {isFilterMenuOpen && (
-            <>
-              <div className="fixed inset-0 z-[55]" onClick={() => setIsFilterMenuOpen(false)} />
-              <div className="absolute left-0 top-full z-[60] mt-[4px] w-[180px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-                <p className="px-[16px] py-[6px] text-[11px] font-medium text-[#888]">Filter by</p>
-                {[
-                  { key: "client", label: "Client", icon: Building2 },
-                  { key: "relationship", label: "Relationship", icon: Handshake },
-                ].map((item) => {
-                  const Icon = item.icon
-                  return (
-                    <button
-                      key={item.key}
-                      onClick={() => { setActiveFilterDropdown(item.key); setIsFilterMenuOpen(false) }}
-                      className="flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                      tabIndex={0}
-                    >
-                      <Icon className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
-                      {item.label}
-                    </button>
-                  )
-                })}
-              </div>
-            </>
+            <FixedDropdownMenu
+              isOpen={isFilterMenuOpen}
+              anchorRef={filterBtnRef}
+              onClose={() => setIsFilterMenuOpen(false)}
+              estimatedHeight={120}
+              minWidth={180}
+              className="py-[4px]"
+            >
+              <p className="px-[16px] py-[6px] text-[11px] font-medium text-folk-secondary">Filter by</p>
+              {[
+                { key: "client", label: "Client", icon: Building2 },
+                { key: "relationship", label: "Relationship", icon: Handshake },
+              ].map((item) => {
+                const Icon = item.icon
+                return (
+                  <button
+                    key={item.key}
+                    onClick={() => { setActiveFilterDropdown(item.key); setIsFilterMenuOpen(false) }}
+                    className="flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+                    tabIndex={0}
+                  >
+                    <Icon className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} />
+                    {item.label}
+                  </button>
+                )
+              })}
+            </FixedDropdownMenu>
           )}
         </div>
         {filterClients.length > 0 && (
-          <div className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626]">
-            <Building2 className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+          <div className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text">
+            <Building2 className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} />
             <button ref={(el) => { filterPillRefs.current["client"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "client" ? null : "client")} className="hover:underline" tabIndex={0}>Client</button>
-            <span className="text-[#888]">is</span>
+            <span className="text-folk-secondary">is</span>
             <span>{filterClients.length} {filterClients.length === 1 ? "value" : "values"}</span>
-            <button onClick={() => setFilterClients([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded text-[#888] transition-colors hover:text-[#262626]" tabIndex={0} aria-label="Clear client filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
+            <button onClick={() => setFilterClients([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear client filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
           </div>
         )}
         {filterRelationships.length > 0 && (
-          <div className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626]">
-            <Handshake className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+          <div className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text">
+            <Handshake className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} />
             <button ref={(el) => { filterPillRefs.current["relationship"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "relationship" ? null : "relationship")} className="hover:underline" tabIndex={0}>Relationship</button>
-            <span className="text-[#888]">is</span>
+            <span className="text-folk-secondary">is</span>
             <span>{filterRelationships.length} {filterRelationships.length === 1 ? "value" : "values"}</span>
-            <button onClick={() => setFilterRelationships([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded text-[#888] transition-colors hover:text-[#262626]" tabIndex={0} aria-label="Clear relationship filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
+            <button onClick={() => setFilterRelationships([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear relationship filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
           </div>
         )}
-        <div className="ml-auto flex items-center">
-          <button
-            ref={displayBtnRef}
-            onClick={() => setIsDisplayOpen(!isDisplayOpen)}
-            className="flex items-center gap-[5px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-            tabIndex={0}
-          >
-            <SlidersHorizontal className="h-[13px] w-[13px]" strokeWidth={1.5} />
-            <span>Display</span>
-          </button>
-          {isDisplayOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setIsDisplayOpen(false)} />
-              <div
-                className="fixed z-50 w-[420px] rounded-lg border border-[#dcdcdc] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-                style={(() => {
-                  const rect = displayBtnRef.current?.getBoundingClientRect()
-                  if (!rect) return {}
-                  return { top: rect.bottom + 4, right: window.innerWidth - rect.right }
-                })()}
-              >
-                <div className="px-[20px] pb-[16px] pt-[14px]">
-                  <div className="pb-[12px] text-[13px] font-medium text-[#888]">Display properties</div>
-                  <div className="flex flex-wrap gap-[8px]">
-                    {availablePropertyColumns.map((col) => {
-                      const isActive = visibleColumnKeys.includes(col.key)
-                      return (
-                        <button
-                          key={col.key}
-                          onClick={() => handleToggleColumn(col.key)}
-                          className={`inline-flex items-center rounded-[4px] border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
-                          tabIndex={0}
-                        >
-                          {col.label}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                <div className="border-t border-[#f0f0f0] px-[20px] pb-[16px] pt-[14px]">
-                  <div className="pb-[12px] text-[13px] font-medium text-[#888]">Relationships</div>
-                  <div className="flex flex-wrap gap-[8px]">
-                    {Object.entries(relationshipConfig).map(([key, config]) => {
-                      const isActive = displayRelationships.includes(key)
-                      return (
-                        <button
-                          key={key}
-                          onClick={() => handleToggleRelationship(key)}
-                          className={`inline-flex items-center rounded-[4px] border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
-                          tabIndex={0}
-                        >
-                          {config.label}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-[20px] border-t border-[#f0f0f0] px-[20px] py-[12px]">
-                  <button
-                    onClick={() => {
-                      setVisibleColumnKeys(defaultVisibleKeys)
-                      setDisplayRelationships([])
-                    }}
-                    className="text-[13px] font-medium text-[#bbb] transition-colors hover:text-[#262626]"
-                    tabIndex={0}
-                  >
-                    Reset
-                  </button>
-                  <button
-                    className="text-[13px] font-medium text-[#bbb] transition-colors hover:text-[#262626]"
-                    tabIndex={0}
-                  >
-                    Save default for everyone
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
+        <div className="ml-auto flex shrink-0 items-center gap-[8px]">
+          <ExpandableTableSearch
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search contacts…"
+            ariaLabel="Search contacts"
+          />
+          <TableDisplayPopover
+            fields={displayFields}
+            visibleKeys={visibleColumnKeys}
+            onToggle={handleToggleColumn}
+            onReset={() => {
+              setVisibleColumnKeys(defaultVisibleKeys)
+              setDisplayRelationships([])
+            }}
+            isOpen={isDisplayOpen}
+            onOpenChange={setIsDisplayOpen}
+            buttonRef={displayBtnRef}
+            triggerHiddenCount={
+              displayFields.filter((field) => !field.locked && !visibleColumnKeys.includes(field.key)).length
+              + allRelationshipKeys.length
+              - visibleRelationshipKeys.length
+            }
+            bottomContent={
+              <DisplayFieldList
+                fields={relationshipFields}
+                visibleKeys={visibleRelationshipKeys}
+                onToggle={handleRelationshipDisplayToggle}
+                showSearch={false}
+                headerLabel={`Relationships · ${allRelationshipKeys.length - visibleRelationshipKeys.length} hidden ${allRelationshipKeys.length - visibleRelationshipKeys.length === 1 ? "field" : "fields"}`}
+              />
+            }
+          />
         </div>
       </div>
 
       {/* Filter value dropdowns */}
-      {activeFilterDropdown && (
-        <>
-          <div className="fixed inset-0 z-[55]" onClick={() => setActiveFilterDropdown(null)} />
-          {(() => {
-            const anchor = filterPillRefs.current[activeFilterDropdown] || filterBtnRef.current
-            const rect = anchor?.getBoundingClientRect()
-            if (!rect) return null
-            const dropdownStyle = { top: rect.bottom + 4, left: rect.left, minWidth: 200 }
+      {activeFilterDropdown && (() => {
+        const anchor = filterPillRefs.current[activeFilterDropdown] || filterBtnRef.current
+        if (!anchor) return null
+        const anchorRef = { current: anchor }
 
-            if (activeFilterDropdown === "client") return (
-              <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={dropdownStyle}>
-                <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+        if (activeFilterDropdown === "client") return (
+          <FixedDropdownMenu
+            isOpen
+            anchorRef={anchorRef}
+            anchorElement={anchor}
+            onClose={() => setActiveFilterDropdown(null)}
+            estimatedHeight={280}
+            minWidth={200}
+            className="py-[4px]"
+          >
+                <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0}>
                   <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
                   <span>Back</span>
                 </button>
-                <p className="px-[16px] py-[4px] text-[11px] font-medium text-[#888]">Filter by client</p>
+                <p className="px-[16px] py-[4px] text-[11px] font-medium text-folk-secondary">Filter by client</p>
                 {uniqueClientNames.map((name) => {
                   const isActive = filterClients.includes(name)
                   return (
-                    <button key={name} onClick={() => setFilterClients((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
-                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
+                    <button key={name} onClick={() => setFilterClients((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${isActive ? "bg-folk-hover" : ""}`} tabIndex={0}>
+                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-none border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
                         {isActive && <span className="text-[10px] text-white">✓</span>}
                       </div>
-                      <span className="text-[#262626]">{name}</span>
+                      <span className="text-folk-text">{name}</span>
                     </button>
                   )
                 })}
-                {uniqueClientNames.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-[#888]">No clients</p>}
-                <div className="border-t border-[#f0f0f0] px-[8px] py-[4px]">
-                  <button onClick={() => { setFilterClients([]); setActiveFilterDropdown(null) }} className="w-full rounded px-[8px] py-[6px] text-left text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0}>Clear</button>
+                {uniqueClientNames.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-folk-secondary">No clients</p>}
+                <div className="border-t border-folk-border-subtle px-[8px] py-[4px]">
+                  <button onClick={() => { setFilterClients([]); setActiveFilterDropdown(null) }} className="w-full rounded-none px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
                 </div>
-              </div>
-            )
+          </FixedDropdownMenu>
+        )
 
-            if (activeFilterDropdown === "relationship") return (
-              <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={dropdownStyle}>
-                <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+        if (activeFilterDropdown === "relationship") return (
+          <FixedDropdownMenu
+            isOpen
+            anchorRef={anchorRef}
+            anchorElement={anchor}
+            onClose={() => setActiveFilterDropdown(null)}
+            estimatedHeight={280}
+            minWidth={200}
+            className="py-[4px]"
+          >
+                <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0}>
                   <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
                   <span>Back</span>
                 </button>
-                <p className="px-[16px] py-[4px] text-[11px] font-medium text-[#888]">Filter by relationship</p>
+                <p className="px-[16px] py-[4px] text-[11px] font-medium text-folk-secondary">Filter by relationship</p>
                 {uniqueRelationships.map((key) => {
                   const isActive = filterRelationships.includes(key)
                   const label = relationshipConfig[key]?.label || key
                   return (
-                    <button key={key} onClick={() => setFilterRelationships((prev) => isActive ? prev.filter((f) => f !== key) : [...prev, key])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
-                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
+                    <button key={key} onClick={() => setFilterRelationships((prev) => isActive ? prev.filter((f) => f !== key) : [...prev, key])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${isActive ? "bg-folk-hover" : ""}`} tabIndex={0}>
+                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-none border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
                         {isActive && <span className="text-[10px] text-white">✓</span>}
                       </div>
-                      <span className="text-[#262626]">{label}</span>
+                      <span className="text-folk-text">{label}</span>
                     </button>
                   )
                 })}
-                {uniqueRelationships.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-[#888]">No relationships</p>}
-                <div className="border-t border-[#f0f0f0] px-[8px] py-[4px]">
-                  <button onClick={() => { setFilterRelationships([]); setActiveFilterDropdown(null) }} className="w-full rounded px-[8px] py-[6px] text-left text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0}>Clear</button>
+                {uniqueRelationships.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-folk-secondary">No relationships</p>}
+                <div className="border-t border-folk-border-subtle px-[8px] py-[4px]">
+                  <button onClick={() => { setFilterRelationships([]); setActiveFilterDropdown(null) }} className="w-full rounded-none px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
                 </div>
-              </div>
-            )
+          </FixedDropdownMenu>
+        )
 
-            return null
-          })()}
-        </>
-      )}
+        return null
+      })()}
 
       {/* Table */}
-      <div className="flex-1 overflow-auto bg-[#fafafa]">
-        <table className="w-full border-separate border-spacing-0 text-left" style={{ tableLayout: "fixed", minWidth: visibleColumns.reduce((sum, col) => sum + getWidth(col.key, 200), 0) }}>
+      <div className="flex-1 overflow-auto bg-folk-surface">
+        <table className={TABLE_FULL} style={{ tableLayout: "fixed", minWidth: visibleColumns.reduce((sum, col) => sum + getWidth(col.key, 200), 0) }}>
           <thead>
             <tr>
               {visibleColumns.map((col, i) => {
                 const ColIcon = col.icon
+                const isLast = i === visibleColumns.length - 1
                 return (
                   <th
                     key={col.key}
-                    className={`group/col relative sticky top-0 z-20 h-[44px] overflow-hidden whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888] ${i < visibleColumns.length - 1 ? "border-r border-[#dcdcdc]" : ""}`}
+                    className={`group/col relative sticky top-0 z-20 ${isLast ? TABLE_HEADER_CELL_LAST : TABLE_HEADER_CELL}`}
                     style={{ width: getWidth(col.key, 200) }}
                   >
                     <div className="flex items-center gap-[6px]">
-                      <ColIcon className="h-[13px] w-[13px] shrink-0 text-[#999]" strokeWidth={1.5} />
+                      <ColIcon className="h-[13px] w-[13px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
                       <span className="truncate">{col.label}</span>
                     </div>
                     <div
@@ -532,37 +553,44 @@ export default function ContactsPage() {
             {filteredContacts.map((contact) => {
               const rel = relationshipConfig[contact.relationship] ?? { label: contact.relationship || "—", color: "bg-gray-50 text-gray-600", dotColor: "bg-gray-400" }
               const initials = contact.name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase()
-              const dash = <span className="text-[#bbb]">—</span>
+              const dash = <span className="text-folk-placeholder">—</span>
 
               const renderCell = (key: string, isLast: boolean) => {
-                const cls = `h-[44px] overflow-hidden whitespace-nowrap border-b ${isLast ? "" : "border-r"} border-[#dcdcdc] bg-[#fafafa] px-[20px] group-hover:bg-[#f5f5f5]`
-                const textCls = `${cls} text-[13px] font-medium text-[#262626]`
+                const cls = isLast
+                  ? `${TABLE_CELL_LAST} bg-folk-surface group-hover:bg-[#fafafa]`
+                  : `${TABLE_CELL_BASE} bg-folk-surface group-hover:bg-[#fafafa]`
+                const textCls = `${cls} ${TABLE_TEXT_CELL}`
+                const wrapCell = (content: React.ReactNode) => (
+                  <div className={TABLE_CELL_INNER}>{content}</div>
+                )
 
                 switch (key) {
                   case "name":
                     return (
                       <td key={key} className={textCls}>
-                        <div className="flex items-center gap-[10px]">
-                          <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[6px] bg-[#DBEAFE] text-[9px] font-semibold text-[#2563EB]">{initials}</div>
-                          <span className="truncate">{contact.name}</span>
-                        </div>
+                        {wrapCell(
+                          <>
+                            <EntityIcon text={initials} size="sm" />
+                            <span className="truncate">{contact.name}</span>
+                          </>
+                        )}
                       </td>
                     )
                   case "client":
-                    return <td key={key} className={cls}>{contact.clientName ? <span className="inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] bg-[#e8edf2] px-[12px] text-[13px] font-medium text-[#334155]">{contact.clientName}</span> : dash}</td>
+                    return <td key={key} className={cls}>{wrapCell(contact.clientName ? <CategoryChip label={contact.clientName} categoryKey={contact.clientName} size="sm" /> : dash)}</td>
                   case "relationship":
-                    return <td key={key} className={cls}>{rel ? <span className="inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] bg-[#e8edf2] px-[12px] text-[13px] font-medium text-[#334155]">{rel.label}</span> : <span className="text-[13px] font-medium text-[#bbb]">—</span>}</td>
+                    return <td key={key} className={cls}>{wrapCell(contact.relationship ? <CategoryChip label={rel.label} categoryKey={contact.relationship} size="sm" /> : <span className={`${TABLE_TEXT_CELL} text-folk-placeholder`}>—</span>)}</td>
                   case "email":
-                    return <td key={key} className={textCls}>{contact.email || dash}</td>
+                    return <td key={key} className={textCls}>{wrapCell(contact.email || dash)}</td>
                   case "phone":
-                    return <td key={key} className={textCls}>{contact.phone || dash}</td>
+                    return <td key={key} className={textCls}>{wrapCell(contact.phone || dash)}</td>
                   default:
-                    return <td key={key} className={textCls}>{dash}</td>
+                    return <td key={key} className={textCls}>{wrapCell(dash)}</td>
                 }
               }
 
               return (
-                <tr key={contact.id} className="group transition-colors hover:bg-[#f5f5f5]">
+                <tr key={contact.id} className="group transition-colors hover:bg-folk-hover">
                   {visibleColumns.map((col, i) => renderCell(col.key, i === visibleColumns.length - 1))}
                 </tr>
               )
@@ -575,7 +603,7 @@ export default function ContactsPage() {
               type="button"
               onClick={loadMore}
               disabled={isLoadingMore}
-              className="text-[13px] font-medium text-[#888] transition-colors hover:text-[#262626] disabled:opacity-50"
+              className="text-[13px] font-medium text-folk-secondary transition-colors hover:text-folk-text disabled:opacity-50"
               tabIndex={0}
             >
               {isLoadingMore ? "Loading..." : "Load more"}
@@ -585,8 +613,8 @@ export default function ContactsPage() {
       </div>
 
       {/* Footer */}
-      <div className="shrink-0 border-t border-[#dcdcdc] px-[20px] py-[10px]">
-        <span className="text-[12px] font-medium text-[#999]">
+      <div className="shrink-0 border-t border-folk-border px-[20px] py-[10px]">
+        <span className="text-[12px] font-medium text-folk-secondary">
           {filteredContacts.length} {filteredContacts.length === 1 ? "contact" : "contacts"}
         </span>
       </div>
@@ -595,15 +623,15 @@ export default function ContactsPage() {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/20" onClick={() => { setIsModalOpen(false); setIsRelationshipOpen(false); setIsClientOpen(false) }} />
-          <div className="relative z-10 w-[440px] rounded-lg bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+          <div className="relative z-10 w-[440px] rounded-none bg-folk-surface shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
             <div className="flex items-center justify-between px-[24px] pt-[20px]">
               <div className="flex items-center gap-[8px]">
                 <UserPlus className="h-[16px] w-[16px] text-[#555]" strokeWidth={1.5} />
-                <h2 className="text-[15px] font-semibold text-[#262626]">Create contact</h2>
+                <h2 className="text-[15px] font-semibold text-folk-text">Create contact</h2>
               </div>
               <button
                 onClick={() => { setIsModalOpen(false); setIsRelationshipOpen(false); setIsClientOpen(false) }}
-                className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+                className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
                 tabIndex={0}
                 aria-label="Close"
               >
@@ -613,81 +641,81 @@ export default function ContactsPage() {
 
             <div className="px-[24px] pb-[20px] pt-[16px]">
               <div className="mb-[14px]">
-                <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Name *</label>
+                <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Name *</label>
                 <input
                   type="text"
                   placeholder="Full name"
                   value={newContact.name}
                   onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
-                  className="h-[36px] w-full rounded-md border border-[#e0e0e0] bg-[#fafafa] px-[10px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3]"
+                  className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[10px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3]"
                 />
               </div>
 
               <div className="mb-[14px]">
-                <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Client (optional)</label>
+                <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Client (optional)</label>
                 <button
                   ref={clientRef}
                   type="button"
                   onClick={() => { setIsClientOpen(!isClientOpen); setIsRelationshipOpen(false) }}
-                  className="flex h-[36px] w-full items-center justify-between rounded-md border border-[#e0e0e0] bg-[#fafafa] px-[10px] text-[13px] font-medium outline-none transition-colors focus:border-[#a3c4f3]"
+                  className="flex h-[36px] w-full items-center justify-between rounded-none border border-folk-border bg-folk-page px-[10px] text-[13px] font-medium outline-none transition-colors focus:border-[#a3c4f3]"
                   tabIndex={0}
                 >
                   {newContact.clientName ? (
-                    <span className="text-[#262626]">{newContact.clientName}</span>
+                    <span className="text-folk-text">{newContact.clientName}</span>
                   ) : (
-                    <span className="text-[#bbb]">Select client</span>
+                    <span className="text-folk-placeholder">Select client</span>
                   )}
-                  <ChevronDown className={`h-[14px] w-[14px] text-[#888] transition-transform ${isClientOpen ? "rotate-180" : ""}`} strokeWidth={1.5} />
+                  <ChevronDown className={`h-[14px] w-[14px] text-folk-secondary transition-transform ${isClientOpen ? "rotate-180" : ""}`} strokeWidth={1.5} />
                 </button>
               </div>
 
               <div className="mb-[14px]">
-                <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Relationship</label>
+                <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Relationship</label>
                 <button
                   ref={relationshipRef}
                   type="button"
                   onClick={() => { setIsRelationshipOpen(!isRelationshipOpen); setIsClientOpen(false) }}
-                  className="flex h-[36px] w-full items-center justify-between rounded-md border border-[#e0e0e0] bg-[#fafafa] px-[10px] text-[13px] font-medium outline-none transition-colors focus:border-[#a3c4f3]"
+                  className="flex h-[36px] w-full items-center justify-between rounded-none border border-folk-border bg-folk-page px-[10px] text-[13px] font-medium outline-none transition-colors focus:border-[#a3c4f3]"
                   tabIndex={0}
                 >
                   {newContact.relationship ? (
                     (() => {
                       const rel = relationshipConfig[newContact.relationship]
-                      return <span className="inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] bg-[#e8edf2] px-[12px] text-[13px] font-medium text-[#334155]">{rel?.label ?? newContact.relationship}</span>
+                      return <CategoryChip label={rel?.label ?? newContact.relationship} categoryKey={newContact.relationship} size="lg" />
                     })()
                   ) : (
-                    <span className="text-[#bbb]">Select relationship</span>
+                    <span className="text-folk-placeholder">Select relationship</span>
                   )}
-                  <ChevronDown className={`h-[14px] w-[14px] text-[#888] transition-transform ${isRelationshipOpen ? "rotate-180" : ""}`} strokeWidth={1.5} />
+                  <ChevronDown className={`h-[14px] w-[14px] text-folk-secondary transition-transform ${isRelationshipOpen ? "rotate-180" : ""}`} strokeWidth={1.5} />
                 </button>
               </div>
 
               <div className="mb-[14px]">
-                <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Email</label>
+                <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Email</label>
                 <input
                   type="email"
                   placeholder="name@company.com"
                   value={newContact.email}
                   onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
-                  className="h-[36px] w-full rounded-md border border-[#e0e0e0] bg-[#fafafa] px-[10px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3]"
+                  className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[10px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3]"
                 />
               </div>
 
               <div className="mb-[14px]">
-                <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Phone</label>
+                <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Phone</label>
                 <input
                   type="tel"
                   placeholder="Phone number"
                   value={newContact.phone}
                   onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
-                  className="h-[36px] w-full rounded-md border border-[#e0e0e0] bg-[#fafafa] px-[10px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3]"
+                  className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[10px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3]"
                 />
               </div>
 
               <div className="flex justify-end">
                 <button
                   onClick={handleCreate}
-                  className="primary-btn rounded-[4px] px-[16px] py-[7px] text-[13px] font-medium transition-colors"
+                  className="primary-btn px-[16px] py-[7px] text-[13px] font-medium transition-colors"
                   tabIndex={0}
                 >
                   Create
@@ -696,56 +724,54 @@ export default function ContactsPage() {
             </div>
           </div>
 
-          {isClientOpen && clientRef.current && (() => {
-            const rect = clientRef.current.getBoundingClientRect()
-            return (
-              <div
-                className="fixed z-[60] max-h-[200px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-                style={{ top: rect.bottom + 4, left: rect.left, width: rect.width }}
+          <FixedDropdownMenu
+            isOpen={isClientOpen}
+            anchorRef={clientRef}
+            onClose={() => setIsClientOpen(false)}
+            estimatedHeight={200}
+            minWidth={clientRef.current?.getBoundingClientRect().width ?? 220}
+            className="py-[4px]"
+          >
+            {clientNames.map((name) => (
+              <button
+                key={name}
+                type="button"
+                onClick={() => {
+                  const matchedClient = clients.find((c) => c.name === name || c.displayName === name)
+                  setNewContact({ ...newContact, clientName: name, clientId: matchedClient?.id ?? null })
+                  setIsClientOpen(false)
+                }}
+                className={`flex w-full items-center px-[12px] py-[10px] text-left text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover ${newContact.clientName === name ? "bg-folk-hover" : ""}`}
+                tabIndex={0}
               >
-                {clientNames.map((name) => (
-                  <button
-                    key={name}
-                    type="button"
-                    onClick={() => {
-                      const matchedClient = clients.find((c) => c.name === name || c.displayName === name)
-                      setNewContact({ ...newContact, clientName: name, clientId: matchedClient?.id ?? null })
-                      setIsClientOpen(false)
-                    }}
-                    className={`flex w-full items-center px-[12px] py-[10px] text-left text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${newContact.clientName === name ? "bg-[#f5f5f5]" : ""}`}
-                    tabIndex={0}
-                  >
-                    {name}
-                  </button>
-                ))}
-              </div>
-            )
-          })()}
+                {name}
+              </button>
+            ))}
+          </FixedDropdownMenu>
 
-          {isRelationshipOpen && relationshipRef.current && (() => {
-            const rect = relationshipRef.current.getBoundingClientRect()
-            return (
-              <div
-                className="fixed z-[60] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-                style={{ top: rect.bottom + 4, left: rect.left, width: rect.width, maxHeight: Math.min(240, window.innerHeight - rect.bottom - 20) }}
+          <FixedDropdownMenu
+            isOpen={isRelationshipOpen}
+            anchorRef={relationshipRef}
+            onClose={() => setIsRelationshipOpen(false)}
+            estimatedHeight={240}
+            minWidth={relationshipRef.current?.getBoundingClientRect().width ?? 220}
+            className="py-[4px]"
+          >
+            {Object.entries(relationshipConfig).map(([key, config]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => {
+                  setNewContact({ ...newContact, relationship: key })
+                  setIsRelationshipOpen(false)
+                }}
+                className={`flex w-full items-center gap-[10px] px-[12px] py-[10px] text-left transition-colors hover:bg-folk-hover ${newContact.relationship === key ? "bg-folk-hover" : ""}`}
+                tabIndex={0}
               >
-                {Object.entries(relationshipConfig).map(([key, config]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => {
-                      setNewContact({ ...newContact, relationship: key })
-                      setIsRelationshipOpen(false)
-                    }}
-                    className={`flex w-full items-center gap-[10px] px-[12px] py-[10px] text-left transition-colors hover:bg-[#f5f5f5] ${newContact.relationship === key ? "bg-[#f5f5f5]" : ""}`}
-                    tabIndex={0}
-                  >
-                    <span className="inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] bg-[#e8edf2] px-[12px] text-[13px] font-medium text-[#334155]">{config.label}</span>
-                  </button>
-                ))}
-              </div>
-            )
-          })()}
+                <CategoryChip label={config.label} categoryKey={key} size="lg" />
+              </button>
+            ))}
+          </FixedDropdownMenu>
         </div>
       )}
 
@@ -753,12 +779,12 @@ export default function ContactsPage() {
       {isCreateViewOpen && (
         <>
           <div className="fixed inset-0 z-50 bg-black/20" onClick={() => { setIsCreateViewOpen(false); setNewViewName("") }} />
-          <div className="fixed left-1/2 top-1/2 z-50 w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+          <div className="fixed left-1/2 top-1/2 z-50 w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-none bg-folk-surface p-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
             <div className="flex items-center justify-between">
-              <h3 className="text-[15px] font-semibold text-[#262626]">Create a view for contacts</h3>
+              <h3 className="text-[15px] font-semibold text-folk-text">Create a view for contacts</h3>
               <button
                 onClick={() => { setIsCreateViewOpen(false); setNewViewName("") }}
-                className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+                className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
                 tabIndex={0}
                 aria-label="Close"
               >
@@ -766,20 +792,20 @@ export default function ContactsPage() {
               </button>
             </div>
             <div className="mt-[20px]">
-              <label className="text-[13px] font-medium text-[#888]">Name</label>
+              <label className="text-[13px] font-medium text-folk-secondary">Name</label>
               <input
                 ref={viewNameInputRef}
                 value={newViewName}
                 onChange={(e) => setNewViewName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleCreateView() }}
                 placeholder="Enter name here"
-                className="mt-[8px] w-full rounded-lg border border-[#dcdcdc] bg-[#fafafa] px-[12px] py-[10px] text-[13px] font-medium text-[#262626] outline-none transition-colors placeholder:text-[#bbb] focus:border-[#a3c4f3]"
+                className="mt-[8px] w-full rounded-none border border-folk-border bg-folk-surface px-[12px] py-[10px] text-[13px] font-medium text-folk-text outline-none transition-colors placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
               />
             </div>
             <div className="mt-[20px] flex items-center justify-end gap-[12px]">
               <button
                 onClick={() => { setIsCreateViewOpen(false); setNewViewName("") }}
-                className="px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:text-[#888]"
+                className="px-[12px] py-[6px] text-[13px] font-medium text-folk-text transition-colors hover:text-folk-secondary"
                 tabIndex={0}
               >
                 Cancel
@@ -787,7 +813,7 @@ export default function ContactsPage() {
               <button
                 onClick={handleCreateView}
                 disabled={!newViewName.trim()}
-                className={`rounded-[4px] px-[16px] py-[6px] text-[13px] font-medium transition-colors ${newViewName.trim() ? "primary-btn" : "border border-[#dcdcdc] text-[#bbb]"}`}
+                className={`rounded-full px-[16px] py-[6px] text-[13px] font-medium transition-colors ${newViewName.trim() ? "primary-btn" : "border border-folk-border text-folk-placeholder"}`}
                 tabIndex={0}
               >
                 Create
@@ -802,7 +828,7 @@ export default function ContactsPage() {
         <>
           <div className="fixed inset-0 z-50" onClick={() => setViewContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setViewContextMenu(null) }} />
           <div
-            className="fixed z-50 w-[160px] overflow-hidden rounded-lg border border-[#dcdcdc] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+            className="fixed z-50 w-[160px] overflow-hidden rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk"
             style={{ top: viewContextMenu.y, left: viewContextMenu.x }}
           >
             <button
@@ -825,22 +851,22 @@ export default function ContactsPage() {
       {deleteViewConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/20" onClick={() => setDeleteViewConfirm(null)} />
-          <div className="relative z-10 w-[400px] rounded-lg bg-white p-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
-            <h3 className="text-[15px] font-semibold text-[#262626]">Delete view</h3>
-            <p className="mt-[8px] text-[13px] font-medium text-[#888]">
-              Are you sure you want to delete <span className="text-[#262626]">&ldquo;{deleteViewConfirm.name}&rdquo;</span>? This action cannot be undone.
+          <div className="relative z-10 w-[400px] rounded-none bg-folk-surface p-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+            <h3 className="text-[15px] font-semibold text-folk-text">Delete view</h3>
+            <p className="mt-[8px] text-[13px] font-medium text-folk-secondary">
+              Are you sure you want to delete <span className="text-folk-text">&ldquo;{deleteViewConfirm.name}&rdquo;</span>? This action cannot be undone.
             </p>
             <div className="mt-[20px] flex items-center justify-end gap-[12px]">
               <button
                 onClick={() => setDeleteViewConfirm(null)}
-                className="px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:text-[#888]"
+                className="px-[12px] py-[6px] text-[13px] font-medium text-folk-text transition-colors hover:text-folk-secondary"
                 tabIndex={0}
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDeleteView(deleteViewConfirm.id)}
-                className="rounded-[4px] bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
+                className="rounded-none bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
                 tabIndex={0}
               >
                 Delete

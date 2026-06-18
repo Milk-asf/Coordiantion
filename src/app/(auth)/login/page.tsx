@@ -51,31 +51,31 @@ function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#fafafa]">
+    <div className="flex min-h-screen items-center justify-center bg-folk-surface">
       <div className="w-full max-w-[380px] px-[16px]">
         <div className="mb-[32px] text-center">
           <div className="mx-auto mb-[16px] flex h-[36px] w-[36px] items-center justify-center rounded-full bg-green-600 text-[14px] font-semibold text-white">
             C
           </div>
-          <h1 className="text-[20px] font-semibold text-[#262626]">Welcome back</h1>
-          <p className="mt-[4px] text-[13px] font-medium text-[#888]">Sign in to your account</p>
+          <h1 className="text-[20px] font-semibold text-folk-text">Welcome back</h1>
+          <p className="mt-[4px] text-[13px] font-medium text-folk-secondary">Sign in to your account</p>
         </div>
 
         <form onSubmit={handleLogin} className="flex flex-col gap-[14px]">
           <div>
-            <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Email</label>
+            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@company.com"
               required
-              className="h-[40px] w-full rounded-lg border border-[#e0e0e0] bg-[#fafafa] px-[12px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
+              className="h-[40px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
             />
           </div>
 
           <div>
-            <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Password</label>
+            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Password</label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
@@ -83,12 +83,12 @@ function LoginForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="h-[40px] w-full rounded-lg border border-[#e0e0e0] bg-[#fafafa] px-[12px] pr-[40px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
+                className="h-[40px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] pr-[40px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-[10px] top-1/2 -translate-y-1/2 text-[#bbb] transition-colors hover:text-[#666]"
+                className="absolute right-[10px] top-1/2 -translate-y-1/2 text-folk-placeholder transition-colors hover:text-folk-secondary"
                 tabIndex={-1}
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
@@ -98,7 +98,7 @@ function LoginForm() {
           </div>
 
           {error && (
-            <p className="rounded-lg bg-red-50 px-[12px] py-[8px] text-[13px] font-medium text-red-600">
+            <p className="rounded-none bg-red-50 px-[12px] py-[8px] text-[13px] font-medium text-red-600">
               {error}
             </p>
           )}
@@ -106,21 +106,21 @@ function LoginForm() {
           <button
             type="submit"
             disabled={isLoading}
-            className="h-[40px] w-full rounded-lg bg-[#262626] text-[13px] font-medium text-white transition-colors hover:bg-[#3d3d3d] disabled:opacity-50"
+            className="h-[40px] w-full rounded-none bg-[#1a1a1a] text-[13px] font-medium text-white transition-colors hover:bg-[#3d3d3d] disabled:opacity-50"
           >
             {isLoading ? "Signing in..." : "Sign in"}
           </button>
         </form>
 
         <div className="mt-[16px] text-center">
-          <Link href="/reset-password" className="text-[13px] font-medium text-[#888] underline underline-offset-2 transition-colors hover:text-[#262626]">
+          <Link href="/reset-password" className="text-[13px] font-medium text-folk-secondary underline underline-offset-2 transition-colors hover:text-folk-text">
             Forgot your password?
           </Link>
         </div>
 
-        <p className="mt-[12px] text-center text-[13px] font-medium text-[#888]">
+        <p className="mt-[12px] text-center text-[13px] font-medium text-folk-secondary">
           Don&apos;t have an account?{" "}
-          <Link href="/signup" className="text-[#262626] underline underline-offset-2 transition-colors hover:text-[#555]">
+          <Link href="/signup" className="text-folk-text underline underline-offset-2 transition-colors hover:text-[#555]">
             Sign up
           </Link>
         </p>
@@ -133,8 +133,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-[#fafafa]">
-          <p className="text-[14px] font-medium text-[#666]">Loading…</p>
+        <div className="flex min-h-screen items-center justify-center bg-folk-surface">
+          <p className="text-[14px] font-medium text-folk-secondary">Loading…</p>
         </div>
       }
     >

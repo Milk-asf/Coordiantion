@@ -115,12 +115,12 @@ export function useWorkspaceSettings() {
   useEffect(() => {
     if (typeof document === "undefined") return
     const root = document.documentElement
-    root.style.setProperty("--primary-color", "#262626")
-    root.style.setProperty("--primary-color-hover", "#1a1a1a")
-    root.style.setProperty("--primary-color-light", "rgba(38, 38, 38, 0.06)")
-    root.style.setProperty("--primary-color-text", "#262626")
-    root.style.setProperty("--primary-btn-text", "#262626")
-    root.style.setProperty("--primary-btn-border", "#d4d4d4")
+    root.style.setProperty("--primary-color", "#111111")
+    root.style.setProperty("--primary-color-hover", "#333333")
+    root.style.setProperty("--primary-color-light", "rgba(17, 17, 17, 0.06)")
+    root.style.setProperty("--primary-color-text", "#111111")
+    root.style.setProperty("--primary-btn-text", "#ffffff")
+    root.style.setProperty("--primary-btn-border", "#1a1a1a")
   }, [])
 
   const updateSettings = useCallback(async (updates: Partial<WorkspaceEmailSettings>) => {

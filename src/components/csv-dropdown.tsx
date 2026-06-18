@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from "react"
 import { Download, Upload, FileDown, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useFixedDropdownPosition } from "@/lib/hooks/use-fixed-dropdown-position"
 
 export type CsvEntityType = "clients" | "contacts" | "staff"
 
@@ -29,6 +30,8 @@ export function CsvDropdown({ entityType, columns, exportColumns, data, onImport
   const [isOpen, setIsOpen] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const triggerRef = useRef<HTMLDivElement>(null)
+  const menuStyle = useFixedDropdownPosition(isOpen, triggerRef, 132, 200, "right")
 
   const escapeCsvField = (value: string) => {
     if (value.includes(",") || value.includes('"') || value.includes("\n"))
@@ -82,31 +85,30 @@ export function CsvDropdown({ entityType, columns, exportColumns, data, onImport
           else current += ch
         } else {
           if (ch === '"') inQuotes = true
-          else if (ch === ",") { fields.push(current.trim()); current = "" }
+          else if (ch === ",") { fields.push(current); current = "" }
           else current += ch
         }
       }
-      fields.push(current.trim())
+      fields.push(current)
       return fields
     }
 
-    const headerLabels = parseRow(lines[0])
-    const labelToKey = new Map<string, string>()
+    const headers = parseRow(lines[0]).map((h) => h.trim())
+    const keyMap = new Map<string, string>()
     for (const col of columns) {
-      labelToKey.set(col.label.toLowerCase(), col.key)
+      const match = headers.find((h) => h.toLowerCase() === col.label.toLowerCase())
+      if (match) keyMap.set(match, col.key)
     }
 
-    const rows: Record<string, string>[] = []
-    for (let i = 1; i < lines.length; i++) {
-      const values = parseRow(lines[i])
+    return lines.slice(1).map((line) => {
+      const values = parseRow(line)
       const row: Record<string, string> = {}
-      headerLabels.forEach((label, idx) => {
-        const key = labelToKey.get(label.toLowerCase())
-        if (key && values[idx] !== undefined) row[key] = values[idx]
+      headers.forEach((header, i) => {
+        const key = keyMap.get(header)
+        if (key) row[key] = values[i]?.trim() || ""
       })
-      if (Object.values(row).some((v) => v)) rows.push(row)
-    }
-    return rows
+      return row
+    }).filter((row) => Object.keys(row).length > 0)
   }, [columns])
 
   const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,24 +131,32 @@ export function CsvDropdown({ entityType, columns, exportColumns, data, onImport
     fileInputRef.current?.click()
   }, [])
 
+  const handleToggleMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsOpen((open) => !open)
+  }, [])
+
   return (
-    <div className="relative flex">
+    <div ref={triggerRef} className="relative inline-flex">
       <button
-        onClick={handleExport}
-        className="flex items-center gap-[5px] rounded-l-[4px] border border-[#dcdcdc] bg-transparent px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+        type="button"
+        onClick={handleToggleMenu}
+        className={cn(
+          "outline-btn flex items-center gap-[6px] px-[10px] py-[6px]",
+          isOpen && "bg-folk-hover"
+        )}
         tabIndex={0}
-        aria-label={`Export ${entityLabels[entityType]} as CSV`}
+        aria-label={`Export ${entityLabels[entityType]} options`}
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
       >
         <Download className="h-[13px] w-[13px]" strokeWidth={1.5} />
-        <span className="hidden sm:inline">CSV</span>
-      </button>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center rounded-r-[4px] border border-l-0 border-[#dcdcdc] bg-transparent px-[4px] py-[4px] text-[#999] transition-colors hover:bg-[#f5f5f5]"
-        tabIndex={0}
-        aria-label="More export options"
-      >
-        <ChevronDown className="h-[10px] w-[10px]" strokeWidth={1.5} />
+        Export
+        <ChevronDown
+          className={cn("h-[10px] w-[10px] transition-transform", isOpen && "rotate-180")}
+          strokeWidth={1.5}
+        />
       </button>
 
       <input
@@ -157,37 +167,50 @@ export function CsvDropdown({ entityType, columns, exportColumns, data, onImport
         onChange={handleFileChange}
       />
 
-      {isOpen && (
+      {isOpen && menuStyle && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 top-full z-50 mt-[4px] w-[200px] rounded-[6px] border border-sidebar-border bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+          <div className="fixed inset-0 z-[55]" onClick={() => setIsOpen(false)} aria-hidden="true" />
+          <div
+            className="fixed z-[60] w-[200px] rounded-none border border-folk-border bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+            style={menuStyle}
+            role="menu"
+          >
             <button
+              type="button"
+              onClick={handleExport}
+              disabled={data.length === 0}
+              className={cn(
+                "flex w-full items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-normal text-[#111111] transition-colors hover:bg-[#f5f5f5]",
+                data.length === 0 && "cursor-not-allowed opacity-50"
+              )}
+              tabIndex={0}
+              role="menuitem"
+            >
+              <Download className="h-[14px] w-[14px] text-[#999999]" strokeWidth={1.5} />
+              Export CSV
+            </button>
+            <button
+              type="button"
               onClick={handleImportClick}
               disabled={isImporting}
               className={cn(
-                "flex w-full items-center gap-[8px] px-[12px] py-[8px] text-left text-[13px] font-medium transition-colors hover:bg-[#f5f5f5]",
-                isImporting ? "text-[#bbb]" : "text-[#262626]"
+                "flex w-full items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-normal text-[#111111] transition-colors hover:bg-[#f5f5f5]",
+                isImporting && "opacity-50"
               )}
               tabIndex={0}
+              role="menuitem"
             >
-              <Upload className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
-              {isImporting ? "Importing…" : `Import CSV`}
+              <Upload className="h-[14px] w-[14px] text-[#999999]" strokeWidth={1.5} />
+              Import CSV
             </button>
             <button
-              onClick={handleExport}
-              className="flex w-full items-center gap-[8px] px-[12px] py-[8px] text-left text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-              tabIndex={0}
-            >
-              <FileDown className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
-              Export as CSV
-            </button>
-            <div className="my-[2px] border-t border-[#f0f0f0]" />
-            <button
+              type="button"
               onClick={handleDownloadTemplate}
-              className="flex w-full items-center gap-[8px] px-[12px] py-[8px] text-left text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+              className="flex w-full items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-normal text-[#111111] transition-colors hover:bg-[#f5f5f5]"
               tabIndex={0}
+              role="menuitem"
             >
-              <Download className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+              <FileDown className="h-[14px] w-[14px] text-[#999999]" strokeWidth={1.5} />
               Download template
             </button>
           </div>

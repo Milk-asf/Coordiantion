@@ -55,22 +55,22 @@ export function WorkspaceLogoUpload({ workspaceId, value, onChange }: WorkspaceL
 
   return (
     <div className="flex items-center gap-[16px]">
-      <div className="flex h-[64px] w-[64px] items-center justify-center overflow-hidden rounded-[10px] border border-[#f0f0f0] bg-[#fafafa]">
+      <div className="flex h-[64px] w-[64px] items-center justify-center overflow-hidden rounded-none border border-folk-border-subtle bg-folk-page">
         {value ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img src={value} alt="Company logo" className="h-full w-full object-contain" />
         ) : (
-          <ImageIcon className="h-[20px] w-[20px] text-[#bbb]" strokeWidth={1.5} />
+          <ImageIcon className="h-[20px] w-[20px] text-folk-placeholder" strokeWidth={1.5} />
         )}
       </div>
       <div>
-        <p className="mb-[2px] text-[13px] font-semibold text-[#262626]">Company logo</p>
+        <p className="mb-[2px] text-[13px] font-semibold text-folk-text">Company logo</p>
         <div className="flex items-center gap-[8px]">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading || !workspaceId}
-            className="flex items-center gap-[6px] rounded-[8px] bg-[#f0f0f0] px-[12px] py-[6px] text-[12px] font-medium text-[#262626] transition-colors hover:bg-[#e8e8e8] disabled:opacity-50"
+            className="flex items-center gap-[6px] rounded-none bg-[var(--folk-border-subtle)] px-[12px] py-[6px] text-[12px] font-medium text-folk-text transition-colors hover:bg-[#e8e8e8] disabled:opacity-50"
             tabIndex={0}
           >
             <Upload className="h-[12px] w-[12px]" strokeWidth={1.75} />
@@ -80,7 +80,7 @@ export function WorkspaceLogoUpload({ workspaceId, value, onChange }: WorkspaceL
             <button
               type="button"
               onClick={() => onChange("")}
-              className="text-[12px] font-medium text-[#888] transition-colors hover:text-[#262626]"
+              className="text-[12px] font-medium text-folk-secondary transition-colors hover:text-folk-text"
               tabIndex={0}
             >
               Remove

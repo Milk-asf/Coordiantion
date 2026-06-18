@@ -8,6 +8,7 @@ import { Switch } from "@/components/switch"
 import { Badge } from "@/components/badge"
 import { Button } from "@/components/button"
 import { EmptyState } from "@/components/empty-state"
+import { EntityIcon } from "@/components/entity-icon"
 import { useMembers } from "@/lib/hooks/use-members"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import { useStaff } from "@/lib/hooks/use-staff"
@@ -128,7 +129,7 @@ export default function MembersSettingsPage() {
 
   if (!canManageMembers) return (
     <div className="flex items-center justify-center py-[48px]">
-      <p className="text-[14px] text-[#888]">You don&apos;t have permission to manage members.</p>
+      <p className="text-[14px] text-folk-secondary">You don&apos;t have permission to manage members.</p>
     </div>
   )
 
@@ -183,8 +184,8 @@ export default function MembersSettingsPage() {
   return (
     <>
       <div className="mb-[24px]">
-        <h1 className="text-[20px] font-bold text-[#262626]">Members</h1>
-        <p className="mt-[4px] text-[14px] text-[#888]">
+        <h1 className="text-[20px] font-bold text-folk-text">Members</h1>
+        <p className="mt-[4px] text-[14px] text-folk-secondary">
           Manage who has access to this workspace.
         </p>
       </div>
@@ -193,10 +194,10 @@ export default function MembersSettingsPage() {
         <>
           <div className="fixed inset-0 z-40 bg-black/20" onClick={() => setIsInviteOpen(false)} />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-[16px]">
-            <div className="w-full max-w-[420px] rounded-[8px] border border-[#f0f0f0] bg-white p-[24px] shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+            <div className="w-full max-w-[420px] rounded-none border border-folk-border-subtle bg-folk-surface p-[24px] shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
               <div className="mb-[16px] flex items-center justify-between">
-                <h2 className="text-[16px] font-bold text-[#262626]">Invite a member</h2>
-                <button onClick={() => setIsInviteOpen(false)} className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-[#999] transition-colors hover:bg-[#f5f5f5]" tabIndex={0} aria-label="Close">
+                <h2 className="text-[16px] font-bold text-folk-text">Invite a member</h2>
+                <button onClick={() => setIsInviteOpen(false)} className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover" tabIndex={0} aria-label="Close">
                   <X className="h-[16px] w-[16px]" strokeWidth={1.75} />
                 </button>
               </div>
@@ -208,13 +209,13 @@ export default function MembersSettingsPage() {
                 onChange={(e) => setInviteEmail(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleInvite() }}
                 placeholder="colleague@example.com"
-                className="mb-[12px] w-full rounded-[8px] border border-[#e0e0e0] bg-[#fafafa] px-[12px] py-[9px] text-[14px] text-[#262626] outline-none transition-colors focus:border-[#bbb]"
+                className="mb-[12px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] py-[9px] text-[14px] text-folk-text outline-none transition-colors focus:border-[#bbb]"
               />
               <label className="mb-[4px] block text-[13px] font-medium text-[#555]">Role</label>
               <select
                 value={inviteRole}
                 onChange={(e) => setInviteRole(e.target.value as Role)}
-                className="mb-[16px] w-full rounded-[8px] border border-[#e0e0e0] bg-[#fafafa] px-[12px] py-[9px] text-[14px] text-[#262626] outline-none transition-colors focus:border-[#bbb]"
+                className="mb-[16px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] py-[9px] text-[14px] text-folk-text outline-none transition-colors focus:border-[#bbb]"
               >
                 {(isSuperAdmin ? allRoles : allRoles.filter((r) => r !== "super-admin")).map((r) => (
                   <option key={r} value={r}>{roleConfig[r].label}</option>
@@ -239,7 +240,7 @@ export default function MembersSettingsPage() {
       )}
 
       {inviteWarning && (
-        <div className="mb-[12px] flex items-start justify-between gap-[12px] rounded-[8px] border border-amber-100 bg-amber-50 px-[14px] py-[10px]">
+        <div className="mb-[12px] flex items-start justify-between gap-[12px] rounded-none border border-amber-100 bg-amber-50 px-[14px] py-[10px]">
           <p className="text-[13px] text-amber-700">{inviteWarning}</p>
           <button
             onClick={() => setInviteWarning(null)}
@@ -268,9 +269,9 @@ export default function MembersSettingsPage() {
       {/* Active members */}
       <div className="overflow-hidden">
         <div className="grid grid-cols-[1fr_120px_80px_48px] items-center border-b border-[#efefef] px-[20px] py-[10px]">
-          <span className="text-[12px] font-medium text-[#999]">Name</span>
-          <span className="text-[12px] font-medium text-[#999]">Role</span>
-          <span className="text-[12px] font-medium text-[#999]">Active</span>
+          <span className="text-[12px] font-medium text-folk-secondary">Name</span>
+          <span className="text-[12px] font-medium text-folk-secondary">Role</span>
+          <span className="text-[12px] font-medium text-folk-secondary">Active</span>
           <span />
         </div>
 
@@ -294,7 +295,7 @@ export default function MembersSettingsPage() {
 
         {allMembers.length === 0 && (
           query ? (
-            <div className="px-[20px] py-[40px] text-center text-[13px] text-[#bbb]">
+            <div className="px-[20px] py-[40px] text-center text-[13px] text-folk-placeholder">
               No members match “{search.trim()}”.
             </div>
           ) : (
@@ -311,7 +312,7 @@ export default function MembersSettingsPage() {
       {/* Deactivated members */}
       {deactivatedMembers.length > 0 && (
         <div className="mt-[28px]">
-          <h2 className="mb-[10px] text-[13px] font-semibold uppercase tracking-wide text-[#999]">Deactivated</h2>
+          <h2 className="mb-[10px] text-[13px] font-semibold uppercase tracking-wide text-folk-secondary">Deactivated</h2>
           <div className="overflow-hidden">
             {deactivatedMembers.map((member) => (
               <MemberRow
@@ -374,19 +375,18 @@ function MemberRow({
 
   return (
     <div className={cn(
-      "grid grid-cols-[1fr_120px_80px_48px] items-center border-b border-[#efefef] px-[20px] py-[14px] transition-colors last:border-b-0",
-      isDisabledRow ? "opacity-60" : "hover:bg-[#f5f5f5]"
+      "grid grid-cols-[1fr_120px_80px_48px] items-center border-b border-[#efefef] px-[20px] py-[10px] transition-colors last:border-b-0",
+      isDisabledRow ? "opacity-60" : "hover:bg-folk-hover"
     )}>
       <div className="flex items-center gap-[12px]">
-        <div className={cn(
-          "flex h-[32px] w-[32px] shrink-0 items-center justify-center rounded-[8px] text-[12px] font-semibold",
-          isDisabledRow ? "bg-[#DBEAFE]/50 text-[#2563EB]/40" : "bg-[#DBEAFE] text-[#2563EB]"
-        )}>
-          {displayName.charAt(0).toUpperCase()}
-        </div>
+        <EntityIcon
+          text={displayName.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase() || "?"}
+          size="base"
+          className={isDisabledRow ? "opacity-50" : undefined}
+        />
         <div className="min-w-0">
           <div className="flex items-center gap-[8px]">
-            <span className="truncate text-[14px] font-medium text-[#262626]">
+            <span className="truncate text-[14px] font-medium text-folk-text">
               {displayName}
             </span>
             {(member.status === "pending" || member.status === "invited") && (
@@ -395,7 +395,7 @@ function MemberRow({
               </Badge>
             )}
           </div>
-          {displayEmail && <p className="truncate text-[12px] text-[#999]">{displayEmail}</p>}
+          {displayEmail && <p className="truncate text-[12px] text-folk-secondary">{displayEmail}</p>}
         </div>
       </div>
 
@@ -404,7 +404,7 @@ function MemberRow({
           <button
             onClick={onRoleToggle}
             className={cn(
-              "flex items-center gap-[4px] rounded-[6px] border px-[10px] py-[3px] text-[11px] font-medium transition-colors hover:opacity-80",
+              "flex items-center gap-[4px] rounded-none border px-[10px] py-[3px] text-[11px] font-medium transition-colors hover:opacity-80",
               roleConfig[member.role as Role]?.color ?? "bg-gray-50 text-gray-600 border-gray-100"
             )}
             tabIndex={0}
@@ -414,7 +414,7 @@ function MemberRow({
           </button>
         ) : (
           <span className={cn(
-            "inline-flex rounded-[6px] border px-[10px] py-[3px] text-[11px] font-medium",
+            "inline-flex rounded-none border px-[10px] py-[3px] text-[11px] font-medium",
             isDisabledRow ? "bg-gray-50 text-[#ccc] border-gray-100" : (roleConfig[member.role as Role]?.color ?? "bg-gray-50 text-gray-600 border-gray-100")
           )}>
             {roleConfig[member.role as Role]?.label ?? member.role}
@@ -424,22 +424,22 @@ function MemberRow({
         {isRoleOpen && canEditRole && (
           <>
             <div className="fixed inset-0 z-[9]" onClick={onRoleToggle} />
-            <div className="absolute left-0 top-full z-10 mt-[4px] w-[260px] rounded-[8px] border border-[#f0f0f0] bg-white py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+            <div className="absolute left-0 top-full z-10 mt-[4px] w-[260px] rounded-none border border-folk-border-subtle bg-folk-surface py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
               {availableRoles.map((role) => (
                 <button
                   key={role}
                   onClick={() => onRoleChange(role)}
                   className={cn(
-                    "flex w-full flex-col px-[14px] py-[10px] text-left transition-colors hover:bg-[#f5f5f5]",
-                    member.role === role && "bg-[#f5f5f5]"
+                    "flex w-full flex-col px-[14px] py-[10px] text-left transition-colors hover:bg-folk-hover",
+                    member.role === role && "bg-folk-hover"
                   )}
                   tabIndex={0}
                 >
                   <div className="flex items-center gap-[6px]">
-                    <span className="text-[13px] font-medium text-[#262626]">{roleConfig[role].label}</span>
+                    <span className="text-[13px] font-medium text-folk-text">{roleConfig[role].label}</span>
                     {member.role === role && <span className="text-[11px] text-blue-500">✓</span>}
                   </div>
-                  <span className="text-[11px] text-[#888]">{roleConfig[role].description}</span>
+                  <span className="text-[11px] text-folk-secondary">{roleConfig[role].description}</span>
                 </button>
               ))}
             </div>
@@ -461,7 +461,7 @@ function MemberRow({
           <div className="relative">
             <button
               onClick={onMenuToggle}
-              className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-[#bbb] transition-colors hover:bg-[#ebebeb] hover:text-[#666]"
+              className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-placeholder transition-colors hover:bg-[#ebebeb] hover:text-folk-secondary"
               tabIndex={0}
               aria-label="Member actions"
             >
@@ -471,14 +471,14 @@ function MemberRow({
             {isMenuOpen && (
               <>
                 <div className="fixed inset-0 z-[9]" onClick={onMenuToggle} />
-                <div className="absolute right-0 top-full z-10 mt-[4px] w-[160px] rounded-[8px] border border-[#f0f0f0] bg-white py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+                <div className="absolute right-0 top-full z-10 mt-[4px] w-[160px] rounded-none border border-folk-border-subtle bg-folk-surface py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
                   {(member.status === "pending" || member.status === "invited") && (
                     <button
                       onClick={async () => {
                         await onResendInvite()
                         onMenuToggle()
                       }}
-                      className="flex w-full items-center px-[14px] py-[8px] text-[13px] text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                      className="flex w-full items-center px-[14px] py-[8px] text-[13px] text-folk-text transition-colors hover:bg-folk-hover"
                       tabIndex={0}
                     >
                       Resend invite
@@ -496,7 +496,7 @@ function MemberRow({
             )}
           </div>
         ) : (
-          <span className="inline-flex h-[28px] w-[28px] items-center justify-center text-[#d4d4d4]">
+          <span className="inline-flex h-[28px] w-[28px] items-center justify-center text-[var(--folk-border)]">
             <MoreHorizontal className="h-[16px] w-[16px]" strokeWidth={1.75} />
           </span>
         )}

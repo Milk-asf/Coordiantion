@@ -97,12 +97,12 @@ function AuthConfirmContent() {
   }, [router, searchParams])
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#fafafa]">
+    <div className="flex min-h-screen items-center justify-center bg-folk-surface">
       <div className="text-center">
         <div className="mx-auto mb-[16px] flex h-[36px] w-[36px] items-center justify-center rounded-full bg-green-600 text-[14px] font-semibold text-white">
           C
         </div>
-        <p className="text-[14px] font-medium text-[#666]">{message}</p>
+        <p className="text-[14px] font-medium text-folk-secondary">{message}</p>
       </div>
     </div>
   )
@@ -112,8 +112,8 @@ export default function AuthConfirmPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-[#fafafa]">
-          <p className="text-[14px] font-medium text-[#666]">Confirming your email…</p>
+        <div className="flex min-h-screen items-center justify-center bg-folk-surface">
+          <p className="text-[14px] font-medium text-folk-secondary">Confirming your email…</p>
         </div>
       }
     >

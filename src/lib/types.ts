@@ -1,20 +1,18 @@
 export type FundingType = "plan-managed" | "ndia-managed" | "self-managed" | ""
 
-export interface FundingReleasePeriod {
-  period: number
-  amount: number
-}
-
-export interface PlanService {
-  id: string
-  name: string
-  category: "support-coordination" | "travel"
-  budget: number
-  enabledChargeItems: string[]
-  releasePeriods: FundingReleasePeriod[]
-}
-
 export type BudgetPeriod = "per-week" | "per-fortnight" | "per-month" | "per-year" | "per-plan"
+
+export type FundingReleaseCadence = "monthly" | "quarterly" | "semi-annual" | "annual" | "upfront"
+
+export type NdisFundingComponent = "core" | "capacity-building" | "capital"
+
+export interface BudgetReleasePeriod {
+  id: string
+  periodNumber: number
+  startDate: string
+  endDate: string
+  allocatedAmount: number
+}
 
 export interface BudgetLineItem {
   id: string
@@ -32,8 +30,33 @@ export interface Budget {
   name: string
   startDate: string
   endDate: string
+  /** NDIS funding pool id from ndis-funding-pools */
+  fundingPoolId?: string
+  supportCategoryNumber?: number
+  supportCategoryLabel?: string
+  fundingComponent?: NdisFundingComponent
+  /** Total plan allocation for this budget / pool line */
+  allocatedAmount?: number
+  releaseCadence?: FundingReleaseCadence
+  releasePeriods?: BudgetReleasePeriod[]
   chargeItems: string[]
   lineItems: BudgetLineItem[]
+  createdAt: string
+}
+
+export interface SpendingPlan {
+  id: string
+  name: string
+  /** Optional link to a funding pool budget */
+  budgetId?: string
+  chargeItemNumber: string
+  serviceName: string
+  quantity: number
+  unit: "hour" | "each" | "km"
+  cadence: BudgetPeriod
+  startDate: string
+  endDate: string
+  description: string
   createdAt: string
 }
 
@@ -47,6 +70,16 @@ export interface GoalLinkedTask {
   linkedAt: string
 }
 
+export interface GoalLinkedShift {
+  shiftId: string
+  title: string
+  date: string
+  startTime: string
+  endTime: string
+  status: "scheduled" | "completed" | "cancelled"
+  linkedAt: string
+}
+
 export interface ClientGoal {
   id: string
   title: string
@@ -55,20 +88,19 @@ export interface ClientGoal {
   achievementStrategies: string
   barriers: string
   linkedTasks: GoalLinkedTask[]
+  linkedShifts?: GoalLinkedShift[]
   createdAt: string
 }
 
-export interface NdisPlan {
+export interface CarePlan {
   id: string
-  startDate: string
-  endDate: string
-  isPacePlan: boolean
-  supportCoordinationBudget?: number
-  services?: PlanService[]
-  documentPath?: string
-  documentName?: string
-  documentUrl?: string
+  workspaceId: string
+  clientId: string
+  documentId: string
+  createdDate: string
+  renewalDate: string
   createdAt: string
+  updatedAt: string
 }
 
 export interface ParticipantDetails {
@@ -104,18 +136,16 @@ export interface ParticipantDetails {
   planManagerOrg: string
   planStartDate: string
   planEndDate: string
-  plans?: NdisPlan[]
   budgets?: Budget[]
+  spendingPlans?: SpendingPlan[]
   goals?: ClientGoal[]
-  supportCoordinationBudget?: number
-  supportCoordinationUsed?: number
   description?: string
   activityLog?: ActivityEntry[]
 }
 
 export interface ActivityEntry {
   id: string
-  type: "plan_created" | "plan_updated" | "service_added" | "service_updated" | "service_deleted" | "budget_created" | "budget_updated" | "budget_deleted" | "goal_created" | "goal_updated" | "goal_deleted" | "field_updated" | "description_updated" | "account_created"
+  type: "plan_created" | "plan_updated" | "service_added" | "service_updated" | "service_deleted" | "budget_created" | "budget_updated" | "budget_deleted" | "spending_plan_created" | "spending_plan_updated" | "spending_plan_deleted" | "goal_created" | "goal_updated" | "goal_deleted" | "field_updated" | "description_updated" | "account_created"
   message: string
   user: string
   createdAt: string
@@ -262,6 +292,8 @@ export interface Document {
   storagePath: string
   folder: string
   uploadedBy: string | null
+  validFrom: string | null
+  validTo: string | null
   createdAt: string
 }
 
@@ -313,6 +345,32 @@ export interface Invoice {
   sentMessageId?: string
 }
 
+export type OrderStatus = "draft" | "sent" | "returned" | "approved"
+export type OrderFundingSource = "none" | "ndis" | "private" | "other"
+
+export interface Order {
+  id: string
+  workspaceId: string
+  clientId: string | null
+  clientName: string
+  title: string
+  amount: number
+  fundingSource: OrderFundingSource
+  description: string
+  attachmentName: string
+  attachmentStoragePath: string
+  attachmentMimeType: string
+  attachmentSize: number
+  status: OrderStatus
+  createdBy: string | null
+  createdByName: string
+  approvedBy: string | null
+  approvedByName: string
+  approvedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 export interface Note {
   id: string
   workspaceId: string
@@ -320,10 +378,56 @@ export interface Note {
   content: string
   clientId: string | null
   clientName: string
+  staffId: string | null
   attachments: Attachment[]
   createdBy: string
   createdAt: string
   updatedAt: string
+}
+
+export type IncidentStatus = "confirmed" | "alleged"
+
+export type IncidentInvestigationStatus = "not_started" | "in_progress" | "completed"
+
+export interface Incident {
+  id: string
+  workspaceId: string
+  completedByStaffId: string | null
+  completedByName: string
+  reportedByStaffId: string | null
+  reportedByName: string
+  clientIds: string[]
+  clientNames: string
+  workerIds: string[]
+  workerNames: string
+  incidentDate: string
+  incidentStartTime: string
+  incidentEndTime: string
+  location: string
+  otherParties: string
+  category: string
+  incidentStatus: IncidentStatus
+  isReportable: boolean
+  ndisReportableCategory: string | null
+  description: string
+  witnessDetails: string
+  impactDetails: string
+  actionsTaken: string
+  emergencyServicesContacted: "no" | "yes"
+  organisationNotified: boolean
+  attachments: Attachment[]
+  createdBy: string | null
+  createdByName: string
+  createdAt: string
+  updatedAt: string
+  investigationStatus: IncidentInvestigationStatus
+  investigatedByStaffId: string | null
+  investigatedByName: string
+  investigationSummary: string
+  investigationRootCause: string
+  investigationCorrectiveActions: string
+  investigationPreventativeActions: string
+  investigationCompletedAt: string | null
 }
 
 export interface WorkspaceEmailSettings {
@@ -344,16 +448,17 @@ export interface WorkspaceEmailSettings {
 }
 
 export const relationshipConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {
-  "plan-manager": { label: "Plan Manager", bg: "bg-transparent", text: "text-[#262626]", border: "border-[#dcdcdc]" },
-  "support-coordinator": { label: "Support Coordinator", bg: "bg-transparent", text: "text-[#262626]", border: "border-[#dcdcdc]" },
-  "general-practitioner": { label: "General Practitioner", bg: "bg-transparent", text: "text-[#262626]", border: "border-[#dcdcdc]" },
-  "pharmacy": { label: "Pharmacy", bg: "bg-transparent", text: "text-[#262626]", border: "border-[#dcdcdc]" },
-  "mental-health": { label: "Mental Health", bg: "bg-transparent", text: "text-[#262626]", border: "border-[#dcdcdc]" },
-  "physiotherapist": { label: "Physiotherapist", bg: "bg-transparent", text: "text-[#262626]", border: "border-[#dcdcdc]" },
-  "decision-maker-opg": { label: "Decision Maker/OPG", bg: "bg-transparent", text: "text-[#262626]", border: "border-[#dcdcdc]" },
-  "public-trustee": { label: "Public Trustee", bg: "bg-transparent", text: "text-[#262626]", border: "border-[#dcdcdc]" },
-  "next-of-kin": { label: "Next of Kin", bg: "bg-transparent", text: "text-[#262626]", border: "border-[#dcdcdc]" },
-  "consumables": { label: "Consumables", bg: "bg-transparent", text: "text-[#262626]", border: "border-[#dcdcdc]" },
-  "cas-provider": { label: "CAS Provider", bg: "bg-transparent", text: "text-[#262626]", border: "border-[#dcdcdc]" },
-  "sil-provider": { label: "SIL Provider", bg: "bg-transparent", text: "text-[#262626]", border: "border-[#dcdcdc]" },
+  "plan-manager": { label: "Plan Manager", bg: "bg-transparent", text: "text-folk-text", border: "border-folk-border" },
+  "support-coordinator": { label: "Support Coordinator", bg: "bg-transparent", text: "text-folk-text", border: "border-folk-border" },
+  "general-practitioner": { label: "General Practitioner", bg: "bg-transparent", text: "text-folk-text", border: "border-folk-border" },
+  "pharmacy": { label: "Pharmacy", bg: "bg-transparent", text: "text-folk-text", border: "border-folk-border" },
+  "mental-health": { label: "Mental Health", bg: "bg-transparent", text: "text-folk-text", border: "border-folk-border" },
+  "physiotherapist": { label: "Physiotherapist", bg: "bg-transparent", text: "text-folk-text", border: "border-folk-border" },
+  "decision-maker-opg": { label: "Decision Maker/OPG", bg: "bg-transparent", text: "text-folk-text", border: "border-folk-border" },
+  "public-trustee": { label: "Public Trustee", bg: "bg-transparent", text: "text-folk-text", border: "border-folk-border" },
+  "next-of-kin": { label: "Next of Kin", bg: "bg-transparent", text: "text-folk-text", border: "border-folk-border" },
+  "consumables": { label: "Consumables", bg: "bg-transparent", text: "text-folk-text", border: "border-folk-border" },
+  "cas-provider": { label: "CAS Provider", bg: "bg-transparent", text: "text-folk-text", border: "border-folk-border" },
+  "sil-provider": { label: "SIL Provider", bg: "bg-transparent", text: "text-folk-text", border: "border-folk-border" },
+  "other": { label: "Other", bg: "bg-transparent", text: "text-folk-text", border: "border-folk-border" },
 }

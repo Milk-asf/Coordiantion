@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react"
 import { Plus, X } from "lucide-react"
+import { getCategoryChipClasses } from "@/lib/chip-colors"
+import { folkInlineAddButtonClass, folkInlineAddInputClass } from "@/lib/folk-ui"
 
 interface MultiChipProps {
   value: string
@@ -67,14 +69,14 @@ export function MultiChip({ value, onChange, placeholder, size = "default" }: Mu
         <span
           key={item}
           className={isCompact
-            ? "group/chip inline-flex items-center gap-[4px] rounded border border-[#dcdcdc] bg-transparent py-[2px] pl-[8px] pr-[4px] text-[12px] font-medium text-[#262626]"
-            : "group/chip inline-flex items-center gap-[6px] rounded border border-[#dcdcdc] bg-transparent py-[4px] pl-[10px] pr-[6px] text-[13px] font-medium text-[#262626]"}
+            ? `group/chip inline-flex items-center gap-[4px] pr-[4px] ${getCategoryChipClasses(item, { size: "sm" })}`
+            : `group/chip inline-flex items-center gap-[6px] pr-[6px] ${getCategoryChipClasses(item)}`}
         >
           {item}
           <button
             type="button"
             onClick={() => removeItem(item)}
-            className="flex h-[14px] w-[14px] shrink-0 items-center justify-center rounded-full text-[#bbb] transition-colors hover:text-[#262626]"
+            className="flex h-[14px] w-[14px] shrink-0 items-center justify-center rounded-full text-folk-placeholder transition-colors hover:text-folk-text"
             tabIndex={0}
             aria-label={`Remove ${item}`}
           >
@@ -91,17 +93,13 @@ export function MultiChip({ value, onChange, placeholder, size = "default" }: Mu
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
           placeholder={placeholder}
-          className={isCompact
-            ? "w-[120px] rounded border border-[#a3c4f3] bg-[#fafafa] px-[8px] py-[3px] text-[12px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
-            : "w-[140px] rounded border border-[#a3c4f3] bg-[#fafafa] px-[10px] py-[4px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"}
+          className={folkInlineAddInputClass(isCompact ? "compact" : "default")}
         />
       ) : (
         <button
           type="button"
           onClick={() => setIsAdding(true)}
-          className={isCompact
-            ? "inline-flex items-center gap-[2px] rounded border border-dashed border-[#d0d0d0] bg-transparent px-[8px] py-[2px] text-[12px] font-medium text-[#bbb] transition-colors hover:border-[#999] hover:text-[#999]"
-            : "inline-flex items-center gap-[3px] rounded border border-dashed border-[#d0d0d0] bg-transparent px-[10px] py-[4px] text-[13px] font-medium text-[#bbb] transition-colors hover:border-[#999] hover:text-[#999]"}
+          className={folkInlineAddButtonClass(isCompact ? "compact" : "default")}
           tabIndex={0}
           aria-label={placeholder}
         >

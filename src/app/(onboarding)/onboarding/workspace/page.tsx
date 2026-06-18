@@ -205,7 +205,7 @@ export default function OnboardingWorkspacePage() {
         </div>
 
         <div>
-          <label className={labelClass}>ABN <span className="font-normal text-[#bbb]">(optional)</span></label>
+          <label className={labelClass}>ABN <span className="font-normal text-folk-placeholder">(optional)</span></label>
           <input
             type="text"
             value={abn}
@@ -239,7 +239,7 @@ export default function OnboardingWorkspacePage() {
         </div>
 
         {error && (
-          <p className="rounded-[8px] bg-red-50 px-[12px] py-[8px] text-[12px] font-medium text-red-600">
+          <p className="rounded-none bg-red-50 px-[12px] py-[8px] text-[12px] font-medium text-red-600">
             {error}
           </p>
         )}

@@ -32,9 +32,9 @@ const timezoneOptions = [
   "(UTC-10) Hawaii-Aleutian Standard Time",
 ]
 
-const inputClass = "h-[44px] w-full rounded-[8px] border border-[#f0f0f0] bg-[#fafafa] px-[14px] text-[14px] text-[#262626] outline-none transition-colors placeholder:text-[#c0c0c0] focus:border-[#d0d0d0] focus:ring-2 focus:ring-[#e8e8e8]"
-const labelClass = "mb-[8px] block text-[13px] font-semibold text-[#262626]"
-const changeBtnClass = "h-[44px] shrink-0 rounded-[8px] border border-[#e0e0e0] bg-white px-[16px] text-[13px] font-semibold text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+const inputClass = "h-[44px] w-full rounded-none border border-folk-border-subtle bg-folk-page px-[14px] text-[14px] text-folk-text outline-none transition-colors placeholder:text-[#c0c0c0] focus:border-[#d0d0d0] focus:ring-2 focus:ring-[#e8e8e8]"
+const labelClass = "mb-[8px] block text-[13px] font-semibold text-folk-text"
+const changeBtnClass = "h-[44px] shrink-0 rounded-none border border-folk-border bg-folk-surface px-[16px] text-[13px] font-semibold text-folk-text transition-colors hover:bg-folk-hover"
 
 function ProfileSelect({ label, value, options, onChange, icon }: { label: string; value: string; options: readonly string[]; onChange: (v: string) => void; icon?: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -65,15 +65,15 @@ function ProfileSelect({ label, value, options, onChange, icon }: { label: strin
         {isOpen && (
           <>
             <div className="fixed inset-0 z-[59]" onClick={() => setIsOpen(false)} />
-            <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[220px] w-full overflow-y-auto rounded-[8px] border border-[#f0f0f0] bg-white py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+            <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[220px] w-full overflow-y-auto rounded-none border border-folk-border-subtle bg-folk-surface py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
               {options.map((opt) => (
                 <button
                   key={opt}
                   type="button"
                   onClick={() => { onChange(opt); setIsOpen(false) }}
                   className={cn(
-                    "flex w-full items-center px-[14px] py-[10px] text-left text-[13px] transition-colors hover:bg-[#f5f5f5]",
-                    opt === value ? "bg-[#f0f0f0] font-medium text-[#262626]" : "text-[#555]"
+                    "flex w-full items-center px-[14px] py-[10px] text-left text-[13px] transition-colors hover:bg-folk-hover",
+                    opt === value ? "bg-[var(--folk-border-subtle)] font-medium text-folk-text" : "text-[#555]"
                   )}
                   tabIndex={0}
                 >
@@ -193,8 +193,8 @@ export default function ProfileSettingsPage() {
     <>
       {/* Profile section */}
       <div className="mb-[32px]">
-        <h1 className="text-[20px] font-bold text-[#262626]">Profile</h1>
-        <p className="mt-[4px] text-[14px] text-[#888]">
+        <h1 className="text-[20px] font-bold text-folk-text">Profile</h1>
+        <p className="mt-[4px] text-[14px] text-folk-secondary">
           Manage settings for your personal profile.
         </p>
       </div>
@@ -228,8 +228,8 @@ export default function ProfileSettingsPage() {
           {!isEmailEditing ? (
             <div className="flex items-center gap-[12px]">
               <div className={cn(inputClass, "flex flex-1 items-center gap-[8px]")}>
-                <Mail className="h-[14px] w-[14px] shrink-0 text-[#999]" strokeWidth={1.5} />
-                <span className="truncate text-[#888]">{email}</span>
+                <Mail className="h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
+                <span className="truncate text-folk-secondary">{email}</span>
               </div>
               <button
                 type="button"
@@ -251,10 +251,10 @@ export default function ProfileSettingsPage() {
                 autoFocus
               />
               {emailError && (
-                <p className="rounded-[8px] bg-red-50 px-[14px] py-[10px] text-[13px] font-medium text-red-600">{emailError}</p>
+                <p className="rounded-none bg-red-50 px-[14px] py-[10px] text-[13px] font-medium text-red-600">{emailError}</p>
               )}
               {emailSuccess && (
-                <p className="rounded-[8px] bg-green-50 px-[14px] py-[10px] text-[13px] font-medium text-green-600">{emailSuccess}</p>
+                <p className="rounded-none bg-green-50 px-[14px] py-[10px] text-[13px] font-medium text-green-600">{emailSuccess}</p>
               )}
               <div className="flex items-center gap-[10px]">
                 <button
@@ -262,7 +262,7 @@ export default function ProfileSettingsPage() {
                   onClick={handleChangeEmail}
                   disabled={!isEmailFormValid || isChangingEmail}
                   className={cn(
-                    "h-[38px] rounded-[8px] px-[20px] text-[13px] font-semibold transition-colors",
+                    "h-[38px] rounded-none px-[20px] text-[13px] font-semibold transition-colors",
                     isEmailFormValid
                       ? "primary-btn"
                       : "bg-[#e8e8e8] text-[#c0c0c0] cursor-not-allowed"
@@ -273,7 +273,7 @@ export default function ProfileSettingsPage() {
                 <button
                   type="button"
                   onClick={resetEmailEditing}
-                  className="h-[38px] rounded-[8px] border border-[#e0e0e0] bg-white px-[20px] text-[13px] font-semibold text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                  className="h-[38px] rounded-none border border-folk-border bg-folk-surface px-[20px] text-[13px] font-semibold text-folk-text transition-colors hover:bg-folk-hover"
                 >
                   Cancel
                 </button>
@@ -286,8 +286,8 @@ export default function ProfileSettingsPage() {
           <label className={labelClass}>Password</label>
           <div className="flex items-center gap-[12px]">
             <div className={cn(inputClass, "flex flex-1 items-center gap-[8px]")}>
-              <Lock className="h-[14px] w-[14px] shrink-0 text-[#999]" strokeWidth={1.5} />
-              <span className="tracking-[0.25em] text-[#888]">••••••••••</span>
+              <Lock className="h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
+              <span className="tracking-[0.25em] text-folk-secondary">••••••••••</span>
             </div>
             <button
               type="button"
@@ -301,8 +301,8 @@ export default function ProfileSettingsPage() {
         </div>
 
         <div className="mt-[16px] grid gap-[16px] sm:grid-cols-2">
-          <ProfileSelect label="Language" value={language} options={languageOptions} onChange={handleFieldChange(setLanguage)} icon={<Globe className="h-[14px] w-[14px] shrink-0 text-[#999]" strokeWidth={1.5} />} />
-          <ProfileSelect label="Timezone" value={timezone} options={timezoneOptions} onChange={handleFieldChange(setTimezone)} icon={<Clock className="h-[14px] w-[14px] shrink-0 text-[#999]" strokeWidth={1.5} />} />
+          <ProfileSelect label="Language" value={language} options={languageOptions} onChange={handleFieldChange(setLanguage)} icon={<Globe className="h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.5} />} />
+          <ProfileSelect label="Timezone" value={timezone} options={timezoneOptions} onChange={handleFieldChange(setTimezone)} icon={<Clock className="h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.5} />} />
         </div>
 
         <div className="mt-[20px] flex items-center gap-[12px]">
@@ -310,7 +310,7 @@ export default function ProfileSettingsPage() {
             onClick={handleUpdateProfile}
             disabled={!hasChanges || isSaving}
             className={cn(
-              "h-[38px] rounded-[8px] px-[20px] text-[13px] font-semibold transition-colors",
+              "h-[38px] rounded-none px-[20px] text-[13px] font-semibold transition-colors",
               hasChanges
                 ? "primary-btn"
                 : "bg-[#e8e8e8] text-[#c0c0c0] cursor-not-allowed"

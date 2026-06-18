@@ -10,12 +10,14 @@ import { useColumnResize } from "@/lib/hooks/use-column-resize"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import type { StaffMember, StaffDetails } from "@/lib/types"
 import { EntityIcon } from "@/components/entity-icon"
+import { FloatingSidePanel, FloatingSidePanelHost } from "@/components/floating-side-panel"
 import { EditableField } from "@/components/editable-field"
 import { ContactChip } from "@/components/contact-chip"
 import { DetailRow } from "@/components/detail-row"
+import { listViewTabBarClass } from "@/components/tab-active-indicator"
+import { ProfileTabButton } from "@/components/profile-tab-button"
 import {
   Users,
-  ListFilter,
   Plus,
   SlidersHorizontal,
   ArrowUpRight,
@@ -30,7 +32,6 @@ import {
   ChevronDown,
   ArrowRight,
   ArrowLeft,
-  ChevronLeft,
   EyeOff,
   Briefcase,
   Building2,
@@ -39,8 +40,35 @@ import {
   Shield,
   MessageSquare,
 } from "lucide-react"
+import { CategoryChip } from "@/components/category-chip"
 import { CsvDropdown } from "@/components/csv-dropdown"
 import { PageLoader, PageError } from "@/components/page-state"
+import { TableColumnMenuPortal } from "@/components/table-column-menu-portal"
+import { TableMultiFilter, uniqueNonEmpty, type TableFilterDefinition } from "@/components/table-multi-filter"
+import { TableDisplayPopover } from "@/components/display-popover"
+import { ExpandableTableSearch } from "@/components/expandable-table-search"
+import { matchesTableSearch } from "@/lib/table-search"
+import {
+  emptyStaffListFilters,
+  filterStaff,
+  type StaffListFilterState,
+} from "@/lib/staff-list-filters"
+import {
+  TABLE_CELL_BASE,
+  TABLE_CELL_INNER,
+  TABLE_CELL_LAST,
+  TABLE_CHIP,
+  TABLE_HEADER_CELL,
+  TABLE_HEADER_CELL_LAST,
+  TABLE_TEXT_CELL,
+  TABLE_GRID,
+  TABLE_HEADER_STICKY_EDGE,
+  TABLE_CELL_STICKY_EDGE,
+  TABLE_NAME_COLUMN_KEY,
+  tableCellSelectionClass,
+  TABLE_ROW_HOVER,
+  type TableCellSelection,
+} from "@/lib/table-styles"
 
 const allPropertyColumns = [
   { key: "clients", label: "Clients", icon: Users, minWidth: 220 },
@@ -72,19 +100,18 @@ function StaffProfile({ member, onUpdateField, onClose }: { member: StaffMember;
   const d = member.details
 
   return (
-    <div className="h-full shrink-0 p-[10px]">
-      <div className="flex h-full w-[625px] flex-col rounded-lg border border-[#dcdcdc] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)]">
-        <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-[#f0f0f0] px-[16px]">
+    <FloatingSidePanel>
+        <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-folk-border-subtle bg-folk-nav px-[16px]">
           <div className="flex min-w-0 items-center gap-[8px]">
             <EntityIcon text={member.iconText} size="sm" />
-            <span className="truncate text-[13px] font-medium text-[#262626]">{member.name}</span>
-            {member.status === "invited" && <span className="rounded border border-[#dcdcdc] bg-[#f5f5f5] px-[6px] py-[1px] text-[11px] font-medium text-[#888]">Invited</span>}
+            <span className="truncate text-[13px] font-medium text-folk-text">{member.name}</span>
+            {member.status === "invited" && <span className="rounded-none border border-folk-border bg-folk-hover px-[6px] py-[1px] text-[11px] font-medium text-folk-secondary">Invited</span>}
           </div>
           <div className="flex items-center gap-[4px]">
-            <button onClick={() => router.push(`/staff/${member.id}`)} className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#999] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" aria-label="Expand" tabIndex={0}>
+            <button onClick={() => router.push(`/staff/${member.id}`)} className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" aria-label="Expand" tabIndex={0}>
               <Expand className="h-[13px] w-[13px]" strokeWidth={1.75} />
             </button>
-            <button onClick={onClose} className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#999] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" aria-label="Close" tabIndex={0}>
+            <button onClick={onClose} className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" aria-label="Close" tabIndex={0}>
               <X className="h-[14px] w-[14px]" strokeWidth={1.75} />
             </button>
           </div>
@@ -94,13 +121,13 @@ function StaffProfile({ member, onUpdateField, onClose }: { member: StaffMember;
           <div className="flex items-center gap-[12px] px-[20px] pb-[20px] pt-[24px]">
             <EntityIcon text={member.iconText} size="lg" />
             <div>
-              <h2 className="text-[18px] font-semibold text-[#262626]">{d.preferredName || d.firstName} {d.lastName}</h2>
-              {d.role && <p className="text-[13px] font-medium text-[#888]">{d.role}{d.department ? ` · ${d.department}` : ""}</p>}
+              <h2 className="text-[18px] font-semibold text-folk-text">{d.preferredName || d.firstName} {d.lastName}</h2>
+              {d.role && <p className="text-[13px] font-medium text-folk-secondary">{d.role}{d.department ? ` · ${d.department}` : ""}</p>}
             </div>
           </div>
 
-          <div className="border-b border-[#f0f0f0] px-[20px] pb-[16px]">
-            <h3 className="mb-[6px] text-[12px] font-semibold text-[#262626]">Work Information</h3>
+          <div className="border-b border-folk-border-subtle px-[20px] pb-[16px]">
+            <h3 className="mb-[6px] text-[12px] font-semibold text-folk-text">Work Information</h3>
             {sf("s-role") && <DetailRow label="Role" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
               <EditableField value={d.role} onChange={(v) => onUpdateField("role", v)} placeholder="Job title" size="compact" />
             </DetailRow>}
@@ -118,7 +145,7 @@ function StaffProfile({ member, onUpdateField, onClose }: { member: StaffMember;
             </DetailRow>}
 
             <div className="my-[12px] h-px bg-[#e8e8e8]" />
-            <h3 className="mb-[6px] text-[12px] font-semibold text-[#262626]">Contact Information</h3>
+            <h3 className="mb-[6px] text-[12px] font-semibold text-folk-text">Contact Information</h3>
             {sf("s-email") && <DetailRow label="Email" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
               <ContactChip value={d.email} onChange={(v) => onUpdateField("email", v)} placeholder="Email address" size="compact" emptyPrefix="+" />
             </DetailRow>}
@@ -127,7 +154,7 @@ function StaffProfile({ member, onUpdateField, onClose }: { member: StaffMember;
             </DetailRow>}
 
             {!isPersonalExpanded && (
-              <button onClick={() => setIsPersonalExpanded(true)} className="mt-[8px] flex items-center gap-[4px] text-[13px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+              <button onClick={() => setIsPersonalExpanded(true)} className="mt-[8px] flex items-center gap-[4px] text-[13px] font-medium text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0}>
                 <ChevronDown className="h-[12px] w-[12px]" strokeWidth={1.5} />
                 <span>Show more</span>
               </button>
@@ -136,7 +163,7 @@ function StaffProfile({ member, onUpdateField, onClose }: { member: StaffMember;
             {isPersonalExpanded && (
               <>
                 <div className="my-[12px] h-px bg-[#e8e8e8]" />
-                <h3 className="mb-[6px] text-[12px] font-semibold text-[#262626]">Personal Information</h3>
+                <h3 className="mb-[6px] text-[12px] font-semibold text-folk-text">Personal Information</h3>
                 {sf("s-first-name") && <DetailRow label="First Name" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
                   <EditableField value={d.firstName} onChange={(v) => onUpdateField("firstName", v)} placeholder="First name" size="compact" />
                 </DetailRow>}
@@ -157,7 +184,7 @@ function StaffProfile({ member, onUpdateField, onClose }: { member: StaffMember;
                 </DetailRow>}
 
                 <div className="my-[12px] h-px bg-[#e8e8e8]" />
-                <h3 className="mb-[6px] text-[12px] font-semibold text-[#262626]">Qualifications</h3>
+                <h3 className="mb-[6px] text-[12px] font-semibold text-folk-text">Qualifications</h3>
                 {sf("s-qualifications") && <DetailRow label="Qualifications" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
                   <EditableField value={d.qualifications} onChange={(v) => onUpdateField("qualifications", v)} placeholder="Qualifications" size="compact" />
                 </DetailRow>}
@@ -166,7 +193,7 @@ function StaffProfile({ member, onUpdateField, onClose }: { member: StaffMember;
                 </DetailRow>}
 
                 <div className="my-[12px] h-px bg-[#e8e8e8]" />
-                <h3 className="mb-[6px] text-[12px] font-semibold text-[#262626]">Emergency Contact</h3>
+                <h3 className="mb-[6px] text-[12px] font-semibold text-folk-text">Emergency Contact</h3>
                 {sf("s-emergency-contact") && <DetailRow label="Contact Name" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
                   <EditableField value={d.emergencyContactName} onChange={(v) => onUpdateField("emergencyContactName", v)} placeholder="Emergency contact name" size="compact" />
                 </DetailRow>}
@@ -174,7 +201,7 @@ function StaffProfile({ member, onUpdateField, onClose }: { member: StaffMember;
                   <ContactChip value={d.emergencyContactPhone} onChange={(v) => onUpdateField("emergencyContactPhone", v)} placeholder="Emergency phone" size="compact" emptyPrefix="+" />
                 </DetailRow>}
 
-                <button onClick={() => setIsPersonalExpanded(false)} className="mt-[8px] flex items-center gap-[4px] text-[13px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+                <button onClick={() => setIsPersonalExpanded(false)} className="mt-[8px] flex items-center gap-[4px] text-[13px] font-medium text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0}>
                   <ChevronDown className="h-[12px] w-[12px] rotate-180" strokeWidth={1.5} />
                   <span>Show less</span>
                 </button>
@@ -182,8 +209,7 @@ function StaffProfile({ member, onUpdateField, onClose }: { member: StaffMember;
             )}
           </div>
         </div>
-      </div>
-    </div>
+    </FloatingSidePanel>
   )
 }
 
@@ -206,19 +232,17 @@ export default function StaffPage() {
   )
 
   const [selectedMember, setSelectedMember] = useState<StaffMember | null>(null)
+  const [selectedCell, setSelectedCell] = useState<TableCellSelection | null>(null)
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(defaultVisibleKeys)
   const [isDisplayOpen, setIsDisplayOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
   const [columnMenuKey, setColumnMenuKey] = useState<string | null>(null)
   const [columnMenuPos, setColumnMenuPos] = useState<{ top: number; left: number } | null>(null)
   const [isCreateViewOpen, setIsCreateViewOpen] = useState(false)
   const [newViewName, setNewViewName] = useState("")
   const [viewContextMenu, setViewContextMenu] = useState<{ viewId: string; x: number; y: number } | null>(null)
   const [deleteViewConfirm, setDeleteViewConfirm] = useState<SavedView | null>(null)
-  const [statusFilter, setStatusFilter] = useState<string[]>([])
-  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false)
-  const [activeFilterDropdown, setActiveFilterDropdown] = useState<string | null>(null)
-  const filterBtnRef = useRef<HTMLButtonElement>(null)
-  const filterPillRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const [listFilters, setListFilters] = useState<StaffListFilterState>(emptyStaffListFilters)
   const displayBtnRef = useRef<HTMLButtonElement>(null)
   const viewNameInputRef = useRef<HTMLInputElement>(null)
 
@@ -262,6 +286,11 @@ export default function StaffPage() {
     .filter((key) => !staffDisabled.has(key))
     .map((key) => allPropertyColumns.find((col) => col.key === key))
     .filter(Boolean) as typeof allPropertyColumns
+
+  const displayFields = useMemo(
+    () => availablePropertyColumns.map((col) => ({ key: col.key, label: col.label })),
+    [availablePropertyColumns]
+  )
 
   const { getWidth, handleMouseDown: handleColResize } = useColumnResize(
     visibleColumns.map((c) => c.key),
@@ -337,19 +366,68 @@ export default function StaffPage() {
     return cols
   }, [visibleColumnKeys, staffTableKeyMap])
 
-  const activeStaff = (() => {
-    let filtered = staff.filter((s) => s.status !== "inactive")
-    if (statusFilter.length > 0) filtered = filtered.filter((s) => statusFilter.includes(s.status))
-    return filtered
-  })()
-
   const uniqueStatuses = useMemo(() => {
     const set = new Set(staff.filter((s) => s.status !== "inactive").map((s) => s.status))
     return Array.from(set).sort()
   }, [staff])
 
+  const staffFilterDefinitions = useMemo<TableFilterDefinition[]>(() => [
+    { key: "status", label: "Status", icon: Shield },
+    { key: "role", label: "Role", icon: Briefcase },
+    { key: "department", label: "Department", icon: Building2 },
+    { key: "employmentType", label: "Employment type", icon: Clock },
+    { key: "client", label: "Client", icon: Users },
+  ], [])
+
+  const staffFilterOptions = useMemo(() => ({
+    status: uniqueStatuses,
+    role: uniqueNonEmpty(staff.map((s) => s.details.role)),
+    department: uniqueNonEmpty(staff.map((s) => s.details.department)),
+    employmentType: uniqueNonEmpty(staff.map((s) => s.details.employmentType)),
+    client: clients
+      .filter((c) => c.status !== "archived")
+      .map((c) => c.id)
+      .sort((a, b) => {
+        const nameA = clients.find((c) => c.id === a)?.displayName ?? ""
+        const nameB = clients.find((c) => c.id === b)?.displayName ?? ""
+        return nameA.localeCompare(nameB)
+      }),
+  }), [clients, staff, uniqueStatuses])
+
+  const clientNameById = useMemo(
+    () => new Map(clients.map((c) => [c.id, c.displayName])),
+    [clients]
+  )
+
+  const formatStaffFilterOption = useCallback((key: string, value: string) => {
+    if (key === "client") return clientNameById.get(value) ?? value
+    if (key === "status") return value.charAt(0).toUpperCase() + value.slice(1)
+    return value
+  }, [clientNameById])
+
+  const handleFilterChange = useCallback((key: string, values: string[]) => {
+    setListFilters((prev) => ({ ...prev, [key]: values }))
+  }, [])
+
+  const filteredStaff = useMemo(() => {
+    const filtered = filterStaff(staff, clients, listFilters)
+    if (!searchQuery.trim()) return filtered
+    return filtered.filter((member) =>
+      matchesTableSearch(
+        searchQuery,
+        member.name,
+        member.details.email,
+        member.details.phone,
+        member.details.role,
+        member.details.department,
+        member.details.preferredName,
+        member.status
+      )
+    )
+  }, [staff, clients, listFilters, searchQuery])
+
   const exportCsvData = useMemo(() =>
-    activeStaff.map((s) => {
+    filteredStaff.map((s) => {
       const row: Record<string, string> = { name: s.name }
       for (const vk of visibleColumnKeys) {
         const csvKey = staffTableKeyMap[vk] || vk
@@ -358,7 +436,7 @@ export default function StaffPage() {
       }
       return row
     }),
-    [activeStaff, visibleColumnKeys, staffTableKeyMap]
+    [filteredStaff, visibleColumnKeys, staffTableKeyMap]
   )
 
   const handleCsvImport = useCallback(async (rows: Record<string, string>[]) => {
@@ -396,31 +474,11 @@ export default function StaffPage() {
   return (
     <div className="relative flex h-full">
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex h-[44px] shrink-0 items-center justify-between gap-[8px] border-b border-[#f0f0f0] px-[16px]">
-          <div className="flex min-w-0 flex-1 items-center gap-[8px] overflow-x-auto">
-            <span className="shrink-0 text-[13px] font-medium text-[#262626]">Staff</span>
-            <div className="h-[16px] w-px bg-[#e5e5e5]" />
-            <button onClick={handleSelectAllView} className={`flex items-center gap-[6px] rounded-[4px] border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === null ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`} tabIndex={0}>
-              <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
-              <span>All</span>
-            </button>
-            {savedViews.length > 0 && <div className="h-[16px] w-px bg-[#dcdcdc]" />}
-            {savedViews.map((view) => (
-              <button
-                key={view.id}
-                onClick={() => handleSelectView(view)}
-                onContextMenu={(e) => { e.preventDefault(); setViewContextMenu({ viewId: view.id, x: e.clientX, y: e.clientY }) }}
-                className={`flex items-center gap-[6px] rounded-[4px] border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === view.id ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
-                tabIndex={0}
-              >
-                <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
-                <span>{view.name}</span>
-              </button>
-            ))}
-            <button onClick={() => { setIsCreateViewOpen(true); setTimeout(() => viewNameInputRef.current?.focus(), 50) }} className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#999] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" aria-label="Add view" tabIndex={0}>
-              <Plus className="h-[14px] w-[14px]" strokeWidth={1.5} />
-            </button>
-          </div>
+        {/* Title + primary actions */}
+        <div className="flex shrink-0 items-center justify-between border-b border-folk-border bg-folk-nav px-[16px] py-[14px]">
+          <h1 className="text-[16px] font-semibold leading-[1.2] tracking-[-0.02em] text-folk-text">
+            Staff
+          </h1>
           {canManageStaff && (
             <div className="flex items-center gap-[8px]">
               <CsvDropdown
@@ -430,7 +488,7 @@ export default function StaffPage() {
                 data={exportCsvData}
                 onImport={handleCsvImport}
               />
-              <button onClick={() => router.push("/settings/members")} className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors" tabIndex={0}>
+              <button onClick={() => router.push("/settings/members")} className="outline-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors" tabIndex={0}>
                 <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
                 <span className="hidden sm:inline">Add new</span>
               </button>
@@ -438,128 +496,70 @@ export default function StaffPage() {
           )}
         </div>
 
-        <div className="flex h-[41px] shrink-0 items-center gap-[8px] border-b border-[#dcdcdc] px-[16px]">
-          <div className="relative">
-            <button
-              ref={filterBtnRef}
-              onClick={() => { setIsFilterMenuOpen(!isFilterMenuOpen); setActiveFilterDropdown(null) }}
-              className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-              tabIndex={0}
-            >
-              <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
-              <span>Filter</span>
-            </button>
-            {isFilterMenuOpen && (
-              <>
-                <div className="fixed inset-0 z-[55]" onClick={() => setIsFilterMenuOpen(false)} />
-                <div className="absolute left-0 top-full z-[60] mt-[4px] w-[180px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-                  <p className="px-[16px] py-[6px] text-[11px] font-medium text-[#888]">Filter by</p>
-                  {[
-                    { key: "status", label: "Status", icon: Shield },
-                  ].map((item) => {
-                    const Icon = item.icon
-                    return (
-                      <button
-                        key={item.key}
-                        onClick={() => { setActiveFilterDropdown(item.key); setIsFilterMenuOpen(false) }}
-                        className="flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                        tabIndex={0}
-                      >
-                        <Icon className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
-                        {item.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </>
-            )}
-          </div>
-          {statusFilter.length > 0 && (
-            <div className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626]">
-              <Shield className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
-              <button ref={(el) => { filterPillRefs.current["status"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "status" ? null : "status")} className="hover:underline" tabIndex={0}>Status</button>
-              <span className="text-[#888]">is</span>
-              <span>{statusFilter.length} {statusFilter.length === 1 ? "value" : "values"}</span>
-              <button onClick={() => setStatusFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded text-[#888] transition-colors hover:text-[#262626]" tabIndex={0} aria-label="Clear status filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
-            </div>
-          )}
-          <div className="ml-auto flex items-center">
-            <button ref={displayBtnRef} onClick={() => setIsDisplayOpen(!isDisplayOpen)} className="flex items-center gap-[5px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}>
-              <SlidersHorizontal className="h-[13px] w-[13px]" strokeWidth={1.5} />
-              <span>Display</span>
-            </button>
-            {isDisplayOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setIsDisplayOpen(false)} />
-                <div className="fixed z-50 w-[420px] rounded-lg border border-[#dcdcdc] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={(() => { const rect = displayBtnRef.current?.getBoundingClientRect(); if (!rect) return {}; return { top: rect.bottom + 4, right: window.innerWidth - rect.right } })()}>
-                  <div className="px-[20px] pb-[16px] pt-[14px]">
-                    <div className="pb-[12px] text-[13px] font-medium text-[#888]">Display properties</div>
-                    <div className="flex flex-wrap gap-[8px]">
-                      {availablePropertyColumns.map((col) => {
-                        const isActive = visibleColumnKeys.includes(col.key)
-                        return (
-                          <button key={col.key} onClick={() => handleToggleColumn(col.key)} className={`inline-flex items-center rounded-[4px] border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`} tabIndex={0}>
-                            {col.label}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-[20px] border-t border-[#f0f0f0] px-[20px] py-[12px]">
-                    <button onClick={() => setVisibleColumnKeys(defaultVisibleKeys)} className="text-[13px] font-medium text-[#bbb] transition-colors hover:text-[#262626]" tabIndex={0}>Reset</button>
-                  </div>
-                </div>
-              </>
-            )}
+        {/* Saved views */}
+        <div className={listViewTabBarClass()}>
+          <ProfileTabButton
+            variant="toolbar"
+            isActive={activeViewId === null}
+            onClick={handleSelectAllView}
+            icon={Table2}
+            label="All"
+          />
+          {savedViews.map((view) => (
+            <ProfileTabButton
+              key={view.id}
+              variant="toolbar"
+              isActive={activeViewId === view.id}
+              onClick={() => handleSelectView(view)}
+              onContextMenu={(e) => { e.preventDefault(); setViewContextMenu({ viewId: view.id, x: e.clientX, y: e.clientY }) }}
+              icon={Table2}
+              label={view.name}
+            />
+          ))}
+          <button
+            onClick={() => { setIsCreateViewOpen(true); setTimeout(() => viewNameInputRef.current?.focus(), 50) }}
+            className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+            aria-label="Add view"
+            tabIndex={0}
+          >
+            <Plus className="h-[14px] w-[14px]" strokeWidth={1.5} />
+          </button>
+        </div>
+
+        <div className="flex min-h-[41px] shrink-0 flex-wrap items-center gap-[8px] border-b border-folk-border bg-folk-nav px-[16px] py-[6px]">
+          <TableMultiFilter
+            filters={staffFilterDefinitions}
+            values={listFilters}
+            options={staffFilterOptions}
+            onChange={handleFilterChange}
+            formatOption={formatStaffFilterOption}
+          />
+          <div className="ml-auto flex shrink-0 items-center gap-[8px]">
+            <ExpandableTableSearch
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search staff…"
+              ariaLabel="Search staff"
+            />
+            <TableDisplayPopover
+              fields={displayFields}
+              visibleKeys={visibleColumnKeys}
+              onToggle={handleToggleColumn}
+              onReset={() => setVisibleColumnKeys(defaultVisibleKeys)}
+              isOpen={isDisplayOpen}
+              onOpenChange={setIsDisplayOpen}
+              buttonRef={displayBtnRef}
+            />
           </div>
         </div>
 
-        {activeFilterDropdown && (
-          <>
-            <div className="fixed inset-0 z-[55]" onClick={() => setActiveFilterDropdown(null)} />
-            {(() => {
-              const anchor = filterPillRefs.current[activeFilterDropdown] || filterBtnRef.current
-              const rect = anchor?.getBoundingClientRect()
-              if (!rect) return null
-              const dropdownStyle = { top: rect.bottom + 4, left: rect.left, minWidth: 200 }
-
-              if (activeFilterDropdown === "status") return (
-                <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={dropdownStyle}>
-                  <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
-                    <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
-                    <span>Back</span>
-                  </button>
-                  <p className="px-[16px] py-[4px] text-[11px] font-medium text-[#888]">Filter by status</p>
-                  {uniqueStatuses.map((val) => {
-                    const isActive = statusFilter.includes(val)
-                    return (
-                      <button key={val} onClick={() => setStatusFilter((prev) => isActive ? prev.filter((f) => f !== val) : [...prev, val])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
-                        <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
-                          {isActive && <span className="text-[10px] text-white">&#10003;</span>}
-                        </div>
-                        <span className="text-[#262626]">{val.charAt(0).toUpperCase() + val.slice(1)}</span>
-                      </button>
-                    )
-                  })}
-                  {uniqueStatuses.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-[#888]">No statuses</p>}
-                  <div className="border-t border-[#f0f0f0] px-[8px] py-[4px]">
-                    <button onClick={() => { setStatusFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded px-[8px] py-[6px] text-left text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0}>Clear</button>
-                  </div>
-                </div>
-              )
-
-              return null
-            })()}
-          </>
-        )}
-
-        <div className="flex-1 overflow-auto bg-[#fafafa]">
-          <table className="w-full border-separate border-spacing-0 text-left" style={{ tableLayout: "fixed", minWidth: visibleColumns.reduce((sum, col) => sum + getWidth(col.key, col.minWidth), 240) }}>
+        <div className="flex-1 overflow-auto bg-folk-surface">
+          <table className={`w-full ${TABLE_GRID}`} style={{ tableLayout: "fixed", minWidth: visibleColumns.reduce((sum, col) => sum + getWidth(col.key, col.minWidth), 240) }}>
             <thead>
               <tr>
-                <th className="sticky left-0 top-0 z-30 h-[44px] overflow-hidden whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]" style={{ width: 240 }}>
+                <th className={`sticky left-0 top-0 z-30 ${TABLE_HEADER_STICKY_EDGE}`} style={{ width: 240, minWidth: 240, maxWidth: 240 }}>
                   <div className="flex items-center gap-[6px]">
-                    <Users className="h-[13px] w-[13px] shrink-0 text-[#999]" strokeWidth={1.5} />
+                    <Users className="h-[13px] w-[13px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
                     <span className="truncate">Staff member</span>
                   </div>
                 </th>
@@ -569,9 +569,9 @@ export default function StaffPage() {
                   const isFirst = i === 0
                   const isMenuOpen = columnMenuKey === col.key
                   return (
-                    <th key={col.key} className={`group/col relative sticky top-0 z-20 h-[44px] overflow-hidden whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888] ${isLast ? "" : "border-r"}`} style={{ width: getWidth(col.key, col.minWidth) }}>
+                    <th key={col.key} className={`group/col relative sticky top-0 z-20 ${isLast ? TABLE_HEADER_CELL_LAST : TABLE_HEADER_CELL}`} style={{ width: getWidth(col.key, col.minWidth) }}>
                       <div className="flex items-center gap-[6px]">
-                        <ColIcon className="h-[13px] w-[13px] shrink-0 text-[#999]" strokeWidth={1.5} />
+                        <ColIcon className="h-[13px] w-[13px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
                         <span className="truncate">{col.label}</span>
                         <button onClick={(e) => {
                           if (isMenuOpen) { setColumnMenuKey(null); setColumnMenuPos(null); return }
@@ -582,20 +582,21 @@ export default function StaffPage() {
                           if (rect.right > window.innerWidth - 8) left = window.innerWidth - dropdownWidth - 8
                           setColumnMenuPos({ top: rect.bottom + 4, left })
                           setColumnMenuKey(col.key)
-                        }} className={`ml-auto flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded transition-all ${isMenuOpen ? "bg-[#ebebeb] text-[#262626] opacity-100" : "text-[#999] opacity-0 hover:bg-[#ebebeb] hover:text-[#262626] group-hover/col:opacity-100"}`} tabIndex={0} aria-label={`Column options for ${col.label}`}>
+                        }} className={`ml-auto flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-none transition-all ${isMenuOpen ? "bg-[#ebebeb] text-folk-text opacity-100" : "text-folk-secondary opacity-0 hover:bg-[#ebebeb] hover:text-folk-text group-hover/col:opacity-100"}`} tabIndex={0} aria-label={`Column options for ${col.label}`}>
                           <ChevronDown className="h-[12px] w-[12px]" strokeWidth={2} />
                         </button>
                       </div>
                       {isMenuOpen && columnMenuPos && (
-                        <>
-                          <div className="fixed inset-0 z-40" onClick={() => { setColumnMenuKey(null); setColumnMenuPos(null) }} />
-                          <div className="fixed z-50 w-[200px] overflow-hidden rounded-lg border border-[#dcdcdc] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={{ top: columnMenuPos.top, left: columnMenuPos.left }}>
-                            <button onClick={() => handleMoveColumn(col.key, "left")} disabled={isFirst} className={`flex w-full items-center gap-[12px] px-[16px] py-[10px] text-[13px] font-medium transition-colors ${isFirst ? "text-[#bbb]" : "text-[#262626] hover:bg-[#f5f5f5]"}`} tabIndex={0}><ArrowLeft className={`h-[15px] w-[15px] ${isFirst ? "text-[#ccc]" : "text-[#888]"}`} strokeWidth={1.75} /><span>Move left</span></button>
-                            <button onClick={() => handleMoveColumn(col.key, "right")} disabled={isLast} className={`flex w-full items-center gap-[12px] px-[16px] py-[10px] text-[13px] font-medium transition-colors ${isLast ? "text-[#bbb]" : "text-[#262626] hover:bg-[#f5f5f5]"}`} tabIndex={0}><ArrowRight className={`h-[15px] w-[15px] ${isLast ? "text-[#ccc]" : "text-[#888]"}`} strokeWidth={1.75} /><span>Move right</span></button>
-                            <div className="my-[4px] border-t border-[#f0f0f0]" />
-                            <button onClick={() => { handleToggleColumn(col.key); setColumnMenuKey(null); setColumnMenuPos(null) }} className="flex w-full items-center gap-[12px] px-[16px] py-[10px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]" tabIndex={0}><EyeOff className="h-[15px] w-[15px] text-[#888]" strokeWidth={1.75} /><span>Hide column</span></button>
-                          </div>
-                        </>
+                        <TableColumnMenuPortal
+                          isOpen={isMenuOpen}
+                          position={columnMenuPos}
+                          onClose={() => { setColumnMenuKey(null); setColumnMenuPos(null) }}
+                        >
+                          <button onClick={() => handleMoveColumn(col.key, "left")} disabled={isFirst} className={`flex w-full items-center gap-[12px] px-[16px] py-[10px] text-[13px] font-medium transition-colors ${isFirst ? "text-folk-placeholder" : "text-folk-text hover:bg-folk-hover"}`} tabIndex={0}><ArrowLeft className={`h-[15px] w-[15px] ${isFirst ? "text-[#ccc]" : "text-folk-secondary"}`} strokeWidth={1.75} /><span>Move left</span></button>
+                          <button onClick={() => handleMoveColumn(col.key, "right")} disabled={isLast} className={`flex w-full items-center gap-[12px] px-[16px] py-[10px] text-[13px] font-medium transition-colors ${isLast ? "text-folk-placeholder" : "text-folk-text hover:bg-folk-hover"}`} tabIndex={0}><ArrowRight className={`h-[15px] w-[15px] ${isLast ? "text-[#ccc]" : "text-folk-secondary"}`} strokeWidth={1.75} /><span>Move right</span></button>
+                          <div className="my-[4px] border-t border-folk-border-subtle" />
+                          <button onClick={() => { handleToggleColumn(col.key); setColumnMenuKey(null); setColumnMenuPos(null) }} className="flex w-full items-center gap-[12px] px-[16px] py-[10px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover" tabIndex={0}><EyeOff className="h-[15px] w-[15px] text-folk-secondary" strokeWidth={1.75} /><span>Hide column</span></button>
+                        </TableColumnMenuPortal>
                       )}
                       <div
                         onMouseDown={(e) => handleColResize(col.key, e)}
@@ -607,67 +608,79 @@ export default function StaffPage() {
               </tr>
             </thead>
             <tbody>
-              {activeStaff.map((member) => {
-                const isSelected = selectedMember?.id === member.id
-                const rowBg = isSelected ? "bg-[#f5f5ff]" : "bg-[#fafafa]"
-                const rowHover = isSelected ? "" : "group-hover:bg-[#f5f5f5]"
+              {filteredStaff.map((member) => {
                 const d = member.details
-                const cellClass = `h-[44px] overflow-hidden whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] ${rowBg} ${rowHover}`
-                const dash = <span className="text-[#bbb]">—</span>
-                const whiteChip = "inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] bg-[#e8edf2] px-[12px] text-[12px] font-medium text-[#334155]"
-
+                const dash = <span className="text-folk-placeholder">—</span>
                 const memberClients = clients.filter((c) => c.owner === member.name)
 
+                const getCellClass = (columnKey: string, isLast: boolean, extra = "") =>
+                  [
+                    isLast ? TABLE_CELL_LAST : TABLE_CELL_BASE,
+                    "bg-folk-surface cursor-pointer",
+                    TABLE_ROW_HOVER,
+                    tableCellSelectionClass(selectedCell, member.id, columnKey),
+                    extra,
+                  ].filter(Boolean).join(" ")
+
+                const handleCellClick = (columnKey: string) => {
+                  setSelectedMember(member)
+                  setSelectedCell({ rowId: member.id, columnKey })
+                }
+
                 const renderCell = (key: string, isLast: boolean) => {
-                  const cls = isLast ? `h-[44px] overflow-hidden whitespace-nowrap border-b px-[20px] ${rowBg} ${rowHover}` : cellClass
-                  const tCls = `${cls} text-[13px] font-medium text-[#262626]`
+                  const cls = getCellClass(key, isLast)
+                  const onCellClick = () => handleCellClick(key)
+                  const tCls = `${cls} ${TABLE_TEXT_CELL}`
+                  const wrapCell = (content: React.ReactNode) => (
+                    <div className={TABLE_CELL_INNER}>{content}</div>
+                  )
                   switch (key) {
                     case "clients": {
-                      const chipCls = isLast ? `h-[44px] overflow-hidden border-b pl-[20px] ${rowBg} ${rowHover}` : `h-[44px] overflow-hidden border-b border-r border-[#dcdcdc] pl-[20px] ${rowBg} ${rowHover}`
-                      if (memberClients.length === 0) return <td key={key} className={`${chipCls} pr-[20px] text-[13px]`}>{dash}</td>
+                      const chipCls = getCellClass(key, isLast, "pl-[20px]")
+                      if (memberClients.length === 0) return <td key={key} className={`${chipCls} pr-[20px] ${TABLE_TEXT_CELL}`} onClick={onCellClick}>{wrapCell(dash)}</td>
                       return (
-                        <td key={key} className={chipCls}>
-                          <div className="flex h-full items-center gap-[6px]">
-                            {memberClients.map((c) => (
-                              <span key={c.id} className="inline-flex h-[24px] shrink-0 items-center whitespace-nowrap rounded-[4px] border border-[#dcdcdc] bg-transparent px-[8px] text-[11px] font-medium text-[#262626]">
-                                {c.displayName}
-                              </span>
-                            ))}
-                          </div>
+                        <td key={key} className={chipCls} onClick={onCellClick}>
+                          {wrapCell(memberClients.map((c) => (
+                            <CategoryChip key={c.id} label={c.displayName} categoryKey={c.id} size="sm" />
+                          )))}
                         </td>
                       )
                     }
-                    case "email": return <td key={key} className={tCls}>{d.email || dash}</td>
-                    case "phone": return <td key={key} className={tCls}>{d.phone || dash}</td>
-                    case "role": return <td key={key} className={cls}>{d.role ? <span className={whiteChip}>{d.role}</span> : dash}</td>
-                    case "department": return <td key={key} className={cls}>{d.department ? <span className={whiteChip}>{d.department}</span> : dash}</td>
-                    case "employmentType": return <td key={key} className={cls}>{d.employmentType ? <span className={whiteChip}>{d.employmentType}</span> : dash}</td>
-                    case "startDate": return <td key={key} className={tCls}>{d.startDate ? new Date(d.startDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }) : dash}</td>
-                    case "endDate": return <td key={key} className={tCls}>{d.endDate ? new Date(d.endDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }) : dash}</td>
+                    case "email": return <td key={key} className={tCls} onClick={onCellClick}>{wrapCell(d.email || dash)}</td>
+                    case "phone": return <td key={key} className={tCls} onClick={onCellClick}>{wrapCell(d.phone || dash)}</td>
+                    case "role": return <td key={key} className={cls} onClick={onCellClick}>{wrapCell(d.role ? <CategoryChip label={d.role} categoryKey={d.role} size="sm" /> : dash)}</td>
+                    case "department": return <td key={key} className={cls} onClick={onCellClick}>{wrapCell(d.department ? <CategoryChip label={d.department} categoryKey={d.department} size="sm" /> : dash)}</td>
+                    case "employmentType": return <td key={key} className={cls} onClick={onCellClick}>{wrapCell(d.employmentType ? <CategoryChip label={d.employmentType} categoryKey={d.employmentType} size="sm" /> : dash)}</td>
+                    case "startDate": return <td key={key} className={tCls} onClick={onCellClick}>{wrapCell(d.startDate ? new Date(d.startDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }) : dash)}</td>
+                    case "endDate": return <td key={key} className={tCls} onClick={onCellClick}>{wrapCell(d.endDate ? new Date(d.endDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }) : dash)}</td>
                     case "status": {
-                      const statusColors: Record<string, string> = { active: "text-green-600 bg-green-50 border-green-200", invited: "text-amber-600 bg-amber-50 border-amber-200", inactive: "text-[#888] bg-[#f5f5f5] border-[#dcdcdc]" }
-                      return <td key={key} className={cls}><span className={`inline-flex h-[28px] items-center rounded border px-[8px] text-[12px] font-medium ${statusColors[member.status] || statusColors.active}`}>{member.status.charAt(0).toUpperCase() + member.status.slice(1)}</span></td>
+                      const statusColors: Record<string, string> = { active: "text-green-600 bg-green-50 border-green-200", invited: "text-amber-600 bg-amber-50 border-amber-200", inactive: "text-folk-secondary bg-folk-hover border-folk-border" }
+                      return <td key={key} className={cls} onClick={onCellClick}>{wrapCell(<span className={`inline-flex h-[24px] shrink-0 items-center rounded-none border px-[8px] text-[12px] font-medium ${statusColors[member.status] || statusColors.active}`}>{member.status.charAt(0).toUpperCase() + member.status.slice(1)}</span>)}</td>
                     }
-                    case "qualifications": return <td key={key} className={tCls}>{d.qualifications || dash}</td>
-                    case "certifications": return <td key={key} className={tCls}>{d.certifications || dash}</td>
-                    case "dob": return <td key={key} className={tCls}>{d.dateOfBirth ? new Date(d.dateOfBirth + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }) : dash}</td>
-                    case "gender": return <td key={key} className={tCls}>{d.gender || dash}</td>
-                    case "pronouns": return <td key={key} className={tCls}>{d.pronouns || dash}</td>
-                    case "preferredName": return <td key={key} className={tCls}>{d.preferredName || dash}</td>
-                    case "emergencyContactName": return <td key={key} className={tCls}>{d.emergencyContactName || dash}</td>
-                    case "emergencyContactPhone": return <td key={key} className={tCls}>{d.emergencyContactPhone || dash}</td>
-                    default: return <td key={key} className={tCls}>{dash}</td>
+                    case "qualifications": return <td key={key} className={tCls} onClick={onCellClick}>{wrapCell(d.qualifications || dash)}</td>
+                    case "certifications": return <td key={key} className={tCls} onClick={onCellClick}>{wrapCell(d.certifications || dash)}</td>
+                    case "dob": return <td key={key} className={tCls} onClick={onCellClick}>{wrapCell(d.dateOfBirth ? new Date(d.dateOfBirth + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }) : dash)}</td>
+                    case "gender": return <td key={key} className={tCls} onClick={onCellClick}>{wrapCell(d.gender || dash)}</td>
+                    case "pronouns": return <td key={key} className={tCls} onClick={onCellClick}>{wrapCell(d.pronouns || dash)}</td>
+                    case "preferredName": return <td key={key} className={tCls} onClick={onCellClick}>{wrapCell(d.preferredName || dash)}</td>
+                    case "emergencyContactName": return <td key={key} className={tCls} onClick={onCellClick}>{wrapCell(d.emergencyContactName || dash)}</td>
+                    case "emergencyContactPhone": return <td key={key} className={tCls} onClick={onCellClick}>{wrapCell(d.emergencyContactPhone || dash)}</td>
+                    default: return <td key={key} className={tCls} onClick={onCellClick}>{wrapCell(dash)}</td>
                   }
                 }
 
                 return (
                   <tr key={member.id} className="group">
-                    <td onClick={() => setSelectedMember(member)} className={`sticky left-0 z-10 h-[44px] cursor-pointer overflow-hidden whitespace-nowrap border-b border-r border-[#dcdcdc] px-[20px] ${rowBg} ${rowHover}`}>
-                      <div className="flex items-center gap-[10px]">
+                    <td
+                      onClick={() => handleCellClick(TABLE_NAME_COLUMN_KEY)}
+                      className={`sticky left-0 z-20 ${TABLE_CELL_STICKY_EDGE} cursor-pointer ${TABLE_ROW_HOVER} ${tableCellSelectionClass(selectedCell, member.id, TABLE_NAME_COLUMN_KEY)}`}
+                      style={{ width: 240, minWidth: 240, maxWidth: 240 }}
+                    >
+                      <div className={`${TABLE_CELL_INNER} gap-[10px]`}>
                         <EntityIcon text={member.iconText} size="sm" />
-                        <span className="truncate text-[13px] font-medium text-[#262626]">{member.name}</span>
-                        {member.status === "invited" && <span className="rounded border border-amber-200 bg-amber-50 px-[5px] py-[1px] text-[10px] font-medium text-amber-600">Invited</span>}
-                        <button onClick={(e) => { e.stopPropagation(); router.push(`/staff/${member.id}`) }} className="ml-auto flex h-[22px] w-[22px] items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 text-[#999] hover:bg-[#f0f0f0] hover:text-[#262626]" aria-label={`Open ${member.name} profile`} tabIndex={0}>
+                        <span className="truncate text-[13px] font-medium text-folk-text">{member.name}</span>
+                        {member.status === "invited" && <span className="rounded-none border border-amber-200 bg-amber-50 px-[5px] py-[1px] text-[10px] font-medium text-amber-600">Invited</span>}
+                        <button onClick={(e) => { e.stopPropagation(); router.push(`/staff/${member.id}`) }} className="ml-auto flex h-[22px] w-[22px] items-center justify-center rounded-none opacity-0 transition-opacity group-hover:opacity-100 text-folk-secondary hover:bg-[var(--folk-border-subtle)] hover:text-folk-text" aria-label={`Open ${member.name} profile`} tabIndex={0}>
                           <ArrowUpRight className="h-[13px] w-[13px]" strokeWidth={1.75} />
                         </button>
                       </div>
@@ -680,32 +693,32 @@ export default function StaffPage() {
           </table>
         </div>
 
-        <div className="shrink-0 border-t border-[#dcdcdc] px-[20px] py-[10px]">
-          <span className="text-[12px] font-medium text-[#999]">{activeStaff.length} staff</span>
+        <div className="shrink-0 border-t border-folk-border px-[20px] py-[10px]">
+          <span className="text-[12px] font-medium text-folk-secondary">{filteredStaff.length} staff</span>
         </div>
       </div>
 
       {selectedMember && (
-        <div className="absolute right-0 top-0 z-40 h-full overflow-hidden">
-          <StaffProfile member={selectedMember} onUpdateField={(field, value) => handleUpdateField(selectedMember.id, field, value)} onClose={() => setSelectedMember(null)} />
-        </div>
+        <FloatingSidePanelHost>
+          <StaffProfile member={selectedMember} onUpdateField={(field, value) => handleUpdateField(selectedMember.id, field, value)} onClose={() => { setSelectedMember(null); setSelectedCell(null) }} />
+        </FloatingSidePanelHost>
       )}
 
       {isCreateViewOpen && (
         <>
           <div className="fixed inset-0 z-50 bg-black/20" onClick={() => { setIsCreateViewOpen(false); setNewViewName("") }} />
-          <div className="fixed left-1/2 top-1/2 z-50 w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+          <div className="fixed left-1/2 top-1/2 z-50 w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-none bg-folk-surface p-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
             <div className="flex items-center justify-between">
-              <h3 className="text-[15px] font-semibold text-[#262626]">Save current view</h3>
-              <button onClick={() => { setIsCreateViewOpen(false); setNewViewName("") }} className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0} aria-label="Close"><X className="h-[16px] w-[16px]" strokeWidth={1.75} /></button>
+              <h3 className="text-[15px] font-semibold text-folk-text">Save current view</h3>
+              <button onClick={() => { setIsCreateViewOpen(false); setNewViewName("") }} className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0} aria-label="Close"><X className="h-[16px] w-[16px]" strokeWidth={1.75} /></button>
             </div>
             <div className="mt-[20px]">
-              <label className="text-[13px] font-medium text-[#888]">Name</label>
-              <input ref={viewNameInputRef} value={newViewName} onChange={(e) => setNewViewName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleCreateView() }} placeholder="Enter name here" className="mt-[8px] w-full rounded-lg border border-[#dcdcdc] bg-[#fafafa] px-[12px] py-[10px] text-[13px] font-medium text-[#262626] outline-none transition-colors placeholder:text-[#bbb] focus:border-[#a3c4f3]" />
+              <label className="text-[13px] font-medium text-folk-secondary">Name</label>
+              <input ref={viewNameInputRef} value={newViewName} onChange={(e) => setNewViewName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleCreateView() }} placeholder="Enter name here" className="mt-[8px] w-full rounded-none border border-folk-border bg-folk-surface px-[12px] py-[10px] text-[13px] font-medium text-folk-text outline-none transition-colors placeholder:text-folk-placeholder focus:border-[#a3c4f3]" />
             </div>
             <div className="mt-[20px] flex items-center justify-end gap-[12px]">
-              <button onClick={() => { setIsCreateViewOpen(false); setNewViewName("") }} className="px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:text-[#888]" tabIndex={0}>Cancel</button>
-              <button onClick={handleCreateView} disabled={!newViewName.trim()} className={`rounded-[4px] px-[16px] py-[6px] text-[13px] font-medium transition-colors ${newViewName.trim() ? "primary-btn" : "border border-[#dcdcdc] text-[#bbb]"}`} tabIndex={0}>Create</button>
+              <button onClick={() => { setIsCreateViewOpen(false); setNewViewName("") }} className="px-[12px] py-[6px] text-[13px] font-medium text-folk-text transition-colors hover:text-folk-secondary" tabIndex={0}>Cancel</button>
+              <button onClick={handleCreateView} disabled={!newViewName.trim()} className={`rounded-full px-[16px] py-[6px] text-[13px] font-medium transition-colors ${newViewName.trim() ? "primary-btn" : "border border-folk-border text-folk-placeholder"}`} tabIndex={0}>Create</button>
             </div>
           </div>
         </>
@@ -715,7 +728,7 @@ export default function StaffPage() {
         <>
           <div className="fixed inset-0 z-50" onClick={() => setViewContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setViewContextMenu(null) }} />
           <div
-            className="fixed z-50 w-[160px] overflow-hidden rounded-lg border border-[#dcdcdc] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+            className="fixed z-50 w-[160px] overflow-hidden rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk"
             style={{ top: viewContextMenu.y, left: viewContextMenu.x }}
           >
             <button
@@ -737,22 +750,22 @@ export default function StaffPage() {
       {deleteViewConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/20" onClick={() => setDeleteViewConfirm(null)} />
-          <div className="relative z-10 w-[400px] rounded-lg bg-white p-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
-            <h3 className="text-[15px] font-semibold text-[#262626]">Delete view</h3>
-            <p className="mt-[8px] text-[13px] font-medium text-[#888]">
-              Are you sure you want to delete <span className="text-[#262626]">&ldquo;{deleteViewConfirm.name}&rdquo;</span>? This action cannot be undone.
+          <div className="relative z-10 w-[400px] rounded-none bg-folk-surface p-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+            <h3 className="text-[15px] font-semibold text-folk-text">Delete view</h3>
+            <p className="mt-[8px] text-[13px] font-medium text-folk-secondary">
+              Are you sure you want to delete <span className="text-folk-text">&ldquo;{deleteViewConfirm.name}&rdquo;</span>? This action cannot be undone.
             </p>
             <div className="mt-[20px] flex items-center justify-end gap-[12px]">
               <button
                 onClick={() => setDeleteViewConfirm(null)}
-                className="px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:text-[#888]"
+                className="px-[12px] py-[6px] text-[13px] font-medium text-folk-text transition-colors hover:text-folk-secondary"
                 tabIndex={0}
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDeleteView(deleteViewConfirm.id)}
-                className="rounded-[4px] bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
+                className="rounded-none bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
                 tabIndex={0}
               >
                 Delete

@@ -24,7 +24,7 @@ function formatDate(dateStr: string) {
 
 export function ProfileNotesTab({ notes, onOpenNote, onCreateNote, isCreating = false, emptyDescription = "Notes linked here will appear in this section." }: ProfileNotesTabProps) {
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col bg-white">
       <SectionToolbar onAddNew={onCreateNote} addDisabled={isCreating} />
       {notes.length === 0 ? (
         <EmptyState
@@ -47,11 +47,11 @@ export function ProfileNotesTab({ notes, onOpenNote, onCreateNote, isCreating = 
                     tabIndex={0}
                     onClick={() => onOpenNote(note.id)}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpenNote(note.id) } }}
-                    className="group flex min-h-[150px] cursor-pointer flex-col rounded-[8px] border border-[#e2e2e2] bg-white p-[18px] text-left transition-all hover:border-[#d4d4d4] hover:shadow-sm"
+                    className="group flex min-h-[150px] cursor-pointer flex-col rounded-none border border-[#e2e2e2] bg-folk-surface p-[18px] text-left transition-all hover:border-folk-border hover:shadow-sm"
                   >
-                    <p className="truncate text-[14px] font-semibold text-[#262626]">{note.title || "Untitled"}</p>
-                    <p className="mt-[6px] line-clamp-4 flex-1 text-[13px] leading-[1.5] text-[#888]">{preview || "No content yet"}</p>
-                    <span className="mt-[10px] text-[11px] text-[#bbb]">{formatDate(note.updatedAt || note.createdAt)}</span>
+                    <p className="truncate text-[14px] font-semibold text-folk-text">{note.title || "Untitled"}</p>
+                    <p className="mt-[6px] line-clamp-4 flex-1 text-[13px] leading-[1.5] text-folk-secondary">{preview || "No content yet"}</p>
+                    <span className="mt-[10px] text-[11px] text-folk-placeholder">{formatDate(note.updatedAt || note.createdAt)}</span>
                   </div>
                 )
               })}

@@ -1,46 +1,66 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
-import { ndisCharges, type ChargeItem } from "@/lib/ndis-charges"
+import {
+  chargeItemFromNdis,
+  getNdisChargeByItemNumber,
+  ndisChargeCategories,
+  ndisCharges,
+  normalizeChargeItem,
+  type ChargeItem,
+} from "@/lib/ndis-charges"
 import { useWorkspace } from "@/lib/workspace-context"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
-
-function getDefaultItemNumbers(): string[] {
-  return ndisCharges
-    .filter((c) => c.category === "support-coordination" || c.category === "travel")
-    .map((c) => c.itemNumber)
-}
 
 function buildChargeItems(itemNumbers: string[]): ChargeItem[] {
   return itemNumbers
     .map((num) => {
-      const ndis = ndisCharges.find((c) => c.itemNumber === num)
+      const ndis = getNdisChargeByItemNumber(num)
       if (!ndis) return null
-      return {
+      return normalizeChargeItem({
         id: num,
-        name: ndis.name,
-        itemNumber: ndis.itemNumber,
-        claimType: "direct-service",
-        price: ndis.price,
-        unit: ndis.unit,
-        gstCode: "P2",
-        reference: ndis.shortName,
-      } as ChargeItem
+        ...chargeItemFromNdis(ndis),
+      })
     })
     .filter(Boolean) as ChargeItem[]
+}
+
+const LEGACY_SEEDED_ITEM_NUMBERS = new Set(
+  ndisCharges
+    .filter((charge) => {
+      if (charge.itemNumber === "07_799_0106_6_3_KM") return true
+      return charge.category === "support-coordination-and-psychosocial-recovery-coaches"
+    })
+    .map((charge) => charge.itemNumber)
+)
+
+function isLegacySeededOnly(items: ChargeItem[]): boolean {
+  if (items.length === 0 || items.length !== LEGACY_SEEDED_ITEM_NUMBERS.size) return false
+  return items.every((item) => LEGACY_SEEDED_ITEM_NUMBERS.has(item.itemNumber))
+}
+
+function stripLegacySeededItems(items: ChargeItem[]): ChargeItem[] {
+  return isLegacySeededOnly(items) ? [] : items
+}
+
+function normalizeChargeItems(items: ChargeItem[]): ChargeItem[] {
+  return items.map(normalizeChargeItem)
+}
+
+function getActiveItemNumbers(items: ChargeItem[]): string[] {
+  return items.filter((item) => item.status !== "inactive").map((item) => item.itemNumber)
 }
 
 export function useCharges() {
   const { activeWorkspace } = useWorkspace()
   const workspaceId = activeWorkspace?.id ?? null
-  const [chargeItems, setChargeItems] = useState<ChargeItem[]>(() =>
-    buildChargeItems(getDefaultItemNumbers())
-  )
+  const [chargeItems, setChargeItems] = useState<ChargeItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const hasLoadedRef = useRef(false)
 
   useEffect(() => {
     if (!workspaceId || !isSupabaseConfigured()) {
+      setChargeItems([])
       setIsLoading(false)
       return
     }
@@ -59,7 +79,7 @@ export function useCharges() {
         .upsert(
           {
             workspace_id: workspaceId,
-            enabled_charges: items.map((ci) => ci.itemNumber),
+            enabled_charges: getActiveItemNumbers(items),
             charge_items: items as unknown as Record<string, unknown>[],
             updated_at: new Date().toISOString(),
           },
@@ -76,23 +96,29 @@ export function useCharges() {
 
       if (cancelled) return
 
-      // Preferred path: full per-charge config (incl. GST treatment) is stored.
       const stored = data?.charge_items as ChargeItem[] | null | undefined
-      if (Array.isArray(stored) && stored.length > 0) {
-        setChargeItems(stored)
+      if (Array.isArray(stored)) {
+        const normalized = stripLegacySeededItems(normalizeChargeItems(stored))
+        if (normalized.length !== stored.length) await saveConfig(normalized)
+        setChargeItems(normalized)
         hasLoadedRef.current = true
         setIsLoading(false)
         return
       }
 
-      // Legacy path: only item numbers stored. Build defaults and backfill the
-      // full objects so per-charge edits persist going forward.
-      const itemNumbers = data?.enabled_charges?.length ? data.enabled_charges : getDefaultItemNumbers()
-      const built = buildChargeItems(itemNumbers)
-      await saveConfig(built)
+      if (data?.enabled_charges?.length) {
+        const built = stripLegacySeededItems(buildChargeItems(data.enabled_charges))
+        await saveConfig(built)
+        if (cancelled) return
+        setChargeItems(built)
+        hasLoadedRef.current = true
+        setIsLoading(false)
+        return
+      }
 
+      await saveConfig([])
       if (cancelled) return
-      setChargeItems(built)
+      setChargeItems([])
       hasLoadedRef.current = true
       setIsLoading(false)
     }
@@ -120,7 +146,7 @@ export function useCharges() {
         .upsert(
           {
             workspace_id: workspaceId,
-            enabled_charges: items.map((ci) => ci.itemNumber),
+            enabled_charges: getActiveItemNumbers(items),
             charge_items: items as unknown as Record<string, unknown>[],
             updated_at: new Date().toISOString(),
           },
@@ -132,17 +158,23 @@ export function useCharges() {
   )
 
   const enabledCharges = useMemo(() => {
-    return chargeItems.map((ci) => {
-      const ndis = ndisCharges.find((n) => n.itemNumber === ci.itemNumber)
+    return chargeItems
+      .filter((ci) => ci.status !== "inactive")
+      .map((ci) => {
+      const ndis = getNdisChargeByItemNumber(ci.itemNumber)
       return (
         ndis ?? {
           itemNumber: ci.itemNumber,
           name: ci.name,
           shortName: ci.reference,
           registrationGroup: "",
+          registrationGroupNumber: "",
+          supportCategory: "",
+          supportCategoryNumber: 0,
+          category: "other",
           unit: ci.unit,
           price: ci.price,
-          category: "support-coordination" as const,
+          quoteRequired: false,
         }
       )
     })
@@ -197,6 +229,7 @@ export function useCharges() {
 
   return {
     allCharges: ndisCharges,
+    ndisChargeCategories,
     enabledCharges,
     enabledItemNumbers,
     chargeItems,

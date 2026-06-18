@@ -84,18 +84,18 @@ export default function NotificationsSettingsPage() {
   return (
     <>
       <div className="mb-[32px]">
-        <h1 className="text-[20px] font-bold text-[#262626]">Notifications</h1>
-        <p className="mt-[4px] text-[14px] text-[#888]">
+        <h1 className="text-[20px] font-bold text-folk-text">Notifications</h1>
+        <p className="mt-[4px] text-[14px] text-folk-secondary">
           Choose which notifications you want to receive.
         </p>
       </div>
 
       <div className="w-full">
         {/* Table header */}
-        <div className="grid grid-cols-[1fr_140px_80px_40px] items-center border-b border-[#f0f0f0] px-[20px] py-[12px]">
-          <span className="text-[12px] font-medium text-[#888]">Name</span>
-          <span className="text-[12px] font-medium text-[#888]">Channel</span>
-          <span className="text-[12px] font-medium text-[#888]">Enabled</span>
+        <div className="grid grid-cols-[1fr_140px_80px_40px] items-center border-b border-folk-border-subtle px-[20px] py-[12px]">
+          <span className="text-[12px] font-medium text-folk-secondary">Name</span>
+          <span className="text-[12px] font-medium text-folk-secondary">Channel</span>
+          <span className="text-[12px] font-medium text-folk-secondary">Enabled</span>
           <span />
         </div>
 
@@ -105,18 +105,18 @@ export default function NotificationsSettingsPage() {
           return (
             <div
               key={item.id}
-              className="grid grid-cols-[1fr_140px_80px_40px] items-center border-b border-[#f5f5f5] px-[20px] py-[16px] transition-colors hover:bg-[#fafafa]"
+              className="grid grid-cols-[1fr_140px_80px_40px] items-center border-b border-[#f5f5f5] px-[20px] py-[10px] transition-colors hover:bg-folk-page"
             >
-              <span className={cn("text-[14px] font-medium", pref.enabled ? "text-[#262626]" : "text-[#bbb]")}>
+              <span className={cn("text-[14px] font-medium", pref.enabled ? "text-folk-text" : "text-folk-placeholder")}>
                 {item.label}
               </span>
-              <span className="text-[13px] text-[#888]">{item.channel}</span>
+              <span className="text-[13px] text-folk-secondary">{item.channel}</span>
               <Toggle checked={pref.enabled} onChange={() => update(item.id, { enabled: !pref.enabled })} />
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setMenuOpen(menuOpen === item.id ? null : item.id)}
-                  className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-[#bbb] transition-colors hover:bg-[#f0f0f0] hover:text-[#666]"
+                  className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-placeholder transition-colors hover:bg-[var(--folk-border-subtle)] hover:text-folk-secondary"
                   tabIndex={0}
                   aria-label="More options"
                 >
@@ -125,11 +125,11 @@ export default function NotificationsSettingsPage() {
                 {menuOpen === item.id && (
                   <>
                     <div className="fixed inset-0 z-[59]" onClick={() => setMenuOpen(null)} />
-                    <div className="absolute right-0 top-full z-[60] mt-[4px] w-[160px] rounded-[8px] border border-[#f0f0f0] bg-white py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+                    <div className="absolute right-0 top-full z-[60] mt-[4px] w-[160px] rounded-none border border-folk-border-subtle bg-folk-surface py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
                       <button
                         type="button"
                         onClick={() => { update(item.id, { enabled: !pref.enabled }); setMenuOpen(null) }}
-                        className="flex w-full items-center px-[12px] py-[8px] text-left text-[13px] text-[#555] transition-colors hover:bg-[#f5f5f5]"
+                        className="flex w-full items-center px-[12px] py-[8px] text-left text-[13px] text-[#555] transition-colors hover:bg-folk-hover"
                         tabIndex={0}
                       >
                         {pref.enabled ? "Disable" : "Enable"}
@@ -138,7 +138,7 @@ export default function NotificationsSettingsPage() {
                         <button
                           type="button"
                           onClick={() => { update(item.id, { email: !pref.email }); setMenuOpen(null) }}
-                          className="flex w-full items-center px-[12px] py-[8px] text-left text-[13px] text-[#555] transition-colors hover:bg-[#f5f5f5]"
+                          className="flex w-full items-center px-[12px] py-[8px] text-left text-[13px] text-[#555] transition-colors hover:bg-folk-hover"
                           tabIndex={0}
                         >
                           {pref.email ? "Turn off email" : "Turn on email"}
@@ -148,7 +148,7 @@ export default function NotificationsSettingsPage() {
                         <button
                           type="button"
                           onClick={() => { update(item.id, { inApp: !pref.inApp }); setMenuOpen(null) }}
-                          className="flex w-full items-center px-[12px] py-[8px] text-left text-[13px] text-[#555] transition-colors hover:bg-[#f5f5f5]"
+                          className="flex w-full items-center px-[12px] py-[8px] text-left text-[13px] text-[#555] transition-colors hover:bg-folk-hover"
                           tabIndex={0}
                         >
                           {pref.inApp ? "Turn off in-app" : "Turn on in-app"}

@@ -220,7 +220,7 @@ describe("invoice grouping by participant", () => {
     expect(groups.get("c2")).toEqual(["t3"])
   })
 
-  it("sums rounded line amounts into the subtotal", () => {
+  it("sums rounded-none line amounts into the subtotal", () => {
     const lineItems = [
       { amount: roundMoney(2 * 67.561) },
       { amount: roundMoney(1.5 * 100.14) },

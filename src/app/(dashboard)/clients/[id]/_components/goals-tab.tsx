@@ -2,7 +2,16 @@
 
 import { ListFilter, Plus, Target } from "lucide-react"
 import type { ClientGoal, GoalType, GoalStatus } from "@/lib/types"
+import { getGoalTypeChipClasses } from "@/lib/chip-colors"
 import { EmptyState } from "@/components/empty-state"
+import {
+  TABLE_FULL,
+  TABLE_PANEL_CELL,
+  TABLE_PANEL_CELL_LAST,
+  TABLE_PANEL_HEADER_STICKY,
+  TABLE_PANEL_HEADER_STICKY_LAST,
+  TABLE_PANEL_TEXT,
+} from "@/lib/table-styles"
 
 export const goalTypeConfig: Record<GoalType, { label: string }> = {
   "long-term": { label: "Long term" },
@@ -10,7 +19,7 @@ export const goalTypeConfig: Record<GoalType, { label: string }> = {
 }
 
 export const goalStatusConfig: Record<GoalStatus, { label: string; chip: string }> = {
-  "not-started": { label: "Not started", chip: "bg-[#f0f0f0] text-[#666]" },
+  "not-started": { label: "Not started", chip: "bg-[var(--folk-border-subtle)] text-folk-secondary" },
   "in-progress": { label: "In progress", chip: "bg-blue-100 text-blue-700" },
   achieved: { label: "Achieved", chip: "bg-green-100 text-green-700" },
   "on-hold": { label: "On hold", chip: "bg-amber-50 text-amber-600" },
@@ -23,14 +32,11 @@ interface GoalsTabProps {
 }
 
 export function GoalsTab({ goals, onAddNew, onEditGoal }: GoalsTabProps) {
-  const cellBase = "h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px]"
-  const textCell = `${cellBase} text-[13px] font-medium text-[#262626]`
-
   return (
     <div className="relative flex h-full flex-col">
-      <div className="flex h-[41px] shrink-0 items-center justify-between border-b border-[#dcdcdc] px-[16px]">
+      <div className="flex h-[41px] shrink-0 items-center justify-between border-b border-folk-border bg-folk-nav px-[16px]">
         <button
-          className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+          className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
           tabIndex={0}
         >
           <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -38,7 +44,7 @@ export function GoalsTab({ goals, onAddNew, onEditGoal }: GoalsTabProps) {
         </button>
         <button
           onClick={onAddNew}
-          className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
+          className="outline-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
           tabIndex={0}
         >
           <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -50,19 +56,19 @@ export function GoalsTab({ goals, onAddNew, onEditGoal }: GoalsTabProps) {
         <EmptyState
           icon={Target}
           title="No goals yet"
-          description="Create a goal to track outcomes and link the tasks that work towards it."
+          description="Create a goal to track outcomes and link tasks or roster shifts that work towards it."
           action={{ label: "Add goal", onClick: onAddNew }}
           className="flex-1"
         />
       ) : (
         <div className="flex-1 overflow-auto">
-          <table className="w-full border-separate border-spacing-0 text-left">
+          <table className={TABLE_FULL}>
             <thead>
               <tr>
-                <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Goal</th>
-                <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Type</th>
-                <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-r border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Status</th>
-                <th className="sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]">Linked tasks</th>
+                <th className={TABLE_PANEL_HEADER_STICKY}>Goal</th>
+                <th className={TABLE_PANEL_HEADER_STICKY}>Type</th>
+                <th className={TABLE_PANEL_HEADER_STICKY}>Status</th>
+                <th className={TABLE_PANEL_HEADER_STICKY_LAST}>Linked</th>
               </tr>
             </thead>
             <tbody>
@@ -70,20 +76,27 @@ export function GoalsTab({ goals, onAddNew, onEditGoal }: GoalsTabProps) {
                 const status = goalStatusConfig[goal.status] ?? goalStatusConfig["not-started"]
                 const type = goalTypeConfig[goal.goalType] ?? goalTypeConfig["short-term"]
                 const taskCount = goal.linkedTasks?.length ?? 0
+                const shiftCount = goal.linkedShifts?.length ?? 0
+                const linkedLabel = [
+                  taskCount > 0 ? `${taskCount} ${taskCount === 1 ? "task" : "tasks"}` : null,
+                  shiftCount > 0 ? `${shiftCount} ${shiftCount === 1 ? "shift" : "shifts"}` : null,
+                ].filter(Boolean).join(" · ") || "None"
                 return (
                   <tr
                     key={goal.id}
                     onClick={() => onEditGoal(goal)}
-                    className="cursor-pointer transition-colors hover:bg-[#f5f5f5]"
+                    className="cursor-pointer transition-colors hover:bg-folk-hover"
                   >
-                    <td className={`${textCell} max-w-[280px] truncate`}>{goal.title || <span className="text-[#bbb]">Untitled goal</span>}</td>
-                    <td className={cellBase}>
-                      <span className="inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] bg-[#e8edf2] px-[12px] text-[12px] font-medium text-[#334155]">{type.label}</span>
+                    <td className={`${TABLE_PANEL_CELL} ${TABLE_PANEL_TEXT} max-w-[280px] truncate`}>
+                      {goal.title || <span className="text-folk-placeholder">Untitled goal</span>}
                     </td>
-                    <td className={cellBase}>
-                      <span className={`inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] px-[12px] text-[12px] font-medium ${status.chip}`}>{status.label}</span>
+                    <td className={TABLE_PANEL_CELL}>
+                      <span className={getGoalTypeChipClasses(goal.goalType)}>{type.label}</span>
                     </td>
-                    <td className={textCell}>{taskCount} {taskCount === 1 ? "task" : "tasks"}</td>
+                    <td className={TABLE_PANEL_CELL}>
+                      <span className={`inline-flex h-[24px] items-center whitespace-nowrap rounded-none px-[12px] text-[12px] font-medium ${status.chip}`}>{status.label}</span>
+                    </td>
+                    <td className={`${TABLE_PANEL_CELL_LAST} ${TABLE_PANEL_TEXT}`}>{linkedLabel}</td>
                   </tr>
                 )
               })}
@@ -92,8 +105,8 @@ export function GoalsTab({ goals, onAddNew, onEditGoal }: GoalsTabProps) {
         </div>
       )}
 
-      <div className="shrink-0 border-t border-[#dcdcdc] px-[20px] py-[10px]">
-        <span className="text-[12px] font-medium text-[#999]">{goals.length} {goals.length === 1 ? "goal" : "goals"}</span>
+      <div className="shrink-0 border-t border-folk-border px-[20px] py-[10px]">
+        <span className="text-[12px] font-medium text-folk-secondary">{goals.length} {goals.length === 1 ? "goal" : "goals"}</span>
       </div>
     </div>
   )

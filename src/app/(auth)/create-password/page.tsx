@@ -112,37 +112,37 @@ export default function CreatePasswordPage() {
   const initial = (branding.name || "W").charAt(0).toUpperCase()
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#fafafa]">
+    <div className="flex min-h-screen items-center justify-center bg-folk-surface">
       <div className="w-full max-w-[380px] px-[16px]">
         <div className="mb-[32px] text-center">
           {branding.logoUrl ? (
             <img
               src={branding.logoUrl}
               alt={`${workspaceLabel} logo`}
-              className="mx-auto mb-[16px] h-[48px] w-[48px] rounded-[10px] object-cover"
+              className="mx-auto mb-[16px] h-[48px] w-[48px] rounded-none object-cover"
             />
           ) : (
-            <div className="mx-auto mb-[16px] flex h-[48px] w-[48px] items-center justify-center rounded-[10px] bg-[#262626] text-[18px] font-semibold text-white">
+            <div className="mx-auto mb-[16px] flex h-[48px] w-[48px] items-center justify-center rounded-none bg-[#1a1a1a] text-[18px] font-semibold text-white">
               {initial}
             </div>
           )}
           {branding.name && (
-            <p className="mb-[4px] text-[13px] font-semibold text-[#888]">{branding.name}</p>
+            <p className="mb-[4px] text-[13px] font-semibold text-folk-secondary">{branding.name}</p>
           )}
-          <h1 className="text-[20px] font-semibold text-[#262626]">Create your password</h1>
-          <p className="mt-[4px] text-[13px] font-medium text-[#888]">
+          <h1 className="text-[20px] font-semibold text-folk-text">Create your password</h1>
+          <p className="mt-[4px] text-[13px] font-medium text-folk-secondary">
             Set a password to finish joining {workspaceLabel}.
           </p>
         </div>
 
         {!isReady ? (
           <div className="flex h-[120px] items-center justify-center">
-            <div className="h-[20px] w-[20px] animate-spin rounded-full border-2 border-[#e0e0e0] border-t-[#262626]" />
+            <div className="h-[20px] w-[20px] animate-spin rounded-full border-2 border-folk-border border-t-[#1a1a1a]" />
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-[14px]">
             <div>
-              <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Password</label>
+              <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Password</label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -152,12 +152,12 @@ export default function CreatePasswordPage() {
                   required
                   minLength={12}
                   autoComplete="new-password"
-                  className="h-[40px] w-full rounded-lg border border-[#e0e0e0] bg-[#fafafa] px-[12px] pr-[40px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
+                  className="h-[40px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] pr-[40px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-[10px] top-1/2 -translate-y-1/2 text-[#bbb] transition-colors hover:text-[#666]"
+                  className="absolute right-[10px] top-1/2 -translate-y-1/2 text-folk-placeholder transition-colors hover:text-folk-secondary"
                   tabIndex={-1}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
@@ -170,7 +170,7 @@ export default function CreatePasswordPage() {
             </div>
 
             <div>
-              <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Confirm password</label>
+              <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Confirm password</label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -180,12 +180,12 @@ export default function CreatePasswordPage() {
                   required
                   minLength={12}
                   autoComplete="new-password"
-                  className="h-[40px] w-full rounded-lg border border-[#e0e0e0] bg-[#fafafa] px-[12px] pr-[40px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
+                  className="h-[40px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] pr-[40px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-[10px] top-1/2 -translate-y-1/2 text-[#bbb] transition-colors hover:text-[#666]"
+                  className="absolute right-[10px] top-1/2 -translate-y-1/2 text-folk-placeholder transition-colors hover:text-folk-secondary"
                   tabIndex={-1}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
@@ -195,7 +195,7 @@ export default function CreatePasswordPage() {
             </div>
 
             {error && (
-              <p className="rounded-lg bg-red-50 px-[12px] py-[8px] text-[13px] font-medium text-red-600">
+              <p className="rounded-none bg-red-50 px-[12px] py-[8px] text-[13px] font-medium text-red-600">
                 {error}
               </p>
             )}
@@ -203,7 +203,7 @@ export default function CreatePasswordPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="h-[40px] w-full rounded-lg bg-[#262626] text-[13px] font-medium text-white transition-colors hover:bg-[#3d3d3d] disabled:opacity-50"
+              className="h-[40px] w-full rounded-none bg-[#1a1a1a] text-[13px] font-medium text-white transition-colors hover:bg-[#3d3d3d] disabled:opacity-50"
             >
               {isLoading ? "Creating..." : "Create password & continue"}
             </button>

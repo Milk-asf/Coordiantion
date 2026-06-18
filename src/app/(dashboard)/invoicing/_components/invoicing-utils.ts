@@ -1,3 +1,5 @@
+import type { ChargeUnit } from "@/lib/ndis-charges"
+import { isPerItemChargeUnit } from "@/lib/ndis-charges"
 import type { FundingType, Task } from "@/lib/types"
 
 export function formatTime(minutes: number): string {
@@ -17,8 +19,8 @@ export function formatDecimal(value: number): string {
   return value.toLocaleString("en-AU", { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 }
 
-export function formatInvoiceQuantity(task: Task, unit: "hour" | "each" | "km" | undefined): number {
-  if (unit === "each" || unit === "km") return task.timeSpent > 0 ? task.timeSpent : 1
+export function formatInvoiceQuantity(task: Task, unit: ChargeUnit | undefined): number {
+  if (isPerItemChargeUnit(unit)) return task.timeSpent > 0 ? task.timeSpent : 1
   if (task.timeSpent <= 0) return 0
   return Number((task.timeSpent / 60).toFixed(2))
 }

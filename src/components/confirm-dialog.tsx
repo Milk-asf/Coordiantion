@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef } from "react"
 import { AlertTriangle } from "lucide-react"
+import { motion } from "@/lib/motion"
 
 interface ConfirmDialogProps {
   isOpen: boolean
@@ -46,7 +47,7 @@ export function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40"
+      className={`fixed inset-0 z-[200] flex items-center justify-center bg-black/25 ${motion.overlayIn}`}
       onClick={onCancel}
       onKeyDown={handleKeyDown}
       role="dialog"
@@ -54,20 +55,20 @@ export function ConfirmDialog({
       aria-labelledby="confirm-title"
     >
       <div
-        className="mx-[16px] w-full max-w-[380px] rounded-[12px] bg-white p-[24px] shadow-xl"
+        className={`mx-[16px] w-full max-w-[380px] rounded-folk-modal bg-folk-surface p-[24px] shadow-folk ${motion.scaleIn}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex flex-col items-center gap-[12px] text-center">
           <div className={`flex h-[44px] w-[44px] items-center justify-center rounded-full ${iconColors}`}>
             <AlertTriangle className="h-[20px] w-[20px]" strokeWidth={1.5} />
           </div>
-          <h3 id="confirm-title" className="text-[15px] font-semibold text-[#262626]">{title}</h3>
-          <p className="text-[13px] leading-[1.5] text-[#888]">{description}</p>
+          <h3 id="confirm-title" className="text-[15px] font-semibold text-folk-text">{title}</h3>
+          <p className="text-[13px] leading-[1.5] text-folk-secondary">{description}</p>
         </div>
         <div className="mt-[20px] flex items-center gap-[10px]">
           <button
             onClick={onCancel}
-            className="flex-1 rounded-[8px] border border-[#e0e0e0] bg-white px-[14px] py-[9px] text-[13px] font-medium text-[#555] transition-colors hover:bg-[#f5f5f5]"
+            className={`flex-1 rounded-none border border-folk-border bg-folk-surface px-[14px] py-[9px] text-[13px] font-medium text-folk-secondary ${motion.interactive} hover:bg-folk-hover`}
             tabIndex={0}
           >
             {cancelLabel}
@@ -75,7 +76,7 @@ export function ConfirmDialog({
           <button
             ref={confirmRef}
             onClick={onConfirm}
-            className={`flex-1 rounded-[8px] px-[14px] py-[9px] text-[13px] font-medium transition-colors ${confirmColors}`}
+            className={`flex-1 rounded-none px-[14px] py-[9px] text-[13px] font-medium ${motion.interactive} ${confirmColors}`}
             tabIndex={0}
           >
             {confirmLabel}

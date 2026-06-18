@@ -1,19 +1,19 @@
 "use client"
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react"
-import Link from "next/link"
 import {
+  Building2,
   CalendarDays,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  DollarSign,
+  Hash,
   ListFilter,
-  Receipt,
   SlidersHorizontal,
   Table2,
   Tag,
   User,
-  Building2,
 } from "lucide-react"
 import { useCharges } from "@/lib/hooks/use-charges"
 import { useClients } from "@/lib/hooks/use-clients"
@@ -24,13 +24,15 @@ import { useStaff } from "@/lib/hooks/use-staff"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import { useWorkspace } from "@/lib/workspace-context"
 import { useWorkspaceSettings } from "@/lib/hooks/use-workspace-settings"
-import { serviceChargeTypes } from "@/lib/ndis-charges"
+import { isPerItemChargeUnit, normalizeBillingUnit, serviceChargeTypes } from "@/lib/ndis-charges"
 import { TaskDetailModal } from "@/app/(dashboard)/tasks/_components/task-detail-modal"
 import type { Client, InvoiceDeliveryMethod, InvoiceLineItem, Task } from "@/lib/types"
 import { PageLoader, PageError } from "@/components/page-state"
+import { ProfileTabButton } from "@/components/profile-tab-button"
+import { InvoicingNav } from "./_components/invoicing-nav"
 import { useToast } from "@/components/toast"
+import { getFundingTypeChipClasses } from "@/lib/chip-colors"
 import {
-  formatTime,
   formatCurrency,
   formatDecimal,
   formatInvoiceQuantity,
@@ -50,6 +52,23 @@ import {
   MultiSelectDropdown,
   EmptyState,
 } from "./_components/invoicing-helpers"
+import { DisplayPopoverPanel, DisplayPopoverTrigger, countHiddenDisplayFilters } from "@/components/display-popover"
+import { ExpandableTableSearch } from "@/components/expandable-table-search"
+import { FixedDropdownMenu } from "@/components/fixed-dropdown-menu"
+import { matchesTableSearch } from "@/lib/table-search"
+import {
+  TABLE_CELL_BASE,
+  TABLE_CELL_INNER,
+  TABLE_CELL_LAST,
+  TABLE_CELL_STICKY_CHECKBOX,
+  TABLE_FULL,
+  TABLE_HEADER_CELL,
+  TABLE_HEADER_CELL_LAST,
+  TABLE_HEADER_STICKY_CHECKBOX,
+  TABLE_ROW_HOVER,
+  TABLE_TEXT_CELL,
+} from "@/lib/table-styles"
+import { motion } from "@/lib/motion"
 
 interface InvoicingSavedView {
   id: string
@@ -68,22 +87,23 @@ interface InvoicingSavedView {
 interface InvoiceColumnDef {
   key: string
   label: string
-  width: string
+  width: number
   alwaysVisible?: boolean
+  icon?: typeof User
 }
 
 const invoiceColumnDefs: InvoiceColumnDef[] = [
-  { key: "checkbox", label: "", width: "40px", alwaysVisible: true },
-  { key: "date", label: "Date", width: "100px" },
-  { key: "type", label: "Type", width: "80px" },
-  { key: "participant", label: "Participant", width: "minmax(180px,1.5fr)" },
-  { key: "charge", label: "Charge Item", width: "110px" },
-  { key: "quantity", label: "Quantity", width: "90px" },
-  { key: "unit-cost", label: "Unit Cost", width: "100px" },
-  { key: "amount", label: "Total Cost", width: "100px" },
+  { key: "checkbox", label: "", width: 44, alwaysVisible: true },
+  { key: "participant", label: "Participant", width: 180, icon: User },
+  { key: "amount", label: "Total Cost", width: 120, icon: DollarSign },
+  { key: "quantity", label: "Quantity", width: 100, icon: Hash },
+  { key: "status", label: "Status", width: 110, alwaysVisible: true, icon: Tag },
+  { key: "date", label: "Date", width: 110, icon: CalendarDays },
+  { key: "type", label: "Type", width: 100, icon: Building2 },
+  { key: "charge", label: "Charge Item", width: 180, icon: Tag },
 ] as const
 
-const defaultVisibleColumnKeys = ["checkbox", "date", "type", "participant", "charge", "quantity", "unit-cost", "amount"]
+const defaultVisibleColumnKeys = ["checkbox", "participant", "amount", "quantity", "status", "date", "type", "charge"]
 const weekDayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 export default function InvoicingPage() {
@@ -125,6 +145,7 @@ export default function InvoicingPage() {
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false)
   const [activeFilterDropdown, setActiveFilterDropdown] = useState<string | null>(null)
   const [isDisplayOpen, setIsDisplayOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
   const [isCreateViewOpen, setIsCreateViewOpen] = useState(false)
   const [newViewName, setNewViewName] = useState("")
   const [viewContextMenu, setViewContextMenu] = useState<{ viewId: string; x: number; y: number } | null>(null)
@@ -250,7 +271,7 @@ export default function InvoicingPage() {
       chargeItemNumber: charge.itemNumber,
       chargeName: charge.shortName,
       quantity,
-      unit: charge.unit,
+      unit: normalizeBillingUnit(charge.unit),
       rate: charge.price,
       amount,
       serviceDate: task.dueDate || "",
@@ -263,7 +284,7 @@ export default function InvoicingPage() {
     const secondaryCharge = getTaskSecondaryCharge(task)
     const secondaryRaw = task.secondaryTimeSpent || 0
     if (secondaryCharge && secondaryRaw > 0) {
-      const secondaryQuantity = secondaryCharge.unit === "each" || secondaryCharge.unit === "km"
+      const secondaryQuantity = isPerItemChargeUnit(secondaryCharge.unit)
         ? secondaryRaw
         : Number((secondaryRaw / 60).toFixed(2))
       const secondaryAmount = roundMoney(secondaryQuantity * secondaryCharge.price)
@@ -274,7 +295,7 @@ export default function InvoicingPage() {
         chargeItemNumber: secondaryCharge.itemNumber,
         chargeName: secondaryCharge.shortName,
         quantity: secondaryQuantity,
-        unit: secondaryCharge.unit,
+        unit: normalizeBillingUnit(secondaryCharge.unit),
         rate: secondaryCharge.price,
         amount: secondaryAmount,
         serviceDate: task.dueDate || "",
@@ -495,6 +516,9 @@ export default function InvoicingPage() {
       if (displayParticipants.length > 0 && !displayParticipants.includes(task.client)) return false
       if (displayAssignees.length > 0 && !displayAssignees.includes(task.assignee)) return false
       if (displayCharges.length > 0 && !displayCharges.includes(task.chargeType)) return false
+      if (!matchesTableSearch(searchQuery, task.title, task.client, task.assignee, task.chargeType, task.description)) {
+        return false
+      }
       if (dateFilter.length === 0) return true
 
       const today = new Date()
@@ -527,6 +551,7 @@ export default function InvoicingPage() {
     displayParticipants,
     participantFilter,
     readyTasks,
+    searchQuery,
   ])
 
   const sortedTasks = useMemo(
@@ -539,6 +564,10 @@ export default function InvoicingPage() {
     : null
 
   const hasDisplayFilters = displayParticipants.length > 0 || displayAssignees.length > 0 || displayCharges.length > 0
+  const hiddenDisplayCount =
+    countHiddenDisplayFilters(uniqueParticipants, displayParticipants)
+    + countHiddenDisplayFilters(uniqueAssignees, displayAssignees)
+    + countHiddenDisplayFilters(uniqueCharges, displayCharges)
   const filteredTaskIds = filteredTasks.map((task) => task.id)
   const hasFilteredTasks = filteredTaskIds.length > 0
   const areAllFilteredTasksReviewed = hasFilteredTasks && filteredTaskIds.every((taskId) => reviewedTaskIds.includes(taskId))
@@ -547,8 +576,12 @@ export default function InvoicingPage() {
     [readyTasks, reviewedTaskIds]
   )
   const selectedTaskCount = selectedTasksToInvoice.length
-  const isColumnVisible = (key: string) => visibleColumnKeys.includes(key)
+
   const visibleColumns = invoiceColumnDefs.filter((column) => column.alwaysVisible || visibleColumnKeys.includes(column.key))
+  const tableMinWidth = useMemo(
+    () => visibleColumns.reduce((sum, column) => sum + column.width, 0),
+    [visibleColumns]
+  )
   const weekStart = getStartOfWeek(weekOffset)
   const weekEnd = new Date(weekStart)
   weekEnd.setDate(weekEnd.getDate() + 6)
@@ -751,101 +784,187 @@ export default function InvoicingPage() {
     const quantity = charge?.unit === "each" || charge?.unit === "km"
       ? task.timeSpent > 0 ? task.timeSpent : 1
       : task.timeSpent > 0 ? task.timeSpent / 60 : 0
-    const unitLabel = charge?.unit === "km" ? "KM" : charge?.unit === "each" ? "EA" : "H"
-    const unitCost = charge?.price || 0
     const amount = getTaskAmount(task)
     const isReviewed = reviewedTaskIds.includes(task.id)
     const invoiceIssues = getTaskInvoiceIssues(task)
     const hasInvoiceIssues = invoiceIssues.length > 0
-    const lastKey = visibleColumns[visibleColumns.length - 1]?.key
 
-    const tdClass = (key: string) =>
-      `h-[44px] overflow-hidden whitespace-nowrap border-b ${key !== lastKey ? "border-r" : ""} border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626] group-hover:bg-[#f5f5f5]`
+    const renderCell = (columnKey: string, isLast: boolean) => {
+      const cellClass = `${isLast ? TABLE_CELL_LAST : TABLE_CELL_BASE} bg-folk-surface ${TABLE_ROW_HOVER}`
+
+      if (columnKey === "checkbox") {
+        return (
+          <td key={columnKey} className={`${TABLE_CELL_STICKY_CHECKBOX} bg-folk-surface ${TABLE_ROW_HOVER}`}>
+            <div className={`${TABLE_CELL_INNER} justify-center`}>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setReviewedTaskIds((current) => current.includes(task.id)
+                    ? current.filter((taskId) => taskId !== task.id)
+                    : [...current, task.id])
+                }}
+                className={`flex h-[18px] w-[18px] items-center justify-center rounded-none border-[1.5px] transition-colors ${
+                  isReviewed
+                    ? "border-[#2563EB] bg-[#2563EB] text-white"
+                    : "border-[#ccc] hover:border-[#999]"
+                }`}
+                tabIndex={0}
+                aria-label={isReviewed ? "Unmark invoice review" : "Mark invoice review"}
+              >
+                {isReviewed && <span className="text-[9px]">✓</span>}
+              </button>
+            </div>
+          </td>
+        )
+      }
+
+      if (columnKey === "participant") {
+        return (
+          <td key={columnKey} className={cellClass}>
+            <div className={TABLE_CELL_INNER}>
+              <span className={`${TABLE_TEXT_CELL} truncate`}>{participantName}</span>
+            </div>
+          </td>
+        )
+      }
+
+      if (columnKey === "amount") {
+        return (
+          <td key={columnKey} className={cellClass}>
+            <div className={TABLE_CELL_INNER}>
+              {amount > 0 ? (
+                <span className="inline-flex h-[24px] items-center whitespace-nowrap rounded-none bg-green-50 px-[10px] text-[12px] font-medium text-green-700">
+                  {formatCurrency(amount)}
+                </span>
+              ) : (
+                <span className="text-[#ccc]">—</span>
+              )}
+            </div>
+          </td>
+        )
+      }
+
+      if (columnKey === "quantity") {
+        return (
+          <td key={columnKey} className={cellClass}>
+            <div className={TABLE_CELL_INNER}>
+              {quantity > 0 ? (
+                <span className={`${TABLE_TEXT_CELL} text-folk-secondary`}>{formatDecimal(quantity)}</span>
+              ) : (
+                <span className="text-[#ccc]">—</span>
+              )}
+            </div>
+          </td>
+        )
+      }
+
+      if (columnKey === "status") {
+        return (
+          <td key={columnKey} className={cellClass}>
+            <div className={TABLE_CELL_INNER}>
+              <span
+                className={`inline-flex h-[24px] items-center whitespace-nowrap rounded-none px-[10px] text-[12px] font-medium ${
+                  hasInvoiceIssues ? "bg-red-50 text-red-600" : "bg-green-100 text-green-700"
+                }`}
+                title={hasInvoiceIssues ? invoiceIssues.join(" ") : undefined}
+              >
+                {hasInvoiceIssues ? "Not Ready" : "Ready"}
+              </span>
+            </div>
+          </td>
+        )
+      }
+
+      if (columnKey === "date") {
+        return (
+          <td key={columnKey} className={cellClass}>
+            <div className={TABLE_CELL_INNER}>
+              {formatInvoiceDate(task.dueDate) ? (
+                <span className={`${TABLE_TEXT_CELL} text-folk-secondary`}>{formatInvoiceDate(task.dueDate)}</span>
+              ) : (
+                <span className="text-[#ccc]">—</span>
+              )}
+            </div>
+          </td>
+        )
+      }
+
+      if (columnKey === "type") {
+        return (
+          <td key={columnKey} className={cellClass}>
+            <div className={TABLE_CELL_INNER}>
+              <span className={getFundingTypeChipClasses(fundingType)}>{typeLabel}</span>
+            </div>
+          </td>
+        )
+      }
+
+      if (columnKey === "charge") {
+        return (
+          <td key={columnKey} className={cellClass}>
+            <div className={TABLE_CELL_INNER}>
+              {task.chargeType ? (
+                <span className={`${TABLE_TEXT_CELL} truncate`}>{chargeLabel(task.chargeType)}</span>
+              ) : (
+                <span className="text-[#ccc]">—</span>
+              )}
+            </div>
+          </td>
+        )
+      }
+
+      return null
+    }
 
     return (
       <tr
         key={task.id}
-        className="group cursor-pointer transition-colors"
+        className={`group cursor-pointer transition-colors hover:bg-folk-hover ${motion.row}`}
         onClick={() => setSelectedTaskId(task.id)}
-        role="button"
         tabIndex={0}
         onKeyDown={(event) => {
           if (event.key === "Enter") setSelectedTaskId(task.id)
         }}
       >
-        <td className={`${tdClass("checkbox")}${hasInvoiceIssues ? " border-l-[3px] border-l-[#e46a6a]" : ""}`}>
-          <div className="flex items-center justify-center">
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation()
-                setReviewedTaskIds((current) => current.includes(task.id)
-                  ? current.filter((taskId) => taskId !== task.id)
-                  : [...current, task.id])
-              }}
-              className={`flex h-[18px] w-[18px] items-center justify-center rounded border-[1.5px] transition-colors ${
-                isReviewed
-                  ? "border-[#2563EB] bg-[#2563EB] text-white"
-                  : "border-[#ccc] hover:border-[#999]"
-              }`}
-              tabIndex={0}
-              aria-label={isReviewed ? "Unmark invoice review" : "Mark invoice review"}
-            >
-              {isReviewed && <span className="text-[9px]">✓</span>}
-            </button>
-          </div>
-        </td>
-        {isColumnVisible("date") && (
-          <td className={tdClass("date")}>
-            {formatInvoiceDate(task.dueDate) || <span className="text-[#ccc]">—</span>}
-          </td>
-        )}
-        {isColumnVisible("type") && (
-          <td className={tdClass("type")}>
-            <span className={`inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] px-[12px] text-[12px] font-medium ${
-              fundingType === "plan-managed" ? "bg-[#e8edf2] text-[#334155]"
-              : fundingType === "ndia-managed" ? "bg-[#ede8f5] text-[#5b21b6]"
-              : fundingType === "self-managed" ? "bg-green-100 text-green-700"
-              : "bg-[#f0f0f0] text-[#555]"
-            }`}>
-              {typeLabel}
-            </span>
-          </td>
-        )}
-        {isColumnVisible("participant") && (
-          <td className={tdClass("participant")}>
-            <span className="truncate">{participantName}</span>
-          </td>
-        )}
-        {isColumnVisible("charge") && (
-          <td className={tdClass("charge")}>
-            {task.chargeType ? (
-              <span className="truncate">{chargeLabel(task.chargeType)}</span>
-            ) : <span className="text-[#ccc]">—</span>}
-          </td>
-        )}
-        {isColumnVisible("quantity") && (
-          <td className={tdClass("quantity")}>
-            {quantity > 0 ? (
-              <span className="text-[#666]">{formatDecimal(quantity)} {unitLabel}</span>
-            ) : <span className="text-[#ccc]">—</span>}
-          </td>
-        )}
-        {isColumnVisible("unit-cost") && (
-          <td className={tdClass("unit-cost")}>
-            {unitCost > 0 ? (
-              <span className="text-[#666]">{formatCurrency(unitCost)}</span>
-            ) : <span className="text-[#ccc]">—</span>}
-          </td>
-        )}
-        {isColumnVisible("amount") && (
-          <td className={tdClass("amount")}>
-            {amount > 0 ? <span className="inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] bg-green-50 px-[10px] text-[12px] font-medium text-green-700">{formatCurrency(amount)}</span> : <span className="text-[#ccc]">—</span>}
-          </td>
+        {visibleColumns.map((column, colIndex) =>
+          renderCell(column.key, colIndex === visibleColumns.length - 1)
         )}
       </tr>
     )
   }
+
+  const renderTableHeader = () => (
+    <thead>
+      <tr>
+        {visibleColumns.map((column, colIndex) => {
+          const isLast = colIndex === visibleColumns.length - 1
+          if (column.key === "checkbox") {
+            return (
+              <th
+                key={column.key}
+                className={`sticky top-0 z-30 ${TABLE_HEADER_STICKY_CHECKBOX}`}
+                style={{ width: column.width, minWidth: column.width }}
+              />
+            )
+          }
+          const ColIcon = column.icon
+          return (
+            <th
+              key={column.key}
+              className={`sticky top-0 z-20 ${isLast ? TABLE_HEADER_CELL_LAST : TABLE_HEADER_CELL}`}
+              style={{ width: column.width, minWidth: column.width }}
+            >
+              <div className="flex items-center gap-[6px]">
+                {ColIcon && <ColIcon className="h-[13px] w-[13px] shrink-0 text-folk-secondary" strokeWidth={1.5} />}
+                <span className="truncate">{column.label}</span>
+              </div>
+            </th>
+          )
+        })}
+      </tr>
+    </thead>
+  )
 
   const weekTasks = filteredTasks.filter((task) => {
     if (!task.dueDate) return false
@@ -873,61 +992,43 @@ export default function InvoicingPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-[#f0f0f0] px-[16px]">
-        <div className="flex items-center gap-[8px]">
-          <span className="text-[13px] font-medium text-[#262626]">Invoicing</span>
-          <div className="h-[16px] w-px bg-[#e5e5e5]" />
-          <button
-            type="button"
-            onClick={selectDefaultView}
-            className={`flex items-center gap-[6px] rounded-[4px] border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === null ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
-            tabIndex={0}
-          >
-            <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
-            <span>Draft invoices</span>
-          </button>
-          <Link
-            href="/invoices"
-            className="flex items-center gap-[6px] rounded-[4px] border border-transparent px-[8px] py-[4px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
-          >
-            <Receipt className="h-[14px] w-[14px]" strokeWidth={1.75} />
-            <span>Invoices</span>
-          </Link>
-          {savedViews.length > 0 && <div className="h-[16px] w-px bg-[#dcdcdc]" />}
-          {savedViews.map((view) => (
-            <button
-              key={view.id}
-              type="button"
-              onClick={() => selectView(view)}
-              onContextMenu={(event) => {
-                event.preventDefault()
-                setViewContextMenu({ viewId: view.id, x: event.clientX, y: event.clientY })
-              }}
-              className={`flex items-center gap-[6px] rounded-[4px] border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === view.id ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
-              tabIndex={0}
-            >
-              <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
-              <span>{view.name}</span>
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-[8px]">
+      <InvoicingNav
+        suffix={
+          <>
+            {savedViews.length > 0 && <div className="h-[16px] w-px shrink-0 bg-[var(--folk-border)]" />}
+            {savedViews.map((view) => (
+              <ProfileTabButton
+                key={view.id}
+                isActive={activeViewId === view.id}
+                onClick={() => selectView(view)}
+                onContextMenu={(event) => {
+                  event.preventDefault()
+                  setViewContextMenu({ viewId: view.id, x: event.clientX, y: event.clientY })
+                }}
+                icon={Table2}
+                label={view.name}
+              />
+            ))}
+          </>
+        }
+        actions={
+          <div className="flex items-center gap-[8px]">
           {viewMode === "week" && (
             <div className="flex items-center gap-[6px]">
               <button
                 type="button"
                 onClick={() => setWeekOffset((current) => current - 1)}
-                className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+                className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
                 tabIndex={0}
                 aria-label="Previous week"
               >
                 <ChevronLeft className="h-[14px] w-[14px]" strokeWidth={1.75} />
               </button>
-              <span className="min-w-[160px] text-center text-[13px] font-semibold text-[#262626]">{formatWeekLabel()}</span>
+              <span className="min-w-[160px] text-center text-[13px] font-semibold text-folk-text">{formatWeekLabel()}</span>
               <button
                 type="button"
                 onClick={() => setWeekOffset((current) => current + 1)}
-                className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+                className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
                 tabIndex={0}
                 aria-label="Next week"
               >
@@ -937,7 +1038,7 @@ export default function InvoicingPage() {
                 type="button"
                 onClick={() => setWeekOffset(0)}
                 disabled={weekOffset === 0}
-                className={`flex items-center gap-[5px] rounded border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${weekOffset === 0 ? "cursor-default border-[#e8e8e8] bg-white text-[#ccc]" : "border-[#dcdcdc] bg-white text-[#262626] hover:bg-[#f5f5f5]"}`}
+                className={`flex items-center gap-[5px] rounded-none border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${weekOffset === 0 ? "cursor-default border-[#e8e8e8] bg-folk-surface text-[#ccc]" : "border-folk-border bg-folk-surface text-folk-text hover:bg-folk-hover"}`}
                 tabIndex={0}
               >
                 This week
@@ -951,7 +1052,7 @@ export default function InvoicingPage() {
               setIsSendInvoicesOpen(true)
             }}
             disabled={selectedTaskCount === 0}
-            className={`flex items-center gap-[6px] rounded-[4px] px-[10px] py-[6px] text-[13px] font-medium transition-colors ${
+            className={`flex items-center gap-[6px] rounded-none px-[10px] py-[6px] text-[13px] font-medium transition-colors ${
               selectedTaskCount > 0
                 ? "primary-btn"
                 : "cursor-not-allowed bg-[#efefef] text-[#b8b8b8]"
@@ -959,16 +1060,17 @@ export default function InvoicingPage() {
             tabIndex={0}
           >
             <span>Create invoices</span>
-            <span className={`rounded-[4px] px-[6px] py-[1px] text-[11px] font-semibold ${
-              selectedTaskCount > 0 ? "bg-[#e8e8e8] text-[#555]" : "bg-[#f5f5f5] text-[#b8b8b8]"
+            <span className={`rounded-none px-[6px] py-[1px] text-[11px] font-semibold ${
+              selectedTaskCount > 0 ? "bg-[#e8e8e8] text-[#555]" : "bg-folk-hover text-[#b8b8b8]"
             }`}>
               {selectedTaskCount}
             </span>
           </button>
         </div>
-      </div>
+        }
+      />
 
-      <div className="flex h-[41px] shrink-0 items-center gap-[8px] border-b border-[#dcdcdc] px-[16px]">
+      <div className="flex h-[41px] shrink-0 items-center gap-[8px] border-b border-folk-border bg-folk-nav px-[16px]">
         <div className="relative">
           <button
             type="button"
@@ -977,39 +1079,43 @@ export default function InvoicingPage() {
               setIsFilterMenuOpen((current) => !current)
               setActiveFilterDropdown(null)
             }}
-            className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+            className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
             tabIndex={0}
           >
             <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
             <span>Filter</span>
           </button>
           {isFilterMenuOpen && (
-            <>
-              <div className="fixed inset-0 z-[55]" onClick={() => setIsFilterMenuOpen(false)} />
-              <div className="absolute left-0 top-full z-[60] mt-[4px] w-[180px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-                <p className="px-[16px] py-[6px] text-[11px] font-medium text-[#888]">Filter by</p>
-                {[
-                  { key: "date", label: "Date", icon: CalendarDays },
-                  { key: "participant", label: "Client", icon: Building2 },
-                  { key: "assignee", label: "Assignee", icon: User },
-                  { key: "charge", label: "Charge", icon: Tag },
-                ].map(({ key, label, icon: Icon }) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => {
-                      setActiveFilterDropdown(key)
-                      setIsFilterMenuOpen(false)
-                    }}
-                    className="flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                    tabIndex={0}
-                  >
-                    <Icon className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </>
+            <FixedDropdownMenu
+              isOpen={isFilterMenuOpen}
+              anchorRef={filterButtonRef}
+              onClose={() => setIsFilterMenuOpen(false)}
+              estimatedHeight={220}
+              minWidth={180}
+              className="py-[4px]"
+            >
+              <p className="px-[16px] py-[6px] text-[11px] font-medium text-folk-secondary">Filter by</p>
+              {[
+                { key: "date", label: "Date", icon: CalendarDays },
+                { key: "participant", label: "Client", icon: Building2 },
+                { key: "assignee", label: "Assignee", icon: User },
+                { key: "charge", label: "Charge", icon: Tag },
+              ].map(({ key, label, icon: Icon }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => {
+                    setActiveFilterDropdown(key)
+                    setIsFilterMenuOpen(false)
+                  }}
+                  className="flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+                  tabIndex={0}
+                >
+                  <Icon className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} />
+                  {label}
+                </button>
+              ))}
+            </FixedDropdownMenu>
           )}
         </div>
 
@@ -1062,21 +1168,28 @@ export default function InvoicingPage() {
           />
         )}
 
-        <div className="relative ml-auto">
+        <div className="relative ml-auto flex shrink-0 items-center gap-[8px]">
+          <ExpandableTableSearch
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search tasks…"
+            ariaLabel="Search tasks"
+          />
+          <div className="relative">
           <button
             type="button"
             ref={pageSizeButtonRef}
             onClick={() => setIsPageSizeOpen((current) => !current)}
-            className="flex items-center gap-[5px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+            className="flex items-center gap-[5px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
             tabIndex={0}
           >
             <span>{pageSize} per page</span>
-            <ChevronDown className="h-[11px] w-[11px] text-[#888]" strokeWidth={1.5} />
+            <ChevronDown className="h-[11px] w-[11px] text-folk-secondary" strokeWidth={1.5} />
           </button>
           {isPageSizeOpen && (
             <>
               <div className="fixed inset-0 z-[55]" onClick={() => setIsPageSizeOpen(false)} />
-              <div className="absolute right-0 top-full z-[60] mt-[4px] w-[120px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+              <div className="absolute right-0 top-full z-[60] mt-[4px] w-[120px] rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk">
                 {[10, 20, 50, 100].map((size) => (
                   <button
                     key={size}
@@ -1086,7 +1199,7 @@ export default function InvoicingPage() {
                       setVisibleCount(size)
                       setIsPageSizeOpen(false)
                     }}
-                    className={`flex w-full items-center px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${pageSize === size ? "bg-[#f5f5f5] text-[#262626]" : "text-[#262626]"}`}
+                    className={`flex w-full items-center px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${pageSize === size ? "bg-folk-hover text-folk-text" : "text-folk-text"}`}
                     tabIndex={0}
                   >
                     {size} per page
@@ -1095,133 +1208,113 @@ export default function InvoicingPage() {
               </div>
             </>
           )}
-        </div>
+          </div>
 
-        <button
-          type="button"
-          ref={displayButtonRef}
-          onClick={() => setIsDisplayOpen((current) => !current)}
-          className={`flex items-center gap-[5px] rounded border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${hasDisplayFilters ? "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100" : "border-[#dcdcdc] text-[#262626] hover:bg-[#f5f5f5]"}`}
-          tabIndex={0}
-        >
-          <SlidersHorizontal className="h-[13px] w-[13px]" strokeWidth={1.5} />
-          <span className="hidden sm:inline">Display</span>
-          {hasDisplayFilters && (
-            <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded-[4px] bg-[#e8edf2] px-[4px] text-[10px] font-bold text-[#334155]">
-              {displayParticipants.length + displayAssignees.length + displayCharges.length}
-            </span>
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            if (!hasFilteredTasks) return
-            setReviewedTaskIds((current) => (
-              areAllFilteredTasksReviewed
-                ? current.filter((taskId) => !filteredTaskIds.includes(taskId))
-                : Array.from(new Set([...current, ...filteredTaskIds]))
-            ))
-          }}
-          disabled={!hasFilteredTasks}
-          className={`flex items-center gap-[5px] rounded border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${
-            hasFilteredTasks
-              ? "border-[#dcdcdc] text-[#262626] hover:bg-[#f5f5f5]"
-              : "cursor-not-allowed border-[#e8e8e8] text-[#ccc]"
-          }`}
-          tabIndex={0}
-        >
-          <span>{areAllFilteredTasksReviewed ? "Deselect all" : "Select all"}</span>
-        </button>
-        {isDisplayOpen && (
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setIsDisplayOpen(false)} />
-            <div
-              className="fixed z-50 w-[420px] rounded-lg border border-[#dcdcdc] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-              style={(() => {
-                const rect = displayButtonRef.current?.getBoundingClientRect()
-                if (!rect) return {}
-                return { top: rect.bottom + 4, right: window.innerWidth - rect.right }
-              })()}
-            >
-              <div className="max-h-[520px] overflow-y-auto">
-                <div className="px-[20px] pb-[16px] pt-[16px]">
-                  <div className="flex gap-[10px]">
-                    {([
-                      { key: "list" as const, label: "List", icon: Table2 },
-                      { key: "week" as const, label: "Week", icon: CalendarDays },
-                    ]).map(({ key, label, icon: Icon }) => {
-                      const isActive = viewMode === key
-                      return (
-                        <button
-                          key={key}
-                          type="button"
-                          onClick={() => {
-                            setViewMode(key)
-                            if (key === "list") setWeekOffset(0)
-                          }}
-                          className={`flex flex-1 flex-col items-center justify-center gap-[6px] rounded-xl border py-[14px] transition-colors ${isActive ? "border-[#d0d0d0] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]" : "border-transparent bg-[#fafafa] hover:bg-[#f0f0f0]"}`}
-                          tabIndex={0}
-                        >
-                          <Icon className={`h-[20px] w-[20px] ${isActive ? "text-[#262626]" : "text-[#999]"}`} strokeWidth={1.5} />
-                          <span className={`text-[13px] font-medium ${isActive ? "text-[#262626]" : "text-[#999]"}`}>{label}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                <DisplaySection
-                  title="Clients"
-                  items={uniqueParticipants}
-                  activeItems={displayParticipants}
-                  onToggle={(value) => handleToggleDisplayItem(displayParticipants, setDisplayParticipants, value)}
-                />
-                <DisplaySection
-                  title="Assignees"
-                  items={uniqueAssignees}
-                  activeItems={displayAssignees}
-                  onToggle={(value) => handleToggleDisplayItem(displayAssignees, setDisplayAssignees, value)}
-                />
-                <DisplaySection
-                  title="Charges"
-                  items={uniqueCharges}
-                  activeItems={displayCharges}
-                  onToggle={(value) => handleToggleDisplayItem(displayCharges, setDisplayCharges, value)}
-                  formatLabel={chargeLabel}
-                />
+          <DisplayPopoverTrigger
+            hiddenCount={hiddenDisplayCount}
+            isOpen={isDisplayOpen}
+            onClick={() => setIsDisplayOpen((current) => !current)}
+            buttonRef={displayButtonRef}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              if (!hasFilteredTasks) return
+              setReviewedTaskIds((current) => (
+                areAllFilteredTasksReviewed
+                  ? current.filter((taskId) => !filteredTaskIds.includes(taskId))
+                  : Array.from(new Set([...current, ...filteredTaskIds]))
+              ))
+            }}
+            disabled={!hasFilteredTasks}
+            className={`flex items-center gap-[5px] rounded-none border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${
+              hasFilteredTasks
+                ? "border-folk-border text-folk-text hover:bg-folk-hover"
+                : "cursor-not-allowed border-[#e8e8e8] text-[#ccc]"
+            }`}
+            tabIndex={0}
+          >
+            <span>{areAllFilteredTasksReviewed ? "Deselect all" : "Select all"}</span>
+          </button>
+          <DisplayPopoverPanel
+            isOpen={isDisplayOpen}
+            onClose={() => setIsDisplayOpen(false)}
+            buttonRef={displayButtonRef}
+            widthClassName="w-[280px]"
+          >
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="flex gap-[8px] border-b border-folk-border-subtle px-[12px] py-[12px]">
+                {([
+                  { key: "list" as const, label: "List", icon: Table2 },
+                  { key: "week" as const, label: "Week", icon: CalendarDays },
+                ]).map(({ key, label, icon: Icon }) => {
+                  const isActive = viewMode === key
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => {
+                        setViewMode(key)
+                        if (key === "list") setWeekOffset(0)
+                      }}
+                      className={`flex flex-1 flex-col items-center justify-center gap-[6px] rounded-none border py-[12px] transition-colors ${isActive ? "border-folk-border bg-[#f5f5f5] text-folk-text" : "border-transparent bg-white text-folk-secondary hover:bg-[#f5f5f5]"}`}
+                      tabIndex={0}
+                    >
+                      <Icon className="h-[18px] w-[18px]" strokeWidth={1.5} />
+                      <span className="text-[12px] font-medium">{label}</span>
+                    </button>
+                  )
+                })}
               </div>
 
-              <div className="flex items-center gap-[20px] border-t border-[#f0f0f0] px-[20px] py-[12px]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDisplayParticipants([])
-                    setDisplayAssignees([])
-                    setDisplayCharges([])
-                    setViewMode("list")
-                    setWeekOffset(0)
-                  }}
-                  className="text-[13px] font-medium text-[#bbb] transition-colors hover:text-[#262626]"
-                  tabIndex={0}
-                >
-                  Reset
-                </button>
+              <DisplaySection
+                title="Clients"
+                items={uniqueParticipants}
+                activeItems={displayParticipants}
+                setActiveItems={setDisplayParticipants}
+              />
+              <DisplaySection
+                title="Assignees"
+                items={uniqueAssignees}
+                activeItems={displayAssignees}
+                setActiveItems={setDisplayAssignees}
+              />
+              <DisplaySection
+                title="Charges"
+                items={uniqueCharges}
+                activeItems={displayCharges}
+                setActiveItems={setDisplayCharges}
+                formatLabel={chargeLabel}
+              />
               </div>
+
+            <div className="shrink-0 border-t border-folk-border-subtle px-[12px] py-[10px]">
+              <button
+                type="button"
+                onClick={() => {
+                  setDisplayParticipants([])
+                  setDisplayAssignees([])
+                  setDisplayCharges([])
+                  setViewMode("list")
+                  setWeekOffset(0)
+                }}
+                className="text-[13px] font-normal text-folk-placeholder transition-colors hover:text-folk-text"
+                tabIndex={0}
+              >
+                Reset
+              </button>
             </div>
-          </>
-        )}
+            </div>
+          </DisplayPopoverPanel>
+        </div>
       </div>
 
-      {activeFilterDropdown && (
-        <>
-          <div className="fixed inset-0 z-[55]" onClick={() => setActiveFilterDropdown(null)} />
-          {(() => {
-            const anchor = filterPillRefs.current[activeFilterDropdown] || filterButtonRef.current
-            const rect = anchor?.getBoundingClientRect()
-            if (!rect) return null
-            const dropdownStyle = { top: rect.bottom + 4, left: rect.left, minWidth: 200 }
+      {activeFilterDropdown && (() => {
+        const anchor = filterPillRefs.current[activeFilterDropdown] || filterButtonRef.current
+        if (!anchor) return null
 
-            if (activeFilterDropdown === "date") {
+        if (activeFilterDropdown === "date") {
               const dateOptions = [
                 { key: "today", label: "Today" },
                 { key: "tomorrow", label: "Tomorrow" },
@@ -1244,7 +1337,8 @@ export default function InvoicingPage() {
                     setDateFilter([])
                     setActiveFilterDropdown(null)
                   }}
-                  style={dropdownStyle}
+                  anchorElement={anchor}
+                  onClose={() => setActiveFilterDropdown(null)}
                 />
               )
             }
@@ -1265,7 +1359,8 @@ export default function InvoicingPage() {
                     setActiveFilterDropdown(null)
                   }}
                   emptyLabel="No clients"
-                  style={dropdownStyle}
+                  anchorElement={anchor}
+                  onClose={() => setActiveFilterDropdown(null)}
                 />
               )
             }
@@ -1286,7 +1381,8 @@ export default function InvoicingPage() {
                     setActiveFilterDropdown(null)
                   }}
                   emptyLabel="No assignees"
-                  style={dropdownStyle}
+                  anchorElement={anchor}
+                  onClose={() => setActiveFilterDropdown(null)}
                 />
               )
             }
@@ -1306,57 +1402,18 @@ export default function InvoicingPage() {
                   setActiveFilterDropdown(null)
                 }}
                 emptyLabel="No charges"
-                style={dropdownStyle}
+                anchorElement={anchor}
+                onClose={() => setActiveFilterDropdown(null)}
               />
             )
-          })()}
-        </>
-      )}
+      })()}
 
-      <div className="flex-1 overflow-auto bg-[#fafafa]">
-        <table className="w-full border-separate border-spacing-0 text-left">
-          <thead>
-            <tr>
-              {visibleColumns.map((column, colIdx) => {
-                const isLast = colIdx === visibleColumns.length - 1
-                return (
-                  <th
-                    key={column.key}
-                    className={`sticky top-0 z-20 h-[44px] whitespace-nowrap border-b ${isLast ? "" : "border-r"} border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888] ${column.key === "checkbox" ? "text-center" : ""}`}
-                    style={column.width.endsWith("px") ? { width: parseInt(column.width) } : { minWidth: 180 }}
-                  >
-                    {column.label}
-                  </th>
-                )
-              })}
-            </tr>
-          </thead>
+      <div className="flex-1 overflow-auto">
+        <table className={TABLE_FULL} style={{ tableLayout: "fixed", minWidth: tableMinWidth }}>
+          {renderTableHeader()}
           <tbody>
             {viewMode === "list" ? (
-              <>
-                {sortedTasks.slice(0, visibleCount).map(renderTaskRow)}
-                {sortedTasks.length === 0 && (
-                  <tr>
-                    <td colSpan={visibleColumns.length}>
-                      <EmptyState />
-                    </td>
-                  </tr>
-                )}
-                {sortedTasks.length > visibleCount && (
-                  <tr>
-                    <td colSpan={visibleColumns.length} className="border-b border-[#f0f0f0]">
-                      <button
-                        type="button"
-                        onClick={() => setVisibleCount((current) => current + pageSize)}
-                        className="flex w-full items-center justify-center gap-[6px] py-[10px] text-[13px] font-medium text-[#888] transition-colors hover:text-[#262626]"
-                        tabIndex={0}
-                      >
-                        Show more ({sortedTasks.length - visibleCount} remaining)
-                      </button>
-                    </td>
-                  </tr>
-                )}
-              </>
+              sortedTasks.slice(0, visibleCount).map(renderTaskRow)
             ) : (
               <>
                 {Object.entries(dayBuckets).map(([dateStr, dayTasks], index) => {
@@ -1367,17 +1424,17 @@ export default function InvoicingPage() {
 
                   return (
                     <Fragment key={dateStr}>
-                      <tr>
-                        <td colSpan={visibleColumns.length} className={`border-b border-[#e8e8e8] px-[12px] py-[6px] ${isToday ? "bg-blue-50/60" : "bg-[#fafafa]"}`}>
+                      <tr className={isToday ? "bg-blue-50/40" : "bg-folk-page"}>
+                        <td colSpan={visibleColumns.length} className="border-b border-folk-border px-[16px] py-[8px]">
                           <div className="flex items-center gap-[8px]">
-                            <span className={`text-[13px] font-semibold ${isToday ? "text-blue-600" : "text-[#262626]"}`}>
+                            <span className={`text-[13px] font-semibold ${isToday ? "text-blue-600" : "text-folk-text"}`}>
                               {dayLabel}
                             </span>
-                            <span className={`text-[12px] font-medium ${isToday ? "text-blue-400" : "text-[#999]"}`}>
+                            <span className={`text-[12px] font-medium ${isToday ? "text-blue-400" : "text-folk-secondary"}`}>
                               {dateLabel}
                             </span>
                             {dayTasks.length > 0 && (
-                              <span className="text-[11px] font-medium text-[#bbb]">
+                              <span className="text-[11px] font-medium text-folk-placeholder">
                                 {dayTasks.length} {dayTasks.length === 1 ? "task" : "tasks"}
                               </span>
                             )}
@@ -1390,11 +1447,11 @@ export default function InvoicingPage() {
                 })}
                 {noDateTasks.length > 0 && (
                   <Fragment>
-                    <tr>
-                      <td colSpan={visibleColumns.length} className="border-b border-[#e8e8e8] bg-[#fafafa] px-[12px] py-[6px]">
+                    <tr className="bg-folk-page">
+                      <td colSpan={visibleColumns.length} className="border-b border-folk-border px-[16px] py-[8px]">
                         <div className="flex items-center gap-[8px]">
-                          <span className="text-[13px] font-semibold text-[#999]">No date</span>
-                          <span className="text-[11px] font-medium text-[#bbb]">
+                          <span className="text-[13px] font-semibold text-folk-secondary">No date</span>
+                          <span className="text-[11px] font-medium text-folk-placeholder">
                             {noDateTasks.length} {noDateTasks.length === 1 ? "task" : "tasks"}
                           </span>
                         </div>
@@ -1403,21 +1460,32 @@ export default function InvoicingPage() {
                     {noDateTasks.map(renderTaskRow)}
                   </Fragment>
                 )}
-                {filteredTasks.length === 0 && (
-                  <tr>
-                    <td colSpan={visibleColumns.length}>
-                      <EmptyState />
-                    </td>
-                  </tr>
-                )}
               </>
             )}
           </tbody>
         </table>
+
+        {viewMode === "list" ? (
+          <>
+            {sortedTasks.length === 0 && <EmptyState />}
+            {sortedTasks.length > visibleCount && (
+              <button
+                type="button"
+                onClick={() => setVisibleCount((current) => current + pageSize)}
+                className="flex w-full items-center justify-center gap-[6px] border-b border-folk-border-subtle py-[10px] text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-page hover:text-folk-text"
+                tabIndex={0}
+              >
+                Show more ({sortedTasks.length - visibleCount} remaining)
+              </button>
+            )}
+          </>
+        ) : (
+          filteredTasks.length === 0 && <EmptyState />
+        )}
       </div>
 
-      <div className="shrink-0 border-t border-[#dcdcdc] px-[20px] py-[10px]">
-        <span className="text-[12px] font-medium text-[#999]">
+      <div className="shrink-0 border-t border-folk-border px-[20px] py-[10px]">
+        <span className="text-[12px] font-medium text-folk-secondary">
           {viewMode === "week"
             ? `${filteredTasks.length} ${filteredTasks.length === 1 ? "task" : "tasks"} ready to invoice`
             : `${sortedTasks.length} ${sortedTasks.length === 1 ? "task" : "tasks"} ready to invoice`}
@@ -1465,9 +1533,9 @@ export default function InvoicingPage() {
         <>
           <div className="fixed inset-0 z-50 bg-black/20" onClick={() => setIsCreateViewOpen(false)} />
           <div className="fixed inset-0 z-[51] flex items-center justify-center p-[16px]">
-            <div className="w-full max-w-[420px] rounded-[18px] border border-[#e7e7e7] bg-white p-[20px] shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
-              <h3 className="text-[15px] font-semibold text-[#262626]">Create a view for invoicing</h3>
-              <p className="mt-[4px] text-[13px] text-[#888]">Save the current structure, filters and display settings.</p>
+            <div className="w-full max-w-[420px] rounded-[18px] border border-[#e7e7e7] bg-folk-surface p-[20px] shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+              <h3 className="text-[15px] font-semibold text-folk-text">Create a view for invoicing</h3>
+              <p className="mt-[4px] text-[13px] text-folk-secondary">Save the current structure, filters and display settings.</p>
               <input
                 ref={newViewInputRef}
                 value={newViewName}
@@ -1476,13 +1544,13 @@ export default function InvoicingPage() {
                   if (event.key === "Enter") handleCreateView()
                 }}
                 placeholder="View name"
-                className="mt-[16px] w-full rounded-[12px] border border-[#e2e2e2] bg-[#fafafa] px-[12px] py-[10px] text-[14px] text-[#262626] outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
+                className="mt-[16px] w-full rounded-none border border-[#e2e2e2] bg-folk-page px-[12px] py-[10px] text-[14px] text-folk-text outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
               />
               <div className="mt-[16px] flex items-center justify-end gap-[8px]">
                 <button
                   type="button"
                   onClick={() => setIsCreateViewOpen(false)}
-                  className="rounded-[4px] border border-[#dcdcdc] px-[12px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                  className="rounded-none border border-folk-border px-[12px] py-[7px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                 >
                   Cancel
                 </button>
@@ -1490,7 +1558,7 @@ export default function InvoicingPage() {
                   type="button"
                   onClick={handleCreateView}
                   disabled={!newViewName.trim()}
-                  className="primary-btn rounded-[4px] px-[12px] py-[7px] text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                  className="primary-btn px-[12px] py-[7px] text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Save view
                 </button>
@@ -1504,14 +1572,14 @@ export default function InvoicingPage() {
         <>
           <div className="fixed inset-0 z-50 bg-black/20" onClick={handleCloseSendInvoicesModal} />
           <div className="fixed inset-0 z-[51] flex items-center justify-center p-[16px]">
-            <div className="w-full max-w-[460px] rounded-[18px] border border-[#e7e7e7] bg-white p-[20px] shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
-              <h3 className="text-[15px] font-semibold text-[#262626]">
+            <div className="w-full max-w-[460px] rounded-[18px] border border-[#e7e7e7] bg-folk-surface p-[20px] shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+              <h3 className="text-[15px] font-semibold text-folk-text">
                 {sendInvoicesSummary ? "Invoice sending complete" : "Create invoices"}
               </h3>
 
               {sendInvoicesSummary ? (
                 <>
-                  <p className="mt-[6px] text-[13px] text-[#666]">
+                  <p className="mt-[6px] text-[13px] text-folk-secondary">
                     {sendInvoicesSummary.completedCount} {sendInvoicesSummary.completedCount === 1 ? "invoice was" : "invoices were"} completed.
                     {sendInvoicesSummary.emailedCount > 0 && ` ${sendInvoicesSummary.emailedCount} emailed.`}
                     {sendInvoicesSummary.portalCount > 0 && ` ${sendInvoicesSummary.portalCount} prepared for agency claim.`}
@@ -1519,8 +1587,8 @@ export default function InvoicingPage() {
                     {sendInvoicesSummary.skippedCount > 0 && ` ${sendInvoicesSummary.skippedCount} skipped.`}
                   </p>
                   {sendInvoicesSummary.failedMessages.length > 0 && (
-                    <div className="mt-[14px] max-h-[180px] overflow-y-auto rounded-[14px] border border-[#ececec] bg-[#fafafa] px-[12px] py-[10px]">
-                      <div className="text-[12px] font-medium text-[#666]">
+                    <div className="mt-[14px] max-h-[180px] overflow-y-auto rounded-[14px] border border-folk-border bg-folk-page px-[12px] py-[10px]">
+                      <div className="text-[12px] font-medium text-folk-secondary">
                         {sendInvoicesSummary.failedMessages.join(" | ")}
                       </div>
                     </div>
@@ -1536,7 +1604,7 @@ export default function InvoicingPage() {
                     <button
                       type="button"
                       onClick={handleCloseSendInvoicesModal}
-                      className="primary-btn rounded-[4px] px-[12px] py-[7px] text-[13px] font-medium transition-colors"
+                      className="primary-btn px-[12px] py-[7px] text-[13px] font-medium transition-colors"
                     >
                       Close
                     </button>
@@ -1544,10 +1612,10 @@ export default function InvoicingPage() {
                 </>
               ) : (
                 <>
-                  <p className="mt-[6px] text-[13px] text-[#666]">
+                  <p className="mt-[6px] text-[13px] text-folk-secondary">
                     Complete {selectedTaskCount} {selectedTaskCount === 1 ? "invoice" : "invoices"} based on each participant&apos;s plan type?
                   </p>
-                  <p className="mt-[8px] text-[12px] text-[#999]">
+                  <p className="mt-[8px] text-[12px] text-folk-secondary">
                     Plan-managed and self-managed participants will be emailed. Agency-managed participants will be prepared for NDIA portal claim.
                   </p>
                   <div className="mt-[16px] flex items-center justify-end gap-[8px]">
@@ -1555,7 +1623,7 @@ export default function InvoicingPage() {
                       type="button"
                       onClick={handleCloseSendInvoicesModal}
                       disabled={isSendingInvoices}
-                      className="rounded-[4px] border border-[#dcdcdc] px-[12px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-none border border-folk-border px-[12px] py-[7px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Cancel
                     </button>
@@ -1563,7 +1631,7 @@ export default function InvoicingPage() {
                       type="button"
                       onClick={handleSendInvoices}
                       disabled={isSendingInvoices || selectedTaskCount === 0}
-                      className="primary-btn rounded-[4px] px-[12px] py-[7px] text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                      className="primary-btn px-[12px] py-[7px] text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       {isSendingInvoices ? "Sending..." : "Confirm"}
                     </button>
@@ -1577,7 +1645,7 @@ export default function InvoicingPage() {
 
       {viewContextMenu && (
         <div
-          className="fixed z-[70] min-w-[160px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_6px_20px_rgba(0,0,0,0.12)]"
+          className="fixed z-[70] min-w-[160px] rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-[0_6px_20px_rgba(0,0,0,0.12)]"
           style={{ left: viewContextMenu.x, top: viewContextMenu.y }}
         >
           <button

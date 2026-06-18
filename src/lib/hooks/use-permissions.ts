@@ -22,6 +22,8 @@ export interface Permissions {
   canManageClients: boolean
   canCreateTasks: boolean
   canManageDocuments: boolean
+  canViewIncidents: boolean
+  canManageIncidents: boolean
   canAssignClients: boolean
   canAssignTasks: boolean
 }
@@ -40,6 +42,8 @@ const noPermissions: Permissions = {
   canManageClients: false,
   canCreateTasks: false,
   canManageDocuments: false,
+  canViewIncidents: false,
+  canManageIncidents: false,
   canAssignClients: false,
   canAssignTasks: false,
 }
@@ -61,6 +65,8 @@ function derivePermissions(role: Role, userId: string | null = null, userEmail: 
     canManageClients: true,
     canCreateTasks: true,
     canManageDocuments: true,
+    canViewIncidents: isAdmin,
+    canManageIncidents: isAdmin,
     canAssignClients: isAdmin,
     canAssignTasks: isAdmin,
   }
@@ -72,7 +78,7 @@ export function usePermissions(): Permissions {
 
   useEffect(() => {
     if (!isSupabaseConfigured()) {
-      setPermissions({ ...noPermissions, isLoading: false })
+      setPermissions(derivePermissions("admin"))
       return
     }
 

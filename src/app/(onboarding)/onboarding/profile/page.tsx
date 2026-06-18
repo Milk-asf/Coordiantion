@@ -153,7 +153,7 @@ export default function OnboardingProfilePage() {
         <div>
           <label className={labelClass}>Email</label>
           <div className={`${inputClass} flex cursor-not-allowed items-center gap-[8px] opacity-70`}>
-            <Mail className="h-[14px] w-[14px] text-[#999]" strokeWidth={1.5} />
+            <Mail className="h-[14px] w-[14px] text-folk-secondary" strokeWidth={1.5} />
             <span className="truncate">{email}</span>
           </div>
         </div>
@@ -176,7 +176,7 @@ export default function OnboardingProfilePage() {
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-[12px] top-1/2 -translate-y-1/2 text-[#bbb] transition-colors hover:text-[#666]"
+                className="absolute right-[12px] top-1/2 -translate-y-1/2 text-folk-placeholder transition-colors hover:text-folk-secondary"
                 tabIndex={-1}
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
@@ -190,7 +190,7 @@ export default function OnboardingProfilePage() {
         )}
 
         {error && (
-          <p className="rounded-[8px] bg-red-50 px-[12px] py-[8px] text-[12px] font-medium text-red-600">
+          <p className="rounded-none bg-red-50 px-[12px] py-[8px] text-[12px] font-medium text-red-600">
             {error}
           </p>
         )}

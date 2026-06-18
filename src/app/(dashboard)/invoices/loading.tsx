@@ -1,20 +1,20 @@
 export default function InvoicesLoading() {
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-[#f0f0f0] px-[16px]">
-        <div className="h-[20px] w-[110px] animate-pulse rounded bg-[#f0f0f0]" />
+      <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-folk-border-subtle bg-folk-nav px-[16px]">
+        <div className="h-[20px] w-[110px] animate-pulse rounded-none bg-[var(--folk-border-subtle)]" />
         <div className="flex items-center gap-[8px]">
-          <div className="h-[28px] w-[70px] animate-pulse rounded-full bg-[#f0f0f0]" />
-          <div className="h-[28px] w-[70px] animate-pulse rounded-full bg-[#f0f0f0]" />
+          <div className="h-[28px] w-[70px] animate-pulse rounded-full bg-[var(--folk-border-subtle)]" />
+          <div className="h-[28px] w-[70px] animate-pulse rounded-full bg-[var(--folk-border-subtle)]" />
         </div>
       </div>
       <div className="flex-1 p-[16px]">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="mb-[8px] flex items-center gap-[12px] rounded-[8px] border border-[#f0f0f0] px-[12px] py-[10px]">
-            <div className="h-[14px] w-[60px] animate-pulse rounded bg-[#f0f0f0]" />
-            <div className="h-[14px] w-[140px] animate-pulse rounded bg-[#f0f0f0]" />
-            <div className="h-[14px] flex-1 animate-pulse rounded bg-[#f0f0f0]" />
-            <div className="h-[24px] w-[50px] animate-pulse rounded-full bg-[#f0f0f0]" />
+          <div key={i} className="mb-[8px] flex items-center gap-[12px] rounded-none border border-folk-border-subtle px-[12px] py-[10px]">
+            <div className="h-[14px] w-[60px] animate-pulse rounded-none bg-[var(--folk-border-subtle)]" />
+            <div className="h-[14px] w-[140px] animate-pulse rounded-none bg-[var(--folk-border-subtle)]" />
+            <div className="h-[14px] flex-1 animate-pulse rounded-none bg-[var(--folk-border-subtle)]" />
+            <div className="h-[24px] w-[50px] animate-pulse rounded-full bg-[var(--folk-border-subtle)]" />
           </div>
         ))}
       </div>

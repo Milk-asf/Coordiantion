@@ -15,7 +15,7 @@ export function SettingsGuard({ children, requireAdmin = false, requireSuperAdmi
   if (isLoading) {
     return (
       <div className="flex h-[300px] items-center justify-center">
-        <div className="h-[20px] w-[20px] animate-spin rounded-full border-2 border-[#e0e0e0] border-t-[#666]" />
+        <div className="h-[20px] w-[20px] animate-spin rounded-full border-2 border-folk-border border-t-[#666]" />
       </div>
     )
   }
@@ -38,8 +38,8 @@ function AccessDenied({ message }: { message: string }) {
         <ShieldAlert className="h-[24px] w-[24px] text-red-500" />
       </div>
       <div>
-        <p className="text-[15px] font-semibold text-[#262626]">Access Denied</p>
-        <p className="mt-[4px] text-[13px] text-[#888]">{message}</p>
+        <p className="text-[15px] font-semibold text-folk-text">Access Denied</p>
+        <p className="mt-[4px] text-[13px] text-folk-secondary">{message}</p>
       </div>
     </div>
   )

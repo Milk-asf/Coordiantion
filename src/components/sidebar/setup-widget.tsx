@@ -57,7 +57,7 @@ export function SetupWidget({ isCollapsed }: SetupWidgetProps) {
     },
     {
       id: "charges",
-      label: "Set up your charges",
+      label: "Set up NDIS price book",
       href: "/settings/charges",
       icon: Tag,
       isComplete: !chargesLoading && chargeItems.length > 0,
@@ -82,7 +82,7 @@ export function SetupWidget({ isCollapsed }: SetupWidgetProps) {
       <div className="px-2 pb-2">
         <Link
           href={nextItem?.href ?? "/clients"}
-          className="flex h-7 w-full items-center justify-center rounded text-sidebar-text transition-colors hover:bg-sidebar-hover"
+          className="flex h-7 w-full items-center justify-center rounded-none text-sidebar-text transition-colors hover:bg-sidebar-hover"
           aria-label={`Setup: ${completedCount} of ${items.length} complete`}
           tabIndex={0}
           title={`Setup ${completedCount}/${items.length}`}
@@ -94,7 +94,7 @@ export function SetupWidget({ isCollapsed }: SetupWidgetProps) {
                 cy="12"
                 r="10"
                 fill="none"
-                stroke="#e5e5e5"
+                stroke="var(--folk-border)"
                 strokeWidth="3"
               />
               <circle
@@ -117,21 +117,21 @@ export function SetupWidget({ isCollapsed }: SetupWidgetProps) {
 
   return (
     <div className="px-2 pb-2">
-      <div className="rounded-[10px] border border-sidebar-border bg-white p-[8px]">
+      <div className="rounded-none border border-sidebar-border bg-folk-surface p-[8px]">
         <button
           onClick={() => setIsExpanded((v) => !v)}
-          className="flex w-full items-center gap-[6px] rounded-[6px] px-[4px] py-[4px] text-left transition-colors hover:bg-[#fafafa]"
+          className="flex w-full items-center gap-[6px] rounded-none px-[4px] py-[4px] text-left transition-colors hover:bg-folk-page"
           aria-expanded={isExpanded}
           tabIndex={0}
         >
-          <span className="text-[13px] font-semibold text-[#262626]">Setup</span>
-          <span className="rounded-full bg-[#f0f0f0] px-[7px] py-[1px] text-[10px] font-semibold text-[#888]">
+          <span className="text-[13px] font-semibold text-folk-text">Setup</span>
+          <span className="rounded-full bg-[var(--folk-border-subtle)] px-[7px] py-[1px] text-[10px] font-semibold text-folk-secondary">
             {completedCount}/{items.length}
           </span>
           <span className="flex-1" />
           <ChevronUp
             className={cn(
-              "h-[13px] w-[13px] shrink-0 text-[#bbb] transition-transform",
+              "h-[13px] w-[13px] shrink-0 text-folk-placeholder transition-transform",
               !isExpanded && "rotate-180"
             )}
             strokeWidth={1.75}
@@ -150,14 +150,14 @@ export function SetupWidget({ isCollapsed }: SetupWidgetProps) {
                     "flex items-center gap-[8px] rounded-[7px] px-[9px] py-[8px] text-[12px] font-medium transition-colors",
                     item.isComplete
                       ? "bg-[#eaf1fe] text-[#2563EB]"
-                      : "bg-[#f5f5f5] text-[#444] hover:bg-[#ededed] hover:text-[#262626]"
+                      : "bg-folk-hover text-[#444] hover:bg-[#ededed] hover:text-folk-text"
                   )}
                   tabIndex={0}
                 >
                   <Icon
                     className={cn(
                       "h-[14px] w-[14px] shrink-0",
-                      item.isComplete ? "text-[#2563EB]" : "text-[#888]"
+                      item.isComplete ? "text-[#2563EB]" : "text-folk-secondary"
                     )}
                     strokeWidth={1.75}
                   />
@@ -173,7 +173,7 @@ export function SetupWidget({ isCollapsed }: SetupWidgetProps) {
             <div className="mt-[1px] flex items-center justify-end">
               <button
                 onClick={handleDismiss}
-                className="flex items-center gap-[4px] px-[4px] py-[2px] text-[10px] font-medium text-[#bbb] transition-colors hover:text-[#666]"
+                className="flex items-center gap-[4px] px-[4px] py-[2px] text-[10px] font-medium text-folk-placeholder transition-colors hover:text-folk-secondary"
                 tabIndex={0}
                 aria-label="Dismiss setup"
               >

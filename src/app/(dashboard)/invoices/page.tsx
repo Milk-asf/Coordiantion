@@ -1,13 +1,16 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties } from "react"
-import Link from "next/link"
 import {
   CalendarDays,
   ChevronDown,
   ChevronLeft,
+  CircleDot,
+  Clock,
+  DollarSign,
   Download,
   ListFilter,
+  Mail,
   Receipt,
   SlidersHorizontal,
   Table2,
@@ -18,6 +21,22 @@ import { useInvoices } from "@/lib/hooks/use-invoices"
 import { useSavedViews } from "@/lib/hooks/use-saved-views"
 import type { Invoice } from "@/lib/types"
 import { PageLoader, PageError } from "@/components/page-state"
+import { ProfileTabButton } from "@/components/profile-tab-button"
+import { InvoicingNav } from "@/app/(dashboard)/invoicing/_components/invoicing-nav"
+import { DisplaySection } from "@/app/(dashboard)/invoicing/_components/invoicing-helpers"
+import { DisplayPopoverPanel, DisplayPopoverTrigger, countHiddenDisplayFilters } from "@/components/display-popover"
+import { ExpandableTableSearch } from "@/components/expandable-table-search"
+import { matchesTableSearch } from "@/lib/table-search"
+import {
+  TABLE_FULL,
+  TABLE_PANEL_CELL,
+  TABLE_PANEL_CELL_LAST,
+  TABLE_PANEL_CELL_STICKY_EDGE,
+  TABLE_PANEL_HEADER_STICKY,
+  TABLE_PANEL_HEADER_STICKY_EDGE,
+  TABLE_PANEL_HEADER_STICKY_LAST,
+  TABLE_PANEL_TEXT,
+} from "@/lib/table-styles"
 
 interface InvoicesSavedView {
   id: string
@@ -35,16 +54,17 @@ interface InvoiceColumnDef {
   key: string
   label: string
   width: string
+  icon: ComponentType<{ className?: string; strokeWidth?: number }>
 }
 
 const invoiceColumnDefs: InvoiceColumnDef[] = [
-  { key: "invoice", label: "Invoice", width: "140px" },
-  { key: "participant", label: "Participant", width: "minmax(180px,1.5fr)" },
-  { key: "email", label: "Invoicing Email", width: "minmax(220px,1.7fr)" },
-  { key: "issued", label: "Issued", width: "110px" },
-  { key: "sent", label: "Sent", width: "110px" },
-  { key: "amount", label: "Total Cost", width: "110px" },
-  { key: "status", label: "Status", width: "110px" },
+  { key: "invoice", label: "Invoice", width: "140px", icon: Receipt },
+  { key: "participant", label: "Participant", width: "minmax(180px,1.5fr)", icon: User },
+  { key: "email", label: "Invoicing Email", width: "minmax(220px,1.7fr)", icon: Mail },
+  { key: "issued", label: "Issued", width: "110px", icon: CalendarDays },
+  { key: "sent", label: "Sent", width: "110px", icon: Clock },
+  { key: "amount", label: "Total Cost", width: "110px", icon: DollarSign },
+  { key: "status", label: "Status", width: "110px", icon: CircleDot },
 ]
 
 const defaultVisibleColumnKeys = invoiceColumnDefs.map((column) => column.key)
@@ -80,11 +100,11 @@ function getInvoiceStatusLabel(value: string | Invoice): string {
 
 function getInvoiceStatusClasses(invoice: Invoice): string {
   if (invoice.kind === "credit-note") return "bg-[#ede8f5] text-[#5b21b6]"
-  if (invoice.status === "void") return "bg-[#f0f0f0] text-[#999] line-through"
+  if (invoice.status === "void") return "bg-[var(--folk-border-subtle)] text-folk-secondary line-through"
   if (invoice.deliveryMethod === "ndia-portal") return "bg-[#e8edf2] text-[#334155]"
   if (invoice.status === "paid") return "bg-green-100 text-green-700"
   if (invoice.status === "overdue") return "bg-red-50 text-red-600"
-  return "bg-[#f0f0f0] text-[#555]"
+  return "bg-[var(--folk-border-subtle)] text-[#555]"
 }
 
 function getInvoiceActivityDate(invoice: Invoice): Date | null {
@@ -110,6 +130,7 @@ export default function InvoicesPage() {
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false)
   const [activeFilterDropdown, setActiveFilterDropdown] = useState<string | null>(null)
   const [isDisplayOpen, setIsDisplayOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
   const [viewContextMenu, setViewContextMenu] = useState<{ viewId: string; x: number; y: number } | null>(null)
 
 
@@ -235,7 +256,15 @@ export default function InvoicesPage() {
       if (displayParticipants.length > 0 && !displayParticipants.includes(invoice.clientName)) return false
       if (displayEmails.length > 0 && !displayEmails.includes(invoice.sentTo || "")) return false
       if (displayStatuses.length > 0 && !displayStatuses.includes(getInvoiceStatusValue(invoice))) return false
-      if (dateFilter.length === 0) return true
+      if (dateFilter.length === 0) {
+        return matchesTableSearch(
+          searchQuery,
+          invoice.clientName,
+          invoice.invoiceNumber,
+          invoice.sentTo,
+          getInvoiceStatusValue(invoice)
+        )
+      }
       if (!activityDate) return false
 
       const today = new Date()
@@ -260,7 +289,13 @@ export default function InvoicesPage() {
           return invoiceDate.getMonth() === today.getMonth() && invoiceDate.getFullYear() === today.getFullYear()
         if (filterValue === "older") return invoiceDate.getTime() < today.getTime() - 7 * dayMs
         return false
-      })
+      }) && matchesTableSearch(
+        searchQuery,
+        invoice.clientName,
+        invoice.invoiceNumber,
+        invoice.sentTo,
+        getInvoiceStatusValue(invoice)
+      )
     })
   }, [
     dateFilter,
@@ -270,6 +305,7 @@ export default function InvoicesPage() {
     participantFilter,
     sentInvoices,
     statusFilter,
+    searchQuery,
   ])
 
   const sortedInvoices = useMemo(() => {
@@ -281,6 +317,10 @@ export default function InvoicesPage() {
   }, [filteredInvoices])
 
   const hasDisplayFilters = displayParticipants.length > 0 || displayEmails.length > 0 || displayStatuses.length > 0
+  const hiddenDisplayCount =
+    countHiddenDisplayFilters(uniqueParticipants, displayParticipants)
+    + countHiddenDisplayFilters(uniqueEmails, displayEmails)
+    + countHiddenDisplayFilters(uniqueStatuses, displayStatuses)
   const visibleColumns = invoiceColumnDefs.filter((column) => visibleColumnKeys.includes(column.key))
 
   const handleToggleDisplayItem = (items: string[], setItems: (value: string[]) => void, value: string) => {
@@ -295,24 +335,28 @@ export default function InvoicesPage() {
     return (
       <tr
         key={invoice.id}
-        className="group cursor-pointer transition-colors hover:bg-[#f5f5f5]"
+        className="group cursor-pointer transition-colors hover:bg-folk-hover"
         onClick={() => setSelectedInvoiceId(invoice.id)}
         tabIndex={0}
         onKeyDown={(e) => { if (e.key === "Enter") setSelectedInvoiceId(invoice.id) }}
       >
         {cols.map((column, colIndex) => {
           const isLast = colIndex === cols.length - 1
-          const baseTd = `h-[44px] overflow-hidden whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[13px] font-medium text-[#262626] group-hover:bg-[#f5f5f5]${isLast ? "" : " border-r"}`
+          const baseTd = `${isLast ? TABLE_PANEL_CELL_LAST : TABLE_PANEL_CELL} ${TABLE_PANEL_TEXT} overflow-hidden group-hover:bg-[#fafafa]`
 
           if (column.key === "invoice") {
-            return <td key={column.key} className={baseTd}>{invoice.invoiceNumber}</td>
+            return (
+              <td key={column.key} className={`sticky left-0 z-10 ${TABLE_PANEL_CELL_STICKY_EDGE} ${TABLE_PANEL_TEXT} overflow-hidden group-hover:bg-[#fafafa]`}>
+                {invoice.invoiceNumber}
+              </td>
+            )
           }
           if (column.key === "participant") {
             return <td key={column.key} className={baseTd}><span className="truncate">{invoice.clientName}</span></td>
           }
           if (column.key === "email") {
             return (
-              <td key={column.key} className={`${baseTd} !text-[#666]`}>
+              <td key={column.key} className={`${baseTd} !text-folk-secondary`}>
                 {invoice.deliveryMethod === "ndia-portal"
                   ? (invoice.sentTo || "NDIA myplace provider portal")
                   : (invoice.sentTo || <span className="text-[#ccc]">—</span>)}
@@ -321,14 +365,14 @@ export default function InvoicesPage() {
           }
           if (column.key === "issued") {
             return (
-              <td key={column.key} className={`${baseTd} !text-[#666]`}>
+              <td key={column.key} className={`${baseTd} !text-folk-secondary`}>
                 {formatDate(invoice.issueDate) || <span className="text-[#ccc]">—</span>}
               </td>
             )
           }
           if (column.key === "sent") {
             return (
-              <td key={column.key} className={`${baseTd} !text-[#666]`}>
+              <td key={column.key} className={`${baseTd} !text-folk-secondary`}>
                 {formatDate(invoice.sentAt) || <span className="text-[#ccc]">—</span>}
               </td>
             )
@@ -336,14 +380,14 @@ export default function InvoicesPage() {
           if (column.key === "amount") {
             return (
               <td key={column.key} className={baseTd}>
-                <span className="inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] bg-green-50 px-[10px] text-[12px] font-medium text-green-700">{formatCurrency(invoice.total)}</span>
+                <span className="inline-flex h-[24px] items-center whitespace-nowrap rounded-none bg-green-50 px-[10px] text-[12px] font-medium text-green-700">{formatCurrency(invoice.total)}</span>
               </td>
             )
           }
           if (column.key === "status") {
             return (
               <td key={column.key} className={baseTd}>
-                <span className={`inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] px-[10px] text-[12px] font-medium ${getInvoiceStatusClasses(invoice)}`}>
+                <span className={`inline-flex h-[24px] items-center whitespace-nowrap rounded-none px-[10px] text-[12px] font-medium ${getInvoiceStatusClasses(invoice)}`}>
                   {getInvoiceStatusLabel(invoice)}
                 </span>
               </td>
@@ -360,56 +404,43 @@ export default function InvoicesPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-[44px] shrink-0 items-center justify-between gap-[8px] border-b border-[#f0f0f0] px-[16px]">
-        <div className="flex min-w-0 flex-1 items-center gap-[8px] overflow-x-auto">
-          <span className="shrink-0 text-[13px] font-medium text-[#262626]">Invoicing</span>
-          <div className="h-[16px] w-px bg-[#e5e5e5]" />
-          <Link
-            href="/invoicing"
-            className="flex items-center gap-[6px] rounded-[4px] border border-transparent px-[8px] py-[4px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
-          >
-            <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
-            <span>Draft invoices</span>
-          </Link>
-          <div className="flex items-center gap-[6px] rounded-[4px] border border-[#e0e0e0] bg-[#f0f0f0] px-[8px] py-[4px] text-[13px] font-medium text-[#262626]">
-            <Receipt className="h-[14px] w-[14px]" strokeWidth={1.75} />
-            <span>Invoices</span>
-          </div>
-          {savedViews.length > 0 && <div className="h-[16px] w-px bg-[#dcdcdc]" />}
-          {savedViews.map((view) => (
+      <InvoicingNav
+        suffix={
+          <>
+            {savedViews.length > 0 && <div className="h-[16px] w-px shrink-0 bg-[var(--folk-border)]" />}
+            {savedViews.map((view) => (
+              <ProfileTabButton
+                key={view.id}
+                isActive={activeViewId === view.id}
+                onClick={() => selectView(view)}
+                onContextMenu={(event) => {
+                  event.preventDefault()
+                  setViewContextMenu({ viewId: view.id, x: event.clientX, y: event.clientY })
+                }}
+                icon={Table2}
+                label={view.name}
+              />
+            ))}
+          </>
+        }
+        actions={
+          <div className="flex items-center gap-[6px]">
             <button
-              key={view.id}
               type="button"
-              onClick={() => selectView(view)}
-              onContextMenu={(event) => {
-                event.preventDefault()
-                setViewContextMenu({ viewId: view.id, x: event.clientX, y: event.clientY })
-              }}
-              className={`flex items-center gap-[6px] rounded-[4px] border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeViewId === view.id ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
+              onClick={() => exportAllToCsv(sortedInvoices)}
+              disabled={sortedInvoices.length === 0}
+              className="flex items-center gap-[5px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover disabled:cursor-not-allowed disabled:opacity-40"
               tabIndex={0}
+              aria-label="Export invoices to CSV"
             >
-              <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
-              <span>{view.name}</span>
+              <Download className="h-[13px] w-[13px]" strokeWidth={1.5} />
+              <span>Export</span>
             </button>
-          ))}
-        </div>
+          </div>
+        }
+      />
 
-        <div className="flex items-center gap-[6px]">
-          <button
-            type="button"
-            onClick={() => exportAllToCsv(sortedInvoices)}
-            disabled={sortedInvoices.length === 0}
-            className="flex items-center gap-[5px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] disabled:cursor-not-allowed disabled:opacity-40"
-            tabIndex={0}
-            aria-label="Export invoices to CSV"
-          >
-            <Download className="h-[13px] w-[13px]" strokeWidth={1.5} />
-            <span>Export</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="flex h-[41px] shrink-0 items-center gap-[8px] border-b border-[#dcdcdc] px-[16px]">
+      <div className="flex h-[41px] shrink-0 items-center gap-[8px] border-b border-folk-border bg-folk-nav px-[16px]">
         <div className="relative">
           <button
             type="button"
@@ -418,7 +449,7 @@ export default function InvoicesPage() {
               setIsFilterMenuOpen((current) => !current)
               setActiveFilterDropdown(null)
             }}
-            className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+            className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
             tabIndex={0}
           >
             <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -427,8 +458,8 @@ export default function InvoicesPage() {
           {isFilterMenuOpen && (
             <>
               <div className="fixed inset-0 z-[55]" onClick={() => setIsFilterMenuOpen(false)} />
-              <div className="absolute left-0 top-full z-[60] mt-[4px] w-[180px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-                <p className="px-[16px] py-[6px] text-[11px] font-medium text-[#888]">Filter by</p>
+              <div className="absolute left-0 top-full z-[60] mt-[4px] w-[180px] rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk">
+                <p className="px-[16px] py-[6px] text-[11px] font-medium text-folk-secondary">Filter by</p>
                 {[
                   { key: "date", label: "Date", icon: CalendarDays },
                   { key: "participant", label: "Participant", icon: User },
@@ -441,10 +472,10 @@ export default function InvoicesPage() {
                       setActiveFilterDropdown(key)
                       setIsFilterMenuOpen(false)
                     }}
-                    className="flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                    className="flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                     tabIndex={0}
                   >
-                    <Icon className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+                    <Icon className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} />
                     {label}
                   </button>
                 ))}
@@ -490,21 +521,28 @@ export default function InvoicesPage() {
           />
         )}
 
-        <div className="relative ml-auto">
+        <div className="relative ml-auto flex shrink-0 items-center gap-[8px]">
+          <ExpandableTableSearch
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search invoices…"
+            ariaLabel="Search invoices"
+          />
+          <div className="relative">
           <button
             type="button"
             ref={pageSizeButtonRef}
             onClick={() => setIsPageSizeOpen((current) => !current)}
-            className="flex items-center gap-[5px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+            className="flex items-center gap-[5px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
             tabIndex={0}
           >
             <span>{pageSize} per page</span>
-            <ChevronDown className="h-[11px] w-[11px] text-[#888]" strokeWidth={1.5} />
+            <ChevronDown className="h-[11px] w-[11px] text-folk-secondary" strokeWidth={1.5} />
           </button>
           {isPageSizeOpen && (
             <>
               <div className="fixed inset-0 z-[55]" onClick={() => setIsPageSizeOpen(false)} />
-              <div className="absolute right-0 top-full z-[60] mt-[4px] w-[120px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+              <div className="absolute right-0 top-full z-[60] mt-[4px] w-[120px] rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk">
                 {[10, 20, 50, 100].map((size) => (
                   <button
                     key={size}
@@ -514,7 +552,7 @@ export default function InvoicesPage() {
                       setVisibleCount(size)
                       setIsPageSizeOpen(false)
                     }}
-                    className={`flex w-full items-center px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${pageSize === size ? "bg-[#f5f5f5] text-[#262626]" : "text-[#262626]"}`}
+                    className={`flex w-full items-center px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${pageSize === size ? "bg-folk-hover text-folk-text" : "text-folk-text"}`}
                     tabIndex={0}
                   >
                     {size} per page
@@ -523,83 +561,61 @@ export default function InvoicesPage() {
               </div>
             </>
           )}
-        </div>
+          </div>
 
-        <button
-          type="button"
-          ref={displayButtonRef}
-          onClick={() => setIsDisplayOpen((current) => !current)}
-          className={`flex items-center gap-[5px] rounded border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${hasDisplayFilters ? "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100" : "border-[#dcdcdc] text-[#262626] hover:bg-[#f5f5f5]"}`}
-          tabIndex={0}
-        >
-          <SlidersHorizontal className="h-[13px] w-[13px]" strokeWidth={1.5} />
-          <span className="hidden sm:inline">Display</span>
-          {hasDisplayFilters && (
-            <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded-[4px] bg-[#e8edf2] px-[4px] text-[10px] font-bold text-[#334155]">
-              {displayParticipants.length + displayEmails.length + displayStatuses.length}
-            </span>
-          )}
-        </button>
+          <DisplayPopoverTrigger
+            hiddenCount={hiddenDisplayCount}
+            isOpen={isDisplayOpen}
+            onClick={() => setIsDisplayOpen((current) => !current)}
+            buttonRef={displayButtonRef}
+          />
 
-        {isDisplayOpen && (
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setIsDisplayOpen(false)} />
-            <div
-              className="fixed z-50 w-[420px] rounded-lg border border-[#dcdcdc] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-              style={(() => {
-                const rect = displayButtonRef.current?.getBoundingClientRect()
-                if (!rect) return {}
-                return { top: rect.bottom + 4, right: window.innerWidth - rect.right }
-              })()}
-            >
-              <div className="max-h-[520px] overflow-y-auto">
-                <div className="px-[20px] pb-[16px] pt-[16px]">
-                  <div className="rounded-xl border border-[#d0d0d0] bg-white px-[14px] py-[12px] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                    <div className="flex items-center gap-[8px]">
-                      <Table2 className="h-[18px] w-[18px] text-[#262626]" strokeWidth={1.5} />
-                      <span className="text-[13px] font-medium text-[#262626]">List</span>
-                    </div>
-                  </div>
-                </div>
-
+          <DisplayPopoverPanel
+            isOpen={isDisplayOpen}
+            onClose={() => setIsDisplayOpen(false)}
+            buttonRef={displayButtonRef}
+            widthClassName="w-[280px]"
+          >
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <div className="min-h-0 flex-1 overflow-y-auto">
                 <DisplaySection
-                  title="Participants"
-                  items={uniqueParticipants}
-                  activeItems={displayParticipants}
-                  onToggle={(value) => handleToggleDisplayItem(displayParticipants, setDisplayParticipants, value)}
-                />
-                <DisplaySection
-                  title="Emails"
-                  items={uniqueEmails}
-                  activeItems={displayEmails}
-                  onToggle={(value) => handleToggleDisplayItem(displayEmails, setDisplayEmails, value)}
-                />
-                <DisplaySection
-                  title="Statuses"
-                  items={uniqueStatuses}
-                  activeItems={displayStatuses}
-                  onToggle={(value) => handleToggleDisplayItem(displayStatuses, setDisplayStatuses, value)}
-                  formatLabel={getInvoiceStatusLabel}
-                />
+                title="Participants"
+                items={uniqueParticipants}
+                activeItems={displayParticipants}
+                setActiveItems={setDisplayParticipants}
+              />
+              <DisplaySection
+                title="Emails"
+                items={uniqueEmails}
+                activeItems={displayEmails}
+                setActiveItems={setDisplayEmails}
+              />
+              <DisplaySection
+                title="Statuses"
+                items={uniqueStatuses}
+                activeItems={displayStatuses}
+                setActiveItems={setDisplayStatuses}
+                formatLabel={getInvoiceStatusLabel}
+              />
               </div>
 
-              <div className="flex items-center gap-[20px] border-t border-[#f0f0f0] px-[20px] py-[12px]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDisplayParticipants([])
-                    setDisplayEmails([])
-                    setDisplayStatuses([])
-                  }}
-                  className="text-[13px] font-medium text-[#bbb] transition-colors hover:text-[#262626]"
-                  tabIndex={0}
-                >
-                  Reset
-                </button>
-              </div>
+            <div className="shrink-0 border-t border-folk-border-subtle px-[12px] py-[10px]">
+              <button
+                type="button"
+                onClick={() => {
+                  setDisplayParticipants([])
+                  setDisplayEmails([])
+                  setDisplayStatuses([])
+                }}
+                className="text-[13px] font-normal text-folk-placeholder transition-colors hover:text-folk-text"
+                tabIndex={0}
+              >
+                Reset
+              </button>
             </div>
-          </>
-        )}
+            </div>
+          </DisplayPopoverPanel>
+        </div>
       </div>
 
       {activeFilterDropdown && (
@@ -680,18 +696,28 @@ export default function InvoicesPage() {
         </>
       )}
 
-      <div className="flex-1 overflow-auto bg-[#fafafa]">
-        <table className="w-full border-separate border-spacing-0 text-left">
+      <div className="flex-1 overflow-auto">
+        <table className={TABLE_FULL}>
           <thead>
             <tr>
-              {visibleColumns.map((column, colIndex) => (
-                <th
-                  key={column.key}
-                  className={`sticky top-0 z-20 h-[44px] whitespace-nowrap border-b border-[#dcdcdc] bg-[#fafafa] px-[20px] text-[12px] font-medium text-[#888]${colIndex < visibleColumns.length - 1 ? " border-r" : ""}`}
-                >
-                  {column.label}
-                </th>
-              ))}
+              {visibleColumns.map((column, colIndex) => {
+                const ColIcon = column.icon
+                const isLast = colIndex === visibleColumns.length - 1
+                const isFirst = colIndex === 0
+                const headerClass = isFirst
+                  ? TABLE_PANEL_HEADER_STICKY_EDGE
+                  : isLast
+                    ? TABLE_PANEL_HEADER_STICKY_LAST
+                    : TABLE_PANEL_HEADER_STICKY
+                return (
+                  <th key={column.key} className={headerClass}>
+                    <div className="flex items-center gap-[6px]">
+                      <ColIcon className="h-[13px] w-[13px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
+                      <span>{column.label}</span>
+                    </div>
+                  </th>
+                )
+              })}
             </tr>
           </thead>
           <tbody>
@@ -707,7 +733,7 @@ export default function InvoicesPage() {
           <button
             type="button"
             onClick={() => setVisibleCount((current) => current + pageSize)}
-            className="flex w-full items-center justify-center gap-[6px] border-b border-[#f0f0f0] py-[10px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#fafafa] hover:text-[#262626]"
+            className="flex w-full items-center justify-center gap-[6px] border-b border-folk-border-subtle py-[10px] text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-page hover:text-folk-text"
             tabIndex={0}
           >
             Show more ({sortedInvoices.length - visibleCount} remaining)
@@ -715,8 +741,8 @@ export default function InvoicesPage() {
         )}
       </div>
 
-      <div className="shrink-0 border-t border-[#dcdcdc] px-[20px] py-[10px]">
-        <span className="text-[12px] font-medium text-[#999]">
+      <div className="shrink-0 border-t border-folk-border px-[20px] py-[10px]">
+        <span className="text-[12px] font-medium text-folk-secondary">
           {sortedInvoices.length} {sortedInvoices.length === 1 ? "invoice" : "invoices"} sent
         </span>
       </div>
@@ -725,7 +751,7 @@ export default function InvoicesPage() {
         <>
           <div className="fixed inset-0 z-[69]" onClick={() => setViewContextMenu(null)} />
           <div
-            className="fixed z-[70] min-w-[160px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_6px_20px_rgba(0,0,0,0.12)]"
+            className="fixed z-[70] min-w-[160px] rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-[0_6px_20px_rgba(0,0,0,0.12)]"
             style={{ left: viewContextMenu.x, top: viewContextMenu.y }}
           >
             <button
@@ -755,62 +781,62 @@ export default function InvoicesPage() {
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-[16px]">
             <div className="absolute inset-0 bg-black/20" onClick={() => setSelectedInvoiceId(null)} />
-            <div className="relative z-10 flex h-[680px] max-h-[calc(100vh-32px)] w-[960px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[20px] border border-[#e7e7e7] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.12)] max-md:h-full max-md:max-h-full max-md:w-full max-md:max-w-full max-md:rounded-none">
+            <div className="relative z-10 flex h-[680px] max-h-[calc(100vh-32px)] w-[960px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[20px] border border-[#e7e7e7] bg-folk-surface shadow-[0_12px_40px_rgba(0,0,0,0.12)] max-md:h-full max-md:max-h-full max-md:w-full max-md:max-w-full max-md:rounded-none">
               <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[minmax(0,1fr)_320px]">
                 <div className="flex min-h-0 flex-col px-[28px] py-[22px]">
-                  <div className="flex items-center gap-[6px] text-[11px] font-medium uppercase tracking-[0.03em] text-[#a3a3a3]">
+                  <div className="flex items-center gap-[6px] text-[11px] font-medium uppercase tracking-[0.03em] text-folk-placeholder">
                     <Receipt className="h-[12px] w-[12px]" strokeWidth={1.5} />
                     <span>Invoice</span>
                   </div>
 
-                  <div className="mt-[14px] rounded-[10px] bg-[#f7f7f7] px-[12px] py-[10px]">
+                  <div className="mt-[14px] rounded-none bg-folk-page px-[12px] py-[10px]">
                     <div className="flex items-center gap-[10px]">
-                      <span className="text-[18px] font-semibold text-[#262626]">{invoice.invoiceNumber}</span>
-                      <span className={`inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] px-[10px] text-[12px] font-medium ${getInvoiceStatusClasses(invoice)}`}>
+                      <span className="text-[18px] font-semibold text-folk-text">{invoice.invoiceNumber}</span>
+                      <span className={`inline-flex h-[24px] items-center whitespace-nowrap rounded-none px-[10px] text-[12px] font-medium ${getInvoiceStatusClasses(invoice)}`}>
                         {getInvoiceStatusLabel(invoice)}
                       </span>
                     </div>
                   </div>
 
                   <div className="mt-[14px] flex-1 overflow-y-auto text-[14px] leading-[1.6] text-[#4b4b4b]">
-                    <div className="rounded-[10px] border border-[#e5e5e5]">
-                      <div className="grid grid-cols-[1fr_80px_80px_90px] border-b border-[#e5e5e5] px-[12px] py-[8px]">
-                        <span className="text-[11px] font-medium uppercase tracking-wide text-[#888]">Item</span>
-                        <span className="text-right text-[11px] font-medium uppercase tracking-wide text-[#888]">Qty</span>
-                        <span className="text-right text-[11px] font-medium uppercase tracking-wide text-[#888]">Rate</span>
-                        <span className="text-right text-[11px] font-medium uppercase tracking-wide text-[#888]">Amount</span>
+                    <div className="rounded-none border border-folk-border">
+                      <div className="grid grid-cols-[1fr_80px_80px_90px] border-b border-folk-border px-[12px] py-[8px]">
+                        <span className="text-[11px] font-medium uppercase tracking-wide text-folk-secondary">Item</span>
+                        <span className="text-right text-[11px] font-medium uppercase tracking-wide text-folk-secondary">Qty</span>
+                        <span className="text-right text-[11px] font-medium uppercase tracking-wide text-folk-secondary">Rate</span>
+                        <span className="text-right text-[11px] font-medium uppercase tracking-wide text-folk-secondary">Amount</span>
                       </div>
                       {invoice.lineItems.map((item) => (
-                        <div key={item.id} className="grid grid-cols-[1fr_80px_80px_90px] border-b border-[#f0f0f0] px-[12px] py-[8px] last:border-b-0">
+                        <div key={item.id} className="grid grid-cols-[1fr_80px_80px_90px] border-b border-folk-border-subtle px-[12px] py-[8px] last:border-b-0">
                           <div className="min-w-0">
-                            <div className="truncate text-[13px] font-medium text-[#262626]">{item.description || item.chargeName}</div>
-                            <div className="text-[11px] text-[#888]">{item.chargeItemNumber}</div>
+                            <div className="truncate text-[13px] font-medium text-folk-text">{item.description || item.chargeName}</div>
+                            <div className="text-[11px] text-folk-secondary">{item.chargeItemNumber}</div>
                           </div>
-                          <div className="text-right text-[13px] text-[#666]">{item.quantity.toFixed(2)}</div>
-                          <div className="text-right text-[13px] text-[#666]">{formatCurrency(item.rate)}</div>
-                          <div className="text-right text-[13px] font-medium text-[#262626]">{formatCurrency(item.amount)}</div>
+                          <div className="text-right text-[13px] text-folk-secondary">{item.quantity.toFixed(2)}</div>
+                          <div className="text-right text-[13px] text-folk-secondary">{formatCurrency(item.rate)}</div>
+                          <div className="text-right text-[13px] font-medium text-folk-text">{formatCurrency(item.amount)}</div>
                         </div>
                       ))}
                     </div>
 
                     <div className="mt-[12px] flex flex-col items-end gap-[4px]">
                       <div className="flex w-[200px] items-center justify-between text-[13px]">
-                        <span className="text-[#888]">Subtotal</span>
-                        <span className="text-[#262626]">{formatCurrency(invoice.subtotal)}</span>
+                        <span className="text-folk-secondary">Subtotal</span>
+                        <span className="text-folk-text">{formatCurrency(invoice.subtotal)}</span>
                       </div>
                       <div className="flex w-[200px] items-center justify-between text-[13px]">
-                        <span className="text-[#888]">GST</span>
-                        <span className="text-[#262626]">{formatCurrency(invoice.gst)}</span>
+                        <span className="text-folk-secondary">GST</span>
+                        <span className="text-folk-text">{formatCurrency(invoice.gst)}</span>
                       </div>
-                      <div className="mt-[4px] flex w-[200px] items-center justify-between border-t border-[#e5e5e5] pt-[6px] text-[14px] font-semibold">
-                        <span className="text-[#262626]">Total</span>
+                      <div className="mt-[4px] flex w-[200px] items-center justify-between border-t border-folk-border pt-[6px] text-[14px] font-semibold">
+                        <span className="text-folk-text">Total</span>
                         <span className="text-[#16a34a]">{formatCurrency(invoice.total)}</span>
                       </div>
                     </div>
 
                     {invoice.notes && (
-                      <div className="mt-[16px] rounded-[10px] bg-[#f7f7f7] px-[12px] py-[10px]">
-                        <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#a3a3a3]">Notes</div>
+                      <div className="mt-[16px] rounded-none bg-folk-page px-[12px] py-[10px]">
+                        <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-folk-placeholder">Notes</div>
                         <p className="mt-[4px] text-[13px] leading-[1.5] text-[#4b4b4b]">{invoice.notes}</p>
                       </div>
                     )}
@@ -820,7 +846,7 @@ export default function InvoicesPage() {
                     <button
                       type="button"
                       onClick={() => exportInvoiceToCsv(invoice)}
-                      className="flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[10px] py-[5px] text-[12px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                      className="flex items-center gap-[5px] rounded-none border border-folk-border bg-folk-surface px-[10px] py-[5px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                       tabIndex={0}
                       aria-label="Export invoice to CSV"
                     >
@@ -835,7 +861,7 @@ export default function InvoicesPage() {
                             const creditNote = await createCreditNote(invoice)
                             if (creditNote) setSelectedInvoiceId(creditNote.id)
                           }}
-                          className="flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[10px] py-[5px] text-[12px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                          className="flex items-center gap-[5px] rounded-none border border-folk-border bg-folk-surface px-[10px] py-[5px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                           tabIndex={0}
                           aria-label="Issue credit note"
                         >
@@ -844,7 +870,7 @@ export default function InvoicesPage() {
                         <button
                           type="button"
                           onClick={() => voidInvoice(invoice.id)}
-                          className="flex items-center gap-[5px] rounded border border-[#e7caca] bg-white px-[10px] py-[5px] text-[12px] font-medium text-[#cf5b5b] transition-colors hover:bg-[#faf5f5]"
+                          className="flex items-center gap-[5px] rounded-none border border-[#e7caca] bg-folk-surface px-[10px] py-[5px] text-[12px] font-medium text-[#cf5b5b] transition-colors hover:bg-[#faf5f5]"
                           tabIndex={0}
                           aria-label="Void invoice"
                         >
@@ -855,7 +881,7 @@ export default function InvoicesPage() {
                     <button
                       type="button"
                       onClick={() => setSelectedInvoiceId(null)}
-                      className="ml-auto flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[10px] py-[5px] text-[12px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                      className="ml-auto flex items-center gap-[5px] rounded-none border border-folk-border bg-folk-surface px-[10px] py-[5px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                       tabIndex={0}
                     >
                       Done
@@ -863,12 +889,12 @@ export default function InvoicesPage() {
                   </div>
                 </div>
 
-                <div className="flex min-h-0 flex-col border-t border-[#ececec] px-[20px] py-[18px] md:border-l md:border-t-0">
+                <div className="flex min-h-0 flex-col border-t border-folk-border px-[20px] py-[18px] md:border-l md:border-t-0">
                   <div className="flex justify-end gap-[4px]">
                     <button
                       type="button"
                       onClick={() => setSelectedInvoiceId(null)}
-                      className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+                      className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
                       tabIndex={0}
                       aria-label="Close"
                     >
@@ -878,7 +904,7 @@ export default function InvoicesPage() {
 
                   <div className="mt-[18px] flex flex-col gap-[14px] overflow-y-auto">
                     <div className="space-y-[10px]">
-                      <div className="px-[8px] text-[11px] font-semibold uppercase tracking-[0.08em] text-[#a3a3a3]">
+                      <div className="px-[8px] text-[11px] font-semibold uppercase tracking-[0.08em] text-folk-placeholder">
                         Invoice details
                       </div>
                       <DetailRow label="Participant" value={invoice.clientName} />
@@ -888,7 +914,7 @@ export default function InvoicesPage() {
 
                     <div className="border-t border-[#efefef] pt-[14px]">
                       <div className="space-y-[10px]">
-                        <div className="px-[8px] text-[11px] font-semibold uppercase tracking-[0.08em] text-[#a3a3a3]">
+                        <div className="px-[8px] text-[11px] font-semibold uppercase tracking-[0.08em] text-folk-placeholder">
                           Dates
                         </div>
                         <DetailRow label="Issued" value={formatDate(invoice.issueDate) || "—"} />
@@ -900,7 +926,7 @@ export default function InvoicesPage() {
 
                     <div className="border-t border-[#efefef] pt-[14px]">
                       <div className="space-y-[10px]">
-                        <div className="px-[8px] text-[11px] font-semibold uppercase tracking-[0.08em] text-[#a3a3a3]">
+                        <div className="px-[8px] text-[11px] font-semibold uppercase tracking-[0.08em] text-folk-placeholder">
                           Recipient
                         </div>
                         <DetailRow label="Sent to" value={invoice.sentTo || "—"} />
@@ -934,54 +960,16 @@ function FilterPill({
   buttonRef: (element: HTMLButtonElement | null) => void
 }) {
   return (
-    <div className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626]">
-      <Icon className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+    <div className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text">
+      <Icon className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} />
       <button ref={buttonRef} onClick={onOpen} className="hover:underline" tabIndex={0}>
         {label}
       </button>
-      <span className="text-[#888]">is</span>
+      <span className="text-folk-secondary">is</span>
       <span>{count} {count === 1 ? "value" : "values"}</span>
-      <button onClick={onClear} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded text-[#888] transition-colors hover:text-[#262626]" tabIndex={0} aria-label={`Clear ${label.toLowerCase()} filter`}>
+      <button onClick={onClear} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label={`Clear ${label.toLowerCase()} filter`}>
         <X className="h-[12px] w-[12px]" strokeWidth={1.5} />
       </button>
-    </div>
-  )
-}
-
-function DisplaySection({
-  title,
-  items,
-  activeItems,
-  onToggle,
-  formatLabel,
-}: {
-  title: string
-  items: string[]
-  activeItems: string[]
-  onToggle: (value: string) => void
-  formatLabel?: (value: string) => string
-}) {
-  if (items.length === 0) return null
-
-  return (
-    <div className="px-[20px] pb-[16px] pt-[2px]">
-      <div className="pb-[12px] text-[13px] font-medium text-[#888]">{title}</div>
-      <div className="flex flex-wrap gap-[8px]">
-        {items.map((item) => {
-          const isActive = activeItems.includes(item)
-          return (
-            <button
-              key={item}
-              type="button"
-              onClick={() => onToggle(item)}
-              className={`inline-flex items-center rounded-[4px] border px-[10px] py-[5px] text-[12px] font-medium transition-colors ${isActive ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]"}`}
-              tabIndex={0}
-            >
-              {formatLabel ? formatLabel(item) : item}
-            </button>
-          )
-        })}
-      </div>
     </div>
   )
 }
@@ -1006,31 +994,31 @@ function MultiSelectDropdown({
   style: CSSProperties
 }) {
   return (
-    <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={style}>
-      <button onClick={onBack} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+    <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk" style={style}>
+      <button onClick={onBack} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0}>
         <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
         <span>Back</span>
       </button>
-      <p className="px-[16px] py-[4px] text-[11px] font-medium text-[#888]">{title}</p>
+      <p className="px-[16px] py-[4px] text-[11px] font-medium text-folk-secondary">{title}</p>
       {items.map((item) => {
         const isActive = selectedValues.includes(item.value)
         return (
           <button
             key={item.value}
             onClick={() => onToggle(item.value)}
-            className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`}
+            className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${isActive ? "bg-folk-hover" : ""}`}
             tabIndex={0}
           >
-            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
+            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-none border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
               {isActive && <span className="text-[10px] text-white">✓</span>}
             </div>
-            <span className="text-[#262626]">{item.label}</span>
+            <span className="text-folk-text">{item.label}</span>
           </button>
         )
       })}
-      {items.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-[#888]">{emptyLabel}</p>}
-      <div className="border-t border-[#f0f0f0] px-[8px] py-[4px]">
-        <button onClick={onClear} className="w-full rounded px-[8px] py-[6px] text-left text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0}>
+      {items.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-folk-secondary">{emptyLabel}</p>}
+      <div className="border-t border-folk-border-subtle px-[8px] py-[4px]">
+        <button onClick={onClear} className="w-full rounded-none px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>
           Clear
         </button>
       </div>
@@ -1041,8 +1029,8 @@ function MultiSelectDropdown({
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid grid-cols-[100px_1fr] items-center">
-      <span className="text-[13px] font-medium text-[#888]">{label}</span>
-      <span className={`text-[13px] font-medium ${value === "—" ? "text-[#ccc]" : "text-[#262626]"}`}>{value}</span>
+      <span className="text-[13px] font-medium text-folk-secondary">{label}</span>
+      <span className={`text-[13px] font-medium ${value === "—" ? "text-[#ccc]" : "text-folk-text"}`}>{value}</span>
     </div>
   )
 }
@@ -1050,11 +1038,11 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center px-[24px] py-[56px] text-center">
-      <div className="rounded-full bg-[#f5f5f5] p-[12px]">
-        <Receipt className="h-[20px] w-[20px] text-[#999]" strokeWidth={1.5} />
+      <div className="rounded-full bg-folk-hover p-[12px]">
+        <Receipt className="h-[20px] w-[20px] text-folk-secondary" strokeWidth={1.5} />
       </div>
-      <h3 className="mt-[14px] text-[15px] font-semibold text-[#262626]">No sent invoices yet</h3>
-      <p className="mt-[6px] max-w-[320px] text-[13px] text-[#888]">
+      <h3 className="mt-[14px] text-[15px] font-semibold text-folk-text">No sent invoices yet</h3>
+      <p className="mt-[6px] max-w-[320px] text-[13px] text-folk-secondary">
         Invoices that have been confirmed and emailed will appear here automatically.
       </p>
     </div>

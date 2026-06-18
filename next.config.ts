@@ -17,6 +17,30 @@ const nextConfig: NextConfig = {
     maxInactiveAge: 60 * 60 * 1000,
     pagesBufferLength: 10,
   },
+  async redirects() {
+    return [
+      {
+        source: "/invoicing",
+        destination: "/business/invoices",
+        permanent: false,
+      },
+      {
+        source: "/invoicing/:path*",
+        destination: "/business/invoices/:path*",
+        permanent: false,
+      },
+      {
+        source: "/business/billables",
+        destination: "/settings/charges",
+        permanent: false,
+      },
+      {
+        source: "/business/billables/:path*",
+        destination: "/settings/charges",
+        permanent: false,
+      },
+    ]
+  },
   async headers() {
     return [
       {

@@ -19,6 +19,7 @@ import {
   User,
   Trash2,
 } from "lucide-react"
+import { EntityIcon } from "@/components/entity-icon"
 import { useTasks } from "@/lib/hooks/use-tasks"
 import { useInvoices } from "@/lib/hooks/use-invoices"
 import { useClients } from "@/lib/hooks/use-clients"
@@ -30,9 +31,11 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { serviceChargeTypes } from "@/lib/ndis-charges"
 import type { Task, Attachment } from "@/lib/types"
 import { PageLoader, PageError } from "@/components/page-state"
+import { ProfileTabButton } from "@/components/profile-tab-button"
 import { useToast } from "@/components/toast"
 import { Switch } from "@/components/switch"
-import { ConfirmDialog } from "@/components/confirm-dialog"
+import { DisplayPopoverPanel, DisplayPopoverTrigger } from "@/components/display-popover"
+import { FixedDropdownMenu } from "@/components/fixed-dropdown-menu"
 import { TaskDetailModal } from "./_components/task-detail-modal"
 import {
   type TaskSavedView,
@@ -40,7 +43,9 @@ import {
   defaultTaskVisibleKeys,
   parseTimeInput,
   formatRowDate,
+  formatTime,
   getTodayStr,
+  sumBillableMinutes,
 } from "./_components/task-helpers"
 
 
@@ -104,7 +109,6 @@ export default function TasksPage() {
     return ids
   }, [invoices])
 
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set())
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)
@@ -124,6 +128,16 @@ export default function TasksPage() {
 
   const [viewMode, setViewMode] = useState<"list" | "week">("list")
   const [weekOffset, setWeekOffset] = useState(0)
+  const [showPrevious, setShowPrevious] = useState(() => {
+    if (typeof window === "undefined") return false
+    return localStorage.getItem("tasks-show-completed") === "true"
+  })
+  const [displayArchived, setDisplayArchived] = useState(() => {
+    if (typeof window === "undefined") return false
+    return localStorage.getItem("tasks-show-archived") === "true"
+  })
+  const [showThisWeek, setShowThisWeek] = useState(true)
+  const [archivedExpanded, setArchivedExpanded] = useState(true)
 
   const [isCreateTaskViewOpen, setIsCreateTaskViewOpen] = useState(false)
   const [newTaskViewName, setNewTaskViewName] = useState("")
@@ -242,6 +256,8 @@ export default function TasksPage() {
     setViewMode("list")
     setVisibleTaskColumnKeys(defaultTaskVisibleKeys)
     setWeekOffset(0)
+    setShowPrevious(false)
+    setDisplayArchived(false)
   }
 
   const [isQuickAdding, setIsQuickAdding] = useState(false)
@@ -346,15 +362,9 @@ export default function TasksPage() {
   }
 
   const handleDeleteTask = (id: string) => {
-    setDeleteConfirmId(id)
-  }
-
-  const confirmDeleteTask = () => {
-    if (!deleteConfirmId) return
-    deleteTaskDb(deleteConfirmId)
-    if (selectedTaskId === deleteConfirmId) setSelectedTaskId(null)
+    deleteTaskDb(id)
+    if (selectedTaskId === id) setSelectedTaskId(null)
     toast("Task deleted", "success")
-    setDeleteConfirmId(null)
   }
 
   const toggleSelectAll = () => {
@@ -452,20 +462,6 @@ export default function TasksPage() {
     return true
   })
 
-  const thisWeekTasks = filtered.filter((t) => t.status !== "done")
-    .sort((a, b) => {
-      if (!a.dueDate && !b.dueDate) return 0
-      if (!a.dueDate) return 1
-      if (!b.dueDate) return -1
-      return a.dueDate.localeCompare(b.dueDate)
-    })
-  const completedTasks = filtered.filter((t) => t.status === "done" && !invoicedTaskIds.has(t.id))
-    .sort((a, b) => {
-      if (!a.dueDate && !b.dueDate) return 0
-      if (!a.dueDate) return 1
-      if (!b.dueDate) return -1
-      return b.dueDate.localeCompare(a.dueDate)
-    })
   const archivedTasks = filtered.filter((t) => t.status === "done" && invoicedTaskIds.has(t.id))
     .sort((a, b) => {
       if (!a.dueDate && !b.dueDate) return 0
@@ -474,18 +470,39 @@ export default function TasksPage() {
       return b.dueDate.localeCompare(a.dueDate)
     })
 
-  const taskCount = filtered.length
+  const visibleTasks = displayArchived
+    ? filtered
+    : filtered.filter((t) => !(t.status === "done" && invoicedTaskIds.has(t.id)))
 
-  const [showThisWeek, setShowThisWeek] = useState(true)
-  const [showPrevious, setShowPrevious] = useState(() => {
-    if (typeof window === "undefined") return false
-    return localStorage.getItem("tasks-show-completed") === "true"
-  })
-  const [showArchived, setShowArchived] = useState(false)
+  const visibleThisWeekTasks = visibleTasks.filter((t) => t.status !== "done")
+    .sort((a, b) => {
+      if (!a.dueDate && !b.dueDate) return 0
+      if (!a.dueDate) return 1
+      if (!b.dueDate) return -1
+      return a.dueDate.localeCompare(b.dueDate)
+    })
+  const visibleCompletedTasks = visibleTasks.filter((t) => t.status === "done" && !invoicedTaskIds.has(t.id))
+    .sort((a, b) => {
+      if (!a.dueDate && !b.dueDate) return 0
+      if (!a.dueDate) return 1
+      if (!b.dueDate) return -1
+      return b.dueDate.localeCompare(a.dueDate)
+    })
+
+  const completedBillableMinutes = useMemo(
+    () => sumBillableMinutes(visibleCompletedTasks),
+    [visibleCompletedTasks]
+  )
+
+  const taskCount = visibleTasks.length
 
   useEffect(() => {
     localStorage.setItem("tasks-show-completed", String(showPrevious))
   }, [showPrevious])
+
+  useEffect(() => {
+    localStorage.setItem("tasks-show-archived", String(displayArchived))
+  }, [displayArchived])
 
   const [pageSize, setPageSize] = useState(10)
   const [uncompletedVisible, setUncompletedVisible] = useState(10)
@@ -496,6 +513,26 @@ export default function TasksPage() {
 
   const isColVisible = (key: string) => visibleTaskColumnKeys.includes(key)
 
+  const renderTaskListHeader = () => (
+    <div
+      className="sticky top-0 z-10 grid items-center gap-x-[14px] border-b border-[#e8e8e8] bg-folk-page px-[24px] py-[8px]"
+      style={{ gridTemplateColumns: taskGridTemplate }}
+    >
+      {visibleTaskColumns.map((col) => {
+        if (col.key === "title" || col.key === "checkbox" || col.key === "date") {
+          return <div key={`header-${col.key}`} aria-hidden="true" />
+        }
+        const Icon = col.icon
+        return (
+          <div key={`header-${col.key}`} className="flex flex-col items-center justify-center gap-[4px]">
+            <Icon className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} aria-hidden="true" />
+            <span className="sr-only">{col.label}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+
   const renderTaskRow = (task: Task) => {
     const dateStr = formatRowDate(task.dueDate)
     const clientInitials = task.client ? task.client.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2) : ""
@@ -504,7 +541,7 @@ export default function TasksPage() {
     return (
       <div
         key={task.id}
-        className="group grid cursor-pointer items-center border-b border-[#f0f0f0] px-[24px] transition-colors hover:bg-[#fafafa]"
+        className="group grid cursor-pointer items-center gap-x-[14px] border-b border-folk-border-subtle px-[24px] transition-colors hover:bg-folk-page"
         style={{ gridTemplateColumns: taskGridTemplate }}
         onClick={() => setSelectedTaskId(task.id)}
         role="button"
@@ -514,11 +551,11 @@ export default function TasksPage() {
         <div className="flex items-center justify-center">
           <button
             onClick={(e) => { e.stopPropagation(); handleToggleComplete(task.id) }}
-            className={`flex h-[18px] w-[18px] items-center justify-center rounded border-[1.5px] transition-colors ${
+            className={`flex h-[18px] w-[18px] items-center justify-center rounded-none border-[1.5px] transition-colors ${
               task.status === "done"
                 ? "border-[#2563EB] bg-[#2563EB] text-white"
                 : isSelected
-                  ? "border-[#bbb] bg-[#ededed] text-[#999]"
+                  ? "border-[#bbb] bg-[#ededed] text-folk-secondary"
                   : "border-[#ccc] hover:border-[#999]"
             }`}
             tabIndex={0}
@@ -528,39 +565,39 @@ export default function TasksPage() {
           </button>
         </div>
         {isColVisible("date") && (
-          <div className="py-[12px] text-[13px] text-[#888]">
+          <div className="py-[8px] text-[13px] text-folk-secondary">
             {dateStr || <span className="text-[#ccc]">—</span>}
           </div>
         )}
-        {isColVisible("participant") && (
-          <div className="flex items-center justify-center py-[12px]">
-            {clientInitials ? (
-              <span className="flex h-[26px] w-[26px] items-center justify-center rounded-md bg-blue-100 text-[10px] font-bold text-blue-600">{clientInitials}</span>
-            ) : <span className="text-[12px] text-[#ccc]">—</span>}
-          </div>
-        )}
-        <div className="truncate py-[12px] pl-[8px]">
-          <span className={`text-[13px] ${isInvoicingMode ? "text-[#262626]" : task.status === "done" ? "text-[#bbb] line-through" : "text-[#262626]"}`}>
+        <div className="truncate py-[8px] pl-[8px]">
+          <span className={`text-[13px] ${isInvoicingMode ? "text-folk-text" : task.status === "done" ? "text-folk-placeholder line-through" : "text-folk-text"}`}>
             {task.title}
           </span>
         </div>
-        {isColVisible("assignee") && (
-          <div className="flex items-center justify-center py-[12px]">
-            {assigneeInitials ? (
-              <span className="flex h-[26px] w-[26px] items-center justify-center rounded-md bg-[#f0f0f0] text-[10px] font-bold text-[#555]">{assigneeInitials}</span>
-            ) : <span className="text-[12px] text-[#ccc]">—</span>}
-          </div>
-        )}
         {isColVisible("charge") && (
-          <div className="flex items-center justify-center py-[12px] text-[12px] font-medium text-[#888]">
+          <div className="flex items-center justify-center px-[4px] py-[8px] text-[12px] font-medium text-folk-secondary">
             <span className="truncate text-center">
               {task.chargeType ? chargeCode(task.chargeType) : <span className="text-[#ccc]">—</span>}
             </span>
           </div>
         )}
         {isColVisible("time") && (
-          <div className="flex items-center justify-center py-[12px] text-[13px] text-[#888]">
+          <div className="flex items-center justify-center px-[4px] py-[8px] text-[13px] text-folk-secondary">
             {task.timeSpent > 0 ? task.timeSpent : <span className="text-[#ccc]">—</span>}
+          </div>
+        )}
+        {isColVisible("assignee") && (
+          <div className="flex items-center justify-center py-[8px]">
+            {assigneeInitials ? (
+              <EntityIcon text={assigneeInitials} size="sm" />
+            ) : <span className="text-[12px] text-[#ccc]">—</span>}
+          </div>
+        )}
+        {isColVisible("participant") && (
+          <div className="flex items-center justify-center py-[8px]">
+            {clientInitials ? (
+              <EntityIcon text={clientInitials} size="sm" />
+            ) : <span className="text-[12px] text-[#ccc]">—</span>}
           </div>
         )}
       </div>
@@ -573,39 +610,37 @@ export default function TasksPage() {
   return (
     <div className="flex h-full flex-col">
       {/* View tabs */}
-      <div className="flex h-[44px] shrink-0 items-center justify-between gap-[8px] border-b border-[#f0f0f0] px-[16px]">
+      <div className="flex h-[44px] shrink-0 items-center justify-between gap-[8px] border-b border-folk-border bg-folk-nav px-[16px]">
         <div className="flex min-w-0 flex-1 items-center gap-[8px] overflow-x-auto">
-          <span className="text-[13px] font-medium text-[#262626]">
+          <span className="text-[13px] font-medium text-folk-text">
             {isInvoicingMode ? "Invoicing" : "Tasks"}
           </span>
-          <div className="h-[16px] w-px bg-[#e5e5e5]" />
-          <button
+          <div className="h-[16px] w-px bg-[var(--folk-border)]" />
+          <ProfileTabButton
+            variant="toolbar"
+            isActive={activeTaskViewId === null}
             onClick={handleSelectAllTaskView}
-            className={`flex items-center gap-[6px] rounded-[4px] border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeTaskViewId === null ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
-            tabIndex={0}
-          >
-            <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
-            <span>All</span>
-          </button>
-          {taskSavedViews.length > 0 && <div className="h-[16px] w-px bg-[#dcdcdc]" />}
+            icon={Table2}
+            label="All"
+          />
+          {taskSavedViews.length > 0 && <div className="h-[16px] w-px bg-[var(--folk-border)]" />}
           {taskSavedViews.map((view) => (
-            <button
+            <ProfileTabButton
               key={view.id}
+              variant="toolbar"
+              isActive={activeTaskViewId === view.id}
               onClick={() => handleSelectTaskView(view)}
               onContextMenu={(e) => {
                 e.preventDefault()
                 setTaskViewContextMenu({ viewId: view.id, x: e.clientX, y: e.clientY })
               }}
-              className={`flex items-center gap-[6px] rounded-[4px] border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${activeTaskViewId === view.id ? "border-[#e0e0e0] bg-[#f0f0f0] text-[#262626]" : "border-transparent text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]"}`}
-              tabIndex={0}
-            >
-              <Table2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
-              <span>{view.name}</span>
-            </button>
+              icon={Table2}
+              label={view.name}
+            />
           ))}
           <button
             onClick={() => { setIsCreateTaskViewOpen(true); setTimeout(() => taskViewNameInputRef.current?.focus(), 50) }}
-            className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#999] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+            className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
             aria-label="Add view"
             tabIndex={0}
           >
@@ -617,16 +652,16 @@ export default function TasksPage() {
             <div className="flex items-center gap-[6px]">
               <button
                 onClick={() => setWeekOffset((p) => p - 1)}
-                className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+                className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
                 tabIndex={0}
                 aria-label="Previous week"
               >
                 <ChevronLeft className="h-[14px] w-[14px]" strokeWidth={1.75} />
               </button>
-              <span className="min-w-[160px] text-center text-[13px] font-semibold text-[#262626]">{formatWeekLabel()}</span>
+              <span className="min-w-[160px] text-center text-[13px] font-semibold text-folk-text">{formatWeekLabel()}</span>
               <button
                 onClick={() => setWeekOffset((p) => p + 1)}
-                className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+                className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
                 tabIndex={0}
                 aria-label="Next week"
               >
@@ -635,7 +670,7 @@ export default function TasksPage() {
               <button
                 onClick={() => setWeekOffset(0)}
                 disabled={weekOffset === 0}
-                className={`flex items-center gap-[5px] rounded border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${weekOffset === 0 ? "border-[#e8e8e8] bg-white text-[#ccc] cursor-default" : "border-[#dcdcdc] bg-white text-[#262626] hover:bg-[#f5f5f5]"}`}
+                className={`flex items-center gap-[5px] rounded-none border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${weekOffset === 0 ? "border-[#e8e8e8] bg-folk-surface text-[#ccc] cursor-default" : "border-folk-border bg-folk-surface text-folk-text hover:bg-folk-hover"}`}
                 tabIndex={0}
               >
                 This week
@@ -643,11 +678,20 @@ export default function TasksPage() {
             </div>
           )}
           {!isInvoicingMode && (
-            <div className="relative">
+            <div className="flex items-center gap-[8px]">
+              <div
+                className="flex items-center gap-[5px] rounded-none border border-[#e8e8e8] bg-folk-page px-[10px] py-[4px]"
+                title="Billable time on completed tasks"
+              >
+                <Clock className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} aria-hidden="true" />
+                <span className="text-[13px] font-semibold text-folk-text">{formatTime(completedBillableMinutes)}</span>
+                <span className="text-[12px] font-medium text-folk-secondary">billable</span>
+              </div>
+              <div className="relative">
               <button
                 ref={createBtnRef}
                 onClick={() => { if (isQuickAdding) { resetQuickAdd() } else { setIsQuickAdding(true); setQuickActiveField("title"); setTimeout(() => quickInputRef.current?.focus(), 0) } }}
-                className="primary-btn flex items-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
+                className="outline-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
                 tabIndex={0}
               >
                 <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -657,7 +701,7 @@ export default function TasksPage() {
           {isQuickAdding && (
             <>
               <div className="fixed inset-0 z-[48]" onClick={resetQuickAdd} />
-              <div className="absolute right-0 top-full z-[49] mt-[6px] w-[520px] rounded-lg border border-[#e0e0e0] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+              <div className="absolute right-0 top-full z-[49] mt-[6px] w-[520px] rounded-none border border-folk-border bg-folk-surface shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
                 <div className="px-[16px] pt-[14px]">
                   <input
                     ref={quickInputRef}
@@ -670,7 +714,7 @@ export default function TasksPage() {
                       if (e.key === "Escape") resetQuickAdd()
                     }}
                     placeholder="Task name..."
-                    className="w-full text-[15px] font-medium text-[#262626] placeholder-[#bbb] outline-none"
+                    className="w-full text-[15px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none"
                     autoFocus
                   />
                 </div>
@@ -694,9 +738,9 @@ export default function TasksPage() {
                       return (
                         <>
                           <div
-                            className={`flex items-center gap-[5px] rounded border px-[8px] py-[3px] transition-colors ${quickActiveField === "participant" ? "border-blue-400" : "border-[#e0e0e0]"}`}
+                            className={`flex items-center gap-[5px] rounded-none border px-[8px] py-[3px] transition-colors ${quickActiveField === "participant" ? "border-blue-400" : "border-folk-border"}`}
                           >
-                            <Building2 className={`h-[12px] w-[12px] shrink-0 ${quickClient ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
+                            <Building2 className={`h-[12px] w-[12px] shrink-0 ${quickClient ? "text-folk-secondary" : "text-[#ccc]"}`} strokeWidth={1.5} />
                             <input
                               ref={quickClientInputRef}
                               type="text"
@@ -735,15 +779,15 @@ export default function TasksPage() {
                                 }
                               }}
                               placeholder="Client"
-                              className="w-[80px] bg-transparent text-[12px] font-medium text-[#262626] placeholder-[#ccc] outline-none"
+                              className="w-[80px] bg-transparent text-[12px] font-medium text-folk-text placeholder-[#ccc] outline-none"
                             />
                           </div>
                           {isQuickClientOpen && (
                             <>
                               <div className="fixed inset-0 z-[59]" onClick={() => { setIsQuickClientOpen(false); setQuickClientIdx(-1); setQuickClientSearch("") }} />
-                              <div ref={quickClientListRef} className="absolute left-0 top-full z-[60] mt-[4px] max-h-[200px] w-[220px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                              <div ref={quickClientListRef} className="absolute left-0 top-full z-[60] mt-[4px] max-h-[200px] w-[220px] overflow-y-auto rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk">
                                 {filteredClients.length === 0 ? (
-                                  <div className="px-[12px] py-[7px] text-[12px] font-medium text-[#888]">No matches</div>
+                                  <div className="px-[12px] py-[7px] text-[12px] font-medium text-folk-secondary">No matches</div>
                                 ) : (
                                   filteredClients.map((name, i) => {
                                     const initials = name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -752,13 +796,11 @@ export default function TasksPage() {
                                       <div
                                         key={name}
                                         onClick={() => selectClient(name)}
-                                        className={`flex w-full cursor-pointer items-center gap-[8px] px-[12px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${isHighlighted ? "bg-blue-50" : ""}`}
+                                        className={`flex w-full cursor-pointer items-center gap-[8px] px-[12px] py-[7px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover ${isHighlighted ? "bg-blue-50" : ""}`}
                                         role="option"
                                         aria-selected={isHighlighted}
                                       >
-                                        <div className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-[6px] bg-[#DBEAFE] text-[8px] font-semibold text-[#2563EB]">
-                                          {initials}
-                                        </div>
+                                        <EntityIcon text={initials} size="xsm" />
                                         {name}
                                       </div>
                                     )
@@ -788,9 +830,9 @@ export default function TasksPage() {
                       return (
                         <>
                           <div
-                            className={`flex items-center gap-[5px] rounded border px-[8px] py-[3px] transition-colors ${quickActiveField === "charge" ? "border-blue-400" : "border-[#e0e0e0]"}`}
+                            className={`flex items-center gap-[5px] rounded-none border px-[8px] py-[3px] transition-colors ${quickActiveField === "charge" ? "border-blue-400" : "border-folk-border"}`}
                           >
-                            <Tag className={`h-[12px] w-[12px] shrink-0 ${quickCharge ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
+                            <Tag className={`h-[12px] w-[12px] shrink-0 ${quickCharge ? "text-folk-secondary" : "text-[#ccc]"}`} strokeWidth={1.5} />
                             <input
                               ref={quickChargeInputRef}
                               type="text"
@@ -829,21 +871,21 @@ export default function TasksPage() {
                                 }
                               }}
                               placeholder="Charge"
-                              className="w-[80px] bg-transparent text-[12px] font-medium text-[#262626] placeholder-[#ccc] outline-none"
+                              className="w-[80px] bg-transparent text-[12px] font-medium text-folk-text placeholder-[#ccc] outline-none"
                             />
                           </div>
                           {isQuickChargeOpen && (
                             <>
                               <div className="fixed inset-0 z-[59]" onClick={() => { setIsQuickChargeOpen(false); setQuickChargeIdx(-1); setQuickChargeSearch("") }} />
-                              <div ref={quickChargeListRef} className="absolute left-0 top-full z-[60] mt-[4px] max-h-[220px] w-[200px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                              <div ref={quickChargeListRef} className="absolute left-0 top-full z-[60] mt-[4px] max-h-[220px] w-[200px] overflow-y-auto rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk">
                                 {filteredCharges.length === 0 ? (
-                                  <div className="px-[12px] py-[7px] text-[12px] font-medium text-[#888]">No matches</div>
+                                  <div className="px-[12px] py-[7px] text-[12px] font-medium text-folk-secondary">No matches</div>
                                 ) : (
                                   filteredCharges.map((ct, i) => (
                                     <div
                                       key={ct.value || "__none__"}
                                       onClick={() => selectCharge(ct.value)}
-                                      className={`flex w-full cursor-pointer items-center px-[12px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${quickChargeIdx === i ? "bg-blue-50" : ""} ${ct.value ? "text-[#262626]" : "text-[#888]"}`}
+                                      className={`flex w-full cursor-pointer items-center px-[12px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${quickChargeIdx === i ? "bg-blue-50" : ""} ${ct.value ? "text-folk-text" : "text-folk-secondary"}`}
                                       role="option"
                                       aria-selected={quickChargeIdx === i}
                                     >
@@ -859,8 +901,8 @@ export default function TasksPage() {
                     })()}
                   </div>
 
-                  <div className="flex items-center gap-[5px] rounded border border-[#e0e0e0] px-[8px] py-[4px]">
-                    <Clock className={`h-[12px] w-[12px] ${quickTime ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
+                  <div className="flex items-center gap-[5px] rounded-none border border-folk-border px-[8px] py-[4px]">
+                    <Clock className={`h-[12px] w-[12px] ${quickTime ? "text-folk-secondary" : "text-[#ccc]"}`} strokeWidth={1.5} />
                     <input
                       ref={quickTimeRef}
                       type="text"
@@ -872,272 +914,263 @@ export default function TasksPage() {
                         if (e.key === "Escape") resetQuickAdd()
                       }}
                       placeholder="0m"
-                      className="w-[40px] bg-transparent text-[12px] font-medium text-[#262626] placeholder-[#ccc] outline-none"
+                      className="w-[40px] bg-transparent text-[12px] font-medium text-folk-text placeholder-[#ccc] outline-none"
                     />
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between border-t border-[#f0f0f0] px-[16px] py-[10px]">
+                <div className="flex items-center justify-between border-t border-folk-border-subtle px-[16px] py-[10px]">
                   <span className="text-[11px] font-medium text-[#ccc]">Enter ↵ next · Esc close</span>
                   <div className="flex items-center gap-[6px]">
-                    <button type="button" onClick={resetQuickAdd} className="rounded px-[8px] py-[4px] text-[12px] font-medium text-[#999] transition-colors hover:bg-[#f0f0f0]" tabIndex={0}>Cancel</button>
-                    <button type="button" onClick={handleQuickFinish} disabled={!quickTitle.trim()} className="primary-btn rounded-[4px] px-[12px] py-[4px] text-[12px] font-medium transition-colors disabled:opacity-40" tabIndex={0}>Create</button>
+                    <button type="button" onClick={resetQuickAdd} className="rounded-none px-[8px] py-[4px] text-[12px] font-medium text-folk-secondary transition-colors hover:bg-[var(--folk-border-subtle)]" tabIndex={0}>Cancel</button>
+                    <button type="button" onClick={handleQuickFinish} disabled={!quickTitle.trim()} className="primary-btn px-[12px] py-[4px] text-[12px] font-medium transition-colors disabled:opacity-40" tabIndex={0}>Create</button>
                   </div>
                 </div>
               </div>
             </>
           )}
-          </div>
+              </div>
+            </div>
           )}
         </div>
       </div>
 
           {/* Filter & display bar */}
-          <div className="flex h-[41px] shrink-0 items-center gap-[8px] overflow-x-auto border-b border-[#dcdcdc] px-[16px]">
+          <div className="flex h-[41px] shrink-0 items-center gap-[8px] overflow-x-auto border-b border-folk-border bg-folk-nav px-[16px]">
             <div className="relative">
               <button
                 ref={filterBtnRef}
                 onClick={() => { setIsFilterMenuOpen(!isFilterMenuOpen); setActiveFilterDropdown(null) }}
-                className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                 tabIndex={0}
               >
                 <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
                 <span>Filter</span>
               </button>
               {isFilterMenuOpen && (
-                <>
-                  <div className="fixed inset-0 z-[55]" onClick={() => setIsFilterMenuOpen(false)} />
-                  <div
-                    className="fixed z-[60] w-[180px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-                    style={{
-                      top: (filterBtnRef.current?.getBoundingClientRect().bottom ?? 0) + 4,
-                      left: filterBtnRef.current?.getBoundingClientRect().left ?? 0,
-                    }}
-                  >
-                    <p className="px-[16px] py-[6px] text-[11px] font-medium text-[#888]">Filter by</p>
-                    {[
-                      { key: "status", label: "Status", icon: CheckSquare },
-                      { key: "date", label: "Date", icon: CalendarDays },
-                      { key: "participant", label: "Client", icon: Building2 },
-                      { key: "assignee", label: "Assignee", icon: User },
-                      { key: "charge", label: "Charge", icon: Tag },
-                    ].map((item) => {
-                      const Icon = item.icon
-                      return (
-                        <button
-                          key={item.key}
-                          onClick={() => { setActiveFilterDropdown(item.key); setIsFilterMenuOpen(false) }}
-                          className="flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-                          tabIndex={0}
-                        >
-                          <Icon className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
-                          {item.label}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </>
+                <FixedDropdownMenu
+                  isOpen={isFilterMenuOpen}
+                  anchorRef={filterBtnRef}
+                  onClose={() => setIsFilterMenuOpen(false)}
+                  estimatedHeight={240}
+                  minWidth={180}
+                  className="py-[4px]"
+                >
+                  <p className="px-[16px] py-[6px] text-[11px] font-medium text-folk-secondary">Filter by</p>
+                  {[
+                    { key: "status", label: "Status", icon: CheckSquare },
+                    { key: "date", label: "Date", icon: CalendarDays },
+                    { key: "participant", label: "Client", icon: Building2 },
+                    { key: "assignee", label: "Assignee", icon: User },
+                    { key: "charge", label: "Charge", icon: Tag },
+                  ].map((item) => {
+                    const Icon = item.icon
+                    return (
+                      <button
+                        key={item.key}
+                        onClick={() => { setActiveFilterDropdown(item.key); setIsFilterMenuOpen(false) }}
+                        className="flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+                        tabIndex={0}
+                      >
+                        <Icon className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} />
+                        {item.label}
+                      </button>
+                    )
+                  })}
+                </FixedDropdownMenu>
               )}
             </div>
             <button
               onClick={toggleSelectAll}
-              className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+              className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
               tabIndex={0}
             >
               <CheckSquare className="h-[13px] w-[13px]" strokeWidth={1.5} />
               <span>{(() => { const incomplete = filtered.filter((t) => t.status !== "done"); return incomplete.length > 0 && incomplete.every((t) => selectedTaskIds.has(t.id)) ? "Deselect all" : "Select all" })()}</span>
             </button>
             {statusFilter.length > 0 && (
-              <div className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626]">
-                <CheckSquare className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+              <div className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text">
+                <CheckSquare className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} />
                 <button ref={(el) => { filterPillRefs.current["status"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "status" ? null : "status")} className="hover:underline" tabIndex={0}>Status</button>
-                <span className="text-[#888]">is</span>
+                <span className="text-folk-secondary">is</span>
                 <span>{statusFilter.length} {statusFilter.length === 1 ? "value" : "values"}</span>
-                <button onClick={() => setStatusFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded text-[#888] transition-colors hover:text-[#262626]" tabIndex={0} aria-label="Clear status filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
+                <button onClick={() => setStatusFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear status filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
               </div>
             )}
             {dateFilter.length > 0 && (
-              <div className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626]">
-                <CalendarDays className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+              <div className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text">
+                <CalendarDays className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} />
                 <button ref={(el) => { filterPillRefs.current["date"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "date" ? null : "date")} className="hover:underline" tabIndex={0}>Date</button>
-                <span className="text-[#888]">is</span>
+                <span className="text-folk-secondary">is</span>
                 <span>{dateFilter.length} {dateFilter.length === 1 ? "value" : "values"}</span>
-                <button onClick={() => setDateFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded text-[#888] transition-colors hover:text-[#262626]" tabIndex={0} aria-label="Clear date filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
+                <button onClick={() => setDateFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear date filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
               </div>
             )}
             {participantFilter.length > 0 && (
-              <div className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626]">
-                <Building2 className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+              <div className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text">
+                <Building2 className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} />
                 <button ref={(el) => { filterPillRefs.current["participant"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "participant" ? null : "participant")} className="hover:underline" tabIndex={0}>Client</button>
-                <span className="text-[#888]">is</span>
+                <span className="text-folk-secondary">is</span>
                 <span>{participantFilter.length} {participantFilter.length === 1 ? "value" : "values"}</span>
-                <button onClick={() => setParticipantFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded text-[#888] transition-colors hover:text-[#262626]" tabIndex={0} aria-label="Clear client filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
+                <button onClick={() => setParticipantFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear client filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
               </div>
             )}
             {assigneeFilter.length > 0 && (
-              <div className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626]">
-                <User className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+              <div className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text">
+                <User className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} />
                 <button ref={(el) => { filterPillRefs.current["assignee"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "assignee" ? null : "assignee")} className="hover:underline" tabIndex={0}>Assignee</button>
-                <span className="text-[#888]">is</span>
+                <span className="text-folk-secondary">is</span>
                 <span>{assigneeFilter.length} {assigneeFilter.length === 1 ? "value" : "values"}</span>
-                <button onClick={() => setAssigneeFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded text-[#888] transition-colors hover:text-[#262626]" tabIndex={0} aria-label="Clear assignee filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
+                <button onClick={() => setAssigneeFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear assignee filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
               </div>
             )}
             {chargeFilter.length > 0 && (
-              <div className="flex items-center gap-[6px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626]">
-                <Tag className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+              <div className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text">
+                <Tag className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} />
                 <button ref={(el) => { filterPillRefs.current["charge"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "charge" ? null : "charge")} className="hover:underline" tabIndex={0}>Charge</button>
-                <span className="text-[#888]">is</span>
+                <span className="text-folk-secondary">is</span>
                 <span>{chargeFilter.length} {chargeFilter.length === 1 ? "value" : "values"}</span>
-                <button onClick={() => setChargeFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded text-[#888] transition-colors hover:text-[#262626]" tabIndex={0} aria-label="Clear charge filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
+                <button onClick={() => setChargeFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear charge filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
               </div>
             )}
             <div className="relative ml-auto">
               <button
                 ref={pageSizeBtnRef}
                 onClick={() => setIsPageSizeOpen(!isPageSizeOpen)}
-                className="flex items-center gap-[5px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                className="flex items-center gap-[5px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                 tabIndex={0}
               >
                 <span>{pageSize} per page</span>
-                <ChevronDown className="h-[11px] w-[11px] text-[#888]" strokeWidth={1.5} />
+                <ChevronDown className="h-[11px] w-[11px] text-folk-secondary" strokeWidth={1.5} />
               </button>
               {isPageSizeOpen && (
-                <>
-                  <div className="fixed inset-0 z-[55]" onClick={() => setIsPageSizeOpen(false)} />
-                  <div
-                    className="fixed z-[60] w-[120px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-                    style={{
-                      top: (pageSizeBtnRef.current?.getBoundingClientRect().bottom ?? 0) + 4,
-                      left: (pageSizeBtnRef.current?.getBoundingClientRect().right ?? 120) - 120,
-                    }}
-                  >
-                    {[10, 20, 50, 100].map((n) => (
-                      <button
-                        key={n}
-                        onClick={() => { setPageSize(n); setUncompletedVisible(n); setCompletedVisible(n); setIsPageSizeOpen(false) }}
-                        className={`flex w-full items-center px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${pageSize === n ? "bg-[#f5f5f5] text-[#262626]" : "text-[#262626]"}`}
-                        tabIndex={0}
-                      >
-                        {n} per page
-                      </button>
-                    ))}
-                  </div>
-                </>
+                <FixedDropdownMenu
+                  isOpen={isPageSizeOpen}
+                  anchorRef={pageSizeBtnRef}
+                  onClose={() => setIsPageSizeOpen(false)}
+                  estimatedHeight={180}
+                  minWidth={120}
+                  align="right"
+                  className="py-[4px]"
+                >
+                  {[10, 20, 50, 100].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => { setPageSize(n); setUncompletedVisible(n); setCompletedVisible(n); setIsPageSizeOpen(false) }}
+                      className={`flex w-full items-center px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${pageSize === n ? "bg-folk-hover text-folk-text" : "text-folk-text"}`}
+                      tabIndex={0}
+                    >
+                      {n} per page
+                    </button>
+                  ))}
+                </FixedDropdownMenu>
               )}
             </div>
-            <button
-              ref={taskDisplayBtnRef}
+            <DisplayPopoverTrigger
+              hiddenCount={0}
+              showLabel
+              isOpen={isTaskDisplayOpen}
               onClick={() => setIsTaskDisplayOpen(!isTaskDisplayOpen)}
-              className="flex items-center gap-[5px] rounded border border-[#dcdcdc] px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
-              tabIndex={0}
+              buttonRef={taskDisplayBtnRef}
+            />
+            <DisplayPopoverPanel
+              isOpen={isTaskDisplayOpen}
+              onClose={() => setIsTaskDisplayOpen(false)}
+              buttonRef={taskDisplayBtnRef}
+              widthClassName="w-[280px]"
             >
-              <SlidersHorizontal className="h-[13px] w-[13px]" strokeWidth={1.5} />
-              <span className="hidden sm:inline">Display</span>
-            </button>
-            {isTaskDisplayOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setIsTaskDisplayOpen(false)} />
-                <div
-                  className="fixed z-50 w-[420px] rounded-lg border border-[#dcdcdc] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-                  style={(() => {
-                    const rect = taskDisplayBtnRef.current?.getBoundingClientRect()
-                    if (!rect) return {}
-                    return { top: rect.bottom + 4, right: window.innerWidth - rect.right }
-                  })()}
-                >
-                  <div className="max-h-[520px] overflow-y-auto">
-                    <div className="px-[20px] pb-[16px] pt-[16px]">
-                      <div className="flex gap-[10px]">
-                        {([
-                          { key: "list" as const, label: "List", Icon: Table2 },
-                          { key: "week" as const, label: "Week", Icon: CalendarDays },
-                        ]).map(({ key, label, Icon }) => {
-                          const isActive = viewMode === key
-                          return (
-                            <button
-                              key={key}
-                              onClick={() => { setViewMode(key); if (key === "list") setWeekOffset(0) }}
-                              className={`flex flex-1 flex-col items-center justify-center gap-[6px] rounded-xl border py-[14px] transition-colors ${isActive ? "border-[#d0d0d0] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]" : "border-transparent bg-[#fafafa] hover:bg-[#f0f0f0]"}`}
-                              tabIndex={0}
-                            >
-                              <Icon className={`h-[20px] w-[20px] ${isActive ? "text-[#262626]" : "text-[#999]"}`} strokeWidth={1.5} />
-                              <span className={`text-[13px] font-medium ${isActive ? "text-[#262626]" : "text-[#999]"}`}>{label}</span>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                    <div className="px-[20px] pb-[16px] pt-[14px]">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[13px] font-medium text-[#888]">Show completed</span>
-                        <Switch
-                          checked={showPrevious}
-                          onChange={() => setShowPrevious((prev) => !prev)}
-                          ariaLabel="Show completed toggle"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-[20px] border-t border-[#f0f0f0] px-[20px] py-[12px]">
-                    <button
-                      onClick={handleResetDisplay}
-                      className="text-[13px] font-medium text-[#bbb] transition-colors hover:text-[#262626]"
-                      tabIndex={0}
-                    >
-                      Reset
-                    </button>
-                    <button
-                      className="text-[13px] font-medium text-[#bbb] transition-colors hover:text-[#262626]"
-                      tabIndex={0}
-                    >
-                      Save default for everyone
-                    </button>
-                  </div>
+              <div className="max-h-[520px] overflow-y-auto">
+                <div className="flex gap-[8px] border-b border-folk-border-subtle px-[12px] py-[12px]">
+                  {([
+                    { key: "list" as const, label: "List", Icon: Table2 },
+                    { key: "week" as const, label: "Week", Icon: CalendarDays },
+                  ]).map(({ key, label, Icon }) => {
+                    const isActive = viewMode === key
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => { setViewMode(key); if (key === "list") setWeekOffset(0) }}
+                        className={`flex flex-1 flex-col items-center justify-center gap-[6px] rounded-none border py-[12px] transition-colors ${isActive ? "border-folk-border bg-[#f5f5f5] text-folk-text" : "border-transparent bg-white text-folk-secondary hover:bg-[#f5f5f5]"}`}
+                        tabIndex={0}
+                      >
+                        <Icon className="h-[18px] w-[18px]" strokeWidth={1.5} />
+                        <span className="text-[12px] font-medium">{label}</span>
+                      </button>
+                    )
+                  })}
                 </div>
-              </>
-            )}
+                <div className="flex items-center justify-between px-[12px] py-[10px]">
+                  <span className="text-[13px] font-normal text-folk-secondary">Show completed</span>
+                  <Switch
+                    checked={showPrevious}
+                    onChange={() => setShowPrevious((prev) => !prev)}
+                    ariaLabel="Show completed toggle"
+                  />
+                </div>
+                <div className="flex items-center justify-between border-t border-folk-border-subtle px-[12px] py-[10px]">
+                  <span className="text-[13px] font-normal text-folk-secondary">Show archived</span>
+                  <Switch
+                    checked={displayArchived}
+                    onChange={() => setDisplayArchived((prev) => !prev)}
+                    ariaLabel="Show archived toggle"
+                  />
+                </div>
+              </div>
+
+              <div className="border-t border-folk-border-subtle px-[12px] py-[10px]">
+                <button
+                  onClick={handleResetDisplay}
+                  className="text-[13px] font-normal text-folk-placeholder transition-colors hover:text-folk-text"
+                  tabIndex={0}
+                >
+                  Reset
+                </button>
+              </div>
+            </DisplayPopoverPanel>
           </div>
 
           {/* Filter value dropdowns */}
-          {activeFilterDropdown && (
-            <>
-              <div className="fixed inset-0 z-[55]" onClick={() => setActiveFilterDropdown(null)} />
-              {(() => {
-                const anchor = filterPillRefs.current[activeFilterDropdown] || filterBtnRef.current
-                const rect = anchor?.getBoundingClientRect()
-                if (!rect) return null
-                const dropdownStyle = { top: rect.bottom + 4, left: rect.left, minWidth: 200 }
+          {activeFilterDropdown && (() => {
+            const anchor = filterPillRefs.current[activeFilterDropdown] || filterBtnRef.current
+            if (!anchor) return null
+            const anchorRef = { current: anchor }
 
-                if (activeFilterDropdown === "status") {
+            if (activeFilterDropdown === "status") {
                   const statusOptions = [
                     { key: "todo", label: "Uncompleted" },
                     { key: "done", label: "Completed" },
                     { key: "archived", label: "Archived" },
                   ]
                   return (
-                    <div className="fixed z-[60] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={dropdownStyle}>
-                      <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+                    <FixedDropdownMenu
+                      isOpen
+                      anchorRef={anchorRef}
+                      anchorElement={anchor}
+                      onClose={() => setActiveFilterDropdown(null)}
+                      estimatedHeight={240}
+                      minWidth={200}
+                      className="py-[4px]"
+                    >
+                      <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0}>
                         <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
                         <span>Back</span>
                       </button>
-                      <p className="px-[16px] py-[4px] text-[11px] font-medium text-[#888]">Filter by status</p>
+                      <p className="px-[16px] py-[4px] text-[11px] font-medium text-folk-secondary">Filter by status</p>
                       {statusOptions.map((opt) => {
                         const isActive = statusFilter.includes(opt.key)
                         return (
-                          <button key={opt.key} onClick={() => setStatusFilter((prev) => isActive ? prev.filter((f) => f !== opt.key) : [...prev, opt.key])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
-                            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
+                          <button key={opt.key} onClick={() => setStatusFilter((prev) => isActive ? prev.filter((f) => f !== opt.key) : [...prev, opt.key])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${isActive ? "bg-folk-hover" : ""}`} tabIndex={0}>
+                            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-none border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
                               {isActive && <span className="text-[10px] text-white">✓</span>}
                             </div>
-                            <span className="text-[#262626]">{opt.label}</span>
+                            <span className="text-folk-text">{opt.label}</span>
                           </button>
                         )
                       })}
-                      <div className="border-t border-[#f0f0f0] px-[8px] py-[4px]">
-                        <button onClick={() => { setStatusFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded px-[8px] py-[6px] text-left text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0}>Clear</button>
+                      <div className="border-t border-folk-border-subtle px-[8px] py-[4px]">
+                        <button onClick={() => { setStatusFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded-none px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
                       </div>
-                    </div>
+                    </FixedDropdownMenu>
                   )
                 }
 
@@ -1150,136 +1183,167 @@ export default function TasksPage() {
                     { key: "no-date", label: "No date" },
                   ]
                   return (
-                    <div className="fixed z-[60] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={dropdownStyle}>
-                      <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+                    <FixedDropdownMenu
+                      isOpen
+                      anchorRef={anchorRef}
+                      anchorElement={anchor}
+                      onClose={() => setActiveFilterDropdown(null)}
+                      estimatedHeight={280}
+                      minWidth={200}
+                      className="py-[4px]"
+                    >
+                      <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0}>
                         <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
                         <span>Back</span>
                       </button>
-                      <p className="px-[16px] py-[4px] text-[11px] font-medium text-[#888]">Filter by date</p>
+                      <p className="px-[16px] py-[4px] text-[11px] font-medium text-folk-secondary">Filter by date</p>
                       {dateOptions.map((opt) => {
                         const isActive = dateFilter.includes(opt.key)
                         return (
-                          <button key={opt.key} onClick={() => setDateFilter((prev) => isActive ? prev.filter((f) => f !== opt.key) : [...prev, opt.key])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
-                            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
+                          <button key={opt.key} onClick={() => setDateFilter((prev) => isActive ? prev.filter((f) => f !== opt.key) : [...prev, opt.key])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${isActive ? "bg-folk-hover" : ""}`} tabIndex={0}>
+                            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-none border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
                               {isActive && <span className="text-[10px] text-white">✓</span>}
                             </div>
-                            <span className="text-[#262626]">{opt.label}</span>
+                            <span className="text-folk-text">{opt.label}</span>
                           </button>
                         )
                       })}
-                      <div className="border-t border-[#f0f0f0] px-[8px] py-[4px]">
-                        <button onClick={() => { setDateFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded px-[8px] py-[6px] text-left text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0}>Clear</button>
+                      <div className="border-t border-folk-border-subtle px-[8px] py-[4px]">
+                        <button onClick={() => { setDateFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded-none px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
                       </div>
-                    </div>
+                    </FixedDropdownMenu>
                   )
                 }
 
                 if (activeFilterDropdown === "participant") return (
-                  <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={dropdownStyle}>
-                    <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+                  <FixedDropdownMenu
+                    isOpen
+                    anchorRef={anchorRef}
+                    anchorElement={anchor}
+                    onClose={() => setActiveFilterDropdown(null)}
+                    estimatedHeight={280}
+                    minWidth={200}
+                    className="py-[4px]"
+                  >
+                    <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0}>
                       <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
                       <span>Back</span>
                     </button>
-                    <p className="px-[16px] py-[4px] text-[11px] font-medium text-[#888]">Filter by client</p>
+                    <p className="px-[16px] py-[4px] text-[11px] font-medium text-folk-secondary">Filter by client</p>
                     {uniqueParticipants.map((name) => {
                       const isActive = participantFilter.includes(name)
                       return (
-                        <button key={name} onClick={() => setParticipantFilter((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
-                          <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
+                        <button key={name} onClick={() => setParticipantFilter((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${isActive ? "bg-folk-hover" : ""}`} tabIndex={0}>
+                          <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-none border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
                             {isActive && <span className="text-[10px] text-white">✓</span>}
                           </div>
-                          <span className="text-[#262626]">{name}</span>
+                          <span className="text-folk-text">{name}</span>
                         </button>
                       )
                     })}
-                    {uniqueParticipants.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-[#888]">No clients</p>}
-                    <div className="border-t border-[#f0f0f0] px-[8px] py-[4px]">
-                      <button onClick={() => { setParticipantFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded px-[8px] py-[6px] text-left text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0}>Clear</button>
+                    {uniqueParticipants.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-folk-secondary">No clients</p>}
+                    <div className="border-t border-folk-border-subtle px-[8px] py-[4px]">
+                      <button onClick={() => { setParticipantFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded-none px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
                     </div>
-                  </div>
+                  </FixedDropdownMenu>
                 )
 
                 if (activeFilterDropdown === "assignee") return (
-                  <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={dropdownStyle}>
-                    <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+                  <FixedDropdownMenu
+                    isOpen
+                    anchorRef={anchorRef}
+                    anchorElement={anchor}
+                    onClose={() => setActiveFilterDropdown(null)}
+                    estimatedHeight={280}
+                    minWidth={200}
+                    className="py-[4px]"
+                  >
+                    <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0}>
                       <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
                       <span>Back</span>
                     </button>
-                    <p className="px-[16px] py-[4px] text-[11px] font-medium text-[#888]">Filter by assignee</p>
+                    <p className="px-[16px] py-[4px] text-[11px] font-medium text-folk-secondary">Filter by assignee</p>
                     {uniqueAssignees.map((name) => {
                       const isActive = assigneeFilter.includes(name)
                       return (
-                        <button key={name} onClick={() => setAssigneeFilter((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
-                          <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
+                        <button key={name} onClick={() => setAssigneeFilter((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${isActive ? "bg-folk-hover" : ""}`} tabIndex={0}>
+                          <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-none border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
                             {isActive && <span className="text-[10px] text-white">✓</span>}
                           </div>
-                          <span className="text-[#262626]">{name}</span>
+                          <span className="text-folk-text">{name}</span>
                         </button>
                       )
                     })}
-                    {uniqueAssignees.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-[#888]">No assignees</p>}
-                    <div className="border-t border-[#f0f0f0] px-[8px] py-[4px]">
-                      <button onClick={() => { setAssigneeFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded px-[8px] py-[6px] text-left text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0}>Clear</button>
+                    {uniqueAssignees.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-folk-secondary">No assignees</p>}
+                    <div className="border-t border-folk-border-subtle px-[8px] py-[4px]">
+                      <button onClick={() => { setAssigneeFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded-none px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
                     </div>
-                  </div>
+                  </FixedDropdownMenu>
                 )
 
                 if (activeFilterDropdown === "charge") return (
-                  <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={dropdownStyle}>
-                    <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+                  <FixedDropdownMenu
+                    isOpen
+                    anchorRef={anchorRef}
+                    anchorElement={anchor}
+                    onClose={() => setActiveFilterDropdown(null)}
+                    estimatedHeight={280}
+                    minWidth={200}
+                    className="py-[4px]"
+                  >
+                    <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0}>
                       <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
                       <span>Back</span>
                     </button>
-                    <p className="px-[16px] py-[4px] text-[11px] font-medium text-[#888]">Filter by charge</p>
+                    <p className="px-[16px] py-[4px] text-[11px] font-medium text-folk-secondary">Filter by charge</p>
                     {uniqueCharges.map((val) => {
                       const isActive = chargeFilter.includes(val)
                       return (
-                        <button key={val} onClick={() => setChargeFilter((prev) => isActive ? prev.filter((f) => f !== val) : [...prev, val])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
-                          <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
+                        <button key={val} onClick={() => setChargeFilter((prev) => isActive ? prev.filter((f) => f !== val) : [...prev, val])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${isActive ? "bg-folk-hover" : ""}`} tabIndex={0}>
+                          <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-none border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
                             {isActive && <span className="text-[10px] text-white">✓</span>}
                           </div>
-                          <span className="text-[#262626]">{chargeLabel(val)}</span>
+                          <span className="text-folk-text">{chargeLabel(val)}</span>
                         </button>
                       )
                     })}
-                    {uniqueCharges.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-[#888]">No charges</p>}
-                    <div className="border-t border-[#f0f0f0] px-[8px] py-[4px]">
-                      <button onClick={() => { setChargeFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded px-[8px] py-[6px] text-left text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0}>Clear</button>
+                    {uniqueCharges.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-folk-secondary">No charges</p>}
+                    <div className="border-t border-folk-border-subtle px-[8px] py-[4px]">
+                      <button onClick={() => { setChargeFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded-none px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
                     </div>
-                  </div>
+                  </FixedDropdownMenu>
                 )
 
                 return null
               })()}
-            </>
-          )}
 
           {/* Task list scroll container */}
-          <div className="flex-1 overflow-auto bg-[#fafafa]">
+          <div className="flex-1 overflow-auto bg-folk-surface">
             {viewMode === "list" ? (
               isInvoicingMode ? (
                 <>
                   <button
                     type="button"
                     onClick={() => setShowPrevious(!showPrevious)}
-                    className="flex w-full items-center gap-[4px] border-b border-[#e8e8e8] bg-[#fafafa] px-[12px] py-[6px] text-left"
+                    className="flex w-full items-center gap-[4px] border-b border-[#e8e8e8] bg-folk-hover px-[12px] py-[6px] text-left"
                     tabIndex={0}
                   >
-                    <ChevronDown className={`h-[12px] w-[12px] text-[#888] transition-transform ${showPrevious ? "" : "-rotate-90"}`} strokeWidth={2} />
-                    <span className="text-[13px] font-semibold text-[#262626]">Ready to invoice</span>
-                    <span className="ml-[2px] text-[12px] font-medium text-[#ccc]">({completedTasks.length})</span>
+                    <ChevronDown className={`h-[12px] w-[12px] text-folk-secondary transition-transform ${showPrevious ? "" : "-rotate-90"}`} strokeWidth={2} />
+                    <span className="text-[13px] font-semibold text-folk-text">Ready to invoice</span>
+                    <span className="ml-[2px] text-[12px] font-medium text-[#ccc]">({visibleCompletedTasks.length})</span>
                   </button>
                   {showPrevious && (
                     <>
-                      {completedTasks.slice(0, completedVisible).map(renderTaskRow)}
-                      {completedTasks.length > completedVisible && (
+                      {renderTaskListHeader()}
+                      {visibleCompletedTasks.slice(0, completedVisible).map(renderTaskRow)}
+                      {visibleCompletedTasks.length > completedVisible && (
                         <button
                           type="button"
                           onClick={() => setCompletedVisible((prev) => prev + pageSize)}
-                          className="flex w-full items-center justify-center gap-[6px] border-b border-[#f0f0f0] py-[10px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#fafafa] hover:text-[#262626]"
+                          className="flex w-full items-center justify-center gap-[6px] border-b border-folk-border-subtle py-[10px] text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-page hover:text-folk-text"
                           tabIndex={0}
                         >
-                          Show more ({completedTasks.length - completedVisible} remaining)
+                          Show more ({visibleCompletedTasks.length - completedVisible} remaining)
                         </button>
                       )}
                     </>
@@ -1290,52 +1354,54 @@ export default function TasksPage() {
                   <button
                     type="button"
                     onClick={() => setShowThisWeek(!showThisWeek)}
-                    className="flex w-full items-center gap-[4px] border-b border-[#e8e8e8] bg-[#fafafa] px-[12px] py-[6px] text-left"
+                    className="flex w-full items-center gap-[4px] border-b border-[#e8e8e8] bg-folk-hover px-[12px] py-[6px] text-left"
                     tabIndex={0}
                   >
-                    <ChevronDown className={`h-[12px] w-[12px] text-[#888] transition-transform ${showThisWeek ? "" : "-rotate-90"}`} strokeWidth={2} />
-                    <span className="text-[13px] font-semibold text-[#262626]">Uncompleted</span>
+                    <ChevronDown className={`h-[12px] w-[12px] text-folk-secondary transition-transform ${showThisWeek ? "" : "-rotate-90"}`} strokeWidth={2} />
+                    <span className="text-[13px] font-semibold text-folk-text">Uncompleted</span>
                   </button>
 
                   {showThisWeek && (
                     <>
-                      {thisWeekTasks.slice(0, uncompletedVisible).map(renderTaskRow)}
-                      {thisWeekTasks.length > uncompletedVisible && (
+                      {renderTaskListHeader()}
+                      {visibleThisWeekTasks.slice(0, uncompletedVisible).map(renderTaskRow)}
+                      {visibleThisWeekTasks.length > uncompletedVisible && (
                         <button
                           type="button"
                           onClick={() => setUncompletedVisible((prev) => prev + pageSize)}
-                          className="flex w-full items-center justify-center gap-[6px] border-b border-[#f0f0f0] py-[10px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#fafafa] hover:text-[#262626]"
+                          className="flex w-full items-center justify-center gap-[6px] border-b border-folk-border-subtle py-[10px] text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-page hover:text-folk-text"
                           tabIndex={0}
                         >
-                          Show more ({thisWeekTasks.length - uncompletedVisible} remaining)
+                          Show more ({visibleThisWeekTasks.length - uncompletedVisible} remaining)
                         </button>
                       )}
                     </>
                   )}
 
-                  {completedTasks.length > 0 && (
+                  {visibleCompletedTasks.length > 0 && (
                     <>
                       <button
                         type="button"
                         onClick={() => setShowPrevious(!showPrevious)}
-                        className="flex w-full items-center gap-[4px] border-b border-[#e8e8e8] bg-[#fafafa] px-[12px] py-[6px] text-left"
+                        className="flex w-full items-center gap-[4px] border-b border-[#e8e8e8] bg-folk-hover px-[12px] py-[6px] text-left"
                         tabIndex={0}
                       >
-                        <ChevronDown className={`h-[12px] w-[12px] text-[#888] transition-transform ${showPrevious ? "" : "-rotate-90"}`} strokeWidth={2} />
-                        <span className="text-[13px] font-semibold text-[#999]">Completed</span>
-                        <span className="ml-[2px] text-[12px] font-medium text-[#ccc]">({completedTasks.length})</span>
+                        <ChevronDown className={`h-[12px] w-[12px] text-folk-secondary transition-transform ${showPrevious ? "" : "-rotate-90"}`} strokeWidth={2} />
+                        <span className="text-[13px] font-semibold text-folk-secondary">Completed</span>
+                        <span className="ml-[2px] text-[12px] font-medium text-[#ccc]">({visibleCompletedTasks.length})</span>
                       </button>
                       {showPrevious && (
                         <>
-                          {completedTasks.slice(0, completedVisible).map(renderTaskRow)}
-                          {completedTasks.length > completedVisible && (
+                          {renderTaskListHeader()}
+                          {visibleCompletedTasks.slice(0, completedVisible).map(renderTaskRow)}
+                          {visibleCompletedTasks.length > completedVisible && (
                             <button
                               type="button"
                               onClick={() => setCompletedVisible((prev) => prev + pageSize)}
-                              className="flex w-full items-center justify-center gap-[6px] border-b border-[#f0f0f0] py-[10px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#fafafa] hover:text-[#262626]"
+                              className="flex w-full items-center justify-center gap-[6px] border-b border-folk-border-subtle py-[10px] text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-page hover:text-folk-text"
                               tabIndex={0}
                             >
-                              Show more ({completedTasks.length - completedVisible} remaining)
+                              Show more ({visibleCompletedTasks.length - completedVisible} remaining)
                             </button>
                           )}
                         </>
@@ -1343,26 +1409,27 @@ export default function TasksPage() {
                     </>
                   )}
 
-                  {archivedTasks.length > 0 && (
+                  {displayArchived && archivedTasks.length > 0 && (
                     <>
                       <button
                         type="button"
-                        onClick={() => setShowArchived(!showArchived)}
-                        className="flex w-full items-center gap-[4px] border-b border-[#e8e8e8] bg-[#fafafa] px-[12px] py-[6px] text-left"
+                        onClick={() => setArchivedExpanded(!archivedExpanded)}
+                        className="flex w-full items-center gap-[4px] border-b border-[#e8e8e8] bg-folk-hover px-[12px] py-[6px] text-left"
                         tabIndex={0}
                       >
-                        <ChevronDown className={`h-[12px] w-[12px] text-[#888] transition-transform ${showArchived ? "" : "-rotate-90"}`} strokeWidth={2} />
-                        <span className="text-[13px] font-semibold text-[#999]">Archived</span>
+                        <ChevronDown className={`h-[12px] w-[12px] text-folk-secondary transition-transform ${archivedExpanded ? "" : "-rotate-90"}`} strokeWidth={2} />
+                        <span className="text-[13px] font-semibold text-folk-secondary">Archived</span>
                         <span className="ml-[2px] text-[12px] font-medium text-[#ccc]">({archivedTasks.length})</span>
                       </button>
-                      {showArchived && (
+                      {archivedExpanded && (
                         <>
+                          {renderTaskListHeader()}
                           {archivedTasks.slice(0, archivedVisible).map(renderTaskRow)}
                           {archivedTasks.length > archivedVisible && (
                             <button
                               type="button"
                               onClick={() => setArchivedVisible((prev) => prev + pageSize)}
-                              className="flex w-full items-center justify-center gap-[6px] border-b border-[#f0f0f0] py-[10px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#fafafa] hover:text-[#262626]"
+                              className="flex w-full items-center justify-center gap-[6px] border-b border-folk-border-subtle py-[10px] text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-page hover:text-folk-text"
                               tabIndex={0}
                             >
                               Show more ({archivedTasks.length - archivedVisible} remaining)
@@ -1377,13 +1444,13 @@ export default function TasksPage() {
             ) : (
               /* Week view — tasks grouped by day */
               (() => {
-                const weekTasks = filtered.filter((t) => {
+                const weekTasks = visibleTasks.filter((t) => {
                   if (!t.dueDate) return false
                   const d = new Date(t.dueDate + "T00:00:00")
                   return d >= weekStart && d <= weekEnd
                 }).sort((a, b) => (a.dueDate || "").localeCompare(b.dueDate || ""))
 
-                const noDateTasks = filtered.filter((t) => !t.dueDate)
+                const noDateTasks = visibleTasks.filter((t) => !t.dueDate)
 
                 const dayBuckets: Record<string, Task[]> = {}
                 for (let i = 0; i < 7; i++) {
@@ -1397,6 +1464,7 @@ export default function TasksPage() {
 
                 return (
                   <>
+                    {renderTaskListHeader()}
                     {Object.entries(dayBuckets).map(([dateStr, dayTasks], idx) => {
                       const d = new Date(dateStr + "T00:00:00")
                       const dayLabel = weekDayNames[idx]
@@ -1406,15 +1474,15 @@ export default function TasksPage() {
 
                       return (
                         <div key={dateStr}>
-                          <div className={`flex items-center gap-[8px] border-b border-[#e8e8e8] px-[12px] py-[6px] ${isToday ? "bg-blue-50/60" : "bg-[#fafafa]"}`}>
-                            <span className={`text-[13px] font-semibold ${isToday ? "text-blue-600" : "text-[#262626]"}`}>
+                          <div className={`flex items-center gap-[8px] border-b border-[#e8e8e8] px-[12px] py-[6px] ${isToday ? "bg-blue-50/60" : "bg-folk-surface"}`}>
+                            <span className={`text-[13px] font-semibold ${isToday ? "text-blue-600" : "text-folk-text"}`}>
                               {dayLabel}
                             </span>
-                            <span className={`text-[12px] font-medium ${isToday ? "text-blue-400" : "text-[#999]"}`}>
+                            <span className={`text-[12px] font-medium ${isToday ? "text-blue-400" : "text-folk-secondary"}`}>
                               {dateLabel}
                             </span>
                             {dayTasks.length > 0 && (
-                              <span className="text-[11px] font-medium text-[#bbb]">
+                              <span className="text-[11px] font-medium text-folk-placeholder">
                                 {dayTasks.length} {dayTasks.length === 1 ? "task" : "tasks"}
                                 {!isInvoicingMode && completed > 0 && ` · ${completed} done`}
                               </span>
@@ -1426,9 +1494,9 @@ export default function TasksPage() {
                     })}
                     {noDateTasks.length > 0 && (
                       <div>
-                        <div className="flex items-center gap-[8px] border-b border-[#e8e8e8] bg-[#fafafa] px-[12px] py-[6px]">
-                          <span className="text-[13px] font-semibold text-[#999]">No date</span>
-                          <span className="text-[11px] font-medium text-[#bbb]">
+                        <div className="flex items-center gap-[8px] border-b border-[#e8e8e8] bg-folk-surface px-[12px] py-[6px]">
+                          <span className="text-[13px] font-semibold text-folk-secondary">No date</span>
+                          <span className="text-[11px] font-medium text-folk-placeholder">
                             {noDateTasks.length} {noDateTasks.length === 1 ? "task" : "tasks"}
                           </span>
                         </div>
@@ -1446,7 +1514,7 @@ export default function TasksPage() {
                   type="button"
                   onClick={loadMore}
                   disabled={isLoadingMore}
-                  className="text-[13px] font-medium text-[#888] transition-colors hover:text-[#262626] disabled:opacity-50"
+                  className="text-[13px] font-medium text-folk-secondary transition-colors hover:text-folk-text disabled:opacity-50"
                   tabIndex={0}
                 >
                   {isLoadingMore ? "Loading..." : "Load more"}
@@ -1456,8 +1524,8 @@ export default function TasksPage() {
           </div>
 
           {/* Footer */}
-          <div className="shrink-0 border-t border-[#dcdcdc] px-[20px] py-[10px]">
-            <span className="text-[12px] font-medium text-[#999]">
+          <div className="shrink-0 border-t border-folk-border px-[20px] py-[10px]">
+            <span className="text-[12px] font-medium text-folk-secondary">
               {viewMode === "week"
                 ? (() => {
                     const weekTasks = filtered.filter((t) => {
@@ -1500,14 +1568,14 @@ export default function TasksPage() {
       {isCreateTaskViewOpen && (
         <>
           <div className="fixed inset-0 z-50 bg-black/20" onClick={() => { setIsCreateTaskViewOpen(false); setNewTaskViewName("") }} />
-          <div className="fixed left-1/2 top-1/2 z-50 w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+          <div className="fixed left-1/2 top-1/2 z-50 w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-none bg-folk-surface p-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
             <div className="flex items-center justify-between">
-              <h3 className="text-[15px] font-semibold text-[#262626]">
+              <h3 className="text-[15px] font-semibold text-folk-text">
                 {isInvoicingMode ? "Create a view for invoicing" : "Create a view for tasks"}
               </h3>
               <button
                 onClick={() => { setIsCreateTaskViewOpen(false); setNewTaskViewName("") }}
-                className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+                className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
                 tabIndex={0}
                 aria-label="Close"
               >
@@ -1515,20 +1583,20 @@ export default function TasksPage() {
               </button>
             </div>
             <div className="mt-[20px]">
-              <label className="text-[13px] font-medium text-[#888]">Name</label>
+              <label className="text-[13px] font-medium text-folk-secondary">Name</label>
               <input
                 ref={taskViewNameInputRef}
                 value={newTaskViewName}
                 onChange={(e) => setNewTaskViewName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleCreateTaskView() }}
                 placeholder="Enter name here"
-                className="mt-[8px] w-full rounded-lg border border-[#dcdcdc] bg-[#fafafa] px-[12px] py-[10px] text-[13px] font-medium text-[#262626] outline-none transition-colors placeholder:text-[#bbb] focus:border-[#a3c4f3]"
+                className="mt-[8px] w-full rounded-none border border-folk-border bg-folk-surface px-[12px] py-[10px] text-[13px] font-medium text-folk-text outline-none transition-colors placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
               />
             </div>
             <div className="mt-[20px] flex items-center justify-end gap-[12px]">
               <button
                 onClick={() => { setIsCreateTaskViewOpen(false); setNewTaskViewName("") }}
-                className="px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:text-[#888]"
+                className="px-[12px] py-[6px] text-[13px] font-medium text-folk-text transition-colors hover:text-folk-secondary"
                 tabIndex={0}
               >
                 Cancel
@@ -1536,7 +1604,7 @@ export default function TasksPage() {
               <button
                 onClick={handleCreateTaskView}
                 disabled={!newTaskViewName.trim()}
-                className={`rounded-[4px] px-[16px] py-[6px] text-[13px] font-medium transition-colors ${newTaskViewName.trim() ? "primary-btn" : "border border-[#dcdcdc] text-[#bbb]"}`}
+                className={`rounded-full px-[16px] py-[6px] text-[13px] font-medium transition-colors ${newTaskViewName.trim() ? "primary-btn" : "border border-folk-border text-folk-placeholder"}`}
                 tabIndex={0}
               >
                 Create
@@ -1550,7 +1618,7 @@ export default function TasksPage() {
         <>
           <div className="fixed inset-0 z-50" onClick={() => setTaskViewContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setTaskViewContextMenu(null) }} />
           <div
-            className="fixed z-50 w-[160px] overflow-hidden rounded-lg border border-[#dcdcdc] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+            className="fixed z-50 w-[160px] overflow-hidden rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk"
             style={{ top: taskViewContextMenu.y, left: taskViewContextMenu.x }}
           >
             <button
@@ -1572,22 +1640,22 @@ export default function TasksPage() {
       {deleteTaskViewConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/20" onClick={() => setDeleteTaskViewConfirm(null)} />
-          <div className="relative z-10 w-[400px] rounded-lg bg-white p-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
-            <h3 className="text-[15px] font-semibold text-[#262626]">Delete view</h3>
-            <p className="mt-[8px] text-[13px] font-medium text-[#888]">
-              Are you sure you want to delete <span className="text-[#262626]">&ldquo;{deleteTaskViewConfirm.name}&rdquo;</span>? This action cannot be undone.
+          <div className="relative z-10 w-[400px] rounded-none bg-folk-surface p-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+            <h3 className="text-[15px] font-semibold text-folk-text">Delete view</h3>
+            <p className="mt-[8px] text-[13px] font-medium text-folk-secondary">
+              Are you sure you want to delete <span className="text-folk-text">&ldquo;{deleteTaskViewConfirm.name}&rdquo;</span>? This action cannot be undone.
             </p>
             <div className="mt-[20px] flex items-center justify-end gap-[12px]">
               <button
                 onClick={() => setDeleteTaskViewConfirm(null)}
-                className="px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:text-[#888]"
+                className="px-[12px] py-[6px] text-[13px] font-medium text-folk-text transition-colors hover:text-folk-secondary"
                 tabIndex={0}
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDeleteTaskView(deleteTaskViewConfirm.id)}
-                className="rounded-[4px] bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
+                className="rounded-none bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
                 tabIndex={0}
               >
                 Delete
@@ -1599,14 +1667,14 @@ export default function TasksPage() {
 
       {selectedTaskIds.size > 0 && (
         <div className="fixed bottom-[24px] left-1/2 z-50 -translate-x-1/2">
-          <div className="flex items-center gap-[12px] rounded-xl border border-[#e0e0e0] bg-white px-[20px] py-[12px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
-            <span className="text-[13px] font-semibold text-[#262626]">
+          <div className="flex items-center gap-[12px] rounded-none border border-folk-border bg-folk-surface px-[20px] py-[8px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+            <span className="text-[13px] font-semibold text-folk-text">
               {selectedTaskIds.size} selected
             </span>
-            <div className="h-[16px] w-px bg-[#e5e5e5]" />
+            <div className="h-[16px] w-px bg-[var(--folk-border)]" />
             <button
               onClick={handleBulkMarkDone}
-              className="flex items-center gap-[6px] rounded-lg px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+              className="flex items-center gap-[6px] rounded-none px-[12px] py-[6px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
               tabIndex={0}
             >
               <CheckSquare className="h-[14px] w-[14px] text-[#2563EB]" strokeWidth={1.75} />
@@ -1614,16 +1682,16 @@ export default function TasksPage() {
             </button>
             <button
               onClick={() => setIsBulkDeleting(true)}
-              className="flex items-center gap-[6px] rounded-lg px-[12px] py-[6px] text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50"
+              className="flex items-center gap-[6px] rounded-none px-[12px] py-[6px] text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50"
               tabIndex={0}
             >
               <Trash2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
               Delete
             </button>
-            <div className="h-[16px] w-px bg-[#e5e5e5]" />
+            <div className="h-[16px] w-px bg-[var(--folk-border)]" />
             <button
               onClick={() => setSelectedTaskIds(new Set())}
-              className="flex items-center gap-[6px] rounded-lg px-[12px] py-[6px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+              className="flex items-center gap-[6px] rounded-none px-[12px] py-[6px] text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
               tabIndex={0}
             >
               <X className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -1636,22 +1704,22 @@ export default function TasksPage() {
       {isBulkDeleting && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/20" onClick={() => setIsBulkDeleting(false)} />
-          <div className="relative z-10 w-[400px] rounded-lg bg-white p-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
-            <h3 className="text-[15px] font-semibold text-[#262626]">Delete tasks</h3>
-            <p className="mt-[8px] text-[13px] font-medium text-[#888]">
-              Are you sure you want to delete <span className="text-[#262626]">{selectedTaskIds.size} {selectedTaskIds.size === 1 ? "task" : "tasks"}</span>? This action cannot be undone.
+          <div className="relative z-10 w-[400px] rounded-none bg-folk-surface p-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+            <h3 className="text-[15px] font-semibold text-folk-text">Delete tasks</h3>
+            <p className="mt-[8px] text-[13px] font-medium text-folk-secondary">
+              Are you sure you want to delete <span className="text-folk-text">{selectedTaskIds.size} {selectedTaskIds.size === 1 ? "task" : "tasks"}</span>? This action cannot be undone.
             </p>
             <div className="mt-[20px] flex items-center justify-end gap-[12px]">
               <button
                 onClick={() => setIsBulkDeleting(false)}
-                className="px-[12px] py-[6px] text-[13px] font-medium text-[#262626] transition-colors hover:text-[#888]"
+                className="px-[12px] py-[6px] text-[13px] font-medium text-folk-text transition-colors hover:text-folk-secondary"
                 tabIndex={0}
               >
                 Cancel
               </button>
               <button
                 onClick={handleBulkDelete}
-                className="rounded-[4px] bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
+                className="rounded-none bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
                 tabIndex={0}
               >
                 Delete
@@ -1660,14 +1728,7 @@ export default function TasksPage() {
           </div>
         </div>
       )}
-      <ConfirmDialog
-        isOpen={!!deleteConfirmId}
-        title="Delete task"
-        description="This action cannot be undone. The task and its data will be permanently removed."
-        confirmLabel="Delete"
-        onConfirm={confirmDeleteTask}
-        onCancel={() => setDeleteConfirmId(null)}
-      />
+
     </div>
   )
 }

@@ -10,7 +10,11 @@ import { ClientsProvider } from "@/lib/clients-context"
 import { ContactsProvider } from "@/lib/contacts-context"
 import { StaffProvider } from "@/lib/staff-context"
 import { TasksProvider } from "@/lib/tasks-context"
+import { NotesProvider } from "@/lib/notes-context"
+import { IncidentsProvider } from "@/lib/incidents-context"
 import { DocumentsProvider } from "@/lib/documents-context"
+import { RosterProvider } from "@/lib/roster-context"
+import { SuitabilityProvider } from "@/lib/suitability-context"
 
 export default function DashboardLayout({
   children,
@@ -24,20 +28,28 @@ export default function DashboardLayout({
           <ContactsProvider>
             <StaffProvider>
               <TasksProvider>
-                <DocumentsProvider>
-                  <KeyboardShortcutsProvider>
-                    <div className="flex h-screen flex-col overflow-hidden md:flex-row">
-                      <div className="hidden md:flex">
-                        <Sidebar />
+                <NotesProvider>
+                  <IncidentsProvider>
+                  <DocumentsProvider>
+                  <SuitabilityProvider>
+                    <RosterProvider>
+                    <KeyboardShortcutsProvider>
+                      <div className="flex h-screen flex-col overflow-hidden md:flex-row">
+                        <div className="hidden md:flex">
+                          <Sidebar />
+                        </div>
+                        <MobileNav />
+                        <main className="h-full flex-1 overflow-y-auto bg-white">
+                          {children}
+                        </main>
+                        <CommandPalette />
                       </div>
-                      <MobileNav />
-                      <main className="h-full flex-1 overflow-y-auto bg-[#fafafa]">
-                        {children}
-                      </main>
-                      <CommandPalette />
-                    </div>
-                  </KeyboardShortcutsProvider>
-                </DocumentsProvider>
+                    </KeyboardShortcutsProvider>
+                    </RosterProvider>
+                  </SuitabilityProvider>
+                  </DocumentsProvider>
+                  </IncidentsProvider>
+                </NotesProvider>
               </TasksProvider>
             </StaffProvider>
           </ContactsProvider>

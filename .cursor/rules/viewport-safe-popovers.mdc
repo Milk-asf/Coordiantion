@@ -1,0 +1,31 @@
+---
+description: Keep anchored popovers and dropdowns within the viewport
+globs: **/*.{tsx,ts}
+alwaysApply: true
+---
+
+# Viewport-safe popovers and dropdowns
+
+Never position floating menus with raw `top: rect.bottom + 4` or `absolute top-full` alone when the menu can extend past the viewport.
+
+## Required approach
+
+1. Use `getFixedDropdownStyle()` from `@/lib/dropdown-utils` for any `fixed` menu positioning.
+2. Use `useFixedDropdownPosition()` or `FixedDropdownMenu` / `FixedSelectDropdown` so menus re-position on scroll and resize.
+3. Portal menus to `document.body` when they must escape overflow containers.
+
+## Avoid
+
+- Inline `style={{ top: rect.bottom + 4, left: rect.left }}` without flip/clamp logic
+- `absolute top-full` for menus that may open near the bottom or right edge of the screen
+- Computing position once at render without scroll/resize listeners
+
+## Pick a component
+
+- Select lists: `FixedSelectDropdown`
+- Searchable entity pickers: `SearchableEntityDropdown`
+- Time/date pickers: `FixedTimePickerDropdown`, `FixedDatePickerDropdown`
+- Custom menu content: `FixedDropdownMenu`
+- Display column toggles: `DisplayPopoverPanel`
+
+Pass realistic `estimatedHeight` and `minWidth`. Use `align="right"` when the trigger is right-aligned.

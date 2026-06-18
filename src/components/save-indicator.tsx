@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react"
 import { Check } from "lucide-react"
+import { motion } from "@/lib/motion"
 
 export function useSaveIndicator() {
   const [isVisible, setIsVisible] = useState(false)
@@ -26,7 +27,7 @@ export function SaveIndicator({ isVisible }: { isVisible: boolean }) {
   if (!isVisible) return null
 
   return (
-    <div className="flex items-center gap-[4px] text-[12px] text-[#2563EB] animate-in fade-in duration-200">
+    <div className={`flex items-center gap-[4px] text-[12px] text-[#2563EB] ${motion.fadeIn}`}>
       <Check className="h-[12px] w-[12px]" strokeWidth={2} />
       <span>Saved</span>
     </div>

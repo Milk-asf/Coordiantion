@@ -1,10 +1,13 @@
 "use client"
 
-import { CheckSquare } from "lucide-react"
+import { Building2, CheckSquare, User } from "lucide-react"
 import type { Task } from "@/lib/types"
 import { formatTaskDate } from "./client-profile-helpers"
 import { EmptyState } from "@/components/empty-state"
+import { ProfileTaskListHeader } from "@/components/profile-task-list-header"
 import { SectionToolbar } from "@/components/section-toolbar"
+import { profileTaskGridClassName, profileTaskGridTemplate } from "@/app/(dashboard)/tasks/_components/task-helpers"
+import { EntityIcon } from "@/components/entity-icon"
 
 export function ProfileTasksTab({
   tasks,
@@ -17,8 +20,6 @@ export function ProfileTasksTab({
   onToggleComplete: (task: Task) => void
   onCreateTask?: () => void
 }) {
-  const gridTemplate = "90px 1fr 40px 64px 56px 40px"
-
   return (
     <div className="flex h-full flex-col">
       <SectionToolbar onAddNew={onCreateTask} />
@@ -30,7 +31,8 @@ export function ProfileTasksTab({
           className="flex-1"
         />
       ) : (
-      <div className="flex-1 overflow-y-auto bg-[#fafafa]">
+      <div className="flex-1 overflow-y-auto bg-white">
+        <ProfileTaskListHeader trailingIcon={User} trailingLabel="Assignee" />
         {tasks.map((task) => {
           const dateStr = formatTaskDate(task.dueDate)
           const isDone = task.status === "done"
@@ -39,34 +41,34 @@ export function ProfileTasksTab({
           return (
             <div
               key={task.id}
-              className="grid items-center border-b border-[#f0f0f0] px-[24px] transition-colors hover:bg-[#fafafa]"
-              style={{ gridTemplateColumns: gridTemplate }}
+              className={`${profileTaskGridClassName} transition-colors hover:bg-folk-hover`}
+              style={{ gridTemplateColumns: profileTaskGridTemplate }}
             >
-              <div className="py-[12px] text-[13px] text-[#888]">
+              <div className="py-[8px] text-[13px] text-folk-secondary">
                 {dateStr || <span className="text-[#ccc]">—</span>}
               </div>
-              <div className="truncate py-[12px] pl-[8px]">
-                <span className={`text-[13px] ${isDone ? "text-[#bbb] line-through" : "text-[#262626]"}`}>
+              <div className="min-w-0 truncate py-[8px] pl-[8px]">
+                <span className={`text-[13px] ${isDone ? "text-folk-placeholder line-through" : "text-folk-text"}`}>
                   {task.title || <span className="text-[#ccc]">Untitled task</span>}
                 </span>
               </div>
-              <div className="flex items-center justify-center py-[12px]">
-                {assigneeInitials ? (
-                  <span className="flex h-[26px] w-[26px] items-center justify-center rounded-md bg-[#f0f0f0] text-[10px] font-bold text-[#555]">{assigneeInitials}</span>
-                ) : <span className="text-[12px] text-[#ccc]">—</span>}
-              </div>
-              <div className="flex items-center justify-center py-[12px] text-[12px] font-medium text-[#888]">
+              <div className="flex items-center justify-center px-[4px] py-[8px] text-[12px] font-medium text-folk-secondary">
                 <span className="truncate text-center">
                   {task.chargeType ? chargeCode(task.chargeType) : <span className="text-[#ccc]">—</span>}
                 </span>
               </div>
-              <div className="flex items-center justify-center py-[12px] text-[13px] text-[#888]">
+              <div className="flex items-center justify-center px-[4px] py-[8px] text-[13px] text-folk-secondary">
                 {task.timeSpent > 0 ? task.timeSpent : <span className="text-[#ccc]">—</span>}
+              </div>
+              <div className="flex items-center justify-center py-[8px]">
+                {assigneeInitials ? (
+                  <EntityIcon text={assigneeInitials} size="sm" />
+                ) : <span className="text-[12px] text-[#ccc]">—</span>}
               </div>
               <div className="flex items-center justify-center">
                 <button
                   onClick={() => onToggleComplete(task)}
-                  className={`flex h-[18px] w-[18px] items-center justify-center rounded border-[1.5px] transition-colors ${
+                  className={`flex h-[18px] w-[18px] items-center justify-center rounded-none border-[1.5px] transition-colors ${
                     isDone
                       ? "border-[#2563EB] bg-[#2563EB] text-white hover:border-[#1d4ed8] hover:bg-[#1d4ed8]"
                       : "border-[#ccc] hover:border-[#999]"

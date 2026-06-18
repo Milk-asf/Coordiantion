@@ -11,11 +11,12 @@ import {
   Users,
   UserRound,
 
+  Tag,
   Database,
   Upload,
   CreditCard,
-  Tag,
   Plug,
+  CalendarRange,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { usePermissions } from "@/lib/hooks/use-permissions"
@@ -47,8 +48,9 @@ const settingsNav: SettingsNavSection[] = [
       { label: "Members", href: "/settings/members", icon: Users, requiredPermission: "canManageMembers" },
 
       { label: "Participants", href: "/settings/participants", icon: UserRound, requiredPermission: "canManageWorkspaceSettings" },
+      { label: "NDIS price book", href: "/settings/charges", icon: Tag, requiredPermission: "canManageWorkspaceSettings" },
       { label: "Data model", href: "/settings/data-model", icon: Database, requiredPermission: "canManageWorkspaceSettings" },
-      { label: "Charges", href: "/settings/charges", icon: Tag, requiredPermission: "canManageWorkspaceSettings" },
+      { label: "Rostering", href: "/settings/rostering", icon: CalendarRange, requiredPermission: "canManageWorkspaceSettings" },
       { label: "Integrations", href: "/settings/integrations", icon: Plug, requiredPermission: "canManageWorkspaceSettings" },
       { label: "Import", href: "/settings/import-history", icon: Upload, requiredPermission: "canManageWorkspaceSettings" },
       { label: "Billing", href: "/settings/billing", icon: CreditCard, requiredPermission: "canAccessBilling" },
@@ -79,22 +81,22 @@ export default function SettingsLayout({
 
   return (
     <div className="flex h-full w-full flex-col md:flex-row">
-      <div className="flex h-[52px] shrink-0 items-center border-b border-[#f0f0f0] bg-white px-[16px] md:hidden">
+      <div className="flex h-[52px] shrink-0 items-center border-b border-folk-border-subtle bg-folk-nav px-[16px] md:hidden">
         <Link
           href="/tasks"
-          className="flex items-center gap-[6px] text-[13px] font-medium text-[#555] transition-colors hover:text-[#262626]"
+          className="flex items-center gap-[6px] text-[13px] font-medium text-[#555] transition-colors hover:text-folk-text"
           tabIndex={0}
         >
           <ArrowLeft className="h-[14px] w-[14px]" strokeWidth={1.75} />
           Back
         </Link>
-        <span className="ml-[12px] text-[14px] font-semibold text-[#262626]">Settings</span>
+        <span className="ml-[12px] text-[14px] font-semibold text-folk-text">Settings</span>
       </div>
-      <aside className="hidden h-full w-[240px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar-bg md:flex">
-        <div className="flex items-center px-3 pb-2 pt-3">
+      <aside className="hidden h-full w-[148px] shrink-0 flex-col bg-sidebar-bg md:flex">
+        <div className="flex h-[40px] shrink-0 items-center px-3">
           <Link
             href="/clients"
-            className="flex items-center gap-[6px] text-[13px] font-medium text-sidebar-text transition-colors hover:text-[#262626]"
+            className="flex items-center gap-[6px] text-[13px] font-medium text-sidebar-text transition-colors hover:text-folk-text"
             tabIndex={0}
           >
             <ArrowLeft className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -105,7 +107,7 @@ export default function SettingsLayout({
         <nav className="flex-1 overflow-y-auto px-2" role="navigation" aria-label="Settings navigation">
           {filteredNav.map((section) => (
             <div key={section.title} className="mt-4">
-              <p className="mb-1 px-2 text-[11px] font-medium tracking-wide text-sidebar-muted">
+              <p className="mb-1 px-3 text-[11px] font-medium uppercase text-sidebar-muted">
                 {section.title}
               </p>
               <ul className="list-none space-y-px p-0 m-0">
@@ -117,9 +119,9 @@ export default function SettingsLayout({
                       <Link
                         href={item.href}
                         className={cn(
-                          "flex items-center gap-2 rounded px-2 py-[6px] text-[13px] font-medium transition-colors",
+                          "mx-1 flex h-[32px] items-center gap-2 rounded-[4px] px-[12px] text-[13px] font-normal transition-colors",
                           isActive
-                            ? "bg-sidebar-active text-sidebar-text"
+                            ? "bg-sidebar-active font-medium text-sidebar-text"
                             : "text-sidebar-text hover:bg-sidebar-hover"
                         )}
                         aria-current={isActive ? "page" : undefined}
@@ -137,10 +139,10 @@ export default function SettingsLayout({
         </nav>
       </aside>
 
-      <div className="flex-1 overflow-y-auto bg-[#fafafa] px-[16px] pt-[24px] md:px-[40px] md:pt-[32px]">
+      <div className="flex-1 overflow-y-auto bg-white px-[16px] pt-[24px] md:px-[40px] md:pt-[32px]">
         <div className={cn(
           "mx-auto w-full pb-[80px]",
-          pathname === "/settings/data-model" || pathname === "/settings/charges" || pathname === "/settings/participants" || pathname === "/settings/members" || pathname === "/settings/import-history" ? "max-w-[720px]" : "max-w-[560px]"
+          pathname === "/settings/data-model" || pathname === "/settings/participants" || pathname === "/settings/members" || pathname === "/settings/import-history" || pathname === "/settings/rostering" || pathname === "/settings/charges" ? "max-w-[1040px]" : "max-w-[560px]"
         )}>
           {children}
         </div>

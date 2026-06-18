@@ -4,33 +4,248 @@
 
 @layer base {
   :root {
-    --primary-color: #2563EB;
-    --primary-color-hover: #1d4ed8;
-    --primary-color-light: rgba(37, 99, 235, 0.06);
-    --primary-color-text: #262626;
-    --primary-btn-text: #262626;
-    --primary-btn-border: #d4d4d4;
+    /* Folk CRM design tokens — see DESIGN_BRIEF.md */
+    --folk-app: #f5f5f4;
+    --folk-page: #ffffff;
+    --folk-surface: #ffffff;
+    --folk-muted: #f5f5f4;
+    --folk-nav: #ffffff;
+    --folk-hover: #f5f5f4;
+    --folk-active: #f0f0ef;
+    --folk-selected: #f0f0ef;
+    --folk-text: #1a1a1a;
+    --folk-text-secondary: #6b7280;
+    --folk-text-muted: #9ca3af;
+    --folk-text-placeholder: #9ca3af;
+    --folk-border: #e5e7eb;
+    --folk-border-subtle: #e5e7eb;
+    --folk-border-strong: #d1d5db;
+    --folk-nav-bar-border: #e5e7eb;
+    --folk-nav-secondary: #6b7280;
+    --folk-nav-muted: #9ca3af;
+    --folk-input-border: #d1d5db;
+    --folk-input-focus-border: #111111;
+
+    --primary-color: #111111;
+    --primary-color-hover: #000000;
+    --primary-color-light: rgba(17, 17, 17, 0.06);
+    --primary-color-text: #1a1a1a;
+    --primary-btn-text: #ffffff;
+    --primary-btn-border: #111111;
+    --content-bg: #ffffff;
+
+    --motion-duration-fast: 150ms;
+    --motion-duration-base: 200ms;
+    --motion-duration-slow: 200ms;
+    --motion-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --motion-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+    --folk-button-radius: 6px;
+    --folk-input-radius: 4px;
+    --folk-modal-radius: 8px;
   }
 
   body {
-    @apply antialiased font-medium text-sidebar-text;
+    @apply antialiased font-normal text-folk-text bg-white;
+    color: var(--folk-text);
+  }
+
+  /*
+   * Text field focus — dark border, no glow (Folk form spec).
+   */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="file"]):not([type="hidden"]):not([type="image"]):focus,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="file"]):not([type="hidden"]):not([type="image"]):focus-visible,
+  textarea:focus,
+  textarea:focus-visible,
+  select:focus,
+  select:focus-visible,
+  [contenteditable="true"]:focus,
+  [contenteditable="true"]:focus-visible {
+    outline: none !important;
+    border-color: var(--folk-input-focus-border) !important;
+    box-shadow: none !important;
+  }
+
+  /* Bordered wrappers with borderless inner inputs (search bars, etc.) */
+  .folk-input-wrap {
+    border-color: var(--folk-input-border);
+    border-radius: var(--folk-input-radius);
+  }
+
+  .folk-input-wrap:focus-within {
+    border-color: var(--folk-input-focus-border) !important;
+    box-shadow: none;
+  }
+
+  .folk-input-wrap input:focus,
+  .folk-input-wrap input:focus-visible,
+  .folk-input-wrap textarea:focus,
+  .folk-input-wrap textarea:focus-visible {
+    box-shadow: none !important;
+    border-color: transparent !important;
   }
 }
 
 .primary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
   color: var(--primary-btn-text) !important;
-  background-color: #ffffff !important;
-  border: 1px solid var(--primary-btn-border);
+  background-color: var(--primary-color) !important;
+  border: 1px solid var(--primary-btn-border) !important;
+  border-radius: var(--folk-button-radius) !important;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-ease-in-out),
+    border-color var(--motion-duration-fast) var(--motion-ease-in-out),
+    transform var(--motion-duration-fast) var(--motion-ease-in-out),
+    opacity var(--motion-duration-fast) var(--motion-ease-in-out);
 }
 
-.primary-btn:hover {
-  background-color: #f5f5f5 !important;
-  filter: none;
+.primary-btn:hover:not(:disabled) {
+  background-color: var(--primary-color-hover) !important;
+  border-color: var(--primary-color-hover) !important;
+}
+
+.primary-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.primary-btn:disabled {
+  opacity: 0.45;
+  background-color: var(--folk-border-strong) !important;
+  border-color: var(--folk-border-strong) !important;
+  color: var(--folk-text-muted) !important;
+}
+
+.outline-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--folk-border-strong);
+  border-radius: var(--folk-button-radius);
+  background-color: var(--folk-surface);
+  color: var(--folk-text);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-ease-in-out),
+    border-color var(--motion-duration-fast) var(--motion-ease-in-out),
+    transform var(--motion-duration-fast) var(--motion-ease-in-out),
+    opacity var(--motion-duration-fast) var(--motion-ease-in-out);
+}
+
+.outline-btn:hover:not(:disabled) {
+  background-color: var(--folk-hover);
+}
+
+.outline-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.outline-btn:disabled {
+  opacity: 0.45;
+}
+
+/* Pill shape — status tags, group tags, action chips only */
+.folk-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+}
+
+.folk-tab {
+  position: relative;
+  display: inline-flex;
+  shrink: 0;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  padding: 0 4px;
+  margin-right: 16px;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--folk-nav-muted);
+  transition: color var(--motion-duration-fast) var(--motion-ease-in-out);
+}
+
+button.folk-tab,
+a.folk-tab {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: inherit;
+}
+
+.folk-tab:hover {
+  color: var(--folk-text);
+}
+
+.folk-tab:hover .folk-tab-badge {
+  color: inherit;
+  border-color: currentColor;
+}
+
+.folk-tab-active {
+  color: var(--folk-text);
+}
+
+.folk-tab-active .folk-tab-label {
+  font-weight: 600;
+}
+
+.folk-tab-badge {
+  color: var(--folk-nav-muted);
+  border-color: var(--folk-nav-bar-border);
+}
+
+.folk-tab-active .folk-tab-badge {
+  color: inherit;
+  border-color: currentColor;
+}
+
+.folk-tab-active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background-color: var(--folk-text);
+}
+
+/** Tab row container — tabs stretch to full bar height; underline sits on the bar border. */
+.folk-tab-bar {
+  display: flex;
+  align-items: stretch;
+  position: relative;
+}
+
+.folk-tab-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.folk-tab-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 .note-editable:empty::before {
   content: attr(data-placeholder);
-  color: #bbb;
+  color: var(--folk-text-placeholder);
   pointer-events: none;
 }
 
@@ -47,15 +262,15 @@
 }
 
 .note-editable blockquote {
-  border-left: 3px solid #e0e0e0;
+  border-left: 3px solid var(--folk-border);
   padding-left: 12px;
-  color: #666;
+  color: var(--folk-text-secondary);
   margin: 0.5em 0;
 }
 
 .note-editable pre {
-  background: #f5f5f5;
-  border-radius: 6px;
+  background: var(--folk-hover);
+  border-radius: 0;
   padding: 12px;
   font-family: monospace;
   font-size: 0.9em;
@@ -68,19 +283,143 @@
   list-style-position: outside;
 }
 
-.note-editable ul {
-  list-style-type: disc;
-}
+.note-editable ul { list-style-type: disc; }
+.note-editable ol { list-style-type: decimal; }
+.note-editable li { margin: 0.2em 0; }
 
-.note-editable ol {
-  list-style-type: decimal;
-}
+@layer components {
+  .folk-table-cell-selected {
+    position: relative;
+    background-color: var(--folk-selected) !important;
+    border-color: var(--folk-text) !important;
+    z-index: 2;
+  }
 
-.note-editable li {
-  margin: 0.2em 0;
+  td.sticky.folk-table-cell-selected,
+  th.sticky.folk-table-cell-selected {
+    z-index: 31;
+  }
 }
 
 @layer utilities {
+  /** Flat white page canvas — replaces the former dotted folk-app background. */
+  .bg-folk-canvas {
+    background-color: #ffffff;
+  }
+
+  @keyframes folk-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes folk-slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes folk-slide-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes folk-scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes folk-overlay-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .motion-interactive {
+    transition-property: color, background-color, border-color, opacity, box-shadow, transform;
+    transition-duration: var(--motion-duration-fast);
+    transition-timing-function: var(--motion-ease-in-out);
+  }
+
+  .motion-interactive:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  .motion-row {
+    transition: background-color var(--motion-duration-fast) var(--motion-ease-in-out);
+  }
+
+  .motion-fade-in {
+    animation: folk-fade-in var(--motion-duration-base) var(--motion-ease-out) both;
+  }
+
+  .motion-slide-up {
+    animation: folk-slide-up var(--motion-duration-base) var(--motion-ease-out) both;
+  }
+
+  .motion-slide-in-right {
+    animation: folk-slide-in-right var(--motion-duration-slow) var(--motion-ease-out) both;
+  }
+
+  .motion-scale-in {
+    animation: folk-scale-in var(--motion-duration-base) var(--motion-ease-out) both;
+  }
+
+  .motion-overlay-in {
+    animation: folk-overlay-in var(--motion-duration-base) var(--motion-ease-out) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .motion-fade-in,
+    .motion-slide-up,
+    .motion-slide-in-right,
+    .motion-scale-in,
+    .motion-overlay-in {
+      animation: none !important;
+    }
+
+    .motion-interactive:active:not(:disabled),
+    .primary-btn:active:not(:disabled),
+    .outline-btn:active:not(:disabled) {
+      transform: none;
+    }
+  }
+
+  /*
+   * Folk button shape — overrides rounded-none / rounded-full on action buttons.
+   * Excludes tabs, tag chips, and toggle switches (stay pill-shaped).
+   */
+  button:not(.folk-tab):not(.folk-chip):not([role="switch"]),
+  [type="button"]:not(.folk-tab):not(.folk-chip):not([role="switch"]),
+  [type="submit"]:not(.folk-tab),
+  [type="reset"]:not(.folk-tab),
+  a[role="button"]:not(.folk-tab) {
+    border-radius: var(--folk-button-radius);
+  }
+
   @media (max-width: 767px) {
     .modal-responsive {
       width: 100% !important;
@@ -89,7 +428,6 @@
       max-height: 100% !important;
       border-radius: 0 !important;
     }
-
     .modal-responsive .grid-cols-\[minmax\(0\2c 1fr\)_320px\] {
       grid-template-columns: 1fr !important;
     }

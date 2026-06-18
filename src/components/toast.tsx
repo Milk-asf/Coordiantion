@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useState, type ReactNode } from "react"
 import { X, CheckCircle2, AlertTriangle, Info } from "lucide-react"
+import { motion } from "@/lib/motion"
 
 type ToastType = "success" | "error" | "info"
 
@@ -33,31 +34,25 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const icons: Record<ToastType, ReactNode> = {
-    success: <CheckCircle2 className="h-[16px] w-[16px] shrink-0 text-green-500" strokeWidth={2} />,
-    error: <AlertTriangle className="h-[16px] w-[16px] shrink-0 text-red-500" strokeWidth={2} />,
-    info: <Info className="h-[16px] w-[16px] shrink-0 text-blue-500" strokeWidth={2} />,
-  }
-
-  const borderColors: Record<ToastType, string> = {
-    success: "border-green-200",
-    error: "border-red-200",
-    info: "border-blue-200",
+    success: <CheckCircle2 className="h-[20px] w-[20px] shrink-0 text-green-600" strokeWidth={1.5} />,
+    error: <AlertTriangle className="h-[20px] w-[20px] shrink-0 text-red-600" strokeWidth={1.5} />,
+    info: <Info className="h-[20px] w-[20px] shrink-0 text-blue-600" strokeWidth={1.5} />,
   }
 
   return (
     <ToastContext.Provider value={{ toast: addToast }}>
       {children}
-      <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2">
+      <div className="fixed bottom-4 right-4 z-[100] flex w-[280px] flex-col gap-2">
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`flex items-center gap-3 rounded-lg border bg-white px-4 py-3 shadow-[0_4px_16px_rgba(0,0,0,0.08)] animate-in slide-in-from-bottom-2 ${borderColors[t.type]}`}
+            className={`flex items-center gap-3 rounded-folk-modal border border-folk-border bg-folk-surface px-[14px] py-[12px] shadow-folk-toast ${motion.slideUp}`}
           >
             {icons[t.type]}
-            <span className="text-[13px] font-medium text-[#262626]">{t.message}</span>
+            <span className="flex-1 text-[13px] font-normal text-folk-text">{t.message}</span>
             <button
               onClick={() => removeToast(t.id)}
-              className="ml-2 flex h-5 w-5 shrink-0 items-center justify-center rounded text-[#999] transition-colors hover:text-[#262626]"
+              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-folk-input text-folk-secondary hover:text-folk-text ${motion.interactive}`}
               aria-label="Dismiss"
               tabIndex={0}
             >

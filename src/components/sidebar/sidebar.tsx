@@ -9,7 +9,6 @@ import {
   BookOpen,
   User,
   Package,
-  CircleDollarSign,
   ChevronsLeft,
   ChevronsRight,
   LogOut,
@@ -21,14 +20,20 @@ import {
   Clock,
   FileCheck,
   StickyNote,
+  ClipboardList,
+  CalendarRange,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { EntityIcon } from "@/components/entity-icon"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import { useWorkspaceSettings } from "@/lib/hooks/use-workspace-settings"
 import { useNotifications, type AppNotification } from "@/lib/hooks/use-notifications"
 import { SetupWidget } from "@/components/sidebar/setup-widget"
+import { SidebarBusinessNavGroup } from "@/components/sidebar/sidebar-nav-group"
+import { FinanceNavPanel } from "@/components/sidebar/finance-nav-panel"
+import { isBusinessGroupActive } from "@/lib/business-nav"
 
 interface NavItem {
   label: string
@@ -46,17 +51,17 @@ const navigation: NavSection[] = [
   {
     title: "Workspace",
     items: [
+      { label: "Roster", href: "/roster", icon: CalendarRange },
       { label: "Tasks", href: "/tasks", icon: SquareCheck },
       { label: "Notes", href: "/notes", icon: StickyNote },
       { label: "Documents", href: "/documents", icon: Package },
+      { label: "Forms", href: "/forms", icon: ClipboardList },
+      { label: "Incidents", href: "/incidents", icon: AlertTriangle },
     ],
   },
   {
-    title: "Finance",
-    items: [
-      { label: "Invoicing", href: "/invoicing", icon: CircleDollarSign },
-      { label: "NDIS Plans", href: "/ndis-plans", icon: FileCheck },
-    ],
+    title: "Business",
+    items: [],
   },
   {
     title: "People",
@@ -69,8 +74,8 @@ const navigation: NavSection[] = [
 ]
 
 const COLLAPSED_WIDTH = 60
-const MIN_WIDTH = 170
-const DEFAULT_WIDTH = 240
+const MIN_WIDTH = 148
+const DEFAULT_WIDTH = 148
 const MAX_WIDTH = 360
 const COLLAPSE_THRESHOLD = 100
 
@@ -83,18 +88,85 @@ export function Sidebar() {
   const [notifPos, setNotifPos] = useState({ top: 0, left: 0 })
   const [userName, setUserName] = useState("")
   const [userEmail, setUserEmail] = useState("")
+  const [isFinancePanelOpen, setIsFinancePanelOpen] = useState(false)
   const sidebarRef = useRef<HTMLElement>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const notifRef = useRef<HTMLDivElement>(null)
   const notifBtnRef = useRef<HTMLButtonElement>(null)
   const notifPanelRef = useRef<HTMLDivElement>(null)
   const widthBeforeCollapse = useRef(DEFAULT_WIDTH)
+  const widthRef = useRef(width)
+  const isCollapsedRef = useRef(isCollapsed)
+  const widthBeforeFinancePanel = useRef<number | null>(null)
+  const collapsedBeforeFinancePanel = useRef<boolean | null>(null)
+  const userExpandedDuringFinance = useRef(false)
+  const [instantWidthChange, setInstantWidthChange] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const { activeWorkspace } = useWorkspace()
-  const { canViewStaff, isLoading: permissionsLoading } = usePermissions()
+  const { canViewStaff, canViewIncidents, isLoading: permissionsLoading } = usePermissions()
   const { settings: orgSettings } = useWorkspaceSettings()
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications()
+  const isFinanceGroupActive = isBusinessGroupActive(pathname)
+  const prevPathnameRef = useRef(pathname)
+
+  useEffect(() => {
+    const wasInFinance = isBusinessGroupActive(prevPathnameRef.current)
+    if (isFinanceGroupActive && !wasInFinance) setIsFinancePanelOpen(true)
+    if (!isFinanceGroupActive) setIsFinancePanelOpen(false)
+    prevPathnameRef.current = pathname
+  }, [pathname, isFinanceGroupActive])
+
+  widthRef.current = width
+  isCollapsedRef.current = isCollapsed
+
+  useEffect(() => {
+    if (isFinancePanelOpen) {
+      if (userExpandedDuringFinance.current) return
+      if (collapsedBeforeFinancePanel.current !== null) return
+
+      const wasCollapsed = isCollapsedRef.current
+      collapsedBeforeFinancePanel.current = wasCollapsed
+      widthBeforeFinancePanel.current = wasCollapsed
+        ? widthBeforeCollapse.current
+        : widthRef.current
+
+      if (wasCollapsed) return
+
+      setInstantWidthChange(true)
+      widthBeforeCollapse.current = widthRef.current
+      setIsCollapsed(true)
+      setWidth(COLLAPSED_WIDTH)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setInstantWidthChange(false))
+      })
+      return
+    }
+
+    if (collapsedBeforeFinancePanel.current === null) return
+
+    const wasCollapsedBeforeFinance = collapsedBeforeFinancePanel.current
+    const restoreWidth = widthBeforeFinancePanel.current ?? DEFAULT_WIDTH
+    const keepUserLayout = userExpandedDuringFinance.current
+
+    collapsedBeforeFinancePanel.current = null
+    widthBeforeFinancePanel.current = null
+    userExpandedDuringFinance.current = false
+
+    if (keepUserLayout || wasCollapsedBeforeFinance) return
+
+    widthBeforeCollapse.current = restoreWidth
+    setIsCollapsed(false)
+    setWidth(restoreWidth)
+  }, [isFinancePanelOpen])
+
+  const handleToggleFinancePanel = useCallback(() => {
+    setIsFinancePanelOpen((prev) => !prev)
+  }, [])
+
+  const handleCloseFinancePanel = useCallback(() => {
+    setIsFinancePanelOpen(false)
+  }, [])
 
   useEffect(() => {
     if (!isSupabaseConfigured()) return
@@ -146,12 +218,13 @@ export function Sidebar() {
     if (isCollapsed) {
       setIsCollapsed(false)
       setWidth(widthBeforeCollapse.current)
+      if (isFinancePanelOpen) userExpandedDuringFinance.current = true
     } else {
       widthBeforeCollapse.current = width
       setIsCollapsed(true)
       setWidth(COLLAPSED_WIDTH)
     }
-  }, [isCollapsed, width])
+  }, [isCollapsed, width, isFinancePanelOpen])
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -202,11 +275,11 @@ export function Sidebar() {
         <Link
           href={item.href}
           className={cn(
-            "flex items-center gap-2 rounded px-2 py-[6px] text-[13px] font-medium transition-colors",
+            "mx-1 flex h-[32px] items-center gap-2 rounded-[4px] px-[12px] text-[13px] font-normal transition-colors",
             isActive
-              ? "bg-sidebar-active text-sidebar-text"
+              ? "bg-sidebar-active font-medium text-sidebar-text"
               : "text-sidebar-text hover:bg-sidebar-hover",
-            isCollapsed && "justify-center px-0"
+            isCollapsed && "mx-0 justify-center px-0"
           )}
           aria-current={isActive ? "page" : undefined}
           tabIndex={0}
@@ -217,7 +290,7 @@ export function Sidebar() {
               <span className="truncate">{item.label}</span>
               {item.badge != null && item.badge > 0 && (
                 <span
-                  className="ml-auto flex h-[22px] min-w-[22px] items-center justify-center rounded-[4px] text-[12px] font-medium"
+                  className="ml-auto flex h-[20px] min-w-[20px] items-center justify-center rounded-full text-[11px] font-medium"
                   style={{ backgroundColor: "var(--primary-color-light)", color: "var(--primary-color-text)" }}
                 >
                   {item.badge}
@@ -232,16 +305,17 @@ export function Sidebar() {
 
   return (
     <>
+    <div className="flex h-screen shrink-0">
     <aside
       ref={sidebarRef}
       style={{ width: `${width}px` }}
       className={cn(
-        "relative flex h-screen shrink-0 flex-col overflow-visible border-r border-sidebar-border bg-sidebar-bg",
-        !isDragging && "transition-[width] duration-200"
+        "relative flex h-full shrink-0 flex-col overflow-visible border-r border-folk-border bg-sidebar-bg",
+        !isDragging && !instantWidthChange && "transition-[width] duration-200"
       )}
     >
       {/* Company name + collapse */}
-      <div className="flex items-center justify-between px-3 pb-2 pt-3">
+      <div className="flex h-[40px] shrink-0 items-center justify-between px-3">
         {!isCollapsed && (
           <div className="flex items-center gap-2 overflow-hidden px-1 py-0.5">
             {orgSettings.logoUrl ? (
@@ -249,10 +323,10 @@ export function Sidebar() {
               <img
                 src={orgSettings.logoUrl}
                 alt="Organisation logo"
-                className="h-7 w-7 shrink-0 rounded-[6px] object-contain"
+                className="h-7 w-7 shrink-0 rounded-none object-contain"
               />
             ) : (
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[6px] bg-green-600 text-[10px] font-semibold text-white">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-none bg-green-600 text-[10px] font-semibold text-white">
                 {(orgSettings.orgName || activeWorkspace?.name)?.[0]?.toUpperCase() || "W"}
               </div>
             )}
@@ -264,7 +338,7 @@ export function Sidebar() {
         <button
           onClick={handleToggleCollapse}
           className={cn(
-            "flex h-6 w-6 shrink-0 items-center justify-center rounded text-sidebar-muted transition-colors hover:text-sidebar-text",
+            "flex h-6 w-6 shrink-0 items-center justify-center rounded-none text-sidebar-muted transition-colors hover:text-sidebar-text",
             isCollapsed && "mx-auto"
           )}
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -291,7 +365,7 @@ export function Sidebar() {
               setIsNotifOpen(!isNotifOpen)
             }}
             className={cn(
-              "flex w-full items-center gap-2 rounded px-2 py-[6px] text-[13px] font-medium transition-colors",
+              "flex w-full items-center gap-2 rounded-none px-2 py-[6px] text-[13px] font-medium transition-colors",
               isNotifOpen
                 ? "bg-sidebar-active text-sidebar-text"
                 : "text-sidebar-text hover:bg-sidebar-hover",
@@ -306,7 +380,7 @@ export function Sidebar() {
                 <span className="truncate">Notifications</span>
                 {unreadCount > 0 && (
                   <span
-                    className="ml-auto flex h-[22px] min-w-[22px] items-center justify-center rounded-[4px] text-[12px] font-medium"
+                    className="ml-auto flex h-[22px] min-w-[22px] items-center justify-center rounded-none text-[12px] font-medium"
                     style={{ backgroundColor: "var(--primary-color-light)", color: "var(--primary-color-text)" }}
                   >
                     {unreadCount}
@@ -324,13 +398,14 @@ export function Sidebar() {
         {navigation.map((section) => {
           const items = section.items.filter((item) => {
             if (item.label === "Staff" && !permissionsLoading && !canViewStaff) return false
+            if (item.label === "Incidents" && !permissionsLoading && !canViewIncidents) return false
             return true
           })
-          if (items.length === 0) return null
+          if (items.length === 0 && section.title !== "Business") return null
           return (
             <div key={section.title} className="mt-4">
               {!isCollapsed && (
-                <p className="mb-1 px-2 text-[11px] font-medium tracking-wide text-sidebar-muted">
+                <p className="mb-[6px] mt-[16px] px-[10px] text-[11px] font-normal tracking-wide text-[#999999]">
                   {section.title}
                 </p>
               )}
@@ -338,6 +413,14 @@ export function Sidebar() {
                 <div className="mx-auto mb-1 h-px w-5 bg-sidebar-border" />
               )}
               <ul className="space-y-px">
+                {section.title === "Business" && (
+                  <SidebarBusinessNavGroup
+                    isCollapsed={isCollapsed}
+                    isPanelOpen={isFinancePanelOpen}
+                    isGroupActive={isFinanceGroupActive}
+                    onTogglePanel={handleToggleFinancePanel}
+                  />
+                )}
                 {items.map(renderNavLink)}
               </ul>
             </div>
@@ -353,15 +436,22 @@ export function Sidebar() {
         <button
           onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
           className={cn(
-            "flex w-full items-center gap-2 rounded px-2 py-[6px] text-[13px] font-medium text-sidebar-text transition-colors hover:bg-sidebar-hover",
+            "flex w-full items-center gap-2 rounded-none px-2 py-[6px] text-[13px] font-medium text-sidebar-text transition-colors hover:bg-sidebar-hover",
             isCollapsed && "justify-center px-0"
           )}
           aria-label="User menu"
           tabIndex={0}
         >
-          <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md bg-[#e0e0e0] text-[10px] font-semibold text-[#555]">
-            {userName ? userName.charAt(0).toUpperCase() : userEmail ? userEmail.charAt(0).toUpperCase() : "U"}
-          </div>
+          <EntityIcon
+            text={
+              userName
+                ? userName.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase()
+                : userEmail
+                  ? userEmail.charAt(0).toUpperCase()
+                  : "U"
+            }
+            size="xsm"
+          />
           {!isCollapsed && (
             <>
               <span className="truncate text-[12px]">{userName || userEmail || "Account"}</span>
@@ -371,15 +461,15 @@ export function Sidebar() {
         </button>
 
         {isUserMenuOpen && (
-          <div className="absolute bottom-full left-2 right-2 mb-1 rounded-lg border border-[#e0e0e0] bg-white py-1 shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-            <div className="border-b border-[#f0f0f0] px-3 py-2">
-              <p className="truncate text-[12px] font-medium text-[#262626]">{userName || "User"}</p>
-              <p className="truncate text-[11px] text-[#888]">{userEmail}</p>
+          <div className="absolute bottom-full left-2 right-2 mb-1 rounded-none border border-folk-border bg-folk-surface py-1 shadow-folk">
+            <div className="border-b border-folk-border-subtle px-3 py-2">
+              <p className="truncate text-[12px] font-medium text-folk-text">{userName || "User"}</p>
+              <p className="truncate text-[11px] text-folk-secondary">{userEmail}</p>
             </div>
             <Link
               href="/settings"
               onClick={() => setIsUserMenuOpen(false)}
-              className="flex w-full items-center gap-2 px-3 py-[6px] text-[12px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+              className="flex w-full items-center gap-2 px-3 py-[6px] text-[12px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
               tabIndex={0}
             >
               <Settings className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -387,7 +477,7 @@ export function Sidebar() {
             </Link>
             <button
               onClick={handleLogout}
-              className="flex w-full items-center gap-2 px-3 py-[6px] text-[12px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+              className="flex w-full items-center gap-2 px-3 py-[6px] text-[12px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
               tabIndex={0}
             >
               <LogOut className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -414,6 +504,10 @@ export function Sidebar() {
         }}
       />
     </aside>
+    {isFinancePanelOpen && (
+      <FinanceNavPanel pathname={pathname} onClose={handleCloseFinancePanel} />
+    )}
+    </div>
     {isNotifOpen && (
       <NotificationPanel
         ref={notifPanelRef}
@@ -477,14 +571,14 @@ const NotificationPanel = forwardRef<HTMLDivElement, {
   return (
     <div
       ref={ref}
-      className="fixed z-50 flex max-h-[420px] w-[320px] flex-col overflow-hidden rounded-xl border border-[#e5e5e5] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.08)]"
+      className="fixed z-50 flex max-h-[420px] w-[320px] flex-col overflow-hidden rounded-none border border-folk-border bg-folk-surface shadow-folk"
       style={{ top: position.top, left: position.left }}
     >
-      <div className="flex items-center justify-between border-b border-[#f0f0f0] px-4 py-3">
-        <h2 className="text-[14px] font-semibold text-[#262626]">Notifications</h2>
+      <div className="flex items-center justify-between border-b border-folk-border-subtle px-4 py-3">
+        <h2 className="text-[14px] font-semibold text-folk-text">Notifications</h2>
         <button
           onClick={onClose}
-          className="flex h-6 w-6 items-center justify-center rounded-[4px] text-[#999] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+          className="flex h-6 w-6 items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
           aria-label="Close notifications"
           tabIndex={0}
         >
@@ -495,8 +589,8 @@ const NotificationPanel = forwardRef<HTMLDivElement, {
       <div className="flex-1 overflow-y-auto">
         {notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-6 py-12">
-            <p className="text-[13px] text-[#999]">No new notifications.</p>
-            <p className="mt-1 text-[12px] text-[#bbb]">Check back later.</p>
+            <p className="text-[13px] text-folk-secondary">No new notifications.</p>
+            <p className="mt-1 text-[12px] text-folk-placeholder">Check back later.</p>
           </div>
         ) : (
           <ul className="divide-y divide-[#f5f5f5]">
@@ -507,7 +601,7 @@ const NotificationPanel = forwardRef<HTMLDivElement, {
                 <li
                   key={n.id}
                   className={cn(
-                    "flex gap-2.5 px-4 py-3 transition-colors hover:bg-[#fafafa]",
+                    "flex gap-2.5 px-4 py-3 transition-colors hover:bg-folk-page",
                     !n.read && "bg-blue-50/30"
                   )}
                   onClick={() => onMarkRead(n.id)}
@@ -520,12 +614,12 @@ const NotificationPanel = forwardRef<HTMLDivElement, {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
-                      <p className={cn("text-[12px] leading-tight", n.read ? "text-[#666]" : "font-medium text-[#262626]")}>
+                      <p className={cn("text-[12px] leading-tight", n.read ? "text-folk-secondary" : "font-medium text-folk-text")}>
                         {n.title}
                       </p>
                       <span className="shrink-0 text-[10px] text-[#aaa]">{formatNotifTime(n.timestamp)}</span>
                     </div>
-                    <p className="mt-0.5 text-[11px] leading-snug text-[#888]">{n.description}</p>
+                    <p className="mt-0.5 text-[11px] leading-snug text-folk-secondary">{n.description}</p>
                   </div>
                   {!n.read && (
                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />
@@ -537,10 +631,10 @@ const NotificationPanel = forwardRef<HTMLDivElement, {
         )}
       </div>
 
-      <div className="border-t border-[#f0f0f0] px-4 py-2.5">
+      <div className="border-t border-folk-border-subtle px-4 py-2.5">
         <button
           onClick={onMarkAllRead}
-          className="ml-auto block text-[12px] font-medium text-[#999] transition-colors hover:text-[#262626]"
+          className="ml-auto block text-[12px] font-medium text-folk-secondary transition-colors hover:text-folk-text"
           tabIndex={0}
         >
           Mark all as read

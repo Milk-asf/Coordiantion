@@ -1,13 +1,19 @@
 "use client"
 
 import type React from "react"
-import { useRef, useState } from "react"
+import { useLayoutEffect, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import { EntityIcon } from "@/components/entity-icon"
 import { EditableField } from "@/components/editable-field"
 import { ContactChip } from "@/components/contact-chip"
 import { MultiChip } from "@/components/multi-chip"
 import { DetailRow } from "@/components/detail-row"
 import { DatePicker } from "@/components/date-picker"
+import {
+  FIXED_DROPDOWN_BACKDROP_Z_CLASS,
+  FIXED_DROPDOWN_MENU_Z_CLASS,
+  getFixedDropdownStyle,
+} from "@/lib/dropdown-utils"
 import {
   FileImage,
   FileSpreadsheet,
@@ -16,6 +22,7 @@ import {
   File,
   ChevronDown,
 } from "lucide-react"
+import { getProfileFieldChipClasses } from "@/lib/chip-colors"
 import type { Client } from "@/lib/types"
 
 export interface ProfileContact {
@@ -54,13 +61,32 @@ export function formatDate(dateStr: string) {
   return d.toLocaleDateString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" })
 }
 
+export function formatAgeSuffix(dateStr: string) {
+  if (!dateStr) return ""
+  const dob = new Date(`${dateStr}T00:00:00`)
+  if (Number.isNaN(dob.getTime())) return ""
+  const now = new Date()
+  let age = now.getFullYear() - dob.getFullYear()
+  const monthDiff = now.getMonth() - dob.getMonth()
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < dob.getDate())) age -= 1
+  if (age < 0) return ""
+  return `(${age}yo)`
+}
+
+export function getFieldPillClass(fieldKey: string, value: string) {
+  return `${getProfileFieldChipClasses(fieldKey, value, "sm")} cursor-pointer transition-colors hover:brightness-[0.97]`
+}
+
+export const FIELD_ADDRESS_CLASS =
+  "cursor-pointer text-[13px] font-medium text-[#2563EB] underline decoration-[#2563EB]/30 underline-offset-2"
+
 export function SidebarDetailRow({ icon: Icon, label, children }: { icon?: React.ComponentType<{ className?: string; strokeWidth?: number }>; label: string; children: React.ReactNode }) {
   return (
     <DetailRow
       icon={Icon}
       label={label}
-      labelWidthClassName="w-[130px]"
-      rowClassName="flex items-center py-[6px]"
+      layout="inline"
+      labelWidthClassName="w-[140px]"
     >
       {children}
     </DetailRow>
@@ -95,6 +121,44 @@ export function SidebarEditableField({
   )
 }
 
+export function SidebarDateOfBirthField({
+  value,
+  onChange,
+  placeholder = "Select date of birth",
+}: {
+  value: string
+  onChange: (val: string) => void
+  placeholder?: string
+}) {
+  const ageSuffix = formatAgeSuffix(value)
+
+  return (
+    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-[6px]">
+      <SidebarEditableField value={value} onChange={onChange} type="date" placeholder={placeholder} />
+      {ageSuffix && <span className="text-[13px] font-medium text-folk-secondary">{ageSuffix}</span>}
+    </div>
+  )
+}
+
+export function SidebarAddressField({
+  value,
+  onChange,
+  placeholder = "Enter address",
+}: {
+  value: string
+  onChange: (val: string) => void
+  placeholder?: string
+}) {
+  return (
+    <SidebarEditableField
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      displayClassName={value ? FIELD_ADDRESS_CLASS : undefined}
+    />
+  )
+}
+
 export function SidebarCheckInField({
   period,
   startDate,
@@ -107,9 +171,11 @@ export function SidebarCheckInField({
   onChangeStartDate: (val: string) => void
 }) {
   const [open, setOpen] = useState(false)
-  const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({})
+  const [menuStyle, setMenuStyle] = useState<React.CSSProperties | null>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
   const MENU_WIDTH = 240
+  const MENU_HEIGHT = 420
   const legacyPeriodToDays: Record<string, string> = { Weekly: "7", Fortnightly: "14", Monthly: "30", Quarterly: "90" }
   const days = /^\d+$/.test(period) ? period : legacyPeriodToDays[period] || ""
 
@@ -117,24 +183,37 @@ export function SidebarCheckInField({
     onChangePeriod(raw.replace(/\D/g, ""))
   }
 
-  function openMenu() {
-    const trigger = triggerRef.current
-    if (!trigger) {
-      setOpen(true)
+  useLayoutEffect(() => {
+    if (!open) {
+      setMenuStyle(null)
       return
     }
-    const rect = trigger.getBoundingClientRect()
-    const estHeight = 340
-    const gap = 4
-    const left = Math.max(8, Math.min(rect.right - MENU_WIDTH, window.innerWidth - MENU_WIDTH - 8))
-    const spaceBelow = window.innerHeight - rect.bottom
-    const openUp = spaceBelow < estHeight && rect.top > spaceBelow
-    const style: React.CSSProperties = { left }
-    if (openUp) style.bottom = window.innerHeight - rect.top + gap
-    else style.top = rect.bottom + gap
-    setMenuStyle(style)
-    setOpen(true)
-  }
+
+    const updatePosition = () => {
+      const trigger = triggerRef.current
+      if (!trigger) return
+
+      const rect = trigger.getBoundingClientRect()
+      const measuredHeight = Math.max(
+        menuRef.current?.scrollHeight ?? 0,
+        menuRef.current?.offsetHeight ?? 0,
+        MENU_HEIGHT
+      )
+      setMenuStyle(getFixedDropdownStyle(rect, measuredHeight, MENU_WIDTH, "right"))
+    }
+
+    updatePosition()
+    const frame = requestAnimationFrame(updatePosition)
+
+    window.addEventListener("resize", updatePosition)
+    window.addEventListener("scroll", updatePosition, true)
+
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener("resize", updatePosition)
+      window.removeEventListener("scroll", updatePosition, true)
+    }
+  }, [open, startDate, days])
 
   const dateLabel = startDate
     ? new Date(startDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short" })
@@ -147,48 +226,64 @@ export function SidebarCheckInField({
       <button
         ref={triggerRef}
         type="button"
-        onClick={() => (open ? setOpen(false) : openMenu())}
-        className="flex w-full items-center justify-between gap-[8px] rounded-[6px] px-[6px] py-[4px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5]"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex w-full items-center justify-between gap-[8px] rounded-none px-[6px] py-[4px] text-[13px] font-medium transition-colors hover:bg-folk-hover"
         tabIndex={0}
         aria-label="Set check-in cadence and start date"
       >
-        <span className={summary ? "text-[#262626]" : "text-[#bbb]"}>{summary || "Set check-in"}</span>
-        <ChevronDown className="h-[14px] w-[14px] shrink-0 text-[#999]" strokeWidth={1.5} />
+        <span className={summary ? "text-folk-text" : "text-folk-placeholder"}>{summary || "Set check-in"}</span>
+        <ChevronDown className="h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
       </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-[59]" onClick={() => setOpen(false)} />
-          <div style={menuStyle} className="fixed z-[60] max-h-[calc(100vh-16px)] w-[240px] overflow-auto rounded-lg border border-[#e0e0e0] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
-            <div className="px-[10px] pb-[8px] pt-[10px]">
-              <p className="mb-[6px] px-[2px] text-[10px] font-semibold uppercase tracking-wide text-[#999]">Date</p>
-              <DatePicker
-                value={startDate}
-                onChange={(v) => onChangeStartDate(v)}
-                onClose={() => setOpen(false)}
-                bare
-                hideQuickDates
-                selectedClassName="bg-[#2563EB] text-white"
-              />
-            </div>
-            <div className="border-t border-[#f0f0f0] px-[12px] py-[10px]">
-              <p className="mb-[6px] text-[10px] font-semibold uppercase tracking-wide text-[#999]">How often</p>
-              <div className="flex items-center gap-[8px] text-[13px] font-medium text-[#555]">
-                <span>Every</span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={days}
-                  onChange={(e) => handleDaysChange(e.target.value)}
-                  placeholder="30"
-                  className="h-[30px] w-[60px] rounded-[6px] border border-[#e0e0e0] bg-[#fafafa] px-[8px] text-center text-[13px] font-medium text-[#262626] outline-none transition-colors hover:border-[#ccc] focus:border-[#a3c4f3]"
-                  aria-label="Check-in interval in days"
+      {open &&
+        createPortal(
+          <>
+            <div className={`fixed inset-0 ${FIXED_DROPDOWN_BACKDROP_Z_CLASS}`} onClick={() => setOpen(false)} />
+            <div
+              ref={menuRef}
+              style={
+                menuStyle ??
+                (triggerRef.current
+                  ? getFixedDropdownStyle(
+                      triggerRef.current.getBoundingClientRect(),
+                      MENU_HEIGHT,
+                      MENU_WIDTH,
+                      "right"
+                    )
+                  : undefined)
+              }
+              className={`fixed ${FIXED_DROPDOWN_MENU_Z_CLASS} w-[240px] overflow-y-auto overscroll-contain rounded-none border border-folk-border bg-folk-surface shadow-[0_4px_16px_rgba(0,0,0,0.1)]`}
+            >
+              <div className="px-[10px] pb-[8px] pt-[10px]">
+                <p className="mb-[6px] px-[2px] text-[10px] font-semibold uppercase tracking-wide text-folk-secondary">Date</p>
+                <DatePicker
+                  value={startDate}
+                  onChange={(v) => onChangeStartDate(v)}
+                  onClose={() => setOpen(false)}
+                  bare
+                  hideQuickDates
+                  selectedClassName="bg-[#2563EB] text-white"
                 />
-                <span>days</span>
+              </div>
+              <div className="border-t border-folk-border-subtle px-[12px] py-[10px]">
+                <p className="mb-[6px] text-[10px] font-semibold uppercase tracking-wide text-folk-secondary">How often</p>
+                <div className="flex items-center gap-[8px] text-[13px] font-medium text-[#555]">
+                  <span>Every</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={days}
+                    onChange={(e) => handleDaysChange(e.target.value)}
+                    placeholder="30"
+                    className="h-[30px] w-[60px] rounded-none border border-folk-border bg-folk-page px-[8px] text-center text-[13px] font-medium text-folk-text outline-none transition-colors hover:border-[#ccc] focus:border-[#a3c4f3]"
+                    aria-label="Check-in interval in days"
+                  />
+                  <span>days</span>
+                </div>
               </div>
             </div>
-          </div>
-        </>
-      )}
+          </>,
+          document.body
+        )}
     </div>
   )
 }
@@ -223,16 +318,16 @@ export function SidebarDiagnosisChip({ value, onChange, placeholder }: { value: 
 
 export function SidebarSection({ title, emptyText, actionLabel }: { title: string; emptyText: string; actionLabel?: string }) {
   return (
-    <div className="border-t border-[#f0f0f0] px-[24px] py-[16px]">
+    <div className="border-t border-folk-border-subtle px-[24px] py-[16px]">
       <div className="flex items-center justify-between">
-        <h3 className="text-[13px] font-semibold text-[#262626]">{title}</h3>
+        <h3 className="text-[13px] font-semibold text-folk-text">{title}</h3>
         {actionLabel && (
-          <button className="text-[12px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+          <button className="text-[12px] font-medium text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0}>
             {actionLabel}
           </button>
         )}
       </div>
-      <p className="mt-[6px] text-[13px] font-medium text-[#bbb]">{emptyText}</p>
+      <p className="mt-[6px] text-[13px] font-medium text-folk-placeholder">{emptyText}</p>
     </div>
   )
 }

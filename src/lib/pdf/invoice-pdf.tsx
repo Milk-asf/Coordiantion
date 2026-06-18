@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   paymentSection: {
-    backgroundColor: "#fafafa",
+    backgroundColor: "#f7f7f7",
     borderRadius: 4,
     padding: 16,
     marginBottom: 24,

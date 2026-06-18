@@ -59,22 +59,22 @@ export function AvatarUpload({ userId, value, onChange }: AvatarUploadProps) {
 
   return (
     <div className="flex items-center gap-[16px]">
-      <div className="flex h-[64px] w-[64px] items-center justify-center overflow-hidden rounded-full border border-[#f0f0f0] bg-[#fafafa]">
+      <div className="flex h-[64px] w-[64px] items-center justify-center overflow-hidden rounded-full border border-folk-border-subtle bg-folk-page">
         {value ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img src={value} alt="Profile" className="h-full w-full object-cover" />
         ) : (
-          <UserIcon className="h-[24px] w-[24px] text-[#bbb]" strokeWidth={1.5} />
+          <UserIcon className="h-[24px] w-[24px] text-folk-placeholder" strokeWidth={1.5} />
         )}
       </div>
       <div>
-        <p className="mb-[2px] text-[13px] font-semibold text-[#262626]">Profile picture</p>
+        <p className="mb-[2px] text-[13px] font-semibold text-folk-text">Profile picture</p>
         <div className="flex items-center gap-[8px]">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className="flex items-center gap-[6px] rounded-[8px] bg-[#f0f0f0] px-[12px] py-[6px] text-[12px] font-medium text-[#262626] transition-colors hover:bg-[#e8e8e8] disabled:opacity-50"
+            className="flex items-center gap-[6px] rounded-none bg-[var(--folk-border-subtle)] px-[12px] py-[6px] text-[12px] font-medium text-folk-text transition-colors hover:bg-[#e8e8e8] disabled:opacity-50"
             tabIndex={0}
           >
             <Upload className="h-[12px] w-[12px]" strokeWidth={1.75} />
@@ -84,7 +84,7 @@ export function AvatarUpload({ userId, value, onChange }: AvatarUploadProps) {
             <button
               type="button"
               onClick={handleRemove}
-              className="text-[12px] font-medium text-[#888] transition-colors hover:text-[#262626]"
+              className="text-[12px] font-medium text-folk-secondary transition-colors hover:text-folk-text"
               tabIndex={0}
             >
               Remove

@@ -189,7 +189,7 @@ const containerStyle: React.CSSProperties = {
   margin: "40px auto",
   maxWidth: 560,
   overflow: "hidden",
-  border: "1px solid #e5e5e5",
+  border: "1px solid var(--folk-border)",
 }
 
 const headerStyle: React.CSSProperties = {
@@ -253,7 +253,7 @@ const payNowHintStyle: React.CSSProperties = {
 }
 
 const invoiceBoxStyle: React.CSSProperties = {
-  backgroundColor: "#fafafa",
+  backgroundColor: "#f7f7f7",
   borderRadius: 6,
   border: "1px solid #eee",
   marginBottom: 20,

@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { useMemo, useState } from "react"
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
 
 interface QuickPreset {
   label: string
@@ -16,9 +16,29 @@ interface DatePickerProps {
   bare?: boolean
   hideQuickDates?: boolean
   selectedClassName?: string
+  yearRangePast?: number
+  yearRangeFuture?: number
 }
 
-export function DatePicker({ value, onChange, onClose, quickPresets, bare = false, hideQuickDates = false, selectedClassName = "bg-[#2563EB] text-white" }: DatePickerProps) {
+const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => ({
+  value: index,
+  label: new Date(2000, index, 1).toLocaleDateString("en-AU", { month: "long" }),
+}))
+
+const selectClassName =
+  "h-[28px] max-w-[132px] cursor-pointer appearance-none rounded-none border border-transparent bg-transparent pl-[6px] pr-[22px] text-[12px] font-semibold text-folk-text outline-none transition-colors hover:border-[#e8e8e8] hover:bg-folk-hover focus:border-[#a3c4f3] focus:bg-folk-surface"
+
+export function DatePicker({
+  value,
+  onChange,
+  onClose,
+  quickPresets,
+  bare = false,
+  hideQuickDates = false,
+  selectedClassName = "bg-[#2563EB] text-white",
+  yearRangePast = 30,
+  yearRangeFuture = 10,
+}: DatePickerProps) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
@@ -26,6 +46,15 @@ export function DatePicker({ value, onChange, onClose, quickPresets, bare = fals
   const selected = value ? new Date(value + "T00:00:00") : null
   const [viewYear, setViewYear] = useState(selected ? selected.getFullYear() : today.getFullYear())
   const [viewMonth, setViewMonth] = useState(selected ? selected.getMonth() : today.getMonth())
+
+  const selectedYear = selected?.getFullYear()
+
+  const yearOptions = useMemo(() => {
+    const currentYear = new Date().getFullYear()
+    const startYear = Math.min(currentYear - yearRangePast, selectedYear ?? currentYear, viewYear)
+    const endYear = Math.max(currentYear + yearRangeFuture, selectedYear ?? currentYear, viewYear)
+    return Array.from({ length: endYear - startYear + 1 }, (_, index) => startYear + index)
+  }, [yearRangePast, yearRangeFuture, selectedYear, viewYear])
 
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
   const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay()
@@ -57,7 +86,6 @@ export function DatePicker({ value, onChange, onClose, quickPresets, bare = fals
     onClose()
   }
 
-  const monthLabel = new Date(viewYear, viewMonth).toLocaleDateString("en-AU", { month: "long", year: "numeric" })
   const weekDays = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
   const quickDates = [
     { label: "Today", offset: 0 },
@@ -66,9 +94,9 @@ export function DatePicker({ value, onChange, onClose, quickPresets, bare = fals
   ]
 
   return (
-    <div className={bare ? "w-full" : "w-[260px] rounded-lg border border-[#e0e0e0] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]"}>
+    <div className={bare ? "w-full" : "w-[260px] rounded-none border border-folk-border bg-folk-surface shadow-folk"}>
       {!hideQuickDates && (
-      <div className="flex gap-[4px] border-b border-[#f0f0f0] px-[12px] py-[8px]">
+      <div className="flex gap-[4px] border-b border-folk-border-subtle px-[12px] py-[8px]">
         {quickDates.map((quickDate) => {
           const quickDateValue = new Date(today)
           quickDateValue.setDate(quickDateValue.getDate() + quickDate.offset)
@@ -84,7 +112,7 @@ export function DatePicker({ value, onChange, onClose, quickPresets, bare = fals
                 onChange(dateStr)
                 onClose()
               }}
-              className={`rounded px-[8px] py-[4px] text-[11px] font-medium transition-colors ${isSelected ? "bg-[#2563EB] text-white" : "text-[#555] hover:bg-[#f5f5f5]"}`}
+              className={`rounded-none px-[8px] py-[4px] text-[11px] font-medium transition-colors ${isSelected ? "bg-[#2563EB] text-white" : "text-[#555] hover:bg-folk-hover"}`}
               tabIndex={0}
             >
               {quickDate.label}
@@ -94,21 +122,52 @@ export function DatePicker({ value, onChange, onClose, quickPresets, bare = fals
       </div>
       )}
 
-      <div className="flex items-center justify-between px-[12px] py-[8px]">
+      <div className="flex items-center justify-between gap-[4px] px-[8px] py-[8px]">
         <button
           type="button"
           onClick={handlePrevMonth}
-          className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+          className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
           tabIndex={0}
           aria-label="Previous month"
         >
           <ChevronLeft className="h-[14px] w-[14px]" strokeWidth={1.5} />
         </button>
-        <span className="text-[12px] font-semibold text-[#262626]">{monthLabel}</span>
+        <div className="flex min-w-0 flex-1 items-center justify-center gap-[4px]">
+          <div className="relative min-w-0">
+            <select
+              value={viewMonth}
+              onChange={(e) => setViewMonth(Number(e.target.value))}
+              className={selectClassName}
+              aria-label="Select month"
+            >
+              {MONTH_OPTIONS.map((month) => (
+                <option key={month.value} value={month.value}>
+                  {month.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-[6px] top-1/2 h-[12px] w-[12px] -translate-y-1/2 text-folk-secondary" strokeWidth={1.75} />
+          </div>
+          <div className="relative shrink-0">
+            <select
+              value={viewYear}
+              onChange={(e) => setViewYear(Number(e.target.value))}
+              className={`${selectClassName} max-w-[76px]`}
+              aria-label="Select year"
+            >
+              {yearOptions.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-[6px] top-1/2 h-[12px] w-[12px] -translate-y-1/2 text-folk-secondary" strokeWidth={1.75} />
+          </div>
+        </div>
         <button
           type="button"
           onClick={handleNextMonth}
-          className="flex h-[24px] w-[24px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+          className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
           tabIndex={0}
           aria-label="Next month"
         >
@@ -119,7 +178,7 @@ export function DatePicker({ value, onChange, onClose, quickPresets, bare = fals
       <div className="px-[12px] pb-[12px]">
         <div className="mb-[4px] grid grid-cols-7 gap-[2px]">
           {weekDays.map((weekDay) => (
-            <div key={weekDay} className="flex h-[24px] items-center justify-center text-[10px] font-medium text-[#bbb]">
+            <div key={weekDay} className="flex h-[24px] items-center justify-center text-[10px] font-medium text-folk-placeholder">
               {weekDay}
             </div>
           ))}
@@ -139,12 +198,12 @@ export function DatePicker({ value, onChange, onClose, quickPresets, bare = fals
                 key={day}
                 type="button"
                 onClick={() => handleSelect(day)}
-                className={`flex h-[30px] w-full items-center justify-center rounded text-[12px] font-medium transition-colors ${
+                className={`flex h-[30px] w-full items-center justify-center rounded-none text-[12px] font-medium transition-colors ${
                   isSelected
                     ? selectedClassName
                     : isToday
-                      ? "bg-[#f0f0f0] text-[#262626] hover:bg-[#e5e5e5]"
-                      : "text-[#555] hover:bg-[#f5f5f5]"
+                      ? "bg-[var(--folk-border-subtle)] text-folk-text hover:bg-[var(--folk-border)]"
+                      : "text-[#555] hover:bg-folk-hover"
                 }`}
                 tabIndex={0}
               >
@@ -156,8 +215,8 @@ export function DatePicker({ value, onChange, onClose, quickPresets, bare = fals
       </div>
 
       {quickPresets && quickPresets.length > 0 && (
-        <div className="border-t border-[#f0f0f0] px-[12px] py-[8px]">
-          <p className="mb-[6px] text-[10px] font-semibold uppercase tracking-wide text-[#999]">Quick select</p>
+        <div className="border-t border-folk-border-subtle px-[12px] py-[8px]">
+          <p className="mb-[6px] text-[10px] font-semibold uppercase tracking-wide text-folk-secondary">Quick select</p>
           <div className="flex flex-wrap gap-[4px]">
             {quickPresets.map((preset) => {
               const isSelected = value === preset.value
@@ -169,7 +228,7 @@ export function DatePicker({ value, onChange, onClose, quickPresets, bare = fals
                   className={`rounded-[5px] border px-[8px] py-[3px] text-[11px] font-medium transition-colors ${
                     isSelected
                       ? "border-[#2563EB] bg-[#2563EB] text-white"
-                      : "border-[#e0e0e0] bg-white text-[#555] hover:border-[#ccc] hover:bg-[#f5f5f5]"
+                      : "border-folk-border bg-folk-surface text-[#555] hover:border-[#ccc] hover:bg-folk-hover"
                   }`}
                   tabIndex={0}
                 >
@@ -182,14 +241,14 @@ export function DatePicker({ value, onChange, onClose, quickPresets, bare = fals
       )}
 
       {value && (
-        <div className="border-t border-[#f0f0f0] px-[12px] py-[6px]">
+        <div className="border-t border-folk-border-subtle px-[12px] py-[6px]">
           <button
             type="button"
             onClick={() => {
               onChange("")
               onClose()
             }}
-            className="w-full rounded px-[8px] py-[4px] text-left text-[12px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+            className="w-full rounded-none px-[8px] py-[4px] text-left text-[12px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
             tabIndex={0}
           >
             Clear date

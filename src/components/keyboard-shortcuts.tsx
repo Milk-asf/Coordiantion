@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { X, Command } from "lucide-react"
+import { motion } from "@/lib/motion"
 
 interface Shortcut {
   key: string
@@ -19,7 +20,7 @@ export function useKeyboardShortcuts(customShortcuts?: Shortcut[]) {
   const defaultShortcuts: Shortcut[] = [
     { key: "t", label: "G then T", description: "Go to Tasks", action: () => router.push("/tasks") },
     { key: "c", label: "G then C", description: "Go to Clients", action: () => router.push("/clients") },
-    { key: "i", label: "G then I", description: "Go to Invoicing", action: () => router.push("/invoicing") },
+    { key: "i", label: "G then I", description: "Go to Invoices", action: () => router.push("/business/invoices") },
     { key: "n", label: "G then N", description: "Go to Notes", action: () => router.push("/notes") },
     { key: "s", label: "G then S", description: "Go to Settings", action: () => router.push("/settings/general") },
     { key: "?", label: "?", description: "Show keyboard shortcuts", action: () => setIsHelpOpen(true) },
@@ -94,7 +95,7 @@ export function KeyboardShortcutsHelp({
 
   return (
     <div
-      className="fixed inset-0 z-[150] flex items-center justify-center bg-black/40"
+      className={`fixed inset-0 z-[150] flex items-center justify-center bg-black/40 ${motion.overlayIn}`}
       onClick={onClose}
       onKeyDown={handleKeyDown}
       role="dialog"
@@ -102,17 +103,17 @@ export function KeyboardShortcutsHelp({
       aria-label="Keyboard shortcuts"
     >
       <div
-        className="mx-[16px] w-full max-w-[420px] rounded-[12px] bg-white shadow-xl"
+        className={`mx-[16px] w-full max-w-[420px] rounded-none bg-folk-surface shadow-xl ${motion.scaleIn}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-[#f0f0f0] px-[20px] py-[14px]">
+        <div className="flex items-center justify-between border-b border-folk-border-subtle px-[20px] py-[14px]">
           <div className="flex items-center gap-[8px]">
-            <Command className="h-[16px] w-[16px] text-[#888]" strokeWidth={1.5} />
-            <h2 className="text-[14px] font-semibold text-[#262626]">Keyboard shortcuts</h2>
+            <Command className="h-[16px] w-[16px] text-folk-secondary" strokeWidth={1.5} />
+            <h2 className="text-[14px] font-semibold text-folk-text">Keyboard shortcuts</h2>
           </div>
           <button
             onClick={onClose}
-            className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+            className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
             aria-label="Close"
             tabIndex={0}
           >
@@ -122,17 +123,17 @@ export function KeyboardShortcutsHelp({
         <div className="max-h-[400px] overflow-y-auto p-[16px]">
           <div className="space-y-[2px]">
             {shortcuts.map((shortcut) => (
-              <div key={shortcut.key + shortcut.description} className="flex items-center justify-between rounded-[6px] px-[10px] py-[8px] hover:bg-[#fafafa]">
+              <div key={shortcut.key + shortcut.description} className={`flex items-center justify-between rounded-none px-[10px] py-[8px] hover:bg-folk-page ${motion.row}`}>
                 <span className="text-[13px] text-[#555]">{shortcut.description}</span>
-                <kbd className="rounded-[4px] border border-[#e0e0e0] bg-[#f8f8f8] px-[6px] py-[2px] font-mono text-[11px] text-[#666]">
+                <kbd className="rounded-none border border-folk-border bg-[#f8f8f8] px-[6px] py-[2px] font-mono text-[11px] text-folk-secondary">
                   {shortcut.label}
                 </kbd>
               </div>
             ))}
           </div>
         </div>
-        <div className="border-t border-[#f0f0f0] px-[20px] py-[10px]">
-          <p className="text-[11px] text-[#bbb]">Press <kbd className="rounded border border-[#e0e0e0] bg-[#f8f8f8] px-[3px] py-[1px] font-mono text-[10px]">?</kbd> to toggle this panel</p>
+        <div className="border-t border-folk-border-subtle px-[20px] py-[10px]">
+          <p className="text-[11px] text-folk-placeholder">Press <kbd className="rounded-none border border-folk-border bg-[#f8f8f8] px-[3px] py-[1px] font-mono text-[10px]">?</kbd> to toggle this panel</p>
         </div>
       </div>
     </div>

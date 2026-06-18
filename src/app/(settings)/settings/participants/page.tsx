@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react"
-import { Plus, X, MoreHorizontal, Trash2, UserRound } from "lucide-react"
+import { Plus, X, UserRound } from "lucide-react"
 import { useClients } from "@/lib/hooks/use-clients"
 import { useContacts } from "@/lib/hooks/use-contacts"
 import { CsvDropdown } from "@/components/csv-dropdown"
@@ -10,6 +10,8 @@ import { Switch } from "@/components/switch"
 import { Badge } from "@/components/badge"
 import { Button } from "@/components/button"
 import { EmptyState } from "@/components/empty-state"
+import { EntityIcon } from "@/components/entity-icon"
+import { DeleteActionsMenu } from "@/components/delete-actions-menu"
 import { useToast } from "@/components/toast"
 import { cn } from "@/lib/utils"
 import { contactCsvColumns, parseContactsFromCsvRow } from "@/lib/participants/csv-contacts"
@@ -22,7 +24,6 @@ export default function ParticipantsSettingsPage() {
 
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [search, setSearch] = useState("")
-  const [menuClientId, setMenuClientId] = useState<string | null>(null)
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
@@ -48,7 +49,6 @@ export default function ParticipantsSettingsPage() {
   }
 
   const handleDelete = async (id: string, name: string) => {
-    setMenuClientId(null)
     await deleteClient(id)
     toast(`Removed ${name}`, "success")
   }
@@ -203,8 +203,8 @@ export default function ParticipantsSettingsPage() {
   return (
     <>
       <div className="mb-[24px]">
-        <h1 className="text-[20px] font-bold text-[#262626]">Participants</h1>
-        <p className="mt-[4px] text-[14px] text-[#888]">
+        <h1 className="text-[20px] font-bold text-folk-text">Participants</h1>
+        <p className="mt-[4px] text-[14px] text-folk-secondary">
           Manage participant status. Toggle off to archive a participant.
         </p>
       </div>
@@ -213,10 +213,10 @@ export default function ParticipantsSettingsPage() {
         <>
           <div className="fixed inset-0 z-40 bg-black/20" onClick={() => setIsAddOpen(false)} />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-[16px]">
-            <div className="w-full max-w-[420px] rounded-[8px] border border-[#f0f0f0] bg-white p-[24px] shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+            <div className="w-full max-w-[420px] rounded-none border border-folk-border-subtle bg-folk-surface p-[24px] shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
               <div className="mb-[16px] flex items-center justify-between">
-                <h2 className="text-[16px] font-bold text-[#262626]">Add a participant</h2>
-                <button onClick={() => setIsAddOpen(false)} className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-[#999] transition-colors hover:bg-[#f5f5f5]" tabIndex={0} aria-label="Close">
+                <h2 className="text-[16px] font-bold text-folk-text">Add a participant</h2>
+                <button onClick={() => setIsAddOpen(false)} className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover" tabIndex={0} aria-label="Close">
                   <X className="h-[16px] w-[16px]" strokeWidth={1.75} />
                 </button>
               </div>
@@ -230,7 +230,7 @@ export default function ParticipantsSettingsPage() {
                     onChange={(e) => setFirstName(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") handleAdd() }}
                     placeholder="Jane"
-                    className="mb-[12px] w-full rounded-[8px] border border-[#e0e0e0] bg-[#fafafa] px-[12px] py-[9px] text-[14px] text-[#262626] outline-none transition-colors focus:border-[#bbb]"
+                    className="mb-[12px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] py-[9px] text-[14px] text-folk-text outline-none transition-colors focus:border-[#bbb]"
                   />
                 </div>
                 <div className="flex-1">
@@ -241,7 +241,7 @@ export default function ParticipantsSettingsPage() {
                     onChange={(e) => setLastName(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") handleAdd() }}
                     placeholder="Doe"
-                    className="mb-[12px] w-full rounded-[8px] border border-[#e0e0e0] bg-[#fafafa] px-[12px] py-[9px] text-[14px] text-[#262626] outline-none transition-colors focus:border-[#bbb]"
+                    className="mb-[12px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] py-[9px] text-[14px] text-folk-text outline-none transition-colors focus:border-[#bbb]"
                   />
                 </div>
               </div>
@@ -252,7 +252,7 @@ export default function ParticipantsSettingsPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleAdd() }}
                 placeholder="jane@example.com"
-                className="mb-[16px] w-full rounded-[8px] border border-[#e0e0e0] bg-[#fafafa] px-[12px] py-[9px] text-[14px] text-[#262626] outline-none transition-colors focus:border-[#bbb]"
+                className="mb-[16px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] py-[9px] text-[14px] text-folk-text outline-none transition-colors focus:border-[#bbb]"
               />
               {addError && <p className="mb-[12px] text-[13px] text-red-500">{addError}</p>}
               <div className="flex justify-end gap-[8px]">
@@ -294,9 +294,9 @@ export default function ParticipantsSettingsPage() {
 
       <div className="overflow-hidden">
         <div className="grid grid-cols-[1fr_100px_80px_40px] items-center border-b border-[#efefef] px-[20px] py-[10px]">
-          <span className="text-[12px] font-medium text-[#999]">Name</span>
-          <span className="text-[12px] font-medium text-[#999]">Status</span>
-          <span className="text-[12px] font-medium text-[#999]">Active</span>
+          <span className="text-[12px] font-medium text-folk-secondary">Name</span>
+          <span className="text-[12px] font-medium text-folk-secondary">Status</span>
+          <span className="text-[12px] font-medium text-folk-secondary">Active</span>
           <span />
         </div>
 
@@ -308,8 +308,6 @@ export default function ParticipantsSettingsPage() {
             coordinator={client.owner}
             isActive
             onToggle={() => handleToggle(client.id, "active")}
-            isMenuOpen={menuClientId === client.id}
-            onMenuToggle={() => setMenuClientId(menuClientId === client.id ? null : client.id)}
             onDelete={() => handleDelete(client.id, client.displayName)}
           />
         ))}
@@ -324,7 +322,7 @@ export default function ParticipantsSettingsPage() {
         )}
 
         {clients.length > 0 && activeClients.length === 0 && archivedClients.length === 0 && (
-          <div className="px-[20px] py-[40px] text-center text-[13px] text-[#bbb]">
+          <div className="px-[20px] py-[40px] text-center text-[13px] text-folk-placeholder">
             No participants match &ldquo;{search.trim()}&rdquo;.
           </div>
         )}
@@ -332,7 +330,7 @@ export default function ParticipantsSettingsPage() {
 
       {archivedClients.length > 0 && (
         <div className="mt-[28px]">
-          <h2 className="mb-[10px] text-[13px] font-semibold uppercase tracking-wide text-[#999]">Archived</h2>
+          <h2 className="mb-[10px] text-[13px] font-semibold uppercase tracking-wide text-folk-secondary">Archived</h2>
           <div className="overflow-hidden">
             {archivedClients.map((client) => (
               <ParticipantRow
@@ -342,8 +340,6 @@ export default function ParticipantsSettingsPage() {
                 coordinator={client.owner}
                 isActive={false}
                 onToggle={() => handleToggle(client.id, "archived")}
-                isMenuOpen={menuClientId === client.id}
-                onMenuToggle={() => setMenuClientId(menuClientId === client.id ? null : client.id)}
                 onDelete={() => handleDelete(client.id, client.displayName)}
                 isDisabledRow
               />
@@ -361,8 +357,6 @@ function ParticipantRow({
   coordinator,
   isActive,
   onToggle,
-  isMenuOpen,
-  onMenuToggle,
   onDelete,
   isDisabledRow,
 }: {
@@ -371,27 +365,20 @@ function ParticipantRow({
   coordinator: string
   isActive: boolean
   onToggle: () => void
-  isMenuOpen: boolean
-  onMenuToggle: () => void
   onDelete: () => void
   isDisabledRow?: boolean
 }) {
   return (
     <div className={cn(
-      "grid grid-cols-[1fr_100px_80px_40px] items-center border-b border-[#efefef] px-[20px] py-[14px] transition-colors last:border-b-0",
-      isDisabledRow ? "opacity-60" : "hover:bg-[#f5f5f5]"
+      "grid grid-cols-[1fr_100px_80px_40px] items-center border-b border-[#efefef] px-[20px] py-[10px] transition-colors last:border-b-0",
+      isDisabledRow ? "opacity-60" : "hover:bg-folk-hover"
     )}>
       <div className="flex items-center gap-[12px]">
-        <div className={cn(
-          "flex h-[32px] w-[32px] shrink-0 items-center justify-center rounded-[8px] text-[11px] font-semibold",
-          isDisabledRow ? "bg-[#e8e8e8] text-[#bbb]" : "bg-[#e0e0e0] text-[#555]"
-        )}>
-          {initials}
-        </div>
+        <EntityIcon text={initials} size="base" className={isDisabledRow ? "opacity-50" : undefined} />
         <div className="min-w-0">
-          <span className="block truncate text-[14px] font-medium text-[#262626]">{name}</span>
+          <span className="block truncate text-[14px] font-medium text-folk-text">{name}</span>
           {coordinator && (
-            <span className="block truncate text-[12px] text-[#999]">{coordinator}</span>
+            <span className="block truncate text-[12px] text-folk-secondary">{coordinator}</span>
           )}
         </div>
       </div>
@@ -413,34 +400,13 @@ function ParticipantRow({
       </div>
 
       <div className="flex justify-end">
-        <div className="relative">
-          <button
-            type="button"
-            onClick={onMenuToggle}
-            className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-[#bbb] transition-colors hover:bg-[#ebebeb] hover:text-[#666]"
-            tabIndex={0}
-            aria-label="Participant actions"
-          >
-            <MoreHorizontal className="h-[16px] w-[16px]" strokeWidth={1.75} />
-          </button>
-
-          {isMenuOpen && (
-            <>
-              <div className="fixed inset-0 z-[9]" onClick={onMenuToggle} />
-              <div className="absolute right-0 top-full z-10 mt-[4px] w-[160px] rounded-[8px] border border-[#f0f0f0] bg-white py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
-                <button
-                  type="button"
-                  onClick={onDelete}
-                  className="flex w-full items-center gap-[8px] px-[14px] py-[8px] text-left text-[13px] text-red-500 transition-colors hover:bg-red-50"
-                  tabIndex={0}
-                >
-                  <Trash2 className="h-[13px] w-[13px]" strokeWidth={1.75} />
-                  Remove
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+        <DeleteActionsMenu
+          onDelete={onDelete}
+          itemName={name}
+          confirmTitle="Remove participant"
+          confirmDescription={`This will permanently remove ${name} and all associated data. This action cannot be undone.`}
+          ariaLabel="Participant actions"
+        />
       </div>
     </div>
   )

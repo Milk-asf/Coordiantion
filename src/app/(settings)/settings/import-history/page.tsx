@@ -11,10 +11,20 @@ import {
   AlertTriangle,
   Loader2,
 } from "lucide-react"
+import { EntityIcon } from "@/components/entity-icon"
+import { getCategoryChipClasses, getFundingTypeChipClasses } from "@/lib/chip-colors"
 import { useClients } from "@/lib/hooks/use-clients"
 import { useContacts } from "@/lib/contacts-context"
 import { useStaff } from "@/lib/staff-context"
 import type { ParticipantDetails, FundingType, Contact, StaffDetails } from "@/lib/types"
+import { ProfileTabButton } from "@/components/profile-tab-button"
+import {
+  TABLE_FULL,
+  TABLE_GRID_CELL,
+  TABLE_GRID_CELL_LAST,
+  TABLE_GRID_HEADER,
+  TABLE_GRID_HEADER_LAST,
+} from "@/lib/table-styles"
 
 type Step = "upload" | "preview" | "importing" | "complete"
 type EntityType = "participants" | "contacts" | "staff"
@@ -515,29 +525,21 @@ export default function ImportHistorySettingsPage() {
   return (
     <>
       <div className="mb-[32px]">
-        <h1 className="text-[20px] font-bold text-[#262626]">Import</h1>
-        <p className="mt-[4px] text-[14px] text-[#888]">
+        <h1 className="text-[20px] font-bold text-folk-text">Import</h1>
+        <p className="mt-[4px] text-[14px] text-folk-secondary">
           Bulk upload records using a CSV file
         </p>
       </div>
 
       {/* Entity tabs */}
-      <div className="mb-[28px] flex items-center gap-[4px] border-b border-[#f0f0f0]">
+      <div className="mb-[28px] flex h-[44px] items-center gap-[2px] border-b border-folk-border bg-folk-nav">
         {ENTITY_TABS.map((tab) => (
-          <button
+          <ProfileTabButton
             key={tab.key}
+            isActive={entityType === tab.key}
             onClick={() => handleSwitchEntity(tab.key)}
-            className={cn(
-              "relative px-[14px] py-[10px] text-[13px] font-medium transition-colors",
-              entityType === tab.key ? "text-[#262626]" : "text-[#888] hover:text-[#555]"
-            )}
-            tabIndex={0}
-          >
-            {tab.label}
-            {entityType === tab.key && (
-              <span className="absolute bottom-0 left-[14px] right-[14px] h-[2px] rounded-full bg-[#262626]" />
-            )}
-          </button>
+            label={tab.label}
+          />
         ))}
       </div>
 
@@ -546,17 +548,17 @@ export default function ImportHistorySettingsPage() {
         <>
           <div className="mb-[20px] flex items-center justify-between px-[20px] py-[16px]">
             <div className="flex items-center gap-[12px]">
-              <div className="flex h-[36px] w-[36px] items-center justify-center rounded-[8px] bg-[#f0f0f0]">
-                <FileText className="h-[16px] w-[16px] text-[#888]" strokeWidth={1.75} />
+              <div className="flex h-[36px] w-[36px] items-center justify-center rounded-none bg-[var(--folk-border-subtle)]">
+                <FileText className="h-[16px] w-[16px] text-folk-secondary" strokeWidth={1.75} />
               </div>
               <div>
-                <p className="text-[14px] font-semibold text-[#262626]">CSV template</p>
-                <p className="text-[13px] text-[#888]">Download, fill out, and re-upload</p>
+                <p className="text-[14px] font-semibold text-folk-text">CSV template</p>
+                <p className="text-[13px] text-folk-secondary">Download, fill out, and re-upload</p>
               </div>
             </div>
             <button
               onClick={handleDownloadTemplate}
-              className="flex items-center gap-[6px] rounded-[8px] bg-[#f0f0f0] px-[14px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#e8e8e8]"
+              className="flex items-center gap-[6px] rounded-none bg-[var(--folk-border-subtle)] px-[14px] py-[8px] text-[13px] font-medium text-folk-text transition-colors hover:bg-[#e8e8e8]"
               tabIndex={0}
               aria-label="Download CSV template"
             >
@@ -571,36 +573,36 @@ export default function ImportHistorySettingsPage() {
             onDragLeave={handleDragLeave}
             onClick={() => fileInputRef.current?.click()}
             className={cn(
-              "flex cursor-pointer flex-col items-center justify-center rounded-[8px] border-2 border-dashed px-[20px] py-[48px] transition-colors",
+              "flex cursor-pointer flex-col items-center justify-center rounded-none border-2 border-dashed px-[20px] py-[48px] transition-colors",
               isDragOver
                 ? "border-blue-400 bg-blue-50/50"
-                : "border-[#e0e0e0] bg-[#fafafa] hover:border-[#ccc] hover:bg-[#f5f5f5]"
+                : "border-folk-border bg-folk-page hover:border-[#ccc] hover:bg-folk-hover"
             )}
             role="button"
             tabIndex={0}
             aria-label="Upload CSV file"
             onKeyDown={(e) => { if (e.key === "Enter") fileInputRef.current?.click() }}
           >
-            <div className="flex h-[48px] w-[48px] items-center justify-center rounded-[12px] bg-[#f5f5f5]">
-              <Upload className="h-[20px] w-[20px] text-[#888]" strokeWidth={1.75} />
+            <div className="flex h-[48px] w-[48px] items-center justify-center rounded-none bg-folk-hover">
+              <Upload className="h-[20px] w-[20px] text-folk-secondary" strokeWidth={1.75} />
             </div>
-            <p className="mt-[12px] text-[14px] font-medium text-[#262626]">
+            <p className="mt-[12px] text-[14px] font-medium text-folk-text">
               {isDragOver ? "Drop your file here" : "Click to upload or drag and drop"}
             </p>
-            <p className="mt-[4px] text-[13px] text-[#bbb]">CSV files only</p>
+            <p className="mt-[4px] text-[13px] text-folk-placeholder">CSV files only</p>
           </div>
 
           <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleFileChange} />
 
           {importError && (
-            <div className="mt-[16px] flex items-center gap-[8px] rounded-[8px] bg-red-50 px-[16px] py-[12px]">
+            <div className="mt-[16px] flex items-center gap-[8px] rounded-none bg-red-50 px-[16px] py-[12px]">
               <AlertTriangle className="h-[14px] w-[14px] shrink-0 text-red-500" strokeWidth={1.75} />
               <p className="text-[13px] font-medium text-red-600">{importError}</p>
             </div>
           )}
 
           <div className="mt-[28px]">
-            <h2 className="mb-[12px] text-[14px] font-semibold text-[#262626]">How it works</h2>
+            <h2 className="mb-[12px] text-[14px] font-semibold text-folk-text">How it works</h2>
             <div className="space-y-[12px]">
               {[
                 { step: "1", text: "Download the CSV template above" },
@@ -609,10 +611,8 @@ export default function ImportHistorySettingsPage() {
                 { step: "4", text: "Review the preview, fix any errors, and confirm the import" },
               ].map((item) => (
                 <div key={item.step} className="flex items-start gap-[12px]">
-                  <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[6px] bg-[#DBEAFE] text-[11px] font-semibold text-[#2563EB]">
-                    {item.step}
-                  </span>
-                  <p className="text-[13px] text-[#666] pt-[2px]">{item.text}</p>
+                  <EntityIcon text={item.step} size="sm" />
+                  <p className="text-[13px] text-folk-secondary pt-[2px]">{item.text}</p>
                 </div>
               ))}
             </div>
@@ -626,29 +626,29 @@ export default function ImportHistorySettingsPage() {
           <div className="mb-[24px] flex items-start justify-between">
             <div>
               <div className="flex items-center gap-[12px]">
-                <span className="inline-flex h-[24px] items-center rounded-[6px] bg-green-100 px-[10px] text-[12px] font-medium text-green-700">
+                <span className="inline-flex h-[24px] items-center rounded-none bg-green-100 px-[10px] text-[12px] font-medium text-green-700">
                   {validRows.length} ready
                 </span>
                 {errorRows.length > 0 && (
-                  <span className="inline-flex h-[24px] items-center rounded-[6px] bg-red-50 px-[10px] text-[12px] font-medium text-red-600">
+                  <span className="inline-flex h-[24px] items-center rounded-none bg-red-50 px-[10px] text-[12px] font-medium text-red-600">
                     {errorRows.length} {errorRows.length === 1 ? "error" : "errors"}
                   </span>
                 )}
                 {warningRows.length > 0 && (
-                  <span className="inline-flex h-[24px] items-center rounded-[6px] bg-red-50 px-[10px] text-[12px] font-medium text-red-600">
+                  <span className="inline-flex h-[24px] items-center rounded-none bg-red-50 px-[10px] text-[12px] font-medium text-red-600">
                     {warningRows.length} {warningRows.length === 1 ? "warning" : "warnings"}
                   </span>
                 )}
               </div>
               <div className="mt-[8px] flex items-center gap-[8px]">
-                <FileText className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.75} />
-                <span className="text-[13px] text-[#888]">{fileName}</span>
+                <FileText className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.75} />
+                <span className="text-[13px] text-folk-secondary">{fileName}</span>
               </div>
             </div>
             <div className="flex items-center gap-[8px]">
               <button
                 onClick={handleReset}
-                className="flex items-center gap-[5px] rounded-[4px] border border-[#dcdcdc] bg-transparent px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                className="flex items-center gap-[5px] rounded-none border border-folk-border bg-transparent px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                 tabIndex={0}
               >
                 Cancel
@@ -656,7 +656,7 @@ export default function ImportHistorySettingsPage() {
               <button
                 onClick={handleImport}
                 disabled={validRows.length === 0}
-                className="flex items-center gap-[5px] rounded-[4px] border border-[#dcdcdc] bg-transparent px-[8px] py-[4px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] disabled:opacity-40"
+                className="flex items-center gap-[5px] rounded-none border border-folk-border bg-transparent px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover disabled:opacity-40"
                 tabIndex={0}
               >
                 Import {validRows.length} {validRows.length === 1 ? config.labelSingular : config.label}
@@ -665,22 +665,22 @@ export default function ImportHistorySettingsPage() {
           </div>
 
           {importError && (
-            <div className="mb-[16px] flex items-center gap-[8px] rounded-[8px] bg-red-50 px-[16px] py-[12px]">
+            <div className="mb-[16px] flex items-center gap-[8px] rounded-none bg-red-50 px-[16px] py-[12px]">
               <AlertTriangle className="h-[14px] w-[14px] shrink-0 text-red-500" strokeWidth={1.75} />
               <p className="text-[13px] font-medium text-red-600">{importError}</p>
             </div>
           )}
 
           <div className="overflow-hidden">
-            <table className="w-full border-separate border-spacing-0">
+            <table className={TABLE_FULL}>
               <thead>
                 <tr>
                   {config.tableColumns.map((col) => (
-                    <th key={col.key} className="border-b border-[#f0f0f0] px-[16px] py-[10px] text-left text-[12px] font-medium text-[#999]">
+                    <th key={col.key} className={TABLE_GRID_HEADER}>
                       {col.label}
                     </th>
                   ))}
-                  <th className="border-b border-[#f0f0f0] w-[40px]" />
+                  <th className={`${TABLE_GRID_HEADER_LAST} w-[40px]`} />
                 </tr>
               </thead>
               <tbody>
@@ -689,28 +689,26 @@ export default function ImportHistorySettingsPage() {
                   return (
                     <tr
                       key={row.rowIndex}
-                      className={cn("transition-colors", hasIssues ? "bg-red-50" : "hover:bg-[#f5f5f5]")}
+                      className={cn("transition-colors", hasIssues ? "bg-red-50" : "hover:bg-folk-hover")}
                     >
                       {config.tableColumns.map((col, colIdx) => {
                         if (colIdx === 0) {
                           return (
-                            <td key={col.key} className="border-b border-[#f0f0f0] px-[16px] py-[12px]">
+                            <td key={col.key} className={TABLE_GRID_CELL}>
                               <div className="flex items-center gap-[10px]">
                                 {hasIssues ? (
                                   <button
                                     onClick={() => setIssuePopupRow(row)}
-                                    className="flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-[6px] transition-colors hover:bg-red-100"
+                                    className="flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-none transition-colors hover:bg-red-100"
                                     tabIndex={0}
                                     aria-label="View issues"
                                   >
                                     <AlertTriangle className="h-[14px] w-[14px] text-red-400" strokeWidth={1.75} />
                                   </button>
                                 ) : (
-                                  <div className="flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-[8px] bg-[#DBEAFE] text-[10px] font-semibold text-[#2563EB]">
-                                    {config.initialsColumn(row.data)}
-                                  </div>
+                                  <EntityIcon text={config.initialsColumn(row.data)} size="md" />
                                 )}
-                                <span className="text-[13px] font-medium text-[#262626]">
+                                <span className="text-[13px] font-medium text-folk-text">
                                   {config.nameColumn(row.data)}
                                 </span>
                               </div>
@@ -721,9 +719,9 @@ export default function ImportHistorySettingsPage() {
                         if (config.chipColumn && col.key === config.chipColumn.key) {
                           const val = row.data[col.key]
                           return (
-                            <td key={col.key} className="border-b border-[#f0f0f0] px-[16px] py-[12px]">
+                            <td key={col.key} className={TABLE_GRID_CELL}>
                               {val ? (
-                                <span className="inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] bg-[#e8edf2] px-[10px] text-[12px] font-medium text-[#334155]">
+                                <span className={getFundingTypeChipClasses(val, "sm")}>
                                   {config.chipColumn.formatFn ? config.chipColumn.formatFn(val) : val}
                                 </span>
                               ) : (
@@ -734,15 +732,15 @@ export default function ImportHistorySettingsPage() {
                         }
 
                         return (
-                          <td key={col.key} className="border-b border-[#f0f0f0] px-[16px] py-[12px] text-[13px] text-[#888]">
+                          <td key={col.key} className={`${TABLE_GRID_CELL} text-[13px] text-folk-secondary`}>
                             {row.data[col.key] || "—"}
                           </td>
                         )
                       })}
-                      <td className="border-b border-[#f0f0f0] px-[16px] py-[12px]">
+                      <td className={TABLE_GRID_CELL_LAST}>
                         <button
                           onClick={() => handleRemoveRow(row.rowIndex)}
-                          className="flex h-[24px] w-[24px] items-center justify-center rounded-[6px] text-[#d4d4d4] transition-colors hover:bg-red-50 hover:text-red-400"
+                          className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-[var(--folk-border)] transition-colors hover:bg-red-50 hover:text-red-400"
                           tabIndex={0}
                           aria-label={`Remove ${config.nameColumn(row.data)}`}
                         >
@@ -759,17 +757,17 @@ export default function ImportHistorySettingsPage() {
           {issuePopupRow && (
             <>
               <div className="fixed inset-0 z-40 bg-black/20" onClick={() => setIssuePopupRow(null)} />
-              <div className="fixed left-1/2 top-1/2 z-50 w-[400px] max-w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 rounded-[8px] border border-[#f0f0f0] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
-                <div className="flex items-center justify-between border-b border-[#f0f0f0] px-[20px] py-[14px]">
+              <div className="fixed left-1/2 top-1/2 z-50 w-[400px] max-w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 rounded-none border border-folk-border-subtle bg-folk-surface shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+                <div className="flex items-center justify-between border-b border-folk-border-subtle px-[20px] py-[14px]">
                   <div className="flex items-center gap-[8px]">
                     <AlertTriangle className="h-[14px] w-[14px] text-red-400" strokeWidth={1.75} />
-                    <h3 className="text-[14px] font-semibold text-[#262626]">
+                    <h3 className="text-[14px] font-semibold text-folk-text">
                       {config.nameColumn(issuePopupRow.data)}
                     </h3>
                   </div>
                   <button
                     onClick={() => setIssuePopupRow(null)}
-                    className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-[#999] transition-colors hover:bg-[#f5f5f5]"
+                    className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover"
                     tabIndex={0}
                     aria-label="Close"
                   >
@@ -794,10 +792,10 @@ export default function ImportHistorySettingsPage() {
                     </div>
                   )}
                 </div>
-                <div className="flex items-center justify-end gap-[8px] border-t border-[#f0f0f0] px-[20px] py-[12px]">
+                <div className="flex items-center justify-end gap-[8px] border-t border-folk-border-subtle px-[20px] py-[12px]">
                   <button
                     onClick={() => setIssuePopupRow(null)}
-                    className="rounded-[4px] border border-[#dcdcdc] bg-transparent px-[12px] py-[5px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                    className="rounded-none border border-folk-border bg-transparent px-[12px] py-[5px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                     tabIndex={0}
                   >
                     Keep
@@ -807,7 +805,7 @@ export default function ImportHistorySettingsPage() {
                       handleRemoveRow(issuePopupRow.rowIndex)
                       setIssuePopupRow(null)
                     }}
-                    className="rounded-[4px] bg-red-500 px-[12px] py-[5px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
+                    className="rounded-none bg-red-500 px-[12px] py-[5px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
                     tabIndex={0}
                   >
                     Remove from import
@@ -822,9 +820,9 @@ export default function ImportHistorySettingsPage() {
       {/* Step 3: Importing */}
       {step === "importing" && (
         <div className="flex flex-col items-center justify-center px-[20px] py-[48px]">
-          <Loader2 className="h-[28px] w-[28px] animate-spin text-[#888]" strokeWidth={1.75} />
-          <p className="mt-[16px] text-[14px] font-medium text-[#262626]">Importing {config.label}...</p>
-          <p className="mt-[4px] text-[13px] text-[#888]">This may take a moment</p>
+          <Loader2 className="h-[28px] w-[28px] animate-spin text-folk-secondary" strokeWidth={1.75} />
+          <p className="mt-[16px] text-[14px] font-medium text-folk-text">Importing {config.label}...</p>
+          <p className="mt-[4px] text-[13px] text-folk-secondary">This may take a moment</p>
         </div>
       )}
 
@@ -834,21 +832,21 @@ export default function ImportHistorySettingsPage() {
           <div className="flex h-[48px] w-[48px] items-center justify-center rounded-full bg-green-100">
             <Check className="h-[24px] w-[24px] text-[#2563EB]" strokeWidth={2} />
           </div>
-          <p className="mt-[16px] text-[16px] font-semibold text-[#262626]">Import complete</p>
-          <p className="mt-[4px] text-[13px] text-[#888]">
+          <p className="mt-[16px] text-[16px] font-semibold text-folk-text">Import complete</p>
+          <p className="mt-[4px] text-[13px] text-folk-secondary">
             Successfully imported {importedCount} {importedCount === 1 ? config.labelSingular : config.label}
           </p>
           <div className="mt-[24px] flex items-center gap-[12px]">
             <button
               onClick={handleReset}
-              className="rounded-[8px] bg-[#f0f0f0] px-[16px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#e8e8e8]"
+              className="rounded-none bg-[var(--folk-border-subtle)] px-[16px] py-[8px] text-[13px] font-medium text-folk-text transition-colors hover:bg-[#e8e8e8]"
               tabIndex={0}
             >
               Import more
             </button>
             <a
               href={config.viewUrl}
-              className="primary-btn flex items-center gap-[6px] rounded-[8px] px-[16px] py-[8px] text-[13px] font-semibold transition-colors"
+              className="outline-btn flex items-center gap-[6px] px-[16px] py-[8px] text-[13px] font-semibold transition-colors"
               tabIndex={0}
             >
               View {config.label}

@@ -7,7 +7,6 @@ import {
   X,
   CalendarDays,
   Building2,
-  Trash2,
   Clock,
   Tag,
   User,
@@ -28,9 +27,11 @@ import {
   Target,
   AlertTriangle,
 } from "lucide-react"
+import { EntityIcon } from "@/components/entity-icon"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
-import { DatePicker } from "@/components/date-picker"
-import { serviceChargeTypes } from "@/lib/ndis-charges"
+import { FixedDatePickerDropdown } from "@/components/fixed-date-picker-dropdown"
+import { DeleteActionsMenu } from "@/components/delete-actions-menu"
+import { serviceChargeTypes, type ChargeUnit } from "@/lib/ndis-charges"
 import { formatTime, parseTimeInput } from "./task-helpers"
 import type { Task, Attachment, Client } from "@/lib/types"
 
@@ -42,7 +43,7 @@ interface ChargeType {
 interface EnabledCharge {
   itemNumber: string
   shortName: string
-  unit?: "hour" | "each" | "km"
+  unit?: ChargeUnit
   price?: number
 }
 
@@ -100,6 +101,7 @@ export function TaskDetailModal({
 
   const detailClientRef = useRef<HTMLButtonElement>(null)
   const detailClientSearchRef = useRef<HTMLInputElement>(null)
+  const detailDateRef = useRef<HTMLButtonElement>(null)
   const detailChargeRef = useRef<HTMLButtonElement>(null)
   const detailSecondaryChargeRef = useRef<HTMLButtonElement>(null)
   const detailGoalRef = useRef<HTMLButtonElement>(null)
@@ -238,7 +240,7 @@ export function TaskDetailModal({
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-[16px]">
         <div className="absolute inset-0 bg-black/20" onClick={handleCloseDetail} />
-        <div className="relative z-10 flex h-[680px] max-h-[calc(100vh-32px)] w-[960px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[20px] border border-[#e7e7e7] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+        <div className="relative z-10 flex h-[680px] max-h-[calc(100vh-32px)] w-[960px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[20px] border border-[#e7e7e7] bg-folk-surface shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
           <input
             ref={detailFileInputRef}
             type="file"
@@ -249,18 +251,18 @@ export function TaskDetailModal({
 
           <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_320px]">
             <div className="flex min-h-0 flex-col px-[28px] py-[22px]">
-              <div className="flex items-center gap-[6px] text-[11px] font-medium uppercase tracking-[0.03em] text-[#a3a3a3]">
+              <div className="flex items-center gap-[6px] text-[11px] font-medium uppercase tracking-[0.03em] text-folk-placeholder">
                 <SquareCheck className="h-[12px] w-[12px]" strokeWidth={1.5} />
                 <span>Task</span>
               </div>
 
-              <div className="mt-[14px] rounded-[10px] bg-[#f7f7f7] px-[12px] py-[10px]">
+              <div className="mt-[14px] rounded-none bg-folk-page px-[12px] py-[10px]">
                 <input
                   type="text"
                   placeholder="Enter a title for this task..."
                   value={selectedTask.title}
                   onChange={(e) => onUpdateTask("title", e.target.value)}
-                  className="w-full bg-transparent text-[18px] font-semibold text-[#262626] placeholder-[#8f8f8f] outline-none"
+                  className="w-full bg-transparent text-[18px] font-semibold text-folk-text placeholder-[#8f8f8f] outline-none"
                 />
               </div>
 
@@ -274,7 +276,7 @@ export function TaskDetailModal({
                 }}
                 onContextMenu={handleDescContextMenu}
                 dangerouslySetInnerHTML={!descriptionRef.current ? { __html: sanitizeHtml(selectedTask.description) } : undefined}
-                className="mt-[14px] min-h-[80px] flex-1 overflow-y-auto text-[14px] leading-[1.6] text-[#4b4b4b] outline-none [&:empty]:before:pointer-events-none [&:empty]:before:text-[#b5b5b5] [&:empty]:before:content-[attr(data-placeholder)] [&_ul]:list-disc [&_ul]:pl-[20px] [&_ol]:list-decimal [&_ol]:pl-[20px] [&_li]:my-[2px] [&_h1]:text-[22px] [&_h1]:font-bold [&_h1]:leading-[1.3] [&_h1]:my-[4px] [&_h2]:text-[18px] [&_h2]:font-semibold [&_h2]:leading-[1.4] [&_h2]:my-[3px] [&_h3]:text-[15px] [&_h3]:font-medium [&_h3]:leading-[1.5] [&_h3]:my-[2px] [&_blockquote]:my-[4px] [&_blockquote]:border-l-2 [&_blockquote]:border-[#e0e0e0] [&_blockquote]:pl-[12px] [&_blockquote]:text-[#666] [&_pre]:my-[4px] [&_pre]:rounded-[6px] [&_pre]:bg-[#f5f5f5] [&_pre]:p-[10px] [&_pre]:font-mono [&_pre]:text-[13px]"
+                className="mt-[14px] min-h-[80px] flex-1 overflow-y-auto text-[14px] leading-[1.6] text-[#4b4b4b] outline-none [&:empty]:before:pointer-events-none [&:empty]:before:text-[#b5b5b5] [&:empty]:before:content-[attr(data-placeholder)] [&_ul]:list-disc [&_ul]:pl-[20px] [&_ol]:list-decimal [&_ol]:pl-[20px] [&_li]:my-[2px] [&_h1]:text-[22px] [&_h1]:font-bold [&_h1]:leading-[1.3] [&_h1]:my-[4px] [&_h2]:text-[18px] [&_h2]:font-semibold [&_h2]:leading-[1.4] [&_h2]:my-[3px] [&_h3]:text-[15px] [&_h3]:font-medium [&_h3]:leading-[1.5] [&_h3]:my-[2px] [&_blockquote]:my-[4px] [&_blockquote]:border-l-2 [&_blockquote]:border-folk-border [&_blockquote]:pl-[12px] [&_blockquote]:text-folk-secondary [&_pre]:my-[4px] [&_pre]:rounded-none [&_pre]:bg-folk-hover [&_pre]:p-[10px] [&_pre]:font-mono [&_pre]:text-[13px]"
               />
 
               <div className="mt-[16px] flex items-center gap-[8px] border-t border-[#f1f1f1] pt-[14px]">
@@ -282,7 +284,7 @@ export function TaskDetailModal({
                   <button
                     type="button"
                     onClick={() => { refreshDescFormats(); setIsFormatMenuOpen((o) => !o) }}
-                    className={`flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border transition-colors ${isFormatMenuOpen ? "border-[#d0d0d0] bg-[#f0f0f0] text-[#555]" : "border-[#e8e8e8] text-[#888] hover:border-[#d0d0d0] hover:bg-[#f5f5f5] hover:text-[#555]"}`}
+                    className={`flex h-[30px] w-[30px] items-center justify-center rounded-none border transition-colors ${isFormatMenuOpen ? "border-[#d0d0d0] bg-[var(--folk-border-subtle)] text-[#555]" : "border-[#e8e8e8] text-folk-secondary hover:border-[#d0d0d0] hover:bg-folk-hover hover:text-[#555]"}`}
                     tabIndex={0}
                     aria-label="Formatting options"
                   >
@@ -292,37 +294,37 @@ export function TaskDetailModal({
                   {isFormatMenuOpen && (
                     <>
                       <div className="fixed inset-0 z-[40]" onClick={() => setIsFormatMenuOpen(false)} />
-                      <div className="absolute bottom-full left-0 z-50 mb-[8px] flex items-center gap-[2px] rounded-[8px] border border-[#e8e8e8] bg-white px-[6px] py-[6px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
-                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("bold") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Bold">
+                      <div className="absolute bottom-full left-0 z-50 mb-[8px] flex items-center gap-[2px] rounded-none border border-[#e8e8e8] bg-folk-surface px-[6px] py-[6px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
+                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("bold") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-none text-[#555] transition-colors hover:bg-[var(--folk-border-subtle)]" tabIndex={0} aria-label="Bold">
                           <Bold className="h-[14px] w-[14px]" strokeWidth={2} />
                         </button>
-                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("italic") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Italic">
+                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("italic") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-none text-[#555] transition-colors hover:bg-[var(--folk-border-subtle)]" tabIndex={0} aria-label="Italic">
                           <Italic className="h-[14px] w-[14px]" strokeWidth={2} />
                         </button>
-                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("underline") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Underline">
+                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("underline") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-none text-[#555] transition-colors hover:bg-[var(--folk-border-subtle)]" tabIndex={0} aria-label="Underline">
                           <Underline className="h-[14px] w-[14px]" strokeWidth={2} />
                         </button>
-                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("strikeThrough") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Strikethrough">
+                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("strikeThrough") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-none text-[#555] transition-colors hover:bg-[var(--folk-border-subtle)]" tabIndex={0} aria-label="Strikethrough">
                           <Strikethrough className="h-[14px] w-[14px]" strokeWidth={2} />
                         </button>
                         <div className="mx-[4px] h-[18px] w-[1px] bg-[#e8e8e8]" />
-                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("formatBlock", "h1") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Heading 1">
+                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("formatBlock", "h1") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-none text-[#555] transition-colors hover:bg-[var(--folk-border-subtle)]" tabIndex={0} aria-label="Heading 1">
                           <Heading1 className="h-[14px] w-[14px]" strokeWidth={2} />
                         </button>
-                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("formatBlock", "h2") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Heading 2">
+                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("formatBlock", "h2") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-none text-[#555] transition-colors hover:bg-[var(--folk-border-subtle)]" tabIndex={0} aria-label="Heading 2">
                           <Heading2 className="h-[14px] w-[14px]" strokeWidth={2} />
                         </button>
                         <div className="mx-[4px] h-[18px] w-[1px] bg-[#e8e8e8]" />
-                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("insertUnorderedList") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Bullet list">
+                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("insertUnorderedList") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-none text-[#555] transition-colors hover:bg-[var(--folk-border-subtle)]" tabIndex={0} aria-label="Bullet list">
                           <List className="h-[14px] w-[14px]" strokeWidth={2} />
                         </button>
-                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("insertOrderedList") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Numbered list">
+                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("insertOrderedList") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-none text-[#555] transition-colors hover:bg-[var(--folk-border-subtle)]" tabIndex={0} aria-label="Numbered list">
                           <ListOrdered className="h-[14px] w-[14px]" strokeWidth={2} />
                         </button>
-                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("formatBlock", "blockquote") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Quote">
+                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("formatBlock", "blockquote") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-none text-[#555] transition-colors hover:bg-[var(--folk-border-subtle)]" tabIndex={0} aria-label="Quote">
                           <Quote className="h-[14px] w-[14px]" strokeWidth={2} />
                         </button>
-                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("formatBlock", "pre") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-[4px] text-[#555] transition-colors hover:bg-[#f0f0f0]" tabIndex={0} aria-label="Code">
+                        <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("formatBlock", "pre") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-none text-[#555] transition-colors hover:bg-[var(--folk-border-subtle)]" tabIndex={0} aria-label="Code">
                           <Code className="h-[14px] w-[14px]" strokeWidth={2} />
                         </button>
                       </div>
@@ -333,7 +335,7 @@ export function TaskDetailModal({
                 <button
                   type="button"
                   onClick={() => detailFileInputRef.current?.click()}
-                  className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-[#e8e8e8] text-[#888] transition-colors hover:border-[#d0d0d0] hover:bg-[#f5f5f5] hover:text-[#555]"
+                  className="flex h-[30px] w-[30px] items-center justify-center rounded-none border border-[#e8e8e8] text-folk-secondary transition-colors hover:border-[#d0d0d0] hover:bg-folk-hover hover:text-[#555]"
                   tabIndex={0}
                   aria-label="Upload attachment"
                 >
@@ -344,7 +346,7 @@ export function TaskDetailModal({
                   <button
                     type="button"
                     onClick={onMoveBackToTasks}
-                    className="flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[10px] py-[5px] text-[12px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                    className="flex items-center gap-[5px] rounded-none border border-folk-border bg-folk-surface px-[10px] py-[5px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                     tabIndex={0}
                   >
                     Move back to tasks
@@ -354,7 +356,7 @@ export function TaskDetailModal({
                 <button
                   type="button"
                   onClick={handleCloseDetail}
-                  className="ml-auto flex items-center gap-[5px] rounded border border-[#dcdcdc] bg-white px-[10px] py-[5px] text-[12px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                  className="ml-auto flex items-center gap-[5px] rounded-none border border-folk-border bg-folk-surface px-[10px] py-[5px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                   tabIndex={0}
                 >
                   Done
@@ -362,21 +364,20 @@ export function TaskDetailModal({
               </div>
             </div>
 
-            <div className="flex min-h-0 flex-col border-l border-[#ececec] px-[20px] py-[18px]">
+            <div className="flex min-h-0 flex-col border-l border-folk-border px-[20px] py-[18px]">
               <div className="flex justify-end gap-[4px]">
                 {onDeleteTask && (
-                  <button
-                    onClick={() => { onDeleteTask(selectedTask.id) }}
-                    className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#bbb] transition-colors hover:bg-[#f5f5f5] hover:text-red-500"
-                    tabIndex={0}
-                    aria-label="Delete task"
-                  >
-                    <Trash2 className="h-[14px] w-[14px]" strokeWidth={1.5} />
-                  </button>
+                  <DeleteActionsMenu
+                    onDelete={() => onDeleteTask(selectedTask.id)}
+                    itemName={selectedTask.title || "Untitled task"}
+                    confirmTitle="Delete task"
+                    confirmDescription="This action cannot be undone. The task and its data will be permanently removed."
+                    ariaLabel="Task actions"
+                  />
                 )}
                 <button
                   onClick={handleCloseDetail}
-                  className="flex h-[28px] w-[28px] items-center justify-center rounded text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]"
+                  className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
                   tabIndex={0}
                   aria-label="Close"
                 >
@@ -390,7 +391,7 @@ export function TaskDetailModal({
                     <span className="pt-[6px] text-[13px] font-medium text-[#8d8d8d]">Issues</span>
                     <div className="min-w-0 space-y-[6px]">
                       {invoiceIssues.map((issue) => (
-                        <div key={issue} className="flex items-start gap-[8px] rounded-[10px] bg-[#fff6f6] px-[8px] py-[6px] text-[12px] leading-[1.45] text-[#a14e4e]">
+                        <div key={issue} className="flex items-start gap-[8px] rounded-none bg-[#fff6f6] px-[8px] py-[6px] text-[12px] leading-[1.45] text-[#a14e4e]">
                           <AlertTriangle className="mt-[1px] h-[12px] w-[12px] shrink-0" strokeWidth={1.75} />
                           <span>{issue}</span>
                         </div>
@@ -411,15 +412,13 @@ export function TaskDetailModal({
                       setDetailClientSearch("")
                       if (next) setTimeout(() => detailClientSearchRef.current?.focus(), 50)
                     }}
-                    className="flex min-w-0 items-center gap-[8px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
+                    className="flex min-w-0 items-center gap-[8px] rounded-none px-[8px] py-[6px] text-left transition-colors hover:bg-folk-page"
                     tabIndex={0}
                   >
                     {selectedTask.client ? (
                       <>
-                        <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md bg-blue-100 text-[9px] font-bold text-blue-600">
-                          {selectedTask.client.split(" ").filter(Boolean).map((part) => part[0]).join("").toUpperCase().slice(0, 2)}
-                        </span>
-                        <span className="truncate text-[13px] font-medium text-[#262626]">{selectedTask.client}</span>
+                        <EntityIcon text={selectedTask.client.split(" ").filter(Boolean).map((part) => part[0]).join("").toUpperCase().slice(0, 2)} size="sm" />
+                        <span className="truncate text-[13px] font-medium text-folk-text">{selectedTask.client}</span>
                       </>
                     ) : (
                       <>
@@ -437,15 +436,13 @@ export function TaskDetailModal({
                       <button
                         type="button"
                         onClick={() => setActiveDropdown(activeDropdown === "detail-assignee" ? null : "detail-assignee")}
-                        className="flex min-w-0 items-center gap-[8px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
+                        className="flex min-w-0 items-center gap-[8px] rounded-none px-[8px] py-[6px] text-left transition-colors hover:bg-folk-page"
                         tabIndex={0}
                       >
                         {selectedTask.assignee ? (
                           <>
-                            <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md bg-[#f0f0f0] text-[9px] font-bold text-[#555]">
-                              {assigneeInitials}
-                            </span>
-                            <span className="truncate text-[13px] font-medium text-[#262626]">{selectedTask.assignee}</span>
+                            <EntityIcon text={assigneeInitials} size="xsm" />
+                            <span className="truncate text-[13px] font-medium text-folk-text">{selectedTask.assignee}</span>
                           </>
                         ) : (
                           <>
@@ -457,10 +454,10 @@ export function TaskDetailModal({
                       {activeDropdown === "detail-assignee" && (
                         <>
                           <div className="fixed inset-0 z-[59]" onClick={() => setActiveDropdown(null)} />
-                          <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[200px] min-w-[180px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                          <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[200px] min-w-[180px] overflow-y-auto rounded-none border border-folk-border bg-folk-surface shadow-folk">
                             <div
                               onClick={() => { onUpdateTask("assignee", ""); setActiveDropdown(null) }}
-                              className="flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5]"
+                              className="flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover"
                               role="option"
                               aria-selected={!selectedTask.assignee}
                             >
@@ -472,13 +469,11 @@ export function TaskDetailModal({
                                 <div
                                   key={name}
                                   onClick={() => { onUpdateTask("assignee", name); setActiveDropdown(null) }}
-                                  className={`flex w-full cursor-pointer items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${selectedTask.assignee === name ? "bg-[#f5f5f5]" : ""}`}
+                                  className={`flex w-full cursor-pointer items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover ${selectedTask.assignee === name ? "bg-folk-hover" : ""}`}
                                   role="option"
                                   aria-selected={selectedTask.assignee === name}
                                 >
-                                  <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[6px] bg-[#DBEAFE] text-[9px] font-semibold text-[#2563EB]">
-                                    {initials}
-                                  </div>
+                                  <EntityIcon text={initials} size="sm" />
                                   {name}
                                 </div>
                               )
@@ -491,10 +486,8 @@ export function TaskDetailModal({
                     <div className="flex min-w-0 items-center gap-[8px] px-[8px] py-[6px]">
                       {selectedTask.assignee ? (
                         <>
-                          <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md bg-[#f0f0f0] text-[9px] font-bold text-[#555]">
-                            {assigneeInitials}
-                          </span>
-                          <span className="truncate text-[13px] font-medium text-[#262626]">{selectedTask.assignee}</span>
+                          <EntityIcon text={assigneeInitials} size="xsm" />
+                          <span className="truncate text-[13px] font-medium text-folk-text">{selectedTask.assignee}</span>
                         </>
                       ) : (
                         <>
@@ -508,33 +501,21 @@ export function TaskDetailModal({
 
                 <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
                   <span className="text-[13px] font-medium text-[#8d8d8d]">Due date</span>
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setActiveDropdown(activeDropdown === "detail-date" ? null : "detail-date")}
-                      className="flex min-w-0 items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
-                      tabIndex={0}
-                    >
-                      <CalendarDays className={`h-[13px] w-[13px] shrink-0 ${selectedTask.dueDate ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
-                      <span className={`truncate text-[13px] font-medium ${selectedTask.dueDate ? "text-[#262626]" : "text-[#ccc]"}`}>
-                        {selectedTask.dueDate
-                          ? new Date(selectedTask.dueDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short" })
-                          : "Empty"}
-                      </span>
-                    </button>
-                    {activeDropdown === "detail-date" && (
-                      <>
-                        <div className="fixed inset-0 z-[59]" onClick={() => setActiveDropdown(null)} />
-                        <div className="absolute left-0 top-full z-[60] mt-[6px]">
-                          <DatePicker
-                            value={selectedTask.dueDate || ""}
-                            onChange={(val) => onUpdateTask("dueDate", val)}
-                            onClose={() => setActiveDropdown(null)}
-                          />
-                        </div>
-                      </>
-                    )}
-                  </div>
+                  <button
+                    ref={detailDateRef}
+                    type="button"
+                    onClick={() => setActiveDropdown(activeDropdown === "detail-date" ? null : "detail-date")}
+                    className={`flex min-w-0 items-center gap-[7px] rounded-none px-[8px] py-[6px] text-left transition-colors hover:bg-folk-page ${activeDropdown === "detail-date" ? "ring-1 ring-[#2563EB]" : ""}`}
+                    tabIndex={0}
+                    aria-expanded={activeDropdown === "detail-date"}
+                  >
+                    <CalendarDays className={`h-[13px] w-[13px] shrink-0 ${selectedTask.dueDate ? "text-folk-secondary" : "text-[#ccc]"}`} strokeWidth={1.5} />
+                    <span className={`truncate text-[13px] font-medium ${selectedTask.dueDate ? "text-folk-text" : "text-[#ccc]"}`}>
+                      {selectedTask.dueDate
+                        ? new Date(selectedTask.dueDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short" })
+                        : "Empty"}
+                    </span>
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
@@ -544,18 +525,18 @@ export function TaskDetailModal({
                       type="button"
                       onClick={() => onUpdateTask("isCheckUp", !selectedTask.isCheckUp)}
                       className="relative h-[22px] w-[40px] rounded-full transition-colors"
-                      style={{ backgroundColor: selectedTask.isCheckUp ? "#2563EB" : "#d4d4d4" }}
+                      style={{ backgroundColor: selectedTask.isCheckUp ? "#2563EB" : "var(--folk-border)" }}
                       tabIndex={0}
                       aria-label={selectedTask.isCheckUp ? "Remove check-up" : "Mark as check-up"}
                       aria-checked={!!selectedTask.isCheckUp}
                       role="switch"
                     >
                       <span
-                        className={`absolute top-[2px] h-[18px] w-[18px] rounded-full bg-white shadow-sm transition-transform ${selectedTask.isCheckUp ? "left-[20px]" : "left-[2px]"}`}
+                        className={`absolute top-[2px] h-[18px] w-[18px] rounded-full bg-folk-surface shadow-sm transition-transform ${selectedTask.isCheckUp ? "left-[20px]" : "left-[2px]"}`}
                       />
                     </button>
                     {selectedTask.isCheckUp && (
-                      <span className="text-[12px] font-medium text-[#888]">Auto-recurs</span>
+                      <span className="text-[12px] font-medium text-folk-secondary">Auto-recurs</span>
                     )}
                   </div>
                 </div>
@@ -566,11 +547,11 @@ export function TaskDetailModal({
                     ref={detailChargeRef}
                     type="button"
                     onClick={() => setActiveDropdown(activeDropdown === "detail-charge" ? null : "detail-charge")}
-                    className="flex min-w-0 items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
+                    className="flex min-w-0 items-center gap-[7px] rounded-none px-[8px] py-[6px] text-left transition-colors hover:bg-folk-page"
                     tabIndex={0}
                   >
                     {selectedTask.chargeType ? (
-                      <span className="truncate rounded-[4px] bg-[#f0f0f0] px-[8px] py-[3px] text-[12px] font-semibold text-[#555]">
+                      <span className="truncate rounded-none bg-[var(--folk-border-subtle)] px-[8px] py-[3px] text-[12px] font-semibold text-[#555]">
                         {chargeLabel(selectedTask.chargeType)}
                       </span>
                     ) : (
@@ -588,11 +569,11 @@ export function TaskDetailModal({
                     ref={detailSecondaryChargeRef}
                     type="button"
                     onClick={() => setActiveDropdown(activeDropdown === "detail-secondary-charge" ? null : "detail-secondary-charge")}
-                    className="flex min-w-0 items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
+                    className="flex min-w-0 items-center gap-[7px] rounded-none px-[8px] py-[6px] text-left transition-colors hover:bg-folk-page"
                     tabIndex={0}
                   >
                     {selectedTask.secondaryChargeType ? (
-                      <span className="truncate rounded-[4px] bg-[#f0f0f0] px-[8px] py-[3px] text-[12px] font-semibold text-[#555]">
+                      <span className="truncate rounded-none bg-[var(--folk-border-subtle)] px-[8px] py-[3px] text-[12px] font-semibold text-[#555]">
                         {secondaryChargeLabel(selectedTask.secondaryChargeType)}
                       </span>
                     ) : (
@@ -609,10 +590,10 @@ export function TaskDetailModal({
                     <span className="text-[13px] font-medium text-[#8d8d8d]">
                       {secondaryUnit === "km" ? "Distance" : secondaryUnit === "each" ? "Quantity" : "Sec. time"}
                     </span>
-                    <div className="flex items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] transition-colors hover:bg-[#f7f7f7]">
+                    <div className="flex items-center gap-[7px] rounded-none px-[8px] py-[6px] transition-colors hover:bg-folk-page">
                       {isSecondaryQuantity ? (
                         <>
-                          <Tag className={`h-[13px] w-[13px] shrink-0 ${selectedTask.secondaryTimeSpent > 0 ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
+                          <Tag className={`h-[13px] w-[13px] shrink-0 ${selectedTask.secondaryTimeSpent > 0 ? "text-folk-secondary" : "text-[#ccc]"}`} strokeWidth={1.5} />
                           <input
                             key={`sec-${selectedTask.secondaryTimeSpent}`}
                             type="number"
@@ -627,13 +608,13 @@ export function TaskDetailModal({
                                 e.currentTarget.blur()
                               }
                             }}
-                            className="w-full bg-transparent text-[13px] font-medium text-[#262626] placeholder-[#ccc] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            className="w-full bg-transparent text-[13px] font-medium text-folk-text placeholder-[#ccc] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           />
                           <span className="shrink-0 text-[12px] font-medium text-[#aaa]">{secondaryUnit === "km" ? "km" : "ea"}</span>
                         </>
                       ) : (
                         <>
-                          <Clock className={`h-[13px] w-[13px] shrink-0 ${selectedTask.secondaryTimeSpent > 0 ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
+                          <Clock className={`h-[13px] w-[13px] shrink-0 ${selectedTask.secondaryTimeSpent > 0 ? "text-folk-secondary" : "text-[#ccc]"}`} strokeWidth={1.5} />
                           <input
                             key={`sec-${selectedTask.secondaryTimeSpent}`}
                             type="text"
@@ -646,7 +627,7 @@ export function TaskDetailModal({
                                 e.currentTarget.blur()
                               }
                             }}
-                            className="w-full bg-transparent text-[13px] font-medium text-[#262626] placeholder-[#ccc] outline-none"
+                            className="w-full bg-transparent text-[13px] font-medium text-folk-text placeholder-[#ccc] outline-none"
                           />
                         </>
                       )}
@@ -666,13 +647,13 @@ export function TaskDetailModal({
                       ref={detailGoalRef}
                       type="button"
                       onClick={() => setActiveDropdown(activeDropdown === "detail-goal" ? null : "detail-goal")}
-                      className="flex min-w-0 items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] text-left transition-colors hover:bg-[#f7f7f7]"
+                      className="flex min-w-0 items-center gap-[7px] rounded-none px-[8px] py-[6px] text-left transition-colors hover:bg-folk-page"
                       tabIndex={0}
                     >
                       {attachedGoal ? (
                         <>
                           <Target className="h-[13px] w-[13px] shrink-0 text-[#2563EB]" strokeWidth={1.5} />
-                          <span className="truncate text-[13px] font-medium text-[#262626]">{attachedGoal.title || "Untitled goal"}</span>
+                          <span className="truncate text-[13px] font-medium text-folk-text">{attachedGoal.title || "Untitled goal"}</span>
                         </>
                       ) : (
                         <>
@@ -686,8 +667,8 @@ export function TaskDetailModal({
 
                 <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
                   <span className="text-[13px] font-medium text-[#8d8d8d]">Time</span>
-                  <div className="flex items-center gap-[7px] rounded-[10px] px-[8px] py-[6px] transition-colors hover:bg-[#f7f7f7]">
-                    <Clock className={`h-[13px] w-[13px] shrink-0 ${selectedTask.timeSpent > 0 ? "text-[#888]" : "text-[#ccc]"}`} strokeWidth={1.5} />
+                  <div className="flex items-center gap-[7px] rounded-none px-[8px] py-[6px] transition-colors hover:bg-folk-page">
+                    <Clock className={`h-[13px] w-[13px] shrink-0 ${selectedTask.timeSpent > 0 ? "text-folk-secondary" : "text-[#ccc]"}`} strokeWidth={1.5} />
                     <input
                       key={selectedTask.timeSpent}
                       type="text"
@@ -700,21 +681,21 @@ export function TaskDetailModal({
                           e.currentTarget.blur()
                         }
                       }}
-                      className="w-full bg-transparent text-[13px] font-medium text-[#262626] placeholder-[#ccc] outline-none"
+                      className="w-full bg-transparent text-[13px] font-medium text-folk-text placeholder-[#ccc] outline-none"
                     />
                   </div>
                 </div>
 
                 {invoiceInfo && invoiceInfo.length > 0 && (
                   <div className="mt-[4px] border-t border-[#efefef] pt-[14px]">
-                    <div className="mb-[10px] px-[8px] text-[11px] font-semibold uppercase tracking-[0.08em] text-[#a3a3a3]">
+                    <div className="mb-[10px] px-[8px] text-[11px] font-semibold uppercase tracking-[0.08em] text-folk-placeholder">
                       Invoice information
                     </div>
                     <div className="flex flex-col gap-[14px]">
                       {invoiceInfo.map((item) => (
                         <div key={item.label} className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
                           <span className="text-[13px] font-medium text-[#8d8d8d]">{item.label}</span>
-                          <span className={`px-[8px] py-[6px] text-[13px] font-medium ${item.value && item.value !== "Empty" ? "text-[#262626]" : "text-[#ccc]"}`}>
+                          <span className={`px-[8px] py-[6px] text-[13px] font-medium ${item.value && item.value !== "Empty" ? "text-folk-text" : "text-[#ccc]"}`}>
                             {item.value || "Empty"}
                           </span>
                         </div>
@@ -728,6 +709,14 @@ export function TaskDetailModal({
           </div>
         </div>
       </div>
+
+      <FixedDatePickerDropdown
+        isOpen={activeDropdown === "detail-date"}
+        anchorRef={detailDateRef}
+        value={selectedTask.dueDate || ""}
+        onChange={(val) => onUpdateTask("dueDate", val)}
+        onClose={() => setActiveDropdown(null)}
+      />
 
       {activeDropdown === "detail-client" && detailClientRef.current && (() => {
         const rect = detailClientRef.current.getBoundingClientRect()
@@ -753,10 +742,10 @@ export function TaskDetailModal({
           <>
           <div className="fixed inset-0 z-[59]" onClick={() => { setActiveDropdown(null); setDetailClientIdx(-1); setDetailClientSearch("") }} />
           <div
-            className="fixed z-[60] flex max-h-[260px] flex-col rounded-lg border border-[#e0e0e0] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+            className="fixed z-[60] flex max-h-[260px] flex-col rounded-none border border-folk-border bg-folk-surface shadow-folk"
             style={fixedDropdownStyle(rect, Math.min(260, (filteredNames.length + 1) * 34 + 52), 220)}
           >
-            <div className="border-b border-[#f0f0f0] p-[6px]">
+            <div className="border-b border-folk-border-subtle p-[6px]">
               <input
                 ref={detailClientSearchRef}
                 type="text"
@@ -778,13 +767,13 @@ export function TaskDetailModal({
                   else if (e.key === "Escape") { e.stopPropagation(); setActiveDropdown(null); setDetailClientIdx(-1); setDetailClientSearch("") }
                 }}
                 placeholder="Search clients…"
-                className="w-full rounded-[6px] border border-[#e0e0e0] bg-[#fafafa] px-[10px] py-[6px] text-[13px] text-[#262626] outline-none transition-colors focus:border-[#bbb]"
+                className="w-full rounded-none border border-folk-border bg-folk-page px-[10px] py-[6px] text-[13px] text-folk-text outline-none transition-colors focus:border-[#bbb]"
               />
             </div>
             <div className="overflow-y-auto">
               <div
                 onClick={() => selectClient("")}
-                className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] ${detailClientIdx === 0 ? "bg-blue-50 text-blue-600" : ""}`}
+                className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover ${detailClientIdx === 0 ? "bg-blue-50 text-blue-600" : ""}`}
                 role="option"
                 aria-selected={detailClientIdx === 0}
               >
@@ -797,19 +786,17 @@ export function TaskDetailModal({
                   <div
                     key={name}
                     onClick={() => selectClient(name)}
-                    className={`flex w-full cursor-pointer items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${isHighlighted ? "bg-blue-50" : ""}`}
+                    className={`flex w-full cursor-pointer items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover ${isHighlighted ? "bg-blue-50" : ""}`}
                     role="option"
                     aria-selected={isHighlighted}
                   >
-                    <div className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[6px] bg-[#DBEAFE] text-[9px] font-semibold text-[#2563EB]">
-                      {initials}
-                    </div>
+                    <EntityIcon text={initials} size="sm" />
                     {name}
                   </div>
                 )
               })}
               {filteredNames.length === 0 && (
-                <div className="px-[12px] py-[10px] text-[13px] text-[#bbb]">No clients found</div>
+                <div className="px-[12px] py-[10px] text-[13px] text-folk-placeholder">No clients found</div>
               )}
             </div>
           </div>
@@ -823,14 +810,14 @@ export function TaskDetailModal({
           <>
           <div className="fixed inset-0 z-[59]" onClick={() => setActiveDropdown(null)} />
           <div
-            className="fixed z-[60] max-h-[220px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+            className="fixed z-[60] max-h-[220px] overflow-y-auto rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk"
             style={fixedDropdownStyle(rect, Math.min(220, chargeTypes.length * 34 + 8), Math.max(rect.width, 220))}
           >
             {chargeTypes.map((ct) => (
               <div
                 key={ct.value}
                 onClick={() => { onUpdateTask("chargeType", ct.value); setActiveDropdown(null) }}
-                className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${ct.value ? "text-[#262626]" : "text-[#888]"} ${selectedTask.chargeType === ct.value ? "bg-[#f5f5f5]" : ""}`}
+                className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${ct.value ? "text-folk-text" : "text-folk-secondary"} ${selectedTask.chargeType === ct.value ? "bg-folk-hover" : ""}`}
                 role="option"
                 aria-selected={selectedTask.chargeType === ct.value}
               >
@@ -848,31 +835,31 @@ export function TaskDetailModal({
           <>
           <div className="fixed inset-0 z-[59]" onClick={() => setActiveDropdown(null)} />
           <div
-            className="fixed z-[60] max-h-[240px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+            className="fixed z-[60] max-h-[240px] overflow-y-auto rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk"
             style={fixedDropdownStyle(rect, Math.min(240, (clientGoals.length + 1) * 36 + 8), Math.max(rect.width, 240))}
           >
             <div
               onClick={() => { onLinkGoal(null); setActiveDropdown(null) }}
-              className="flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5]"
+              className="flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover"
               role="option"
               aria-selected={!attachedGoal}
             >
               None
             </div>
             {clientGoals.length === 0 ? (
-              <div className="px-[12px] py-[8px] text-[12px] text-[#bbb]">No goals for this participant yet</div>
+              <div className="px-[12px] py-[8px] text-[12px] text-folk-placeholder">No goals for this participant yet</div>
             ) : (
               clientGoals.map((goal) => (
                 <div
                   key={goal.id}
                   onClick={() => { onLinkGoal(goal.id); setActiveDropdown(null) }}
-                  className={`flex w-full cursor-pointer items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${attachedGoal?.id === goal.id ? "bg-[#f5f5f5]" : ""}`}
+                  className={`flex w-full cursor-pointer items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover ${attachedGoal?.id === goal.id ? "bg-folk-hover" : ""}`}
                   role="option"
                   aria-selected={attachedGoal?.id === goal.id}
                 >
                   <Target className="h-[13px] w-[13px] shrink-0 text-[#2563EB]" strokeWidth={1.5} />
                   <span className="min-w-0 flex-1 truncate">{goal.title || "Untitled goal"}</span>
-                  <span className="shrink-0 text-[11px] font-medium text-[#999]">{goalTypeLabel[goal.goalType]}</span>
+                  <span className="shrink-0 text-[11px] font-medium text-folk-secondary">{goalTypeLabel[goal.goalType]}</span>
                 </div>
               ))
             )}
@@ -887,24 +874,24 @@ export function TaskDetailModal({
           <>
           <div className="fixed inset-0 z-[59]" onClick={() => setActiveDropdown(null)} />
           <div
-            className="fixed z-[60] max-h-[260px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+            className="fixed z-[60] max-h-[260px] overflow-y-auto rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk"
             style={fixedDropdownStyle(rect, Math.min(260, (serviceChargeTypes.length + enabledCharges.length + 3) * 34 + 20), Math.max(rect.width, 220))}
           >
             <div
               onClick={() => { onUpdateTask("secondaryChargeType", ""); setActiveDropdown(null) }}
-              className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] ${!selectedTask.secondaryChargeType ? "bg-[#f5f5f5]" : ""}`}
+              className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover ${!selectedTask.secondaryChargeType ? "bg-folk-hover" : ""}`}
               role="option"
               aria-selected={!selectedTask.secondaryChargeType}
             >
               No charge
             </div>
-            <div className="my-[2px] border-t border-[#f0f0f0]" />
+            <div className="my-[2px] border-t border-folk-border-subtle" />
             <div className="px-[12px] py-[4px] text-[10px] font-semibold uppercase tracking-[0.05em] text-[#aaa]">Service type</div>
             {serviceChargeTypes.map((sct) => (
               <div
                 key={sct.value}
                 onClick={() => { onUpdateTask("secondaryChargeType", sct.value); setActiveDropdown(null) }}
-                className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${selectedTask.secondaryChargeType === sct.value ? "bg-[#f5f5f5]" : ""}`}
+                className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover ${selectedTask.secondaryChargeType === sct.value ? "bg-folk-hover" : ""}`}
                 role="option"
                 aria-selected={selectedTask.secondaryChargeType === sct.value}
               >
@@ -913,13 +900,13 @@ export function TaskDetailModal({
             ))}
             {enabledCharges.length > 0 && (
               <>
-                <div className="my-[2px] border-t border-[#f0f0f0]" />
+                <div className="my-[2px] border-t border-folk-border-subtle" />
                 <div className="px-[12px] py-[4px] text-[10px] font-semibold uppercase tracking-[0.05em] text-[#aaa]">NDIS line item</div>
                 {enabledCharges.map((c) => (
                   <div
                     key={c.itemNumber}
                     onClick={() => { onUpdateTask("secondaryChargeType", c.itemNumber); setActiveDropdown(null) }}
-                    className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5] ${selectedTask.secondaryChargeType === c.itemNumber ? "bg-[#f5f5f5]" : ""}`}
+                    className={`flex w-full cursor-pointer items-center px-[12px] py-[8px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover ${selectedTask.secondaryChargeType === c.itemNumber ? "bg-folk-hover" : ""}`}
                     role="option"
                     aria-selected={selectedTask.secondaryChargeType === c.itemNumber}
                   >
@@ -937,13 +924,13 @@ export function TaskDetailModal({
         <>
           <div className="fixed inset-0 z-[80]" onClick={() => { setFormatToolbar(null); setIsTextSizeOpen(false) }} onContextMenu={(e) => { e.preventDefault(); setFormatToolbar(null); setIsTextSizeOpen(false) }} />
           <div
-            className="fixed z-[80] flex items-center gap-[2px] rounded-lg border border-[#e0e0e0] bg-white px-[6px] py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.12)]"
+            className="fixed z-[80] flex items-center gap-[2px] rounded-none border border-folk-border bg-folk-surface px-[6px] py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.12)]"
             style={{ top: formatToolbar.y + 8, left: formatToolbar.x }}
           >
             <div className="relative">
               <button
                 onMouseDown={(e) => { e.preventDefault(); setIsTextSizeOpen(!isTextSizeOpen) }}
-                className={`flex h-[28px] items-center gap-[3px] rounded-[4px] px-[6px] transition-colors ${isTextSizeOpen || currentBlock === "h1" || currentBlock === "h2" || currentBlock === "h3" ? "bg-[#e8e8e8] text-[#262626]" : "text-[#666] hover:bg-[#f0f0f0] hover:text-[#262626]"}`}
+                className={`flex h-[28px] items-center gap-[3px] rounded-none px-[6px] transition-colors ${isTextSizeOpen || currentBlock === "h1" || currentBlock === "h2" || currentBlock === "h3" ? "bg-[#e8e8e8] text-folk-text" : "text-folk-secondary hover:bg-[var(--folk-border-subtle)] hover:text-folk-text"}`}
                 tabIndex={0}
                 aria-label="Text size"
                 title="Text size"
@@ -952,7 +939,7 @@ export function TaskDetailModal({
                 <ChevronDown className="h-[10px] w-[10px]" strokeWidth={2} />
               </button>
               {isTextSizeOpen && (
-                <div className="absolute left-0 top-full z-[90] mt-[4px] w-[140px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
+                <div className="absolute left-0 top-full z-[90] mt-[4px] w-[140px] rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
                   {([
                     { tag: "h1", label: "Heading", className: "text-[16px] font-bold" },
                     { tag: "h2", label: "Subheading", className: "text-[14px] font-semibold" },
@@ -962,10 +949,10 @@ export function TaskDetailModal({
                     <button
                       key={tag}
                       onMouseDown={(e) => { e.preventDefault(); handleTextSize(tag) }}
-                      className={`flex w-full items-center px-[12px] py-[6px] transition-colors hover:bg-[#f5f5f5] ${currentBlock === tag ? "bg-[#f0f0f0]" : ""}`}
+                      className={`flex w-full items-center px-[12px] py-[6px] transition-colors hover:bg-folk-hover ${currentBlock === tag ? "bg-[var(--folk-border-subtle)]" : ""}`}
                       tabIndex={0}
                     >
-                      <span className={`text-[#262626] ${className}`}>{label}</span>
+                      <span className={`text-folk-text ${className}`}>{label}</span>
                     </button>
                   ))}
                 </div>
@@ -981,7 +968,7 @@ export function TaskDetailModal({
               <button
                 key={cmd}
                 onMouseDown={(e) => { e.preventDefault(); handleDescFormat(cmd) }}
-                className={`flex h-[28px] w-[28px] items-center justify-center rounded-[4px] transition-colors ${descFormats[cmd] ? "bg-[#e8e8e8] text-[#262626]" : "text-[#666] hover:bg-[#f0f0f0] hover:text-[#262626]"}`}
+                className={`flex h-[28px] w-[28px] items-center justify-center rounded-none transition-colors ${descFormats[cmd] ? "bg-[#e8e8e8] text-folk-text" : "text-folk-secondary hover:bg-[var(--folk-border-subtle)] hover:text-folk-text"}`}
                 tabIndex={0}
                 aria-label={label}
                 title={label}
@@ -992,7 +979,7 @@ export function TaskDetailModal({
             <div className="mx-[2px] h-[16px] w-px bg-[#e8e8e8]" />
             <button
               onMouseDown={(e) => { e.preventDefault(); handleDescFormat("insertUnorderedList") }}
-              className={`flex h-[28px] w-[28px] items-center justify-center rounded-[4px] transition-colors ${descFormats.insertUnorderedList ? "bg-[#e8e8e8] text-[#262626]" : "text-[#666] hover:bg-[#f0f0f0] hover:text-[#262626]"}`}
+              className={`flex h-[28px] w-[28px] items-center justify-center rounded-none transition-colors ${descFormats.insertUnorderedList ? "bg-[#e8e8e8] text-folk-text" : "text-folk-secondary hover:bg-[var(--folk-border-subtle)] hover:text-folk-text"}`}
               tabIndex={0}
               aria-label="Bullet list"
               title="Bullet list"

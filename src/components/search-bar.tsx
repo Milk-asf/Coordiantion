@@ -23,11 +23,11 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(function S
   return (
     <div
       className={cn(
-        "flex h-[36px] items-center gap-[7px] rounded-md border border-[#e0e0e0] bg-[#fafafa] px-[11px] transition-colors focus-within:border-[#bbb]",
+        "folk-input-wrap flex h-[32px] items-center gap-[7px] rounded-folk-input border border-folk-border-strong bg-folk-surface px-[11px] transition-[border-color] duration-fast ease-in-out",
         className
       )}
     >
-      <Search className="h-[14px] w-[14px] shrink-0 text-[#bbb]" strokeWidth={1.75} />
+      <Search className="h-[14px] w-[14px] shrink-0 text-folk-placeholder" strokeWidth={1.75} />
       <input
         ref={ref}
         type="text"
@@ -39,7 +39,7 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(function S
         placeholder={placeholder}
         aria-label={ariaLabel || placeholder}
         className={cn(
-          "min-w-0 flex-1 bg-transparent text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none",
+          "min-w-0 flex-1 bg-transparent text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none",
           inputClassName
         )}
       />
@@ -47,7 +47,7 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(function S
         <button
           type="button"
           onClick={() => onChange("")}
-          className="shrink-0 text-[#bbb] transition-colors hover:text-[#888]"
+          className="shrink-0 text-folk-placeholder transition-colors hover:text-folk-secondary"
           tabIndex={0}
           aria-label="Clear search"
         >

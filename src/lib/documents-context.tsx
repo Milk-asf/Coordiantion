@@ -3,9 +3,17 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
+import type { DocumentUploadResult } from "@/lib/document-form"
 import type { Document } from "@/lib/types"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+function formatDocumentDbError(message: string) {
+  if (message.includes("valid_from") || message.includes("valid_to")) {
+    return "Document expiry dates are not set up in the database yet. Apply migration 017_document_validity_dates.sql in Supabase."
+  }
+  return message
+}
+
 function dbToDocument(row: any): Document {
   return {
     id: row.id,
@@ -16,6 +24,8 @@ function dbToDocument(row: any): Document {
     storagePath: row.storage_path || "",
     folder: row.folder || "",
     uploadedBy: row.uploaded_by || null,
+    validFrom: row.valid_from || null,
+    validTo: row.valid_to || null,
     createdAt: row.created_at || "",
   }
 }
@@ -46,9 +56,18 @@ interface DocumentsContextValue {
   createFile: (name: string, parentPath?: string) => void
   deleteFile: (filePath: string) => void
   renameFile: (oldPath: string, newName: string) => void
-  uploadDocument: (file: File, folder?: string) => Promise<Document | null>
+  uploadDocument: (
+    file: File,
+    folder?: string,
+    options?: { name?: string; validFrom?: string | null; validTo?: string | null }
+  ) => Promise<DocumentUploadResult>
   deleteDocument: (doc: Document) => Promise<void>
   renameDocument: (id: string, newName: string) => Promise<void>
+  updateDocument: (
+    id: string,
+    updates: { name?: string; validFrom?: string | null; validTo?: string | null }
+  ) => Promise<{ ok: boolean; error?: string }>
+  replaceDocumentFile: (doc: Document, file: File, options?: { name?: string }) => Promise<boolean>
   getDownloadUrl: (storagePath: string) => Promise<string | null>
   refetch: () => Promise<void>
 }
@@ -132,39 +151,57 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
     })
   }, [activeWorkspace])
 
-  const uploadDocument = useCallback(async (file: File, folder: string = "") => {
-    if (!activeWorkspace || !isSupabaseConfigured()) return null
+  const uploadDocument = useCallback(async (
+    file: File,
+    folder: string = "",
+    options?: { name?: string; validFrom?: string | null; validTo?: string | null }
+  ): Promise<DocumentUploadResult> => {
+    if (!activeWorkspace || !isSupabaseConfigured()) {
+      return { document: null, error: "Workspace is not available" }
+    }
     const supabase = createClient()
-    if (!supabase) return null
+    if (!supabase) return { document: null, error: "Unable to connect to storage" }
 
     const { data: { user } } = await supabase.auth.getUser()
     const fileExt = file.name.split(".").pop() || ""
     const storagePath = `${activeWorkspace.id}/${folder ? folder + "/" : ""}${crypto.randomUUID()}.${fileExt}`
+    const displayName = options?.name?.trim() || file.name
 
     const { error: uploadError } = await supabase.storage
       .from("documents")
       .upload(storagePath, file)
 
-    if (uploadError) return null
+    if (uploadError) {
+      return { document: null, error: uploadError.message || "Unable to upload file" }
+    }
 
     const { data, error } = await supabase
       .from("documents")
       .insert({
         workspace_id: activeWorkspace.id,
-        name: file.name,
+        name: displayName,
         size: file.size,
         mime_type: file.type || "application/octet-stream",
         storage_path: storagePath,
         folder,
         uploaded_by: user?.id || null,
+        valid_from: options?.validFrom || null,
+        valid_to: options?.validTo || null,
       })
       .select()
       .single()
 
-    if (error || !data) return null
+    if (error || !data) {
+      await supabase.storage.from("documents").remove([storagePath])
+      return {
+        document: null,
+        error: formatDocumentDbError(error?.message || "Unable to save document record"),
+      }
+    }
+
     const newDoc = dbToDocument(data)
     setDocuments((prev) => [newDoc, ...prev])
-    return newDoc
+    return { document: newDoc }
   }, [activeWorkspace])
 
   const deleteDocument = useCallback(async (doc: Document) => {
@@ -185,6 +222,90 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
     setDocuments((prev) => prev.map((d) => d.id === id ? { ...d, name: newName } : d))
     await supabase.from("documents").update({ name: newName, updated_at: new Date().toISOString() }).eq("id", id)
   }, [])
+
+  const updateDocument = useCallback(async (
+    id: string,
+    updates: { name?: string; validFrom?: string | null; validTo?: string | null }
+  ): Promise<{ ok: boolean; error?: string }> => {
+    if (!isSupabaseConfigured()) return { ok: false, error: "Unable to connect to storage" }
+    const supabase = createClient()
+    if (!supabase) return { ok: false, error: "Unable to connect to storage" }
+
+    const payload: Record<string, string | null> = {
+      updated_at: new Date().toISOString(),
+    }
+    if ("name" in updates && updates.name !== undefined) payload.name = updates.name
+    if ("validFrom" in updates) payload.valid_from = updates.validFrom || null
+    if ("validTo" in updates) payload.valid_to = updates.validTo || null
+
+    const { error } = await supabase.from("documents").update(payload).eq("id", id)
+    if (error) {
+      return { ok: false, error: formatDocumentDbError(error.message) }
+    }
+
+    setDocuments((prev) =>
+      prev.map((d) =>
+        d.id === id
+          ? {
+              ...d,
+              ...( "name" in updates && updates.name !== undefined ? { name: updates.name } : {}),
+              ...( "validFrom" in updates ? { validFrom: updates.validFrom ?? null } : {}),
+              ...( "validTo" in updates ? { validTo: updates.validTo ?? null } : {}),
+            }
+          : d
+      )
+    )
+
+    return { ok: true }
+  }, [])
+
+  const replaceDocumentFile = useCallback(async (
+    doc: Document,
+    file: File,
+    options?: { name?: string }
+  ): Promise<boolean> => {
+    if (!activeWorkspace || !isSupabaseConfigured()) return false
+    const supabase = createClient()
+    if (!supabase) return false
+
+    const fileExt = file.name.split(".").pop() || ""
+    const storagePath = `${activeWorkspace.id}/${doc.folder ? doc.folder + "/" : ""}${crypto.randomUUID()}.${fileExt}`
+    const displayName = options?.name?.trim() || doc.name
+
+    const { error: uploadError } = await supabase.storage
+      .from("documents")
+      .upload(storagePath, file)
+
+    if (uploadError) return false
+
+    await supabase.storage.from("documents").remove([doc.storagePath])
+
+    const payload = {
+      name: displayName,
+      size: file.size,
+      mime_type: file.type || "application/octet-stream",
+      storage_path: storagePath,
+      updated_at: new Date().toISOString(),
+    }
+
+    const { error } = await supabase.from("documents").update(payload).eq("id", doc.id)
+    if (error) return false
+
+    setDocuments((prev) =>
+      prev.map((d) =>
+        d.id === doc.id
+          ? {
+              ...d,
+              name: displayName,
+              size: file.size,
+              mimeType: file.type || "application/octet-stream",
+              storagePath,
+            }
+          : d
+      )
+    )
+    return true
+  }, [activeWorkspace])
 
   const getDownloadUrl = useCallback(async (storagePath: string): Promise<string | null> => {
     if (!isSupabaseConfigured()) return null
@@ -213,6 +334,8 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       uploadDocument,
       deleteDocument,
       renameDocument,
+      updateDocument,
+      replaceDocumentFile,
       getDownloadUrl,
       refetch: fetchDocuments,
     }}>

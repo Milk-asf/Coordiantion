@@ -112,7 +112,7 @@ export default function SignUpPage() {
 
   if (step === "code") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#fafafa]">
+      <div className="flex min-h-screen items-center justify-center bg-folk-surface">
         <div className="w-full max-w-[380px] px-[16px]">
           <button
             type="button"
@@ -121,7 +121,7 @@ export default function SignUpPage() {
               setCode("")
               setError("")
             }}
-            className="mb-[20px] flex items-center gap-[6px] text-[13px] font-medium text-[#888] transition-colors hover:text-[#262626]"
+            className="mb-[20px] flex items-center gap-[6px] text-[13px] font-medium text-folk-secondary transition-colors hover:text-folk-text"
             tabIndex={0}
             aria-label="Go back"
           >
@@ -133,16 +133,16 @@ export default function SignUpPage() {
             <div className="mx-auto mb-[20px] flex h-[48px] w-[48px] items-center justify-center rounded-full bg-green-50">
               <Mail className="h-[22px] w-[22px] text-green-600" strokeWidth={1.75} />
             </div>
-            <h1 className="text-[20px] font-semibold text-[#262626]">Enter your code</h1>
-            <p className="mt-[8px] text-[14px] leading-[1.5] text-[#888]">
+            <h1 className="text-[20px] font-semibold text-folk-text">Enter your code</h1>
+            <p className="mt-[8px] text-[14px] leading-[1.5] text-folk-secondary">
               We sent a verification code to{" "}
-              <span className="font-medium text-[#262626]">{email}</span>. Enter it below to continue.
+              <span className="font-medium text-folk-text">{email}</span>. Enter it below to continue.
             </p>
           </div>
 
           <form onSubmit={handleVerifyCode} className="flex flex-col gap-[14px]">
             <div>
-              <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Verification code</label>
+              <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Verification code</label>
               <input
                 type="text"
                 inputMode="numeric"
@@ -152,13 +152,13 @@ export default function SignUpPage() {
                 placeholder="Enter code"
                 required
                 autoFocus
-                className="h-[48px] w-full rounded-lg border border-[#e0e0e0] bg-[#fafafa] px-[12px] text-center text-[20px] font-semibold tracking-[0.4em] text-[#262626] placeholder-[#ccc] outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
+                className="h-[48px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-center text-[20px] font-semibold tracking-[0.4em] text-folk-text placeholder-[#ccc] outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
                 tabIndex={0}
               />
             </div>
 
             {error && (
-              <p className="rounded-lg bg-red-50 px-[12px] py-[8px] text-[13px] font-medium text-red-600">
+              <p className="rounded-none bg-red-50 px-[12px] py-[8px] text-[13px] font-medium text-red-600">
                 {error}
               </p>
             )}
@@ -166,7 +166,7 @@ export default function SignUpPage() {
             <button
               type="submit"
               disabled={isLoading || code.length < 6}
-              className="h-[40px] w-full rounded-lg bg-[#262626] text-[13px] font-medium text-white transition-colors hover:bg-[#3d3d3d] disabled:opacity-50"
+              className="h-[40px] w-full rounded-none bg-[#1a1a1a] text-[13px] font-medium text-white transition-colors hover:bg-[#3d3d3d] disabled:opacity-50"
               tabIndex={0}
             >
               {isLoading ? "Verifying..." : "Verify & continue"}
@@ -176,13 +176,13 @@ export default function SignUpPage() {
           <p className="mt-[20px] text-center text-[12px] text-[#aaa]">
             Didn&apos;t receive it?{" "}
             {resendIn > 0 ? (
-              <span className="text-[#bbb]">Resend in {resendIn}s</span>
+              <span className="text-folk-placeholder">Resend in {resendIn}s</span>
             ) : (
               <button
                 type="button"
                 onClick={handleResend}
                 disabled={isLoading}
-                className="text-[#262626] underline underline-offset-2 disabled:opacity-50"
+                className="text-folk-text underline underline-offset-2 disabled:opacity-50"
                 tabIndex={0}
               >
                 Resend code
@@ -195,21 +195,21 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#fafafa]">
+    <div className="flex min-h-screen items-center justify-center bg-folk-surface">
       <div className="w-full max-w-[380px] px-[16px]">
         <div className="mb-[32px] text-center">
           <div className="mx-auto mb-[16px] flex h-[36px] w-[36px] items-center justify-center rounded-full bg-green-600 text-[14px] font-semibold text-white">
             C
           </div>
-          <h1 className="text-[20px] font-semibold text-[#262626]">Welcome to Coordination</h1>
-          <p className="mt-[4px] text-[13px] font-medium text-[#888]">
+          <h1 className="text-[20px] font-semibold text-folk-text">Welcome to Coordination</h1>
+          <p className="mt-[4px] text-[13px] font-medium text-folk-secondary">
             Enter your email and we&apos;ll send you a code to get started
           </p>
         </div>
 
         <form onSubmit={handleSendCode} className="flex flex-col gap-[14px]">
           <div>
-            <label className="mb-[4px] block text-[12px] font-medium text-[#888]">Email</label>
+            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Email</label>
             <input
               type="email"
               value={email}
@@ -217,13 +217,13 @@ export default function SignUpPage() {
               placeholder="you@company.com"
               required
               autoFocus
-              className="h-[40px] w-full rounded-lg border border-[#e0e0e0] bg-[#fafafa] px-[12px] text-[13px] font-medium text-[#262626] placeholder-[#bbb] outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
+              className="h-[40px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
               tabIndex={0}
             />
           </div>
 
           {error && (
-            <p className="rounded-lg bg-red-50 px-[12px] py-[8px] text-[13px] font-medium text-red-600">
+            <p className="rounded-none bg-red-50 px-[12px] py-[8px] text-[13px] font-medium text-red-600">
               {error}
             </p>
           )}
@@ -231,7 +231,7 @@ export default function SignUpPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="h-[40px] w-full rounded-lg bg-[#262626] text-[13px] font-medium text-white transition-colors hover:bg-[#3d3d3d] disabled:opacity-50"
+            className="h-[40px] w-full rounded-none bg-[#1a1a1a] text-[13px] font-medium text-white transition-colors hover:bg-[#3d3d3d] disabled:opacity-50"
             tabIndex={0}
           >
             {isLoading ? "Sending code..." : "Continue"}
@@ -242,9 +242,9 @@ export default function SignUpPage() {
           </p>
         </form>
 
-        <p className="mt-[20px] text-center text-[13px] font-medium text-[#888]">
+        <p className="mt-[20px] text-center text-[13px] font-medium text-folk-secondary">
           Already have an account?{" "}
-          <Link href="/login" className="text-[#262626] underline underline-offset-2 transition-colors hover:text-[#555]">
+          <Link href="/login" className="text-folk-text underline underline-offset-2 transition-colors hover:text-[#555]">
             Sign in
           </Link>
         </p>

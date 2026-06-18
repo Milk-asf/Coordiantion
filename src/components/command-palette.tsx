@@ -7,13 +7,18 @@ import {
   SquareCheck,
   User,
   BookOpen,
-  CircleDollarSign,
-  FileCheck,
   StickyNote,
   Package,
+  ClipboardList,
+  CalendarRange,
+  AlertTriangle,
   Settings,
   ArrowRight,
+  Tag,
 } from "lucide-react"
+import { EntityIcon } from "@/components/entity-icon"
+import { BUSINESS_NAV_ITEMS } from "@/lib/business-nav"
+import { motion } from "@/lib/motion"
 import { useClients } from "@/lib/hooks/use-clients"
 import { useTasks } from "@/lib/hooks/use-tasks"
 import { useStaff } from "@/lib/hooks/use-staff"
@@ -66,11 +71,21 @@ export function CommandPalette() {
     { id: "p-clients", label: "Clients", icon: <User className="h-[16px] w-[16px]" />, action: () => router.push("/clients"), category: "page" },
     { id: "p-contacts", label: "Contacts", icon: <BookOpen className="h-[16px] w-[16px]" />, action: () => router.push("/contacts"), category: "page" },
     { id: "p-staff", label: "Staff", icon: <User className="h-[16px] w-[16px]" />, action: () => router.push("/staff"), category: "page" },
-    { id: "p-invoicing", label: "Invoicing", icon: <CircleDollarSign className="h-[16px] w-[16px]" />, action: () => router.push("/invoicing"), category: "page" },
-    { id: "p-ndis", label: "NDIS Plans", icon: <FileCheck className="h-[16px] w-[16px]" />, action: () => router.push("/ndis-plans"), category: "page" },
+    ...BUSINESS_NAV_ITEMS.map((item) => ({
+      id: `p-${item.href}`,
+      label: item.label,
+      sublabel: "Finance",
+      icon: <item.icon className="h-[16px] w-[16px]" />,
+      action: () => router.push(item.href),
+      category: "page" as const,
+    })),
     { id: "p-notes", label: "Notes", icon: <StickyNote className="h-[16px] w-[16px]" />, action: () => router.push("/notes"), category: "page" },
     { id: "p-documents", label: "Documents", icon: <Package className="h-[16px] w-[16px]" />, action: () => router.push("/documents"), category: "page" },
+    { id: "p-forms", label: "Forms", icon: <ClipboardList className="h-[16px] w-[16px]" />, action: () => router.push("/forms"), category: "page" },
+    { id: "p-incidents", label: "Incidents", icon: <AlertTriangle className="h-[16px] w-[16px]" />, action: () => router.push("/incidents"), category: "page" },
+    { id: "p-roster", label: "Roster", icon: <CalendarRange className="h-[16px] w-[16px]" />, action: () => router.push("/roster"), category: "page" },
     { id: "p-settings", label: "Settings", icon: <Settings className="h-[16px] w-[16px]" />, action: () => router.push("/settings/general"), category: "page" },
+    { id: "p-price-book", label: "NDIS price book", sublabel: "Settings", icon: <Tag className="h-[16px] w-[16px]" />, action: () => router.push("/settings/charges"), category: "page" },
   ], [router])
 
   const clientItems: CommandItem[] = useMemo(() =>
@@ -78,7 +93,7 @@ export function CommandPalette() {
       id: `c-${c.id}`,
       label: c.name,
       sublabel: c.participant?.ndisNumber || undefined,
-      icon: <div className="flex h-[16px] w-[16px] items-center justify-center rounded-[4px] bg-[#DBEAFE] text-[8px] font-semibold text-[#2563EB]">{c.iconText}</div>,
+      icon: <EntityIcon text={c.iconText} size="xs" />,
       action: () => router.push(`/clients/${c.id}`),
       category: "client" as const,
     })),
@@ -100,7 +115,7 @@ export function CommandPalette() {
       id: `s-${s.id}`,
       label: s.name,
       sublabel: s.details?.role || undefined,
-      icon: <div className="flex h-[16px] w-[16px] items-center justify-center rounded-[4px] bg-[#DBEAFE] text-[8px] font-semibold text-[#2563EB]">{s.iconText}</div>,
+      icon: <EntityIcon text={s.iconText} size="xs" />,
       action: () => router.push(`/staff/${s.id}`),
       category: "staff" as const,
     })),
@@ -159,27 +174,27 @@ export function CommandPalette() {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[20vh]">
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px]" onClick={() => setIsOpen(false)} />
+      <div className={`fixed inset-0 bg-black/40 backdrop-blur-[2px] ${motion.overlayIn}`} onClick={() => setIsOpen(false)} />
 
-      <div className="relative w-[560px] overflow-hidden rounded-[12px] border border-[#e0e0e0] bg-white shadow-2xl">
+      <div className={`relative w-[560px] overflow-hidden rounded-none border border-folk-border bg-folk-surface shadow-2xl ${motion.scaleIn}`}>
         {/* Search input */}
-        <div className="flex items-center gap-[12px] border-b border-[#f0f0f0] px-[16px]">
-          <Search className="h-[16px] w-[16px] shrink-0 text-[#999]" />
+        <div className="flex items-center gap-[12px] border-b border-folk-border-subtle px-[16px]">
+          <Search className="h-[16px] w-[16px] shrink-0 text-folk-secondary" />
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search pages, clients, tasks…"
-            className="h-[48px] flex-1 bg-transparent text-[14px] text-[#262626] outline-none placeholder:text-[#bbb]"
+            className="h-[48px] flex-1 bg-transparent text-[14px] text-folk-text outline-none placeholder:text-folk-placeholder"
           />
-          <kbd className="rounded-[4px] border border-[#e8e8e8] bg-[#f5f5f5] px-[6px] py-[2px] text-[11px] text-[#999]">esc</kbd>
+          <kbd className="rounded-none border border-[#e8e8e8] bg-folk-hover px-[6px] py-[2px] text-[11px] text-folk-secondary">esc</kbd>
         </div>
 
         {/* Results */}
         <div ref={listRef} className="max-h-[360px] overflow-y-auto p-[8px]">
           {filtered.length === 0 && (
-            <div className="px-[12px] py-[24px] text-center text-[13px] text-[#999]">
+            <div className="px-[12px] py-[24px] text-center text-[13px] text-folk-secondary">
               No results found
             </div>
           )}
@@ -191,7 +206,7 @@ export function CommandPalette() {
 
             return (
               <div key={cat} className="mb-[4px]">
-                <div className="px-[12px] py-[6px] text-[11px] font-medium uppercase tracking-wide text-[#999]">
+                <div className="px-[12px] py-[6px] text-[11px] font-medium uppercase tracking-wide text-folk-secondary">
                   {label}
                 </div>
                 {items.map((item) => {
@@ -201,15 +216,15 @@ export function CommandPalette() {
                     <button
                       key={item.id}
                       onClick={() => handleSelect(item)}
-                      className={`flex w-full items-center gap-[10px] rounded-[8px] px-[12px] py-[10px] text-left transition-colors ${
-                        idx === selectedIndex ? "bg-[#f0f4ff] text-[#262626]" : "text-[#555] hover:bg-[#f8f8f8]"
+                      className={`flex w-full items-center gap-[10px] rounded-none px-[12px] py-[10px] text-left transition-colors ${
+                        idx === selectedIndex ? "bg-[#f0f4ff] text-folk-text" : "text-[#555] hover:bg-[#f8f8f8]"
                       }`}
                       tabIndex={-1}
                     >
-                      <span className="shrink-0 text-[#888]">{item.icon}</span>
+                      <span className="shrink-0 text-folk-secondary">{item.icon}</span>
                       <span className="flex-1 truncate text-[13px] font-medium">{item.label}</span>
                       {item.sublabel && (
-                        <span className="truncate text-[12px] text-[#bbb]">{item.sublabel}</span>
+                        <span className="truncate text-[12px] text-folk-placeholder">{item.sublabel}</span>
                       )}
                       <ArrowRight className="h-[12px] w-[12px] shrink-0 text-[#ccc]" />
                     </button>
@@ -221,17 +236,17 @@ export function CommandPalette() {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center gap-[16px] border-t border-[#f0f0f0] px-[16px] py-[10px]">
-          <span className="flex items-center gap-[4px] text-[11px] text-[#bbb]">
-            <kbd className="rounded-[3px] border border-[#e8e8e8] bg-[#f5f5f5] px-[4px] py-[1px] text-[10px]">↑↓</kbd>
+        <div className="flex items-center gap-[16px] border-t border-folk-border-subtle px-[16px] py-[10px]">
+          <span className="flex items-center gap-[4px] text-[11px] text-folk-placeholder">
+            <kbd className="rounded-[3px] border border-[#e8e8e8] bg-folk-hover px-[4px] py-[1px] text-[10px]">↑↓</kbd>
             navigate
           </span>
-          <span className="flex items-center gap-[4px] text-[11px] text-[#bbb]">
-            <kbd className="rounded-[3px] border border-[#e8e8e8] bg-[#f5f5f5] px-[4px] py-[1px] text-[10px]">↵</kbd>
+          <span className="flex items-center gap-[4px] text-[11px] text-folk-placeholder">
+            <kbd className="rounded-[3px] border border-[#e8e8e8] bg-folk-hover px-[4px] py-[1px] text-[10px]">↵</kbd>
             open
           </span>
-          <span className="flex items-center gap-[4px] text-[11px] text-[#bbb]">
-            <kbd className="rounded-[3px] border border-[#e8e8e8] bg-[#f5f5f5] px-[4px] py-[1px] text-[10px]">⌘K</kbd>
+          <span className="flex items-center gap-[4px] text-[11px] text-folk-placeholder">
+            <kbd className="rounded-[3px] border border-[#e8e8e8] bg-folk-hover px-[4px] py-[1px] text-[10px]">⌘K</kbd>
             toggle
           </span>
         </div>

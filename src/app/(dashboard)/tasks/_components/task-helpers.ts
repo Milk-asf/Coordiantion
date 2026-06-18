@@ -1,3 +1,4 @@
+import type { Task } from "@/lib/types"
 import {
   CalendarDays,
   Building2,
@@ -18,14 +19,18 @@ export interface TaskSavedView {
 export const taskColumnDefs = [
   { key: "checkbox", label: "Status", icon: CheckSquare, width: "32px", alwaysVisible: true },
   { key: "date", label: "Date", icon: CalendarDays, width: "90px" },
-  { key: "participant", label: "Client", icon: Building2, width: "40px" },
   { key: "title", label: "Title", icon: FileText, width: "1fr", alwaysVisible: true },
-  { key: "assignee", label: "Assignee", icon: User, width: "40px" },
-  { key: "charge", label: "Charge", icon: Tag, width: "64px" },
-  { key: "time", label: "Time", icon: Clock, width: "56px" },
+  { key: "charge", label: "Charge", icon: Tag, width: "88px" },
+  { key: "time", label: "Time", icon: Clock, width: "72px" },
+  { key: "assignee", label: "Assignee", icon: User, width: "52px" },
+  { key: "participant", label: "Client", icon: Building2, width: "52px" },
 ] as const
 
-export const defaultTaskVisibleKeys = ["checkbox", "date", "participant", "title", "assignee", "charge", "time"]
+export const profileTaskGridTemplate = "90px minmax(0, 1fr) 88px 72px 52px 40px"
+
+export const profileTaskGridClassName = "grid items-center gap-x-[14px] border-b border-folk-border-subtle px-[24px]"
+
+export const defaultTaskVisibleKeys = ["checkbox", "date", "title", "charge", "time", "assignee", "participant"]
 
 export function formatTime(minutes: number): string {
   if (minutes === 0) return "0m"
@@ -68,4 +73,15 @@ export function formatRowDate(dateStr: string | null): string {
 export function getTodayStr(): string {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+}
+
+export function getTaskBillableMinutes(task: Task): number {
+  let minutes = 0
+  if (task.chargeType) minutes += task.timeSpent
+  if (task.secondaryChargeType) minutes += task.secondaryTimeSpent || 0
+  return minutes
+}
+
+export function sumBillableMinutes(tasks: Task[]): number {
+  return tasks.reduce((sum, task) => sum + getTaskBillableMinutes(task), 0)
 }

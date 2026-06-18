@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import {
   Plus,
-  Trash2,
   X,
   FileText,
   ChevronDown,
@@ -16,6 +15,7 @@ import {
   User,
   Users,
 } from "lucide-react"
+import { EntityIcon } from "@/components/entity-icon"
 import { useNotes } from "@/lib/hooks/use-notes"
 import { useClients } from "@/lib/hooks/use-clients"
 import { useContacts } from "@/lib/hooks/use-contacts"
@@ -23,7 +23,9 @@ import { useStaff } from "@/lib/hooks/use-staff"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { PageLoader, PageError } from "@/components/page-state"
 import { useToast } from "@/components/toast"
-import { ConfirmDialog } from "@/components/confirm-dialog"
+import { ProfileTabButton } from "@/components/profile-tab-button"
+import { DisplayPopoverPanel, DisplayPopoverTrigger } from "@/components/display-popover"
+import { DeleteActionsMenu } from "@/components/delete-actions-menu"
 import { RecordPickerModal } from "./_components/record-picker-modal"
 import { NoteEditorModal } from "./_components/note-editor-modal"
 import type { RecordItem } from "./_components/record-picker-modal"
@@ -59,7 +61,6 @@ export default function NotesPage() {
 
   const [searchQuery] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState("")
@@ -213,22 +214,16 @@ export default function NotesPage() {
     handleCloseEditor()
   }, [handleSaveNote])
 
-  const handleDeleteNote = (id: string) => {
-    setDeleteConfirmId(id)
-  }
-
-  const confirmDeleteNote = async () => {
-    if (!deleteConfirmId) return
-    await deleteNote(deleteConfirmId)
+  const handleDeleteNote = useCallback(async (id: string) => {
+    await deleteNote(id)
     toast("Note deleted", "success")
-    if (selectedNoteId === deleteConfirmId) {
+    if (selectedNoteId === id) {
       setSelectedNoteId(null)
       setEditTitle("")
       setEditContent("")
       setEditAttachments([])
     }
-    setDeleteConfirmId(null)
-  }
+  }, [deleteNote, selectedNoteId, toast])
 
   useEffect(() => {
     if (!selectedNoteId) return
@@ -262,9 +257,7 @@ export default function NotesPage() {
     if (!client) return null
     return (
       <div className="flex items-center gap-[6px]">
-        <div className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] bg-[#DBEAFE] text-[7px] font-semibold text-[#2563EB]">
-          {client.iconText}
-        </div>
+        <EntityIcon text={client.iconText} size="xs" />
         <span className="truncate text-[12px] text-[#555]">{client.name}</span>
       </div>
     )
@@ -298,16 +291,15 @@ export default function NotesPage() {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col bg-white">
       {/* Header row */}
-      <div className="flex shrink-0 items-center justify-between border-b border-[#f0f0f0] px-[20px] py-[10px]">
+      <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-folk-border bg-folk-nav px-[20px]">
         <div className="flex items-center gap-[8px]">
-          <span className="text-[14px] font-medium text-[#262626]">Notes</span>
-          <div className="flex items-center gap-[4px] rounded-[4px] border border-[#e8e8e8] bg-[#fafafa] px-[8px] py-[4px] text-[12px] font-medium text-[#262626]">
-            All
-          </div>
+          <span className="text-[13px] font-medium text-folk-text">Notes</span>
+          <div className="h-[16px] w-px bg-[var(--folk-border)]" />
+          <ProfileTabButton isActive label="All" />
           <button
-            className="flex h-[24px] w-[24px] items-center justify-center rounded-[4px] text-[#999] transition-colors hover:bg-[#f0f0f0] hover:text-[#555]"
+            className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-[var(--folk-border-subtle)] hover:text-[#555]"
             tabIndex={0}
             aria-label="Add view"
           >
@@ -316,7 +308,7 @@ export default function NotesPage() {
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="primary-btn flex items-center gap-[5px] rounded-[6px] px-[12px] py-[6px] text-[13px] font-medium transition-colors"
+          className="outline-btn flex items-center gap-[5px] px-[12px] py-[6px] text-[13px] font-medium transition-colors"
           tabIndex={0}
         >
           <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -325,13 +317,13 @@ export default function NotesPage() {
       </div>
 
       {/* Filter / display bar */}
-      <div className="flex shrink-0 items-center justify-between border-b border-[#f0f0f0] px-[20px] py-[8px]">
+      <div className="flex shrink-0 items-center justify-between border-b border-folk-border-subtle bg-folk-nav px-[20px] py-[8px]">
         <div className="flex items-center gap-[8px]">
           <div className="relative">
             <button
               ref={filterBtnRef}
               onClick={() => { setIsFilterMenuOpen(!isFilterMenuOpen); setActiveFilterDropdown(null) }}
-              className="flex h-[30px] items-center gap-[5px] rounded-[6px] border border-[#e8e8e8] px-[10px] text-[12px] font-medium text-[#555] transition-colors hover:bg-[#f5f5f5]"
+              className="flex h-[30px] items-center gap-[5px] rounded-none border border-[#e8e8e8] px-[10px] text-[12px] font-medium text-[#555] transition-colors hover:bg-folk-hover"
               tabIndex={0}
             >
               <ListFilter className="h-[12px] w-[12px]" strokeWidth={1.5} />
@@ -340,22 +332,22 @@ export default function NotesPage() {
             {isFilterMenuOpen && (
               <>
                 <div className="fixed inset-0 z-[55]" onClick={() => setIsFilterMenuOpen(false)} />
-                <div className="absolute left-0 top-full z-[60] mt-[4px] w-[180px] rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-                  <p className="px-[16px] py-[6px] text-[11px] font-medium text-[#888]">Filter by</p>
+                <div className="absolute left-0 top-full z-[60] mt-[4px] w-[180px] rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk">
+                  <p className="px-[16px] py-[6px] text-[11px] font-medium text-folk-secondary">Filter by</p>
                   <button
                     onClick={() => { setActiveFilterDropdown("client"); setIsFilterMenuOpen(false) }}
-                    className="flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                    className="flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                     tabIndex={0}
                   >
-                    <Users className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+                    <Users className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} />
                     Client
                   </button>
                   <button
                     onClick={() => { setActiveFilterDropdown("creator"); setIsFilterMenuOpen(false) }}
-                    className="flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium text-[#262626] transition-colors hover:bg-[#f5f5f5]"
+                    className="flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                     tabIndex={0}
                   >
-                    <User className="h-[13px] w-[13px] text-[#888]" strokeWidth={1.5} />
+                    <User className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} />
                     Created by
                   </button>
                 </div>
@@ -363,21 +355,21 @@ export default function NotesPage() {
             )}
           </div>
           {clientFilter.length > 0 && (
-            <div className="flex items-center gap-[6px] rounded-[6px] border border-[#e8e8e8] px-[8px] py-[4px] text-[12px] font-medium text-[#555]">
-              <Users className="h-[12px] w-[12px] text-[#888]" strokeWidth={1.5} />
+            <div className="flex items-center gap-[6px] rounded-none border border-[#e8e8e8] px-[8px] py-[4px] text-[12px] font-medium text-[#555]">
+              <Users className="h-[12px] w-[12px] text-folk-secondary" strokeWidth={1.5} />
               <button ref={(el) => { filterPillRefs.current["client"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "client" ? null : "client")} className="hover:underline" tabIndex={0}>Client</button>
-              <span className="text-[#888]">is</span>
+              <span className="text-folk-secondary">is</span>
               <span>{clientFilter.length} {clientFilter.length === 1 ? "value" : "values"}</span>
-              <button onClick={() => setClientFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded text-[#888] transition-colors hover:text-[#262626]" tabIndex={0} aria-label="Clear client filter"><X className="h-[11px] w-[11px]" strokeWidth={1.5} /></button>
+              <button onClick={() => setClientFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear client filter"><X className="h-[11px] w-[11px]" strokeWidth={1.5} /></button>
             </div>
           )}
           {creatorFilter.length > 0 && (
-            <div className="flex items-center gap-[6px] rounded-[6px] border border-[#e8e8e8] px-[8px] py-[4px] text-[12px] font-medium text-[#555]">
-              <User className="h-[12px] w-[12px] text-[#888]" strokeWidth={1.5} />
+            <div className="flex items-center gap-[6px] rounded-none border border-[#e8e8e8] px-[8px] py-[4px] text-[12px] font-medium text-[#555]">
+              <User className="h-[12px] w-[12px] text-folk-secondary" strokeWidth={1.5} />
               <button ref={(el) => { filterPillRefs.current["creator"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "creator" ? null : "creator")} className="hover:underline" tabIndex={0}>Created by</button>
-              <span className="text-[#888]">is</span>
+              <span className="text-folk-secondary">is</span>
               <span>{creatorFilter.length} {creatorFilter.length === 1 ? "value" : "values"}</span>
-              <button onClick={() => setCreatorFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded text-[#888] transition-colors hover:text-[#262626]" tabIndex={0} aria-label="Clear creator filter"><X className="h-[11px] w-[11px]" strokeWidth={1.5} /></button>
+              <button onClick={() => setCreatorFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear creator filter"><X className="h-[11px] w-[11px]" strokeWidth={1.5} /></button>
             </div>
           )}
         </div>
@@ -385,19 +377,19 @@ export default function NotesPage() {
           <div className="relative" ref={sortRef}>
             <button
               onClick={() => setIsSortOpen(!isSortOpen)}
-              className="flex h-[30px] items-center gap-[4px] rounded-[6px] border border-[#e8e8e8] px-[10px] text-[12px] font-medium text-[#555] transition-colors hover:bg-[#f5f5f5]"
+              className="flex h-[30px] items-center gap-[4px] rounded-none border border-[#e8e8e8] px-[10px] text-[12px] font-medium text-[#555] transition-colors hover:bg-folk-hover"
               tabIndex={0}
             >
               {perPage} per page
-              <ChevronDown className="h-[11px] w-[11px] text-[#999]" strokeWidth={1.5} />
+              <ChevronDown className="h-[11px] w-[11px] text-folk-secondary" strokeWidth={1.5} />
             </button>
             {isSortOpen && (
-              <div className="absolute right-0 top-full z-50 mt-[4px] w-[120px] rounded-[8px] border border-[#e8e8e8] bg-white py-[4px] shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
+              <div className="absolute right-0 top-full z-50 mt-[4px] w-[120px] rounded-none border border-[#e8e8e8] bg-folk-surface py-[4px] shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
                 {perPageOptions.map((opt) => (
                   <button
                     key={opt}
                     onClick={() => { setPerPage(opt); setIsSortOpen(false) }}
-                    className={`flex w-full items-center px-[12px] py-[8px] text-[12px] font-medium transition-colors hover:bg-[#f5f5f5] ${perPage === opt ? "text-[#2563EB]" : "text-[#555]"}`}
+                    className={`flex w-full items-center px-[12px] py-[8px] text-[12px] font-medium transition-colors hover:bg-folk-hover ${perPage === opt ? "text-[#2563EB]" : "text-[#555]"}`}
                     tabIndex={0}
                   >
                     {opt} per page
@@ -407,74 +399,63 @@ export default function NotesPage() {
             )}
           </div>
           <div className="relative">
-            <button
-              ref={displayBtnRef}
+            <DisplayPopoverTrigger
+              hiddenCount={0}
+              showLabel
+              isOpen={isDisplayOpen}
               onClick={() => setIsDisplayOpen(!isDisplayOpen)}
-              className="flex h-[30px] items-center gap-[5px] rounded-[6px] border border-[#e8e8e8] px-[10px] text-[12px] font-medium text-[#555] transition-colors hover:bg-[#f5f5f5]"
-              tabIndex={0}
+              buttonRef={displayBtnRef}
+            />
+            <DisplayPopoverPanel
+              isOpen={isDisplayOpen}
+              onClose={() => setIsDisplayOpen(false)}
+              buttonRef={displayBtnRef}
+              widthClassName="w-[280px]"
             >
-              <SlidersHorizontal className="h-[12px] w-[12px]" strokeWidth={1.5} />
-              Display
-            </button>
-            {isDisplayOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setIsDisplayOpen(false)} />
-                <div
-                  className="fixed z-50 w-[380px] rounded-[10px] border border-[#e8e8e8] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
-                  style={(() => {
-                    const rect = displayBtnRef.current?.getBoundingClientRect()
-                    if (!rect) return {}
-                    return { top: rect.bottom + 4, right: window.innerWidth - rect.right }
-                  })()}
+              <div className="flex gap-[8px] border-b border-folk-border-subtle px-[12px] py-[12px]">
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`flex flex-1 flex-col items-center gap-[6px] rounded-none border py-[12px] transition-colors ${viewMode === "list" ? "border-folk-border bg-white text-folk-text" : "border-transparent bg-white text-folk-secondary hover:border-folk-border"}`}
+                  tabIndex={0}
+                  aria-label="List view"
                 >
-                  <div className="border-b border-[#f0f0f0] px-[20px] py-[14px]">
-                    <div className="flex items-center gap-[8px]">
-                      <button
-                        onClick={() => setViewMode("list")}
-                        className={`flex flex-1 flex-col items-center gap-[8px] rounded-[12px] border py-[16px] transition-colors ${viewMode === "list" ? "border-[#c0c0c0] bg-white text-[#262626]" : "border-[#e8e8e8] bg-[#fafafa] text-[#bbb] hover:border-[#d0d0d0]"}`}
-                        tabIndex={0}
-                        aria-label="List view"
-                      >
-                        <List className="h-[20px] w-[20px]" strokeWidth={1.5} />
-                        <span className="text-[13px] font-medium">List</span>
-                      </button>
-                      <button
-                        onClick={() => setViewMode("grid")}
-                        className={`flex flex-1 flex-col items-center gap-[8px] rounded-[12px] border py-[16px] transition-colors ${viewMode === "grid" ? "border-[#c0c0c0] bg-white text-[#262626]" : "border-[#e8e8e8] bg-[#fafafa] text-[#bbb] hover:border-[#d0d0d0]"}`}
-                        tabIndex={0}
-                        aria-label="Card view"
-                      >
-                        <LayoutGrid className="h-[20px] w-[20px]" strokeWidth={1.5} />
-                        <span className="text-[13px] font-medium">Card</span>
-                      </button>
-                    </div>
-                  </div>
+                  <List className="h-[18px] w-[18px]" strokeWidth={1.5} />
+                  <span className="text-[12px] font-medium">List</span>
+                </button>
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`flex flex-1 flex-col items-center gap-[6px] rounded-none border py-[12px] transition-colors ${viewMode === "grid" ? "border-folk-border bg-white text-folk-text" : "border-transparent bg-white text-folk-secondary hover:border-folk-border"}`}
+                  tabIndex={0}
+                  aria-label="Card view"
+                >
+                  <LayoutGrid className="h-[18px] w-[18px]" strokeWidth={1.5} />
+                  <span className="text-[12px] font-medium">Card</span>
+                </button>
+              </div>
 
-                  <div className="flex items-center px-[20px] py-[12px]">
-                    <button
-                      onClick={() => { setViewMode("grid"); setPerPage(10) }}
-                      className="text-[13px] font-medium text-[#bbb] transition-colors hover:text-[#262626]"
-                      tabIndex={0}
-                    >
-                      Reset
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
+              <div className="px-[12px] py-[10px]">
+                <button
+                  onClick={() => { setViewMode("grid"); setPerPage(10) }}
+                  className="text-[13px] font-normal text-folk-placeholder transition-colors hover:text-folk-text"
+                  tabIndex={0}
+                >
+                  Reset
+                </button>
+              </div>
+            </DisplayPopoverPanel>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-[24px] py-[20px]">
+      <div className="flex-1 overflow-y-auto bg-white px-[24px] py-[20px]">
         <div className="mb-[24px]">
-          <p className="mb-[8px] text-[12px] font-medium text-[#888]">Favorites</p>
+          <p className="mb-[8px] text-[12px] font-medium text-folk-secondary">Favorites</p>
           {favoriteNotes.length === 0 ? (
-            <div className="flex items-center justify-center rounded-[8px] border border-dashed border-[#dcdcdc] py-[32px]">
+            <div className="flex items-center justify-center rounded-none border border-dashed border-folk-border py-[32px]">
               <div className="text-center">
-                <p className="text-[14px] font-semibold text-[#262626]">Favorites</p>
-                <p className="mt-[4px] text-[12px] text-[#999]">Notes that you favorite will appear here</p>
+                <p className="text-[14px] font-semibold text-folk-text">Favorites</p>
+                <p className="mt-[4px] text-[12px] text-folk-secondary">Notes that you favorite will appear here</p>
               </div>
             </div>
           ) : (
@@ -498,8 +479,8 @@ export default function NotesPage() {
         {groupedNotes.map((group) => (
           <div key={group.label} className="mb-[24px]">
             <div className="mb-[12px] flex items-center gap-[8px]">
-              <p className="text-[12px] font-medium text-[#888]">{group.label}</p>
-              <span className="text-[12px] text-[#bbb]">{group.notes.length}</span>
+              <p className="text-[12px] font-medium text-folk-secondary">{group.label}</p>
+              <span className="text-[12px] text-folk-placeholder">{group.notes.length}</span>
             </div>
             <div className={viewMode === "grid" ? "grid grid-cols-1 gap-[16px] sm:grid-cols-2 lg:grid-cols-3" : "space-y-[8px]"}>
               {group.notes.map((note) => (
@@ -521,10 +502,10 @@ export default function NotesPage() {
         {sortedNotes.length === 0 && (
           <div className="flex flex-col items-center justify-center py-[80px]">
             <FileText className="h-[32px] w-[32px] text-[#ddd]" strokeWidth={1.5} />
-            <p className="mt-[12px] text-[14px] font-medium text-[#999]">
+            <p className="mt-[12px] text-[14px] font-medium text-folk-secondary">
               {searchQuery ? "No notes found" : "No notes yet"}
             </p>
-            <p className="mt-[4px] text-[12px] text-[#bbb]">
+            <p className="mt-[4px] text-[12px] text-folk-placeholder">
               {searchQuery ? "Try a different search term" : "Create a note to get started"}
             </p>
           </div>
@@ -542,51 +523,51 @@ export default function NotesPage() {
             const dropdownStyle = { top: rect.bottom + 4, left: rect.left, minWidth: 200 }
 
             if (activeFilterDropdown === "client") return (
-              <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={dropdownStyle}>
-                <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+              <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk" style={dropdownStyle}>
+                <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0}>
                   <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
                   <span>Back</span>
                 </button>
-                <p className="px-[16px] py-[4px] text-[11px] font-medium text-[#888]">Filter by client</p>
+                <p className="px-[16px] py-[4px] text-[11px] font-medium text-folk-secondary">Filter by client</p>
                 {uniqueNoteClients.map((name) => {
                   const isActive = clientFilter.includes(name)
                   return (
-                    <button key={name} onClick={() => setClientFilter((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
-                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
+                    <button key={name} onClick={() => setClientFilter((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${isActive ? "bg-folk-hover" : ""}`} tabIndex={0}>
+                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-none border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
                         {isActive && <span className="text-[10px] text-white">✓</span>}
                       </div>
-                      <span className="text-[#262626]">{name}</span>
+                      <span className="text-folk-text">{name}</span>
                     </button>
                   )
                 })}
-                {uniqueNoteClients.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-[#888]">No clients</p>}
-                <div className="border-t border-[#f0f0f0] px-[8px] py-[4px]">
-                  <button onClick={() => { setClientFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded px-[8px] py-[6px] text-left text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0}>Clear</button>
+                {uniqueNoteClients.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-folk-secondary">No clients</p>}
+                <div className="border-t border-folk-border-subtle px-[8px] py-[4px]">
+                  <button onClick={() => { setClientFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded-none px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
                 </div>
               </div>
             )
 
             if (activeFilterDropdown === "creator") return (
-              <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-lg border border-[#e0e0e0] bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]" style={dropdownStyle}>
-                <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-[#888] transition-colors hover:text-[#262626]" tabIndex={0}>
+              <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk" style={dropdownStyle}>
+                <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0}>
                   <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
                   <span>Back</span>
                 </button>
-                <p className="px-[16px] py-[4px] text-[11px] font-medium text-[#888]">Filter by creator</p>
+                <p className="px-[16px] py-[4px] text-[11px] font-medium text-folk-secondary">Filter by creator</p>
                 {uniqueNoteCreators.map((name) => {
                   const isActive = creatorFilter.includes(name)
                   return (
-                    <button key={name} onClick={() => setCreatorFilter((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-[#f5f5f5] ${isActive ? "bg-[#f5f5f5]" : ""}`} tabIndex={0}>
-                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
+                    <button key={name} onClick={() => setCreatorFilter((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${isActive ? "bg-folk-hover" : ""}`} tabIndex={0}>
+                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-none border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
                         {isActive && <span className="text-[10px] text-white">✓</span>}
                       </div>
-                      <span className="text-[#262626]">{name}</span>
+                      <span className="text-folk-text">{name}</span>
                     </button>
                   )
                 })}
-                {uniqueNoteCreators.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-[#888]">No creators</p>}
-                <div className="border-t border-[#f0f0f0] px-[8px] py-[4px]">
-                  <button onClick={() => { setCreatorFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded px-[8px] py-[6px] text-left text-[13px] font-medium text-[#888] transition-colors hover:bg-[#f5f5f5] hover:text-[#262626]" tabIndex={0}>Clear</button>
+                {uniqueNoteCreators.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-folk-secondary">No creators</p>}
+                <div className="border-t border-folk-border-subtle px-[8px] py-[4px]">
+                  <button onClick={() => { setCreatorFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded-none px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
                 </div>
               </div>
             )
@@ -603,14 +584,6 @@ export default function NotesPage() {
           onClose={() => setIsModalOpen(false)}
         />
       )}
-      <ConfirmDialog
-        isOpen={!!deleteConfirmId}
-        title="Delete note"
-        description="This note will be permanently deleted. This action cannot be undone."
-        confirmLabel="Delete"
-        onConfirm={confirmDeleteNote}
-        onCancel={() => setDeleteConfirmId(null)}
-      />
     </div>
   )
 }
@@ -630,38 +603,39 @@ function NoteCard({ note, viewMode, isFavorite, onSelect, onToggleFavorite, onDe
         role="button"
         onClick={() => onSelect(note)}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(note) } }}
-        className="group flex w-full cursor-pointer items-center gap-[16px] rounded-[8px] border border-[#e2e2e2] bg-white px-[16px] py-[12px] text-left transition-all hover:border-[#d4d4d4] hover:shadow-sm"
+        className="group flex w-full cursor-pointer items-center gap-[16px] rounded-none border border-[#e2e2e2] bg-folk-surface px-[16px] py-[12px] text-left transition-all hover:border-folk-border hover:shadow-sm"
         tabIndex={0}
       >
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-[8px]">
             {getClientIcon(note)}
           </div>
-          <p className="mt-[4px] truncate text-[13px] font-semibold text-[#262626]">{note.title || "Untitled note"}</p>
-          <p className="mt-[2px] truncate text-[12px] text-[#999]">{note.content || "This note has no content."}</p>
+          <p className="mt-[4px] truncate text-[13px] font-semibold text-folk-text">{note.title || "Untitled note"}</p>
+          <p className="mt-[2px] truncate text-[12px] text-folk-secondary">{note.content || "This note has no content."}</p>
         </div>
         <div className="flex shrink-0 items-center gap-[12px]">
           <div className="flex items-center gap-[6px]">
             <div className="h-[6px] w-[6px] rounded-full bg-[#34d399]" />
-            <span className="text-[11px] text-[#888]">{note.createdBy || "Unknown"}</span>
+            <span className="text-[11px] text-folk-secondary">{note.createdBy || "Unknown"}</span>
           </div>
-          <span className="text-[11px] text-[#bbb]">{formatDate(note.createdAt)}</span>
+          <span className="text-[11px] text-folk-placeholder">{formatDate(note.createdAt)}</span>
           <button
             onClick={(e) => { e.stopPropagation(); onToggleFavorite(note.id) }}
-            className={`flex h-[24px] w-[24px] items-center justify-center rounded-[4px] transition-colors ${isFavorite ? "text-amber-400" : "text-[#ddd] opacity-0 group-hover:opacity-100"} hover:text-amber-400`}
+            className={`flex h-[24px] w-[24px] items-center justify-center rounded-none transition-colors ${isFavorite ? "text-amber-400" : "text-[#ddd] opacity-0 group-hover:opacity-100"} hover:text-amber-400`}
             tabIndex={-1}
             aria-label="Toggle favorite"
           >
             <Star className="h-[12px] w-[12px]" strokeWidth={1.5} fill={isFavorite ? "#fbbf24" : "none"} />
           </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(note.id) }}
-            className="flex h-[24px] w-[24px] items-center justify-center rounded-[4px] text-[#ddd] opacity-0 transition-colors hover:text-red-400 group-hover:opacity-100"
-            tabIndex={-1}
-            aria-label="Delete note"
-          >
-            <Trash2 className="h-[12px] w-[12px]" strokeWidth={1.5} />
-          </button>
+          <DeleteActionsMenu
+            onDelete={() => onDelete(note.id)}
+            itemName={note.title || "Untitled note"}
+            confirmTitle="Delete note"
+            stopPropagation
+            className="opacity-0 transition-opacity group-hover:opacity-100"
+            buttonClassName="flex h-[24px] w-[24px] items-center justify-center rounded-none text-[#ddd] transition-colors hover:bg-folk-hover hover:text-folk-secondary"
+            ariaLabel="Note actions"
+          />
         </div>
       </div>
     )
@@ -672,7 +646,7 @@ function NoteCard({ note, viewMode, isFavorite, onSelect, onToggleFavorite, onDe
       role="button"
       onClick={() => onSelect(note)}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(note) } }}
-      className="group flex min-h-[180px] w-full cursor-pointer flex-col rounded-[8px] border border-[#e2e2e2] bg-white p-[20px] text-left transition-all hover:border-[#d4d4d4] hover:shadow-sm"
+      className="group flex min-h-[180px] w-full cursor-pointer flex-col rounded-none border border-[#e2e2e2] bg-folk-surface p-[20px] text-left transition-all hover:border-folk-border hover:shadow-sm"
       tabIndex={0}
     >
       <div className="mb-[10px] flex items-center justify-between">
@@ -682,34 +656,35 @@ function NoteCard({ note, viewMode, isFavorite, onSelect, onToggleFavorite, onDe
         <div className="flex items-center gap-[2px]">
           <button
             onClick={(e) => { e.stopPropagation(); onToggleFavorite(note.id) }}
-            className={`flex h-[22px] w-[22px] items-center justify-center rounded-[4px] transition-colors ${isFavorite ? "text-amber-400" : "text-[#ddd] opacity-0 group-hover:opacity-100"} hover:text-amber-400`}
+            className={`flex h-[22px] w-[22px] items-center justify-center rounded-none transition-colors ${isFavorite ? "text-amber-400" : "text-[#ddd] opacity-0 group-hover:opacity-100"} hover:text-amber-400`}
             tabIndex={-1}
             aria-label="Toggle favorite"
           >
             <Star className="h-[11px] w-[11px]" strokeWidth={1.5} fill={isFavorite ? "#fbbf24" : "none"} />
           </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(note.id) }}
-            className="flex h-[22px] w-[22px] items-center justify-center rounded-[4px] text-[#ddd] opacity-0 transition-colors hover:text-red-400 group-hover:opacity-100"
-            tabIndex={-1}
-            aria-label="Delete note"
-          >
-            <Trash2 className="h-[11px] w-[11px]" strokeWidth={1.5} />
-          </button>
+          <DeleteActionsMenu
+            onDelete={() => onDelete(note.id)}
+            itemName={note.title || "Untitled note"}
+            confirmTitle="Delete note"
+            stopPropagation
+            className="opacity-0 transition-opacity group-hover:opacity-100"
+            buttonClassName="flex h-[22px] w-[22px] items-center justify-center rounded-none text-[#ddd] transition-colors hover:bg-folk-hover hover:text-folk-secondary"
+            ariaLabel="Note actions"
+          />
         </div>
       </div>
 
-      <p className="text-[13px] font-semibold text-[#262626]">{note.title || "Untitled note"}</p>
-      <p className="mt-[4px] text-[12px] leading-[1.5] text-[#999]">
+      <p className="text-[13px] font-semibold text-folk-text">{note.title || "Untitled note"}</p>
+      <p className="mt-[4px] text-[12px] leading-[1.5] text-folk-secondary">
         {truncate(note.content || "This note has no content.", 80)}
       </p>
 
       <div className="mt-auto flex items-center justify-between pt-[14px]">
         <div className="flex items-center gap-[6px]">
           <div className="h-[6px] w-[6px] rounded-full bg-[#34d399]" />
-          <span className="text-[11px] text-[#888]">{note.createdBy || "Unknown"}</span>
+          <span className="text-[11px] text-folk-secondary">{note.createdBy || "Unknown"}</span>
         </div>
-        <span className="text-[11px] text-[#bbb]">{formatDate(note.createdAt)}</span>
+        <span className="text-[11px] text-folk-placeholder">{formatDate(note.createdAt)}</span>
       </div>
     </div>
   )

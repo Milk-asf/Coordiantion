@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react"
 import { Check, Copy } from "lucide-react"
+import { folkInlineAddButtonClass, folkInlineAddInputClass } from "@/lib/folk-ui"
+import { cn } from "@/lib/utils"
 
 interface ContactChipProps {
   value: string
@@ -58,9 +60,9 @@ export function ContactChip({
   }
 
   const isWhite = variant === "white"
-  const chipBg = isWhite ? "bg-transparent" : "bg-[#f5f5f5]"
-  const chipHover = isWhite ? "hover:bg-[#f5f5f5]" : "hover:bg-[#efefef]"
-  const copyHoverBg = isWhite ? "hover:bg-[#f0f0f0]" : "hover:bg-[#e5e5e5]"
+  const chipBg = isWhite ? "bg-transparent" : "bg-folk-hover"
+  const chipHover = isWhite ? "hover:bg-folk-hover" : "hover:bg-[#efefef]"
+  const copyHoverBg = isWhite ? "hover:bg-[var(--folk-border-subtle)]" : "hover:bg-[var(--folk-border)]"
 
   if (isEditing) {
     return (
@@ -71,9 +73,7 @@ export function ContactChip({
         onBlur={handleSave}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className={size === "compact"
-          ? "rounded border border-[#a3c4f3] bg-[#fafafa] px-[8px] py-[3px] text-[12px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
-          : "rounded border border-[#a3c4f3] bg-[#fafafa] px-[10px] py-[4px] text-[13px] font-medium text-[#262626] shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"}
+        className={folkInlineAddInputClass(size === "compact" ? "compact" : "default")}
       />
     )
   }
@@ -84,9 +84,10 @@ export function ContactChip({
     return (
       <span
         onClick={() => setIsEditing(true)}
-        className={size === "compact"
-          ? "inline-flex cursor-default items-center rounded border border-dashed border-[#d0d0d0] bg-transparent px-[8px] py-[2px] text-[12px] font-medium text-[#bbb] transition-colors hover:border-[#999] hover:text-[#999]"
-          : `inline-flex cursor-default items-center rounded border border-dashed border-[#d0d0d0] ${chipBg} px-[10px] py-[4px] text-[13px] font-medium text-[#bbb] transition-colors hover:border-[#999] hover:text-[#999]`}
+        className={folkInlineAddButtonClass(
+          size === "compact" ? "compact" : "default",
+          cn(isWhite ? "bg-folk-hover hover:bg-[#efefef]" : size !== "compact" && chipBg)
+        )}
         role="button"
         tabIndex={0}
         onKeyDown={(event) => {
@@ -102,8 +103,8 @@ export function ContactChip({
   return (
     <span
       className={size === "compact"
-        ? `group/chip inline-flex cursor-default items-center gap-[4px] rounded border border-[#dcdcdc] ${chipBg} py-[2px] pl-[8px] pr-[4px] text-[12px] font-medium text-[#262626] transition-colors ${chipHover}`
-        : `group/chip inline-flex cursor-default items-center gap-[6px] rounded border border-[#dcdcdc] ${chipBg} py-[4px] pl-[10px] pr-[6px] text-[13px] font-medium text-[#262626] transition-colors ${chipHover}`}
+        ? `group/chip inline-flex cursor-default items-center gap-[4px] rounded-none border border-folk-border ${chipBg} py-[2px] pl-[8px] pr-[4px] text-[12px] font-medium text-folk-text transition-colors ${chipHover}`
+        : `group/chip inline-flex cursor-default items-center gap-[6px] rounded-none border border-folk-border ${chipBg} py-[4px] pl-[10px] pr-[6px] text-[13px] font-medium text-folk-text transition-colors ${chipHover}`}
     >
       <span
         onClick={() => setIsEditing(true)}
@@ -121,8 +122,8 @@ export function ContactChip({
           type="button"
           onClick={handleCopy}
           className={size === "compact"
-            ? `shrink-0 rounded p-[2px] transition-all ${isCopied ? "text-[#2563EB]" : `text-[#bbb] opacity-0 group-hover/chip:opacity-100 ${copyHoverBg} hover:text-[#666]`}`
-            : `shrink-0 rounded p-[3px] transition-all ${isCopied ? "text-[#2563EB]" : `text-[#bbb] opacity-0 group-hover/chip:opacity-100 ${copyHoverBg} hover:text-[#666]`}`}
+            ? `shrink-0 rounded-none p-[2px] transition-all ${isCopied ? "text-[#2563EB]" : `text-folk-placeholder opacity-0 group-hover/chip:opacity-100 ${copyHoverBg} hover:text-folk-secondary`}`
+            : `shrink-0 rounded-none p-[3px] transition-all ${isCopied ? "text-[#2563EB]" : `text-folk-placeholder opacity-0 group-hover/chip:opacity-100 ${copyHoverBg} hover:text-folk-secondary`}`}
           tabIndex={0}
           aria-label={`Copy ${placeholder}`}
         >

@@ -2,13 +2,14 @@
 
 import { forwardRef } from "react"
 import { cn } from "@/lib/utils"
+import { motion } from "@/lib/motion"
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger"
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary: "primary-btn",
-  secondary: "border border-[#dcdcdc] bg-transparent text-[#262626] hover:bg-[#f5f5f5]",
-  ghost: "text-[#888] hover:bg-[#f5f5f5] hover:text-[#262626]",
+  secondary: "outline-btn",
+  ghost: "text-folk-secondary hover:bg-folk-hover hover:text-folk-text border border-transparent",
   danger: "border border-red-200 bg-transparent text-red-500 hover:bg-red-50",
 }
 
@@ -17,7 +18,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant = "primary", className, children, type = "button", ...props },
+  { variant = "secondary", className, children, type = "button", ...props },
   ref
 ) {
   return (
@@ -25,7 +26,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       type={type}
       className={cn(
-        "flex items-center justify-center gap-[5px] rounded-[4px] px-[8px] py-[4px] text-[13px] font-medium transition-colors disabled:opacity-50",
+        "flex h-[32px] items-center justify-center gap-[5px] rounded-folk-btn px-[14px] text-[13px] font-medium disabled:opacity-45",
+        motion.interactive,
         variantClasses[variant],
         className
       )}
