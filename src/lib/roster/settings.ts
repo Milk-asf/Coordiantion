@@ -1,4 +1,9 @@
 import type { RosterAssigneeView, RosterSessionTypeDefinition, RosterViewMode, SessionTypeTone } from "@/lib/roster/types"
+import {
+  defaultRosterComplianceSettings,
+  normalizeRosterComplianceSettings,
+  type RosterComplianceSettings,
+} from "@/lib/roster/compliance-settings"
 import { hashToChipTone, isFolkChipTone, type FolkChipTone } from "@/lib/chip-colors"
 
 export const ROSTER_SETTINGS_STORAGE_KEY = "coordination:roster-settings"
@@ -21,6 +26,7 @@ export interface RosterSettings {
   defaultShiftDurationHours: number
   showConflictWarnings: boolean
   sessionTypes: RosterSessionTypeDefinition[]
+  compliance: RosterComplianceSettings
 }
 
 export const defaultRosterSettings: RosterSettings = {
@@ -30,6 +36,7 @@ export const defaultRosterSettings: RosterSettings = {
   defaultShiftDurationHours: 1,
   showConflictWarnings: true,
   sessionTypes: defaultSessionTypes,
+  compliance: defaultRosterComplianceSettings,
 }
 
 function normalizeSessionTypeTone(value: unknown, id: string): SessionTypeTone {
@@ -84,6 +91,7 @@ function normalizeSettings(value: Partial<RosterSettings>): RosterSettings {
     defaultShiftDurationHours: clampDuration(value.defaultShiftDurationHours),
     showConflictWarnings: value.showConflictWarnings ?? defaultRosterSettings.showConflictWarnings,
     sessionTypes: normalizeSessionTypes(value.sessionTypes),
+    compliance: normalizeRosterComplianceSettings(value.compliance),
   }
 }
 

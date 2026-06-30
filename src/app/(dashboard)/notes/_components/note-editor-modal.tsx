@@ -176,7 +176,7 @@ export function NoteEditorModal({
       <div className="pointer-events-none absolute inset-0 opacity-40" />
 
       <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/10">
-        <div className="relative flex h-[85vh] w-[640px] flex-col rounded-none border border-[#e8e8e8] bg-folk-surface shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+        <div className="relative flex h-[85vh] w-[640px] flex-col rounded-none border border-[#d9d9d9] bg-folk-surface shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
           <div className="flex items-center justify-between border-b border-folk-border-subtle px-[16px] py-[10px]">
             <div className="flex items-center gap-[8px]">
               <EntityIcon text={recordIcon.iconText} size="xsm" />
@@ -185,7 +185,7 @@ export function NoteEditorModal({
             <div className="flex items-center gap-[6px]">
               <button
                 onClick={() => onToggleFavorite(note.id)}
-                className={`flex h-[30px] items-center gap-[5px] rounded-none border px-[10px] text-[12px] font-medium transition-colors ${isFavorite ? "border-amber-200 bg-amber-50 text-amber-600" : "border-[#e8e8e8] text-folk-secondary hover:bg-folk-hover"}`}
+                className={`folk-pill-btn flex h-[30px] items-center gap-[5px] border px-[10px] text-[12px] font-medium transition-colors ${isFavorite ? "border-amber-200 bg-amber-50 text-amber-600" : "border-[#d9d9d9] text-folk-secondary hover:bg-folk-hover"}`}
                 tabIndex={0}
                 aria-label={isFavorite ? "Unfavorite note" : "Favorite note"}
                 aria-pressed={isFavorite}
@@ -292,7 +292,7 @@ export function NoteEditorModal({
             />
             <button
               onClick={() => setIsFormatMenuOpen(!isFormatMenuOpen)}
-              className={`flex h-[30px] w-[30px] items-center justify-center rounded-none border transition-colors ${isFormatMenuOpen ? "border-[#d0d0d0] bg-[var(--folk-border-subtle)] text-[#555]" : "border-[#e8e8e8] text-folk-secondary hover:border-[#d0d0d0] hover:bg-folk-hover hover:text-[#555]"}`}
+              className={`folk-pill-btn flex h-[30px] w-[30px] items-center justify-center border transition-colors ${isFormatMenuOpen ? "border-[#bababa] bg-[var(--folk-border-subtle)] text-[#555]" : "border-[#d9d9d9] text-folk-secondary hover:border-[#bababa] hover:bg-folk-hover hover:text-[#555]"}`}
               tabIndex={0}
               aria-label="Formatting options"
             >
@@ -301,7 +301,7 @@ export function NoteEditorModal({
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
-              className="flex h-[30px] items-center gap-[5px] rounded-none border border-[#e8e8e8] px-[10px] text-[12px] font-medium text-folk-secondary transition-colors hover:border-[#d0d0d0] hover:bg-folk-hover hover:text-[#555] disabled:opacity-50"
+              className="folk-pill-btn flex h-[30px] items-center gap-[5px] border border-[#d9d9d9] px-[10px] text-[12px] font-medium text-folk-secondary transition-colors hover:border-[#bababa] hover:bg-folk-hover hover:text-[#555] disabled:opacity-50"
               tabIndex={0}
               aria-label="Attach files"
             >
@@ -311,28 +311,18 @@ export function NoteEditorModal({
             </div>
 
             <div className="flex items-center gap-[6px]">
-              {isDirty ? (
-                <button
-                  onClick={onSaveAndClose}
-                  className="primary-btn flex h-[30px] items-center gap-[5px] px-[12px] text-[12px] font-medium transition-colors"
-                  tabIndex={0}
-                >
-                  <Check className="h-[14px] w-[14px]" strokeWidth={2} />
-                  Save &amp; close
-                </button>
-              ) : (
-                <button
-                  onClick={onClose}
-                  className="flex h-[30px] items-center rounded-none border border-[#e8e8e8] px-[12px] text-[12px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover"
-                  tabIndex={0}
-                >
-                  Close
-                </button>
-              )}
+              <button
+                onClick={isDirty ? onSaveAndClose : onClose}
+                className="primary-btn folk-pill-btn flex h-[30px] items-center gap-[5px] px-[12px] text-[12px] font-medium transition-colors"
+                tabIndex={0}
+              >
+                <Check className="h-[14px] w-[14px]" strokeWidth={2} />
+                Save
+              </button>
             </div>
 
             {isFormatMenuOpen && (
-              <div className="absolute bottom-[52px] left-[40px] z-50 flex items-center gap-[2px] rounded-none border border-[#e8e8e8] bg-folk-surface px-[6px] py-[6px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
+              <div className="absolute bottom-[52px] left-[40px] z-50 flex items-center gap-[2px] rounded-none border border-[#d9d9d9] bg-folk-surface px-[6px] py-[6px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
                 <button onMouseDown={(e) => { e.preventDefault(); applyFormat("bold") }} className={formatBtnClass("bold")} tabIndex={0} aria-label="Bold" aria-pressed={!!activeFormats.bold}>
                   <Bold className="h-[14px] w-[14px]" strokeWidth={2} />
                 </button>

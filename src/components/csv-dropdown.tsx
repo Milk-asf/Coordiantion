@@ -143,7 +143,7 @@ export function CsvDropdown({ entityType, columns, exportColumns, data, onImport
         type="button"
         onClick={handleToggleMenu}
         className={cn(
-          "outline-btn flex items-center gap-[6px] px-[10px] py-[6px]",
+          "outline-btn folk-pill-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors",
           isOpen && "bg-folk-hover"
         )}
         tabIndex={0}

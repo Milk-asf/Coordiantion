@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties } from "react"
 import {
+  AlignLeft,
   CalendarDays,
   ChevronDown,
   ChevronLeft,
@@ -9,9 +10,11 @@ import {
   Clock,
   DollarSign,
   Download,
+  Link2,
   ListFilter,
   Mail,
   Receipt,
+  RefreshCw,
   SlidersHorizontal,
   Table2,
   User,
@@ -19,7 +22,11 @@ import {
 } from "lucide-react"
 import { useInvoices } from "@/lib/hooks/use-invoices"
 import { useSavedViews } from "@/lib/hooks/use-saved-views"
+import { useXero } from "@/lib/hooks/use-xero"
+import { useWorkspace } from "@/lib/workspace-context"
+import { useToast } from "@/components/toast"
 import type { Invoice } from "@/lib/types"
+import { listViewBodyClass, listViewFilterBarClass } from "@/components/tab-active-indicator"
 import { PageLoader, PageError } from "@/components/page-state"
 import { ProfileTabButton } from "@/components/profile-tab-button"
 import { InvoicingNav } from "@/app/(dashboard)/invoicing/_components/invoicing-nav"
@@ -65,6 +72,7 @@ const invoiceColumnDefs: InvoiceColumnDef[] = [
   { key: "sent", label: "Sent", width: "110px", icon: Clock },
   { key: "amount", label: "Total Cost", width: "110px", icon: DollarSign },
   { key: "status", label: "Status", width: "110px", icon: CircleDot },
+  { key: "payment", label: "Payment", width: "110px", icon: DollarSign },
 ]
 
 const defaultVisibleColumnKeys = invoiceColumnDefs.map((column) => column.key)
@@ -99,12 +107,28 @@ function getInvoiceStatusLabel(value: string | Invoice): string {
 }
 
 function getInvoiceStatusClasses(invoice: Invoice): string {
-  if (invoice.kind === "credit-note") return "bg-[#ede8f5] text-[#5b21b6]"
-  if (invoice.status === "void") return "bg-[var(--folk-border-subtle)] text-folk-secondary line-through"
-  if (invoice.deliveryMethod === "ndia-portal") return "bg-[#e8edf2] text-[#334155]"
-  if (invoice.status === "paid") return "bg-green-100 text-green-700"
-  if (invoice.status === "overdue") return "bg-red-50 text-red-600"
-  return "bg-[var(--folk-border-subtle)] text-[#555]"
+  if (invoice.kind === "credit-note") return "bg-[#ede9fe] text-[#6d28d9]"
+  if (invoice.status === "void") return "bg-[#eef2f7] text-[#475569] line-through"
+  if (invoice.deliveryMethod === "ndia-portal") return "bg-[#dbeafe] text-[#1d4ed8]"
+  if (invoice.status === "paid") return "bg-[#e7f5ec] text-[#1a7f43]"
+  if (invoice.status === "overdue") return "bg-[#fee2e2] text-[#b91c1c]"
+  return "bg-[#eef2f7] text-[#475569]"
+}
+
+function getInvoicePaymentLabel(invoice: Invoice): string {
+  if (invoice.status === "paid") return "Paid"
+  if (invoice.status === "overdue") return "Overdue"
+  return "Unpaid"
+}
+
+function getInvoicePaymentClasses(invoice: Invoice): string {
+  if (invoice.status === "paid") return "bg-[#e7f5ec] text-[#1a7f43]"
+  if (invoice.status === "overdue") return "bg-[#fee2e2] text-[#b91c1c]"
+  return "bg-[#fef3c7] text-[#b45309]"
+}
+
+function hasInvoicePayment(invoice: Invoice): boolean {
+  return invoice.kind !== "credit-note" && invoice.status !== "void"
 }
 
 function getInvoiceActivityDate(invoice: Invoice): Date | null {
@@ -117,6 +141,37 @@ function getInvoiceActivityDate(invoice: Invoice): Date | null {
 
 export default function InvoicesPage() {
   const { invoices, isLoading, fetchError, exportInvoiceToCsv, exportAllToCsv, voidInvoice, createCreditNote, refetch } = useInvoices()
+  const { status: xeroStatus, connectUrl } = useXero()
+  const { activeWorkspace } = useWorkspace()
+  const { toast } = useToast()
+  const [pushingInvoiceId, setPushingInvoiceId] = useState<string | null>(null)
+
+  const handlePushToXero = useCallback(
+    async (invoice: Invoice) => {
+      if (!activeWorkspace || pushingInvoiceId) return
+      setPushingInvoiceId(invoice.id)
+      try {
+        const response = await fetch("/api/xero/invoices", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workspaceId: activeWorkspace.id,
+            invoiceId: invoice.id,
+            contactEmail: invoice.sentTo || undefined,
+          }),
+        })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error || "Failed to push to Xero")
+        toast("Invoice pushed to Xero", "success")
+        refetch()
+      } catch (error) {
+        toast(error instanceof Error ? error.message : "Failed to push to Xero", "error")
+      } finally {
+        setPushingInvoiceId(null)
+      }
+    },
+    [activeWorkspace, pushingInvoiceId, toast, refetch],
+  )
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(defaultVisibleColumnKeys)
   const [displayParticipants, setDisplayParticipants] = useState<string[]>([])
   const [displayEmails, setDisplayEmails] = useState<string[]>([])
@@ -132,6 +187,8 @@ export default function InvoicesPage() {
   const [isDisplayOpen, setIsDisplayOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [viewContextMenu, setViewContextMenu] = useState<{ viewId: string; x: number; y: number } | null>(null)
+  const [invoiceView, setInvoiceView] = useState<"list" | "batches">("list")
+  const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set())
 
 
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null)
@@ -323,6 +380,32 @@ export default function InvoicesPage() {
     + countHiddenDisplayFilters(uniqueStatuses, displayStatuses)
   const visibleColumns = invoiceColumnDefs.filter((column) => visibleColumnKeys.includes(column.key))
 
+  // "Batches" view: the same invoices grouped by the day they were issued, so a
+  // bulk run can be audited as one unit. This replaces the old Batches tab.
+  const invoiceBatches = useMemo(() => {
+    const byDate = new Map<string, { date: string; invoices: Invoice[]; total: number; sentCount: number }>()
+    for (const invoice of sortedInvoices) {
+      const date = invoice.issueDate || invoice.createdAt?.slice(0, 10) || "—"
+      const existing = byDate.get(date)
+      if (existing) {
+        existing.invoices.push(invoice)
+        existing.total += invoice.total
+        if (invoice.status !== "unsent") existing.sentCount += 1
+      } else {
+        byDate.set(date, { date, invoices: [invoice], total: invoice.total, sentCount: invoice.status !== "unsent" ? 1 : 0 })
+      }
+    }
+    return Array.from(byDate.values()).sort((a, b) => b.date.localeCompare(a.date))
+  }, [sortedInvoices])
+
+  const toggleBatch = (date: string) =>
+    setExpandedBatches((prev) => {
+      const next = new Set(prev)
+      if (next.has(date)) next.delete(date)
+      else next.add(date)
+      return next
+    })
+
   const handleToggleDisplayItem = (items: string[], setItems: (value: string[]) => void, value: string) => {
     setItems(items.includes(value) ? items.filter((item) => item !== value) : [...items, value])
   }
@@ -387,9 +470,22 @@ export default function InvoicesPage() {
           if (column.key === "status") {
             return (
               <td key={column.key} className={baseTd}>
-                <span className={`inline-flex h-[24px] items-center whitespace-nowrap rounded-none px-[10px] text-[12px] font-medium ${getInvoiceStatusClasses(invoice)}`}>
+                <span className={`inline-flex h-[22px] items-center whitespace-nowrap rounded-full px-[8px] text-[11px] font-medium ${getInvoiceStatusClasses(invoice)}`}>
                   {getInvoiceStatusLabel(invoice)}
                 </span>
+              </td>
+            )
+          }
+          if (column.key === "payment") {
+            return (
+              <td key={column.key} className={baseTd}>
+                {hasInvoicePayment(invoice) ? (
+                  <span className={`inline-flex h-[22px] items-center whitespace-nowrap rounded-full px-[8px] text-[11px] font-medium ${getInvoicePaymentClasses(invoice)}`}>
+                    {getInvoicePaymentLabel(invoice)}
+                  </span>
+                ) : (
+                  <span className="text-folk-secondary">—</span>
+                )}
               </td>
             )
           }
@@ -406,25 +502,43 @@ export default function InvoicesPage() {
     <div className="flex h-full flex-col">
       <InvoicingNav
         suffix={
-          <>
-            {savedViews.length > 0 && <div className="h-[16px] w-px shrink-0 bg-[var(--folk-border)]" />}
-            {savedViews.map((view) => (
-              <ProfileTabButton
-                key={view.id}
-                isActive={activeViewId === view.id}
-                onClick={() => selectView(view)}
-                onContextMenu={(event) => {
-                  event.preventDefault()
-                  setViewContextMenu({ viewId: view.id, x: event.clientX, y: event.clientY })
-                }}
-                icon={Table2}
-                label={view.name}
-              />
-            ))}
-          </>
+          savedViews.length > 0 ? (
+            <>
+              {savedViews.map((view) => (
+                <ProfileTabButton
+                  key={view.id}
+                  variant="profile"
+                  showIcon
+                  isActive={activeViewId === view.id}
+                  onClick={() => selectView(view)}
+                  onContextMenu={(event) => {
+                    event.preventDefault()
+                    setViewContextMenu({ viewId: view.id, x: event.clientX, y: event.clientY })
+                  }}
+                  icon={Table2}
+                  label={view.name}
+                />
+              ))}
+            </>
+          ) : undefined
         }
         actions={
           <div className="flex items-center gap-[6px]">
+            {xeroStatus?.connected ? (
+              <span className="flex items-center gap-[5px] rounded-none border border-[#cfe8da] bg-[#e7f5ec] px-[8px] py-[4px] text-[12px] font-medium text-[#1a7f43]">
+                <CircleDot className="h-[12px] w-[12px]" strokeWidth={2} />
+                Xero connected
+              </span>
+            ) : (
+              <a
+                href={connectUrl}
+                className="flex items-center gap-[5px] rounded-none border border-folk-border px-[8px] py-[4px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+                tabIndex={0}
+              >
+                <Link2 className="h-[12px] w-[12px]" strokeWidth={1.75} />
+                Connect Xero
+              </a>
+            )}
             <button
               type="button"
               onClick={() => exportAllToCsv(sortedInvoices)}
@@ -440,7 +554,26 @@ export default function InvoicesPage() {
         }
       />
 
-      <div className="flex h-[41px] shrink-0 items-center gap-[8px] border-b border-folk-border bg-folk-nav px-[16px]">
+      <div className={listViewFilterBarClass("flex-nowrap")}>
+        <div className="flex items-center gap-[2px] rounded-none border border-folk-border p-[2px]">
+          {([
+            { key: "list" as const, label: "List", icon: Table2 },
+            { key: "batches" as const, label: "Batches", icon: AlignLeft },
+          ]).map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setInvoiceView(key)}
+              className={`flex items-center gap-[5px] rounded-none px-[8px] py-[3px] text-[12px] font-medium transition-colors ${
+                invoiceView === key ? "bg-folk-hover text-folk-text" : "text-folk-secondary hover:text-folk-text"
+              }`}
+              tabIndex={0}
+            >
+              <Icon className="h-[12px] w-[12px]" strokeWidth={1.75} />
+              {label}
+            </button>
+          ))}
+        </div>
         <div className="relative">
           <button
             type="button"
@@ -449,7 +582,7 @@ export default function InvoicesPage() {
               setIsFilterMenuOpen((current) => !current)
               setActiveFilterDropdown(null)
             }}
-            className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+            className="flex items-center gap-[6px] folk-pill-btn border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
             tabIndex={0}
           >
             <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -533,7 +666,7 @@ export default function InvoicesPage() {
             type="button"
             ref={pageSizeButtonRef}
             onClick={() => setIsPageSizeOpen((current) => !current)}
-            className="flex items-center gap-[5px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+            className="folk-pill-btn flex items-center gap-[5px] border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
             tabIndex={0}
           >
             <span>{pageSize} per page</span>
@@ -696,48 +829,93 @@ export default function InvoicesPage() {
         </>
       )}
 
-      <div className="flex-1 overflow-auto">
-        <table className={TABLE_FULL}>
-          <thead>
-            <tr>
-              {visibleColumns.map((column, colIndex) => {
-                const ColIcon = column.icon
-                const isLast = colIndex === visibleColumns.length - 1
-                const isFirst = colIndex === 0
-                const headerClass = isFirst
-                  ? TABLE_PANEL_HEADER_STICKY_EDGE
-                  : isLast
-                    ? TABLE_PANEL_HEADER_STICKY_LAST
-                    : TABLE_PANEL_HEADER_STICKY
-                return (
-                  <th key={column.key} className={headerClass}>
-                    <div className="flex items-center gap-[6px]">
-                      <ColIcon className="h-[13px] w-[13px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
-                      <span>{column.label}</span>
+      <div className={listViewBodyClass()}>
+        {invoiceView === "batches" ? (
+          <div className="bg-folk-page p-[16px]">
+            {invoiceBatches.length === 0 ? (
+              <EmptyState />
+            ) : (
+              <div className="flex flex-col gap-[12px]">
+                {invoiceBatches.map((batch) => {
+                  const isOpen = expandedBatches.has(batch.date)
+                  return (
+                    <div key={batch.date} className="overflow-hidden rounded-[6px] border border-folk-border bg-white">
+                      <button
+                        type="button"
+                        onClick={() => toggleBatch(batch.date)}
+                        className="flex w-full items-center gap-[10px] px-[14px] py-[11px] text-left transition-colors hover:bg-folk-hover"
+                        tabIndex={0}
+                      >
+                        <ChevronDown
+                          className={`h-[14px] w-[14px] shrink-0 text-folk-secondary transition-transform ${isOpen ? "" : "-rotate-90"}`}
+                          strokeWidth={1.75}
+                        />
+                        <div className="flex min-w-0 flex-1 flex-col">
+                          <span className="text-[13px] font-semibold text-folk-text">{formatDate(batch.date) || batch.date}</span>
+                          <span className="text-[11px] text-folk-secondary">
+                            {batch.invoices.length} {batch.invoices.length === 1 ? "invoice" : "invoices"} · {batch.sentCount} sent
+                          </span>
+                        </div>
+                        <span className="shrink-0 text-[13px] font-semibold text-folk-text">{formatCurrency(batch.total)}</span>
+                      </button>
+                      {isOpen && (
+                        <div className="overflow-x-auto border-t border-folk-border-subtle">
+                          <table className={TABLE_FULL}>
+                            <tbody>{batch.invoices.map(renderInvoiceRow)}</tbody>
+                          </table>
+                        </div>
+                      )}
                     </div>
-                  </th>
-                )
-              })}
-            </tr>
-          </thead>
-          <tbody>
-            {sortedInvoices.slice(0, visibleCount).map(renderInvoiceRow)}
-          </tbody>
-        </table>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            <table className={TABLE_FULL}>
+              <thead>
+                <tr>
+                  {visibleColumns.map((column, colIndex) => {
+                    const ColIcon = column.icon
+                    const isLast = colIndex === visibleColumns.length - 1
+                    const isFirst = colIndex === 0
+                    const headerClass = isFirst
+                      ? TABLE_PANEL_HEADER_STICKY_EDGE
+                      : isLast
+                        ? TABLE_PANEL_HEADER_STICKY_LAST
+                        : TABLE_PANEL_HEADER_STICKY
+                    return (
+                      <th key={column.key} className={headerClass}>
+                        <div className="flex items-center gap-[6px]">
+                          <ColIcon className="h-[13px] w-[13px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
+                          <span>{column.label}</span>
+                        </div>
+                      </th>
+                    )
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {sortedInvoices.slice(0, visibleCount).map(renderInvoiceRow)}
+              </tbody>
+            </table>
 
-        {sortedInvoices.length === 0 && (
-          <EmptyState />
-        )}
+            {sortedInvoices.length === 0 && (
+              <EmptyState />
+            )}
 
-        {sortedInvoices.length > visibleCount && (
-          <button
-            type="button"
-            onClick={() => setVisibleCount((current) => current + pageSize)}
-            className="flex w-full items-center justify-center gap-[6px] border-b border-folk-border-subtle py-[10px] text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-page hover:text-folk-text"
-            tabIndex={0}
-          >
-            Show more ({sortedInvoices.length - visibleCount} remaining)
-          </button>
+            {sortedInvoices.length > visibleCount && (
+              <button
+                type="button"
+                onClick={() => setVisibleCount((current) => current + pageSize)}
+                className="flex w-full items-center justify-center gap-[6px] border-b border-folk-border-subtle py-[10px] text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-page hover:text-folk-text"
+                tabIndex={0}
+              >
+                Show more ({sortedInvoices.length - visibleCount} remaining)
+              </button>
+            )}
+          </>
         )}
       </div>
 
@@ -781,7 +959,7 @@ export default function InvoicesPage() {
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-[16px]">
             <div className="absolute inset-0 bg-black/20" onClick={() => setSelectedInvoiceId(null)} />
-            <div className="relative z-10 flex h-[680px] max-h-[calc(100vh-32px)] w-[960px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[20px] border border-[#e7e7e7] bg-folk-surface shadow-[0_12px_40px_rgba(0,0,0,0.12)] max-md:h-full max-md:max-h-full max-md:w-full max-md:max-w-full max-md:rounded-none">
+            <div className="relative z-10 flex h-[680px] max-h-[calc(100vh-32px)] w-[960px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[20px] border border-[#d9d9d9] bg-folk-surface shadow-[0_12px_40px_rgba(0,0,0,0.12)] max-md:h-full max-md:max-h-full max-md:w-full max-md:max-w-full max-md:rounded-none">
               <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[minmax(0,1fr)_320px]">
                 <div className="flex min-h-0 flex-col px-[28px] py-[22px]">
                   <div className="flex items-center gap-[6px] text-[11px] font-medium uppercase tracking-[0.03em] text-folk-placeholder">
@@ -853,6 +1031,19 @@ export default function InvoicesPage() {
                       <Download className="h-[13px] w-[13px]" strokeWidth={1.5} />
                       Export
                     </button>
+                    {xeroStatus?.connected && invoice.kind !== "credit-note" && invoice.status !== "void" && (
+                      <button
+                        type="button"
+                        onClick={() => handlePushToXero(invoice)}
+                        disabled={pushingInvoiceId === invoice.id}
+                        className="flex items-center gap-[5px] rounded-none border border-folk-border bg-folk-surface px-[10px] py-[5px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover disabled:opacity-50"
+                        tabIndex={0}
+                        aria-label="Push invoice to Xero"
+                      >
+                        <RefreshCw className={`h-[13px] w-[13px] ${pushingInvoiceId === invoice.id ? "animate-spin" : ""}`} strokeWidth={1.5} />
+                        {pushingInvoiceId === invoice.id ? "Pushing…" : "Push to Xero"}
+                      </button>
+                    )}
                     {invoice.kind !== "credit-note" && invoice.status !== "void" && (
                       <>
                         <button
@@ -912,7 +1103,7 @@ export default function InvoicesPage() {
                       <DetailRow label="Delivery" value={deliveryLabel} />
                     </div>
 
-                    <div className="border-t border-[#efefef] pt-[14px]">
+                    <div className="border-t border-[#d9d9d9] pt-[14px]">
                       <div className="space-y-[10px]">
                         <div className="px-[8px] text-[11px] font-semibold uppercase tracking-[0.08em] text-folk-placeholder">
                           Dates
@@ -924,7 +1115,7 @@ export default function InvoicesPage() {
                       </div>
                     </div>
 
-                    <div className="border-t border-[#efefef] pt-[14px]">
+                    <div className="border-t border-[#d9d9d9] pt-[14px]">
                       <div className="space-y-[10px]">
                         <div className="px-[8px] text-[11px] font-semibold uppercase tracking-[0.08em] text-folk-placeholder">
                           Recipient
@@ -1009,8 +1200,8 @@ function MultiSelectDropdown({
             className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${isActive ? "bg-folk-hover" : ""}`}
             tabIndex={0}
           >
-            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-none border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
-              {isActive && <span className="text-[10px] text-white">✓</span>}
+            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-[4px] border border-folk-text bg-white`}>
+              {isActive && <span className="text-[10px] leading-none text-folk-text">✓</span>}
             </div>
             <span className="text-folk-text">{item.label}</span>
           </button>

@@ -55,6 +55,8 @@ export const claimTypes = [
   { value: "direct-service", label: "Direct Service" },
   { value: "non-face-to-face", label: "Non-Face-to-Face" },
   { value: "provider-travel", label: "Provider Travel" },
+  { value: "telehealth", label: "Telehealth Supports" },
+  { value: "irregular-sil", label: "Irregular SIL Support" },
   { value: "cancellation", label: "Short Notice Cancellation" },
   { value: "ndia-required-report", label: "NDIA Requested Report" },
 ] as const
@@ -76,6 +78,8 @@ export const serviceChargeTypes = [
   { value: "direct-service", label: "Direct Service" },
   { value: "non-face-to-face", label: "Non-Face-to-Face" },
   { value: "provider-travel", label: "Provider Travel" },
+  { value: "telehealth", label: "Telehealth Supports" },
+  { value: "irregular-sil", label: "Irregular SIL Support" },
   { value: "cancellation", label: "Short Notice Cancellation" },
   { value: "ndia-required-report", label: "NDIA Requested Report" },
 ] as const

@@ -48,6 +48,7 @@ import { RosterDayHourRow } from "@/components/roster/roster-day-hour-row"
 import { RosterDropCell } from "@/components/roster/roster-drop-cell"
 import { RosterFilterBar, RosterPageHeader } from "@/components/roster/roster-filter-bar"
 import { RosterShiftBlock } from "@/components/roster/roster-shift-block"
+import { RosterTableView } from "@/components/roster/roster-table-view"
 import { RosterVacantShiftsRow } from "@/components/roster/roster-vacant-shifts-row"
 import {
   rosterStickyColClass,
@@ -122,6 +123,7 @@ interface RosterCalendarProps {
   onCreateShift: (defaults?: ShiftFormContext) => void
   onEditShift: (shift: RosterShift) => void
   pendingShiftPreview?: ShiftFormContext | null
+  onOpenClockLog?: (period: { start: string; end: string }) => void
 }
 
 function RosterDayTitle({ day, isToday = false }: { day: Date; isToday?: boolean }) {
@@ -148,7 +150,7 @@ function RosterDayHeader({ day, isToday = false }: { day: Date; isToday?: boolea
   )
 }
 
-export function RosterCalendar({ onCreateShift, onEditShift, pendingShiftPreview }: RosterCalendarProps) {
+export function RosterCalendar({ onCreateShift, onEditShift, pendingShiftPreview, onOpenClockLog }: RosterCalendarProps) {
   const { toast } = useToast()
   const { activeWorkspace } = useWorkspace()
   const {
@@ -459,6 +461,15 @@ export function RosterCalendar({ onCreateShift, onEditShift, pendingShiftPreview
         onAssigneeViewChange={setAssigneeView}
         onDisplayOpenChange={setIsDisplayOpen}
         onToggleVacantRow={handleToggleVacantRow}
+        onOpenClockLog={
+          onOpenClockLog
+            ? () =>
+                onOpenClockLog({
+                  start: toDateStr(visibleDays[0]),
+                  end: toDateStr(visibleDays[visibleDays.length - 1]),
+                })
+            : undefined
+        }
       />
     </>
   )
@@ -471,6 +482,20 @@ export function RosterCalendar({ onCreateShift, onEditShift, pendingShiftPreview
           <Loader2 className="h-[24px] w-[24px] animate-spin text-folk-secondary" strokeWidth={1.75} />
           <p className="text-[13px] text-folk-secondary">Loading roster…</p>
         </div>
+      </div>
+    )
+  }
+
+  if (viewMode === "table") {
+    return (
+      <div className="flex h-full flex-col bg-white">
+        {fetchError && (
+          <div className="shrink-0 border-b border-amber-200 bg-amber-50 px-[16px] py-[8px] text-[12px] text-amber-800">
+            Unable to sync roster from server. Showing local data.
+          </div>
+        )}
+        <div className="shrink-0">{rosterChrome}</div>
+        <RosterTableView shifts={weekShifts} searchQuery={searchQuery} onEditShift={onEditShift} />
       </div>
     )
   }

@@ -1,13 +1,14 @@
 "use client"
 
 import { Plus } from "lucide-react"
+import { usePermissions } from "@/lib/hooks/use-permissions"
 import { cn } from "@/lib/utils"
 
 const HOVER_REVEAL_CLASSES =
   "opacity-0 pointer-events-none transition-all group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto"
 
 export const ROSTER_ADD_SHIFT_SURFACE_CLASSES =
-  "flex items-center justify-center rounded-folk-btn border border-dashed border-[#b8c9eb] bg-white text-folk-text transition-colors hover:border-[#8fa8e0] hover:bg-[#f8faff] focus-visible:border-[#8fa8e0]"
+  "folk-pill-btn flex items-center justify-center border border-dashed border-[#b8c9eb] bg-white text-folk-text transition-colors hover:border-[#8fa8e0] hover:bg-[#f8faff] focus-visible:border-[#8fa8e0]"
 
 /** Dashed outline for unassigned / vacant shifts — matches add-shift hover styling. */
 export const ROSTER_UNASSIGNED_SHIFT_BORDER_CLASSES =
@@ -20,7 +21,7 @@ export function rosterAddShiftSizeClasses({
   compact?: boolean
   fullWidth?: boolean
 } = {}) {
-  const height = compact ? "h-[32px]" : "h-[40px]"
+  const height = compact ? "h-[29px]" : "h-[40px]"
 
   if (fullWidth) return cn("w-full", height)
 
@@ -46,6 +47,9 @@ export function RosterAddShiftButton({
   label = "Add shift",
   onPointerDown,
 }: RosterAddShiftButtonProps) {
+  const { canManageRoster } = usePermissions()
+  if (!canManageRoster) return null
+
   return (
     <button
       type="button"

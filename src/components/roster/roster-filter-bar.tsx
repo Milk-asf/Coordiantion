@@ -5,16 +5,20 @@ import {
   Building2,
   CalendarDays,
   CalendarRange,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Clock,
   Plus,
+  Table2,
   Users,
 } from "lucide-react"
 import { ASSIGNEE_VIEW_LABELS, type RosterAssigneeView, type RosterViewMode } from "@/lib/roster/types"
 import { ExpandableTableSearch } from "@/components/expandable-table-search"
+import { PageTitleBar } from "@/components/page-title-bar"
 import { ProfileTabButton } from "@/components/profile-tab-button"
+import { Switch } from "@/components/switch"
 import { DisplayPopoverPanel, DisplayPopoverTrigger } from "@/components/display-popover"
+import { folkPrimaryAddBtnClass } from "@/lib/folk-ui"
 import { cn } from "@/lib/utils"
 
 const dropdownBackdropClass = "fixed inset-0 z-[199]"
@@ -24,18 +28,18 @@ const dropdownPanelClass =
 const VIEW_MODE_OPTIONS = [
   { key: "week" as const, label: "Week", Icon: CalendarRange },
   { key: "day" as const, label: "Day", Icon: CalendarDays },
+  { key: "table" as const, label: "Table", Icon: Table2 },
 ]
 
 const viewModeCardClass = (isActive: boolean) =>
   cn(
     "flex flex-1 flex-col items-center justify-center gap-[6px] rounded-none border py-[14px] transition-colors",
     isActive
-      ? "border-[#d0d0d0] bg-folk-surface text-folk-text shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+      ? "border-[#bababa] bg-folk-surface text-folk-text shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
       : "border-transparent bg-folk-page text-folk-secondary hover:bg-[var(--folk-border-subtle)]"
   )
 
-const weekNavButtonClass =
-  "flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-full border border-folk-border bg-folk-surface text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+const weekNavButtonClass = "icon-btn folk-pill-btn"
 
 interface RosterPageHeaderProps {
   toolbarLabel: string
@@ -61,20 +65,14 @@ export function RosterPageHeader({
   const nextLabel = isDayView ? "Next day" : "Next week"
 
   return (
-    <div className="relative z-50 flex h-[44px] shrink-0 items-center justify-between gap-[8px] border-b border-folk-border-subtle bg-folk-nav px-[16px]">
-      <div className="flex min-w-0 flex-1 items-center gap-[8px] overflow-x-auto">
-        <span className="shrink-0 text-[13px] font-medium text-folk-text">Roster</span>
-      </div>
-
-      <div
-        className={cn(
-          "pointer-events-none absolute inset-0 hidden items-center justify-center sm:flex",
-          "z-[1]"
-        )}
-      >
+    <>
+      <PageTitleBar title="Roster" />
+      {/* Toolbar */}
+      <div className="relative z-50 flex h-[44px] shrink-0 items-center justify-end gap-[8px] border-b border-folk-border-subtle bg-white px-[16px]">
+        <div className="relative z-[2] flex shrink-0 items-center gap-[8px]">
         <div
           className={cn(
-            "pointer-events-auto grid items-center gap-x-[4px]",
+            "hidden items-center gap-x-[4px] sm:grid",
             isDayView ? "grid-cols-[28px_26ch_28px]" : "grid-cols-[28px_22ch_28px]"
           )}
         >
@@ -103,35 +101,31 @@ export function RosterPageHeader({
             <ChevronRight className="h-[14px] w-[14px]" strokeWidth={1.75} />
           </button>
         </div>
-      </div>
-
-      <div className="relative z-[2] flex shrink-0 items-center gap-[8px]">
-        <div className="hidden items-center gap-[8px] sm:flex">
-          <button
-            type="button"
-            onClick={onToday}
-            disabled={isTodayActive}
-            className={cn(
-              "outline-btn px-[8px] py-[4px] text-[13px] font-medium transition-colors",
-              isTodayActive && "cursor-default border-[#e8e8e8] text-[#ccc] hover:bg-folk-surface"
-            )}
-            tabIndex={0}
-          >
-            Today
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onToday}
+          disabled={isTodayActive}
+          className={cn(
+            "hidden outline-btn folk-pill-btn px-[8px] py-[4px] text-[13px] font-medium transition-colors sm:inline-flex",
+            isTodayActive && "cursor-default border-[#d9d9d9] text-[#ccc] hover:bg-folk-surface"
+          )}
+          tabIndex={0}
+        >
+          Today
+        </button>
         <button
           type="button"
           onClick={onCreateShift}
-          className="outline-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
+          className={folkPrimaryAddBtnClass()}
           tabIndex={0}
           aria-label="Add shift"
         >
           <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
           <span className="hidden sm:inline">Add shift</span>
         </button>
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 
@@ -163,54 +157,6 @@ function RosterAssigneeSwitch({
   )
 }
 
-function RosterVacantToggle({
-  isOpen,
-  vacantCount,
-  onToggle,
-}: {
-  isOpen: boolean
-  vacantCount: number
-  onToggle: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-pressed={isOpen}
-      aria-label={isOpen ? "Hide vacant shifts row" : "Show vacant shifts row"}
-      className={cn(
-        "inline-flex h-[28px] shrink-0 items-center gap-[5px] rounded-folk-btn border px-[10px] text-[12px] font-medium leading-none text-folk-text",
-        "transition-[border-color,background-color,box-shadow] duration-fast ease-in-out",
-        isOpen
-          ? "border-folk-border-strong bg-folk-surface shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
-          : "border-transparent bg-transparent hover:border-folk-border hover:bg-folk-hover"
-      )}
-      tabIndex={0}
-    >
-      <span>Vacant shifts</span>
-      {vacantCount > 0 && (
-        <span
-          className={cn(
-            "inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full border px-[5px] text-[10px] font-normal tabular-nums text-folk-text",
-            "transition-[border-color] duration-fast ease-in-out",
-            isOpen ? "border-folk-text" : "border-folk-border-strong"
-          )}
-        >
-          {vacantCount}
-        </span>
-      )}
-      <ChevronDown
-        className={cn(
-          "h-[13px] w-[13px] shrink-0 text-folk-text transition-transform duration-fast ease-in-out",
-          !isOpen && "-rotate-90"
-        )}
-        strokeWidth={1.75}
-        aria-hidden="true"
-      />
-    </button>
-  )
-}
-
 interface RosterFilterBarProps {
   viewMode: RosterViewMode
   assigneeView: RosterAssigneeView
@@ -223,6 +169,7 @@ interface RosterFilterBarProps {
   onAssigneeViewChange: (view: RosterAssigneeView) => void
   onDisplayOpenChange: (open: boolean) => void
   onToggleVacantRow: () => void
+  onOpenClockLog?: () => void
 }
 
 export function RosterFilterBar({
@@ -237,20 +184,30 @@ export function RosterFilterBar({
   onAssigneeViewChange,
   onDisplayOpenChange,
   onToggleVacantRow,
+  onOpenClockLog,
 }: RosterFilterBarProps) {
   const displayBtnRef = useRef<HTMLButtonElement>(null)
 
   return (
     <>
-      <div className="relative z-40 flex h-[41px] shrink-0 items-center gap-[8px] overflow-x-auto border-b border-folk-border-subtle bg-folk-nav px-[16px]">
+      <div className="relative z-40 flex h-[41px] shrink-0 items-center gap-[8px] overflow-x-auto border-b border-folk-border-subtle bg-white px-[16px]">
         <div className="flex shrink-0 items-center gap-[6px]">
           <RosterAssigneeSwitch value={assigneeView} onChange={onAssigneeViewChange} />
-          <span className="h-[16px] w-px shrink-0 bg-folk-border-subtle" aria-hidden="true" />
-          <RosterVacantToggle
-            isOpen={isVacantRowOpen}
-            vacantCount={vacantShiftCount}
-            onToggle={onToggleVacantRow}
-          />
+          {onOpenClockLog && (
+            <>
+              <span className="h-[16px] w-px shrink-0 bg-folk-border-subtle" aria-hidden="true" />
+              <button
+                type="button"
+                onClick={onOpenClockLog}
+                className="folk-pill-btn inline-flex h-[28px] shrink-0 items-center gap-[5px] border border-transparent px-[10px] text-[12px] font-medium leading-none text-folk-text transition-[border-color,background-color,box-shadow] duration-fast ease-in-out hover:border-folk-border hover:bg-folk-hover"
+                tabIndex={0}
+                aria-label="Open clock log"
+              >
+                <Clock className="h-[13px] w-[13px] shrink-0" strokeWidth={1.75} />
+                <span>Clock log</span>
+              </button>
+            </>
+          )}
         </div>
 
         <div className="ml-auto flex shrink-0 items-center gap-[8px]">
@@ -293,6 +250,21 @@ export function RosterFilterBar({
                     </button>
                   )
                 })}
+              </div>
+              <div className="flex items-center justify-between gap-[8px] border-t border-folk-border-subtle px-[12px] py-[10px]">
+                <div className="flex min-w-0 items-center gap-[6px]">
+                  <span className="text-[13px] font-normal text-folk-text">Vacant shifts</span>
+                  {vacantShiftCount > 0 && (
+                    <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full border border-folk-border-strong px-[5px] text-[10px] font-normal tabular-nums text-folk-secondary">
+                      {vacantShiftCount}
+                    </span>
+                  )}
+                </div>
+                <Switch
+                  checked={isVacantRowOpen}
+                  onChange={onToggleVacantRow}
+                  ariaLabel={isVacantRowOpen ? "Hide vacant shifts row" : "Show vacant shifts row"}
+                />
               </div>
             </DisplayPopoverPanel>
           </div>

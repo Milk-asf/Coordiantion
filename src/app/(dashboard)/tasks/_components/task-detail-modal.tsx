@@ -240,7 +240,7 @@ export function TaskDetailModal({
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-[16px]">
         <div className="absolute inset-0 bg-black/20" onClick={handleCloseDetail} />
-        <div className="relative z-10 flex h-[680px] max-h-[calc(100vh-32px)] w-[960px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[20px] border border-[#e7e7e7] bg-folk-surface shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+        <div className="relative z-10 flex h-[680px] max-h-[calc(100vh-32px)] w-[960px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[20px] border border-[#d9d9d9] bg-folk-surface shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
           <input
             ref={detailFileInputRef}
             type="file"
@@ -284,7 +284,7 @@ export function TaskDetailModal({
                   <button
                     type="button"
                     onClick={() => { refreshDescFormats(); setIsFormatMenuOpen((o) => !o) }}
-                    className={`flex h-[30px] w-[30px] items-center justify-center rounded-none border transition-colors ${isFormatMenuOpen ? "border-[#d0d0d0] bg-[var(--folk-border-subtle)] text-[#555]" : "border-[#e8e8e8] text-folk-secondary hover:border-[#d0d0d0] hover:bg-folk-hover hover:text-[#555]"}`}
+                    className={`flex h-[30px] w-[30px] items-center justify-center rounded-none border transition-colors ${isFormatMenuOpen ? "border-[#bababa] bg-[var(--folk-border-subtle)] text-[#555]" : "border-[#d9d9d9] text-folk-secondary hover:border-[#bababa] hover:bg-folk-hover hover:text-[#555]"}`}
                     tabIndex={0}
                     aria-label="Formatting options"
                   >
@@ -294,7 +294,7 @@ export function TaskDetailModal({
                   {isFormatMenuOpen && (
                     <>
                       <div className="fixed inset-0 z-[40]" onClick={() => setIsFormatMenuOpen(false)} />
-                      <div className="absolute bottom-full left-0 z-50 mb-[8px] flex items-center gap-[2px] rounded-none border border-[#e8e8e8] bg-folk-surface px-[6px] py-[6px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
+                      <div className="absolute bottom-full left-0 z-50 mb-[8px] flex items-center gap-[2px] rounded-none border border-[#d9d9d9] bg-folk-surface px-[6px] py-[6px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
                         <button onMouseDown={(e) => { e.preventDefault(); applyDescFormat("bold") }} className="flex h-[30px] w-[30px] items-center justify-center rounded-none text-[#555] transition-colors hover:bg-[var(--folk-border-subtle)]" tabIndex={0} aria-label="Bold">
                           <Bold className="h-[14px] w-[14px]" strokeWidth={2} />
                         </button>
@@ -335,7 +335,7 @@ export function TaskDetailModal({
                 <button
                   type="button"
                   onClick={() => detailFileInputRef.current?.click()}
-                  className="flex h-[30px] w-[30px] items-center justify-center rounded-none border border-[#e8e8e8] text-folk-secondary transition-colors hover:border-[#d0d0d0] hover:bg-folk-hover hover:text-[#555]"
+                  className="flex h-[30px] w-[30px] items-center justify-center rounded-none border border-[#d9d9d9] text-folk-secondary transition-colors hover:border-[#bababa] hover:bg-folk-hover hover:text-[#555]"
                   tabIndex={0}
                   aria-label="Upload attachment"
                 >
@@ -687,7 +687,7 @@ export function TaskDetailModal({
                 </div>
 
                 {invoiceInfo && invoiceInfo.length > 0 && (
-                  <div className="mt-[4px] border-t border-[#efefef] pt-[14px]">
+                  <div className="mt-[4px] border-t border-[#d9d9d9] pt-[14px]">
                     <div className="mb-[10px] px-[8px] text-[11px] font-semibold uppercase tracking-[0.08em] text-folk-placeholder">
                       Invoice information
                     </div>

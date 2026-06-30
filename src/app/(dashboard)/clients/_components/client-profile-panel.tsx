@@ -1,11 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import {
   ChevronDown,
-  Mail,
-  Phone,
   User,
   X,
 } from "lucide-react"
@@ -13,16 +10,16 @@ import type { Client, ParticipantDetails } from "@/lib/types"
 import { useFieldConfig } from "@/lib/hooks/use-field-config"
 import { EntityIcon } from "@/components/entity-icon"
 import { IconButton } from "@/components/icon-button"
-import { FloatingSidePanel } from "@/components/floating-side-panel"
+import { FormModal } from "@/components/form-modal"
 import { EditableField } from "@/components/editable-field"
 import { ContactChip } from "@/components/contact-chip"
 import { MultiChip } from "@/components/multi-chip"
 import { ProfileTabButton } from "@/components/profile-tab-button"
-import { profileTabBarClass } from "@/components/tab-active-indicator"
+import { profileTabBarClass, pageTitleTextClass } from "@/components/tab-active-indicator"
 import { ProfileMetadataPill } from "@/components/profile-record-header"
 import { mergeDiagnoses, SidebarDetailRow } from "@/app/(dashboard)/clients/[id]/_components/client-profile-helpers"
 import { getCategoryChipClasses } from "@/lib/chip-colors"
-import { folkInlineAddButtonClass, folkQuickActionClass } from "@/lib/folk-ui"
+import { folkInlineAddButtonClass } from "@/lib/folk-ui"
 
 interface ClientProfilePanelProps {
   client: Client
@@ -47,7 +44,6 @@ export function ClientProfilePanel({
 }: ClientProfilePanelProps) {
   const [activeTab, setActiveTab] = useState<"details" | "notes">("details")
   const [isAssignOpen, setIsAssignOpen] = useState(false)
-  const router = useRouter()
   const { isFieldEnabled } = useFieldConfig()
   const pf = isFieldEnabled
 
@@ -65,9 +61,9 @@ export function ClientProfilePanel({
   }
 
   return (
-    <FloatingSidePanel width={440}>
+    <FormModal onClose={onClose} width={440} position="right">
       {/* Folk top utility bar */}
-      <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-folk-border bg-folk-nav px-[12px]">
+      <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-folk-border bg-white px-[12px]">
         <ProfileMetadataPill icon={User} label="Clients" />
         <IconButton
           onClick={onClose}
@@ -86,34 +82,10 @@ export function ClientProfilePanel({
             <div className="flex items-center gap-[14px]">
               <EntityIcon text={client.iconText} size="xl" />
               <div className="min-w-0">
-                <h2 className="truncate text-[20px] font-semibold leading-tight text-[#111111]">
+                <h2 className={pageTitleTextClass("truncate")}>
                   {client.displayName}
                 </h2>
               </div>
-            </div>
-
-            {/* Quick actions — Folk icon+label row */}
-            <div className="mt-[14px] flex flex-wrap gap-[6px]">
-              {participantData.email && (
-                <a href={`mailto:${participantData.email}`} className={folkQuickActionClass()} tabIndex={0}>
-                  <Mail className="h-[13px] w-[13px]" strokeWidth={1.5} />
-                  Email
-                </a>
-              )}
-              {participantData.phone && (
-                <a href={`tel:${participantData.phone}`} className={folkQuickActionClass()} tabIndex={0}>
-                  <Phone className="h-[13px] w-[13px]" strokeWidth={1.5} />
-                  Phone
-                </a>
-              )}
-              <button
-                type="button"
-                onClick={() => router.push(`/clients/${client.id}`)}
-                className={folkQuickActionClass()}
-                tabIndex={0}
-              >
-                Open profile
-              </button>
             </div>
           </div>
 
@@ -228,6 +200,6 @@ export function ClientProfilePanel({
           )}
         </div>
       </div>
-    </FloatingSidePanel>
+    </FormModal>
   )
 }

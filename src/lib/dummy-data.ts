@@ -1,4 +1,5 @@
 import type { Client, Contact, Task, StaffMember, WorkspaceMember } from "@/lib/types"
+import { emptyStaffDetails } from "@/lib/types"
 
 const clientIds = {
   sarah: "dummy-client-001",
@@ -457,6 +458,7 @@ export const dummyStaff: StaffMember[] = [
     status: "active",
     invitedEmail: "emma.richards@coordination.com.au",
     details: {
+      ...emptyStaffDetails,
       firstName: "Emma", lastName: "Richards", preferredName: "Emma",
       dateOfBirth: "1990-06-15", gender: "Female", pronouns: "She/Her",
       address: "14 Station St, Fitzroy VIC 3065",
@@ -476,6 +478,7 @@ export const dummyStaff: StaffMember[] = [
     status: "active",
     invitedEmail: "sam.lee@coordination.com.au",
     details: {
+      ...emptyStaffDetails,
       firstName: "Sam", lastName: "Lee", preferredName: "Sam",
       dateOfBirth: "1987-02-20", gender: "Male", pronouns: "He/Him",
       address: "92 Albert Rd, Richmond VIC 3121",
@@ -495,6 +498,7 @@ export const dummyStaff: StaffMember[] = [
     status: "active",
     invitedEmail: "tara.patel@coordination.com.au",
     details: {
+      ...emptyStaffDetails,
       firstName: "Tara", lastName: "Patel", preferredName: "Tara",
       dateOfBirth: "1993-09-10", gender: "Female", pronouns: "She/Her",
       address: "7 Grove Rd, Hawthorn VIC 3122",
@@ -514,6 +518,7 @@ export const dummyStaff: StaffMember[] = [
     status: "active",
     invitedEmail: "jake.morrison@coordination.com.au",
     details: {
+      ...emptyStaffDetails,
       firstName: "Jake", lastName: "Morrison", preferredName: "Jake",
       dateOfBirth: "1996-12-01", gender: "Male", pronouns: "He/Him",
       address: "33 Park Ave, Brunswick East VIC 3057",
@@ -533,6 +538,7 @@ export const dummyStaff: StaffMember[] = [
     status: "invited",
     invitedEmail: "amy.tran@coordination.com.au",
     details: {
+      ...emptyStaffDetails,
       firstName: "Amy", lastName: "Tran", preferredName: "Amy",
       dateOfBirth: "1998-04-25", gender: "Female", pronouns: "She/Her",
       address: "28 River St, Abbotsford VIC 3067",

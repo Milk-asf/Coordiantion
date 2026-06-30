@@ -3,6 +3,7 @@
 import { useRef, useState, type ComponentType } from "react"
 import { ChevronLeft, ListFilter, X } from "lucide-react"
 import { FixedDropdownMenu } from "@/components/fixed-dropdown-menu"
+import { folkFilterBtnClass } from "@/lib/folk-ui"
 
 export interface TableFilterDefinition {
   key: string
@@ -59,7 +60,7 @@ export function TableMultiFilter({
             setIsFilterMenuOpen(!isFilterMenuOpen)
             setActiveFilterDropdown(null)
           }}
-          className="outline-btn px-[8px] py-[4px]"
+          className={folkFilterBtnClass("px-[8px] py-[4px]")}
           tabIndex={0}
         >
           <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -212,8 +213,8 @@ function FilterValueDropdown({
             className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${isActive ? "bg-folk-hover" : ""}`}
             tabIndex={0}
           >
-            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-none border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
-              {isActive && <span className="text-[10px] text-white">✓</span>}
+            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-[4px] border border-folk-text bg-white`}>
+              {isActive && <span className="text-[10px] leading-none text-folk-text">✓</span>}
             </div>
             <span className="text-folk-text">{formatOption(val)}</span>
           </button>

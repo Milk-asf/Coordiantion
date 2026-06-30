@@ -30,6 +30,10 @@ const notificationItems: NotifItem[] = [
   { id: "invoice-sent", label: "Invoice sent", category: "Invoices", channel: "In-app" },
   { id: "invoice-paid", label: "Invoice paid", category: "Invoices", channel: "In-app + Email" },
   { id: "invoice-overdue", label: "Invoice overdue", category: "Invoices", channel: "In-app + Email" },
+  { id: "timesheet-returned", label: "Timesheet returned", category: "Timesheets", channel: "In-app" },
+  { id: "timesheet-approved", label: "Timesheet approved", category: "Timesheets", channel: "In-app" },
+  { id: "travel-claim-returned", label: "Travel claim returned", category: "Timesheets", channel: "In-app" },
+  { id: "travel-claim-approved", label: "Travel claim approved", category: "Timesheets", channel: "In-app" },
   { id: "plan-expiring", label: "Plan expiring soon", category: "Participants", channel: "In-app + Email" },
   { id: "new-client", label: "New participant added", category: "Participants", channel: "In-app" },
   { id: "member-joined", label: "New member joined", category: "Team", channel: "In-app" },
@@ -116,7 +120,7 @@ export default function NotificationsSettingsPage() {
                 <button
                   type="button"
                   onClick={() => setMenuOpen(menuOpen === item.id ? null : item.id)}
-                  className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-placeholder transition-colors hover:bg-[var(--folk-border-subtle)] hover:text-folk-secondary"
+                  className="icon-btn flex h-[28px] w-[28px] items-center justify-center text-folk-placeholder hover:text-folk-secondary"
                   tabIndex={0}
                   aria-label="More options"
                 >

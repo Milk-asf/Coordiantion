@@ -16,6 +16,7 @@ import {
   Users,
 } from "lucide-react"
 import { EntityIcon } from "@/components/entity-icon"
+import { PageTitleBar } from "@/components/page-title-bar"
 import { useNotes } from "@/lib/hooks/use-notes"
 import { useClients } from "@/lib/hooks/use-clients"
 import { useContacts } from "@/lib/hooks/use-contacts"
@@ -263,40 +264,23 @@ export default function NotesPage() {
     )
   }
 
-  if (selectedNoteId && selectedNote) {
-    const noteRecordIcon = (() => {
-      const client = clients.find((c) => c.id === selectedNote.clientId)
-      if (client) return { iconText: client.iconText, name: client.name }
-      return { iconText: selectedNote.clientName?.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "?", name: selectedNote.clientName || "Unknown" }
-    })()
-
-    return (
-      <NoteEditorModal
-        note={selectedNote}
-        editTitle={editTitle}
-        editContent={editContent}
-        editAttachments={editAttachments}
-        onEditTitle={setEditTitle}
-        onEditContent={setEditContent}
-        onEditAttachments={setEditAttachments}
-        onClose={handleCloseEditor}
-        onSaveAndClose={handleSaveAndClose}
-        onDelete={handleDeleteNote}
-        onToggleFavorite={toggleFavorite}
-        isFavorite={favorites.includes(selectedNote.id)}
-        currentUserName={currentUserName}
-        recordIcon={noteRecordIcon}
-      />
-    )
-  }
+  const noteRecordIcon = selectedNote
+    ? (() => {
+        const client = clients.find((c) => c.id === selectedNote.clientId)
+        if (client) return { iconText: client.iconText, name: client.name }
+        return {
+          iconText: selectedNote.clientName?.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "?",
+          name: selectedNote.clientName || "Unknown",
+        }
+      })()
+    : null
 
   return (
     <div className="flex h-full flex-col bg-white">
+      <PageTitleBar title="Notes" />
       {/* Header row */}
-      <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-folk-border bg-folk-nav px-[20px]">
+      <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-folk-border bg-white px-[20px]">
         <div className="flex items-center gap-[8px]">
-          <span className="text-[13px] font-medium text-folk-text">Notes</span>
-          <div className="h-[16px] w-px bg-[var(--folk-border)]" />
           <ProfileTabButton isActive label="All" />
           <button
             className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-[var(--folk-border-subtle)] hover:text-[#555]"
@@ -308,7 +292,7 @@ export default function NotesPage() {
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="outline-btn flex items-center gap-[5px] px-[12px] py-[6px] text-[13px] font-medium transition-colors"
+          className="primary-btn folk-pill-btn flex items-center gap-[5px] px-[12px] py-[6px] text-[13px] font-medium transition-colors"
           tabIndex={0}
         >
           <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -317,13 +301,13 @@ export default function NotesPage() {
       </div>
 
       {/* Filter / display bar */}
-      <div className="flex shrink-0 items-center justify-between border-b border-folk-border-subtle bg-folk-nav px-[20px] py-[8px]">
+      <div className="flex shrink-0 items-center justify-between border-b border-folk-border-subtle bg-white px-[20px] py-[8px]">
         <div className="flex items-center gap-[8px]">
           <div className="relative">
             <button
               ref={filterBtnRef}
               onClick={() => { setIsFilterMenuOpen(!isFilterMenuOpen); setActiveFilterDropdown(null) }}
-              className="flex h-[30px] items-center gap-[5px] rounded-none border border-[#e8e8e8] px-[10px] text-[12px] font-medium text-[#555] transition-colors hover:bg-folk-hover"
+              className="flex h-[30px] items-center gap-[5px] folk-pill-btn border border-[#d9d9d9] px-[10px] text-[12px] font-medium text-[#555] transition-colors hover:bg-folk-hover"
               tabIndex={0}
             >
               <ListFilter className="h-[12px] w-[12px]" strokeWidth={1.5} />
@@ -355,7 +339,7 @@ export default function NotesPage() {
             )}
           </div>
           {clientFilter.length > 0 && (
-            <div className="flex items-center gap-[6px] rounded-none border border-[#e8e8e8] px-[8px] py-[4px] text-[12px] font-medium text-[#555]">
+            <div className="flex items-center gap-[6px] rounded-none border border-[#d9d9d9] px-[8px] py-[4px] text-[12px] font-medium text-[#555]">
               <Users className="h-[12px] w-[12px] text-folk-secondary" strokeWidth={1.5} />
               <button ref={(el) => { filterPillRefs.current["client"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "client" ? null : "client")} className="hover:underline" tabIndex={0}>Client</button>
               <span className="text-folk-secondary">is</span>
@@ -364,7 +348,7 @@ export default function NotesPage() {
             </div>
           )}
           {creatorFilter.length > 0 && (
-            <div className="flex items-center gap-[6px] rounded-none border border-[#e8e8e8] px-[8px] py-[4px] text-[12px] font-medium text-[#555]">
+            <div className="flex items-center gap-[6px] rounded-none border border-[#d9d9d9] px-[8px] py-[4px] text-[12px] font-medium text-[#555]">
               <User className="h-[12px] w-[12px] text-folk-secondary" strokeWidth={1.5} />
               <button ref={(el) => { filterPillRefs.current["creator"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "creator" ? null : "creator")} className="hover:underline" tabIndex={0}>Created by</button>
               <span className="text-folk-secondary">is</span>
@@ -377,14 +361,14 @@ export default function NotesPage() {
           <div className="relative" ref={sortRef}>
             <button
               onClick={() => setIsSortOpen(!isSortOpen)}
-              className="flex h-[30px] items-center gap-[4px] rounded-none border border-[#e8e8e8] px-[10px] text-[12px] font-medium text-[#555] transition-colors hover:bg-folk-hover"
+              className="folk-pill-btn flex h-[30px] items-center gap-[4px] border border-[#d9d9d9] px-[10px] text-[12px] font-medium text-[#555] transition-colors hover:bg-folk-hover"
               tabIndex={0}
             >
               {perPage} per page
               <ChevronDown className="h-[11px] w-[11px] text-folk-secondary" strokeWidth={1.5} />
             </button>
             {isSortOpen && (
-              <div className="absolute right-0 top-full z-50 mt-[4px] w-[120px] rounded-none border border-[#e8e8e8] bg-folk-surface py-[4px] shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
+              <div className="absolute right-0 top-full z-50 mt-[4px] w-[120px] rounded-none border border-[#d9d9d9] bg-folk-surface py-[4px] shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
                 {perPageOptions.map((opt) => (
                   <button
                     key={opt}
@@ -533,8 +517,8 @@ export default function NotesPage() {
                   const isActive = clientFilter.includes(name)
                   return (
                     <button key={name} onClick={() => setClientFilter((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${isActive ? "bg-folk-hover" : ""}`} tabIndex={0}>
-                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-none border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
-                        {isActive && <span className="text-[10px] text-white">✓</span>}
+                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-[4px] border border-folk-text bg-white`}>
+                        {isActive && <span className="text-[10px] leading-none text-folk-text">✓</span>}
                       </div>
                       <span className="text-folk-text">{name}</span>
                     </button>
@@ -558,8 +542,8 @@ export default function NotesPage() {
                   const isActive = creatorFilter.includes(name)
                   return (
                     <button key={name} onClick={() => setCreatorFilter((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${isActive ? "bg-folk-hover" : ""}`} tabIndex={0}>
-                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-none border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
-                        {isActive && <span className="text-[10px] text-white">✓</span>}
+                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-[4px] border border-folk-text bg-white`}>
+                        {isActive && <span className="text-[10px] leading-none text-folk-text">✓</span>}
                       </div>
                       <span className="text-folk-text">{name}</span>
                     </button>
@@ -584,6 +568,25 @@ export default function NotesPage() {
           onClose={() => setIsModalOpen(false)}
         />
       )}
+
+      {selectedNoteId && selectedNote && noteRecordIcon && (
+        <NoteEditorModal
+          note={selectedNote}
+          editTitle={editTitle}
+          editContent={editContent}
+          editAttachments={editAttachments}
+          onEditTitle={setEditTitle}
+          onEditContent={setEditContent}
+          onEditAttachments={setEditAttachments}
+          onClose={handleCloseEditor}
+          onSaveAndClose={handleSaveAndClose}
+          onDelete={handleDeleteNote}
+          onToggleFavorite={toggleFavorite}
+          isFavorite={favorites.includes(selectedNote.id)}
+          currentUserName={currentUserName}
+          recordIcon={noteRecordIcon}
+        />
+      )}
     </div>
   )
 }
@@ -603,7 +606,7 @@ function NoteCard({ note, viewMode, isFavorite, onSelect, onToggleFavorite, onDe
         role="button"
         onClick={() => onSelect(note)}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(note) } }}
-        className="group flex w-full cursor-pointer items-center gap-[16px] rounded-none border border-[#e2e2e2] bg-folk-surface px-[16px] py-[12px] text-left transition-all hover:border-folk-border hover:shadow-sm"
+        className="group flex w-full cursor-pointer items-center gap-[16px] rounded-none border border-[#d9d9d9] bg-folk-surface px-[16px] py-[12px] text-left transition-all hover:border-folk-border hover:shadow-sm"
         tabIndex={0}
       >
         <div className="min-w-0 flex-1">
@@ -646,7 +649,7 @@ function NoteCard({ note, viewMode, isFavorite, onSelect, onToggleFavorite, onDe
       role="button"
       onClick={() => onSelect(note)}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(note) } }}
-      className="group flex min-h-[180px] w-full cursor-pointer flex-col rounded-none border border-[#e2e2e2] bg-folk-surface p-[20px] text-left transition-all hover:border-folk-border hover:shadow-sm"
+      className="group flex min-h-[180px] w-full cursor-pointer flex-col rounded-none border border-[#d9d9d9] bg-folk-surface p-[20px] text-left transition-all hover:border-folk-border hover:shadow-sm"
       tabIndex={0}
     >
       <div className="mb-[10px] flex items-center justify-between">

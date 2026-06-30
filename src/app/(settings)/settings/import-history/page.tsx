@@ -532,7 +532,7 @@ export default function ImportHistorySettingsPage() {
       </div>
 
       {/* Entity tabs */}
-      <div className="mb-[28px] flex h-[44px] items-center gap-[2px] border-b border-folk-border bg-folk-nav">
+      <div className="mb-[28px] flex h-[44px] items-center gap-[2px] border-b border-folk-border bg-white">
         {ENTITY_TABS.map((tab) => (
           <ProfileTabButton
             key={tab.key}
@@ -558,7 +558,7 @@ export default function ImportHistorySettingsPage() {
             </div>
             <button
               onClick={handleDownloadTemplate}
-              className="flex items-center gap-[6px] rounded-none bg-[var(--folk-border-subtle)] px-[14px] py-[8px] text-[13px] font-medium text-folk-text transition-colors hover:bg-[#e8e8e8]"
+              className="outline-btn flex items-center gap-[6px] px-[14px] py-[8px] text-[13px] font-medium"
               tabIndex={0}
               aria-label="Download CSV template"
             >
@@ -576,7 +576,7 @@ export default function ImportHistorySettingsPage() {
               "flex cursor-pointer flex-col items-center justify-center rounded-none border-2 border-dashed px-[20px] py-[48px] transition-colors",
               isDragOver
                 ? "border-blue-400 bg-blue-50/50"
-                : "border-folk-border bg-folk-page hover:border-[#ccc] hover:bg-folk-hover"
+                : "border-folk-border bg-folk-page hover:border-[#bababa] hover:bg-folk-hover"
             )}
             role="button"
             tabIndex={0}
@@ -648,7 +648,7 @@ export default function ImportHistorySettingsPage() {
             <div className="flex items-center gap-[8px]">
               <button
                 onClick={handleReset}
-                className="flex items-center gap-[5px] rounded-none border border-folk-border bg-transparent px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+                className="outline-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium"
                 tabIndex={0}
               >
                 Cancel
@@ -656,7 +656,7 @@ export default function ImportHistorySettingsPage() {
               <button
                 onClick={handleImport}
                 disabled={validRows.length === 0}
-                className="flex items-center gap-[5px] rounded-none border border-folk-border bg-transparent px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover disabled:opacity-40"
+                className="outline-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium disabled:opacity-40"
                 tabIndex={0}
               >
                 Import {validRows.length} {validRows.length === 1 ? config.labelSingular : config.label}
@@ -699,7 +699,7 @@ export default function ImportHistorySettingsPage() {
                                 {hasIssues ? (
                                   <button
                                     onClick={() => setIssuePopupRow(row)}
-                                    className="flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-none transition-colors hover:bg-red-100"
+                                    className="icon-btn flex h-[28px] w-[28px] shrink-0 items-center justify-center hover:bg-red-100"
                                     tabIndex={0}
                                     aria-label="View issues"
                                   >
@@ -740,7 +740,7 @@ export default function ImportHistorySettingsPage() {
                       <td className={TABLE_GRID_CELL_LAST}>
                         <button
                           onClick={() => handleRemoveRow(row.rowIndex)}
-                          className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-[var(--folk-border)] transition-colors hover:bg-red-50 hover:text-red-400"
+                          className="icon-btn flex h-[24px] w-[24px] items-center justify-center text-[var(--folk-border)] hover:text-red-400"
                           tabIndex={0}
                           aria-label={`Remove ${config.nameColumn(row.data)}`}
                         >
@@ -767,7 +767,7 @@ export default function ImportHistorySettingsPage() {
                   </div>
                   <button
                     onClick={() => setIssuePopupRow(null)}
-                    className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover"
+                    className="icon-btn flex h-[28px] w-[28px] items-center justify-center text-folk-secondary"
                     tabIndex={0}
                     aria-label="Close"
                   >
@@ -795,7 +795,7 @@ export default function ImportHistorySettingsPage() {
                 <div className="flex items-center justify-end gap-[8px] border-t border-folk-border-subtle px-[20px] py-[12px]">
                   <button
                     onClick={() => setIssuePopupRow(null)}
-                    className="rounded-none border border-folk-border bg-transparent px-[12px] py-[5px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+                    className="outline-btn px-[12px] py-[5px] text-[13px] font-medium"
                     tabIndex={0}
                   >
                     Keep
@@ -805,7 +805,7 @@ export default function ImportHistorySettingsPage() {
                       handleRemoveRow(issuePopupRow.rowIndex)
                       setIssuePopupRow(null)
                     }}
-                    className="rounded-none bg-red-500 px-[12px] py-[5px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
+                    className="primary-btn bg-red-500 px-[12px] py-[5px] text-[13px] font-medium hover:bg-red-600"
                     tabIndex={0}
                   >
                     Remove from import
@@ -839,7 +839,7 @@ export default function ImportHistorySettingsPage() {
           <div className="mt-[24px] flex items-center gap-[12px]">
             <button
               onClick={handleReset}
-              className="rounded-none bg-[var(--folk-border-subtle)] px-[16px] py-[8px] text-[13px] font-medium text-folk-text transition-colors hover:bg-[#e8e8e8]"
+              className="outline-btn px-[16px] py-[8px] text-[13px] font-medium"
               tabIndex={0}
             >
               Import more

@@ -32,7 +32,7 @@ export function ShiftTagColorPicker({ value, onChange, className }: ShiftTagColo
               FOLK_CHIP_SURFACE_PALETTE[tone as FolkChipTone],
               isSelected
                 ? "border-folk-text ring-2 ring-folk-text ring-offset-1"
-                : "border-[#d0d0d0] hover:ring-1 hover:ring-[#bbb]"
+                : "border-[#bababa] hover:ring-1 hover:ring-[#bbb]"
             )}
             tabIndex={0}
           />
@@ -46,7 +46,7 @@ export function ShiftTagColorSwatch({ tone, className }: { tone: FolkChipTone; c
   return (
     <span
       className={cn(
-        "inline-block h-[10px] w-[10px] shrink-0 rounded-full border border-[#d0d0d0]",
+        "inline-block h-[10px] w-[10px] shrink-0 rounded-full border border-[#bababa]",
         FOLK_CHIP_SURFACE_PALETTE[tone],
         className
       )}

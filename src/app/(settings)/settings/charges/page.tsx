@@ -4,6 +4,7 @@ import { useState } from "react"
 import { SettingsGuard } from "@/components/settings-guard"
 import { ProfileTabButton } from "@/components/profile-tab-button"
 import { BillablesTab } from "./_components/billables-tab"
+import { PriceBookImportTab } from "./_components/price-book-import-tab"
 
 type PriceBookTab = "billables" | "price-book-import" | "settings"
 
@@ -25,7 +26,7 @@ export default function NdisPriceBookSettingsPage() {
         </p>
       </div>
 
-      <div className="mb-[28px] flex h-[44px] items-center gap-[2px] border-b border-folk-border bg-folk-nav">
+      <div className="mb-[28px] flex h-[44px] items-center gap-[2px] border-b border-folk-border bg-white">
         {TABS.map((tab) => (
           <ProfileTabButton
             key={tab.key}
@@ -38,14 +39,7 @@ export default function NdisPriceBookSettingsPage() {
 
       {activeTab === "billables" && <BillablesTab />}
 
-      {activeTab === "price-book-import" && (
-        <div className="rounded-none border border-folk-border-subtle bg-folk-page px-[24px] py-[48px] text-center">
-          <p className="text-[14px] font-medium text-folk-text">Price book import</p>
-          <p className="mt-[6px] text-[13px] text-folk-secondary">
-            Upload and import NDIS price book items here. This will be available in step 2.
-          </p>
-        </div>
-      )}
+      {activeTab === "price-book-import" && <PriceBookImportTab />}
 
       {activeTab === "settings" && (
         <div className="rounded-none border border-folk-border-subtle bg-folk-page px-[24px] py-[48px] text-center">

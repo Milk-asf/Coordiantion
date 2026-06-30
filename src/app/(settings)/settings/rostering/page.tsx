@@ -12,6 +12,7 @@ import type { RosterAssigneeView, RosterViewMode, SessionTypeTone } from "@/lib/
 import { getToneChipClasses } from "@/lib/chip-colors"
 import { useToast } from "@/components/toast"
 import { cn } from "@/lib/utils"
+import { RosterComplianceSettingsSection } from "./_components/roster-compliance-settings-section"
 
 const labelClass = "text-[14px] font-medium text-folk-text"
 const descriptionClass = "mt-[2px] text-[13px] text-folk-secondary"
@@ -28,7 +29,7 @@ function SegmentedControl<T extends string>({
   onChange: (value: T) => void
 }) {
   return (
-    <div className="flex shrink-0 items-center gap-[4px] rounded-none border border-folk-border bg-folk-surface p-[3px]">
+    <div className="flex shrink-0 items-center gap-[4px] rounded-full border border-folk-border bg-folk-surface p-[3px]">
       {options.map(({ value: optionValue, label, icon: Icon }) => {
         const isActive = value === optionValue
         return (
@@ -37,7 +38,7 @@ function SegmentedControl<T extends string>({
             type="button"
             onClick={() => onChange(optionValue)}
             className={cn(
-              "flex items-center gap-[5px] rounded-none px-[10px] py-[4px] text-[12px] font-medium transition-colors",
+              "flex items-center gap-[5px] rounded-full px-[10px] py-[4px] text-[12px] font-medium transition-colors",
               isActive
                 ? "bg-folk-surface text-folk-text shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
                 : "text-folk-secondary hover:text-folk-secondary"
@@ -267,7 +268,7 @@ export default function RosteringSettingsPage() {
                 }
                 itemName={item.label}
                 confirmTitle="Remove shift tag"
-                buttonClassName="flex h-[32px] w-[32px] items-center justify-center rounded-none border border-folk-border text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+                buttonClassName="icon-btn flex h-[29px] w-[29px] items-center justify-center text-folk-secondary hover:text-folk-text"
                 ariaLabel={`Actions for ${item.label}`}
               />
             </div>
@@ -294,7 +295,7 @@ export default function RosteringSettingsPage() {
                 type="button"
                 onClick={handleAddSessionType}
                 disabled={!newSessionTypeLabel.trim()}
-                className="flex h-[36px] shrink-0 items-center gap-[6px] rounded-none border border-folk-border bg-folk-surface px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover disabled:cursor-not-allowed disabled:opacity-50"
+                className="outline-btn flex h-[36px] shrink-0 items-center gap-[6px] px-[12px] text-[13px] font-medium disabled:cursor-not-allowed disabled:opacity-50"
                 tabIndex={0}
               >
                 <Plus className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -342,6 +343,11 @@ export default function RosteringSettingsPage() {
             />
           </SettingsRow>
         </section>
+
+        <RosterComplianceSettingsSection
+          compliance={settings.compliance}
+          onChange={(patch) => updateSettings({ compliance: { ...settings.compliance, ...patch } })}
+        />
       </div>
     </SettingsGuard>
   )

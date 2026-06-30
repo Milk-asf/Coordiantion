@@ -27,14 +27,14 @@ export default function SettingsError({
       <div className="mt-[8px] flex items-center gap-[10px]">
         <Link
           href="/tasks"
-          className="flex items-center gap-[6px] rounded-none border border-folk-border bg-folk-surface px-[14px] py-[9px] text-[13px] font-medium text-[#555] transition-colors hover:bg-folk-hover"
+          className="outline-btn flex items-center gap-[6px] px-[14px] py-[9px] text-[13px] font-medium text-[#555]"
           tabIndex={0}
         >
           Back to dashboard
         </Link>
         <button
           onClick={reset}
-          className="flex items-center gap-[6px] rounded-none bg-[#1a1a1a] px-[14px] py-[9px] text-[13px] font-medium text-white transition-colors hover:bg-black"
+          className="primary-btn flex items-center gap-[6px]"
           tabIndex={0}
         >
           <RotateCcw className="h-[14px] w-[14px]" strokeWidth={1.5} />

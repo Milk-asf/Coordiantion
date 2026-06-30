@@ -87,7 +87,7 @@ export async function GET(request: Request) {
   if (explicitNext) return NextResponse.redirect(`${origin}${explicitNext}`)
 
   if (user?.user_metadata?.onboarding_completed_at) {
-    return NextResponse.redirect(`${origin}/tasks`)
+    return NextResponse.redirect(`${origin}/roster`)
   }
 
   return NextResponse.redirect(`${origin}/onboarding`)

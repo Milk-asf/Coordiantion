@@ -1,4 +1,4 @@
-export type RosterViewMode = "week" | "day"
+export type RosterViewMode = "week" | "day" | "table"
 export type RosterAssigneeView = "employees" | "clients"
 
 export const ASSIGNEE_VIEW_LABELS: Record<RosterAssigneeView, string> = {
@@ -24,6 +24,37 @@ export interface RosterSessionTypeDefinition {
   tone?: SessionTypeTone
 }
 
+/**
+ * NDIS-standard progress (shift) note. Captures the record a support worker
+ * must keep for each support delivered: what support was provided, progress
+ * toward the participant's goals, observations of wellbeing, any concerns or
+ * incidents, and follow-up actions — authored and signed with a timestamp.
+ */
+export interface ShiftProgressNote {
+  /** What support was delivered during the shift. */
+  supportProvided: string
+  /** Progress made toward the participant's goals this shift. */
+  goalProgress: string
+  /** Observations of the participant's wellbeing, mood, behaviour and health. */
+  observations: string
+  /** Any concerns, changes, or incidents that occurred. */
+  concerns: string
+  /** Whether something happened that requires a formal incident report. */
+  incidentOccurred: boolean
+  /** Follow-up actions or handover for the next support worker. */
+  followUp: string
+  /** Author of the note (the worker recording it). */
+  authorStaffId: string | null
+  authorName: string
+  /** Optional drawn signature, stored as a PNG data URL. */
+  signature: string
+  /** When the note was first recorded. */
+  recordedAt: string
+  updatedAt: string
+  /** Billing/quality gate. A recorded note is pending until an admin approves it. */
+  approvalStatus?: "none" | "approved" | "rejected"
+}
+
 export interface RosterShift {
   id: string
   staffId: string
@@ -46,6 +77,7 @@ export interface RosterShift {
   cancellationReason: string
   shiftStringId: string | null
   shiftStringOrder: number
+  progressNote: ShiftProgressNote | null
 }
 
 export interface RosterShiftInput {

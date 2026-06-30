@@ -75,10 +75,10 @@ export function SpendingPlanTab({
 
   return (
     <div className="relative flex h-full flex-col">
-      <div className="flex h-[41px] shrink-0 items-center justify-between border-b border-folk-border bg-folk-nav px-[16px]">
+      <div className="flex h-[41px] shrink-0 items-center justify-between border-b border-folk-border bg-white px-[16px]">
         <button
           type="button"
-          className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+          className="flex items-center gap-[6px] folk-pill-btn border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
           tabIndex={0}
         >
           <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -91,7 +91,7 @@ export function SpendingPlanTab({
           <button
             type="button"
             onClick={onAddNew}
-            className="outline-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
+            className="primary-btn folk-pill-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
             tabIndex={0}
           >
             <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -101,8 +101,8 @@ export function SpendingPlanTab({
       </div>
 
       {hasShiftProjection && (
-        <div className="shrink-0 border-b border-folk-border bg-folk-nav px-[16px] py-[14px]">
-          <div className="rounded-none border border-[#e8e8e8] bg-folk-surface p-[14px] sm:max-w-[320px]">
+        <div className="shrink-0 border-b border-folk-border bg-white px-[16px] py-[14px]">
+          <div className="rounded-none border border-[#d9d9d9] bg-folk-surface p-[14px] sm:max-w-[320px]">
             <div className="flex items-center justify-between">
               <span className="text-[12px] font-medium text-folk-secondary">Scheduled shifts</span>
               <CalendarDays className="h-[14px] w-[14px] text-folk-placeholder" strokeWidth={1.5} />
@@ -144,7 +144,7 @@ export function SpendingPlanTab({
                         onEditPlan(plan)
                       }
                     }}
-                    className="group flex cursor-pointer flex-col rounded-none border border-[#e2e2e2] bg-folk-surface p-[20px] text-left transition-all hover:border-folk-border hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+                    className="group flex cursor-pointer flex-col rounded-none border border-[#d9d9d9] bg-folk-surface p-[20px] text-left transition-all hover:border-folk-border hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
                     tabIndex={0}
                   >
                     <CalendarClock className="h-[20px] w-[20px] shrink-0 text-folk-secondary" strokeWidth={1.5} />

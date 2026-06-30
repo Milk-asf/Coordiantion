@@ -1,6 +1,6 @@
 "use client"
 
-import { useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react"
+import { useEffect, useRef, type RefObject } from "react"
 import { createPortal } from "react-dom"
 import { DatePicker } from "@/components/date-picker"
 import {
@@ -10,11 +10,13 @@ import {
   getFixedDropdownStyle,
   type FixedDropdownAlign,
 } from "@/lib/dropdown-utils"
+import { useFixedDropdownPosition } from "@/lib/hooks/use-fixed-dropdown-position"
 import { cn } from "@/lib/utils"
 
 interface FixedDatePickerDropdownProps {
   isOpen: boolean
   anchorRef: RefObject<HTMLElement | null>
+  anchorElement?: HTMLElement | null
   value: string
   onChange: (value: string) => void
   onClose: () => void
@@ -26,6 +28,7 @@ interface FixedDatePickerDropdownProps {
 export function FixedDatePickerDropdown({
   isOpen,
   anchorRef,
+  anchorElement = null,
   value,
   onChange,
   onClose,
@@ -33,69 +36,56 @@ export function FixedDatePickerDropdown({
   minWidth = 260,
   align = "match",
 }: FixedDatePickerDropdownProps) {
-  const menuRef = useRef<HTMLDivElement>(null)
-  const [menuStyle, setMenuStyle] = useState<CSSProperties | null>(null)
+  const openedAtRef = useRef(0)
+  const menuStyle = useFixedDropdownPosition(
+    isOpen,
+    anchorRef,
+    estimatedHeight,
+    minWidth,
+    align,
+    anchorElement,
+  )
 
-  useLayoutEffect(() => {
-    if (!isOpen) {
-      setMenuStyle(null)
-      return
-    }
+  useEffect(() => {
+    if (isOpen) openedAtRef.current = Date.now()
+  }, [isOpen])
 
-    let frame = 0
+  const handleBackdropClose = () => {
+    if (Date.now() - openedAtRef.current < 200) return
+    onClose()
+  }
 
-    const updatePosition = () => {
-      const anchor = anchorRef.current
-      if (!anchor) return
-
-      const rect = anchor.getBoundingClientRect()
-      const measuredHeight = Math.max(
-        menuRef.current?.scrollHeight ?? 0,
-        menuRef.current?.offsetHeight ?? 0,
-        estimatedHeight
-      )
-      setMenuStyle(getFixedDropdownStyle(rect, measuredHeight, minWidth, align))
-    }
-
-    updatePosition()
-    frame = requestAnimationFrame(updatePosition)
-
-    const observer =
-      typeof ResizeObserver !== "undefined" ? new ResizeObserver(updatePosition) : null
-    if (menuRef.current) observer?.observe(menuRef.current)
-
-    window.addEventListener("resize", updatePosition)
-    window.addEventListener("scroll", updatePosition, true)
-
-    return () => {
-      if (frame) cancelAnimationFrame(frame)
-      observer?.disconnect()
-      window.removeEventListener("resize", updatePosition)
-      window.removeEventListener("scroll", updatePosition, true)
-    }
-  }, [align, anchorRef, estimatedHeight, isOpen, minWidth, value])
-
-  if (!isOpen) return null
-
-  const anchor = anchorRef.current
-  const style =
+  const anchor = anchorRef.current ?? anchorElement
+  const resolvedStyle =
     menuStyle ??
-    (anchor
+    (isOpen && anchor
       ? getFixedDropdownStyle(anchor.getBoundingClientRect(), estimatedHeight, minWidth, align)
       : null)
 
-  if (!style) return null
+  if (!isOpen || !resolvedStyle) return null
 
   return createPortal(
     <>
-      <div className={cn("fixed inset-0", FIXED_DROPDOWN_BACKDROP_Z_CLASS)} data-floating-overlay onClick={onClose} aria-hidden="true" />
       <div
-        ref={menuRef}
-        className={cn("fixed overscroll-contain", FIXED_DROPDOWN_MENU_Z_CLASS)}
+        className={cn("fixed inset-0", FIXED_DROPDOWN_BACKDROP_Z_CLASS)}
         data-floating-overlay
-        style={style}
+        onClick={handleBackdropClose}
+        aria-hidden="true"
+      />
+      <div
+        className={cn(
+          "fixed rounded-none border border-folk-border bg-folk-surface shadow-folk",
+          FIXED_DROPDOWN_MENU_Z_CLASS,
+        )}
+        data-floating-overlay
+        style={{
+          ...resolvedStyle,
+          overflow: "visible",
+        }}
+        onClick={(event) => event.stopPropagation()}
+        onMouseDown={(event) => event.stopPropagation()}
       >
-        <DatePicker value={value} onChange={onChange} onClose={onClose} />
+        <DatePicker value={value} onChange={onChange} onClose={onClose} bare />
       </div>
     </>,
     document.body

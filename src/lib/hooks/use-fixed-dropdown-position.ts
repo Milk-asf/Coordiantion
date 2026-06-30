@@ -22,8 +22,8 @@ export function useFixedDropdownPosition(
     let frame = 0
 
     const updatePosition = () => {
-      const anchor = anchorElement ?? anchorRef.current
-      if (!anchor) {
+      const anchor = anchorRef.current ?? anchorElement
+      if (!anchor || anchor.getBoundingClientRect().height === 0) {
         frame = requestAnimationFrame(updatePosition)
         return
       }

@@ -16,16 +16,37 @@ export function folkNavPrimaryTextClass(className?: string) {
   return cn("text-[13px] font-medium leading-none text-folk-text", className)
 }
 
+/** Standard page title typography — matches title bar h1 across list/detail pages. */
+export function pageTitleTextClass(className?: string) {
+  return cn("text-[16px] font-semibold leading-[1.2] tracking-[-0.02em] text-folk-text", className)
+}
+
+/** Top title row — 52px; bottom border aligns with sidebar workspace header. */
+export function pageTitleBarClass(className?: string) {
+  return cn(
+    "flex h-[52px] shrink-0 items-center border-b border-folk-border bg-white",
+    className,
+  )
+}
+
+/** Sidebar workspace row — same 52px height as pageTitleBarClass for aligned borders. */
+export function sidebarWorkspaceHeaderClass(className?: string) {
+  return cn(
+    "flex h-[52px] shrink-0 items-center border-b border-folk-border bg-white px-3",
+    className,
+  )
+}
+
 export function folkNavActionLinkClass(className?: string) {
   return cn(
-    "inline-flex h-[28px] appearance-none items-center rounded-folk-btn border-0 border-x border-b border-folk-border bg-white px-[10px] text-[12px] font-medium leading-none text-folk-text shadow-none transition-[color,background-color,border-color] duration-fast ease-in-out hover:bg-folk-hover focus:outline-none focus-visible:outline-none",
+    "outline-btn folk-pill-btn h-[28px] min-h-[28px] px-[12px] text-[12px] font-medium leading-none",
     className
   )
 }
 
 export function folkNavIconButtonClass(className?: string) {
   return cn(
-    "inline-flex appearance-none items-center justify-center rounded-folk-btn border-0 border-x border-b border-folk-border bg-white text-folk-secondary shadow-none transition-[color,background-color,border-color] duration-fast ease-in-out hover:bg-folk-hover hover:text-folk-text focus:outline-none focus-visible:outline-none",
+    "icon-btn folk-nav-icon-btn",
     className
   )
 }
@@ -54,17 +75,38 @@ export function viewTabButtonClass(isActive: boolean, className?: string) {
   return cn(
     "inline-flex shrink-0 items-center gap-[5px] text-[12px] font-normal leading-none transition-colors",
     isActive
-      ? "outline-btn bg-folk-hover px-[10px] py-[4px] !text-[12px] !font-normal text-folk-text hover:bg-folk-hover"
+      ? "outline-btn folk-pill-btn h-[28px] min-h-[28px] px-[10px] !text-[12px] !font-normal hover:bg-folk-hover"
       : "rounded-full border border-transparent bg-transparent px-[8px] py-[2px] text-[var(--folk-nav-muted)] hover:text-folk-text",
     className
   )
 }
 
-/** List-page view tab row (Clients, Staff, etc.) */
+/** List-page view tab row (Clients, Staff, etc.) — underline tabs. */
 export function listViewTabBarClass(className?: string) {
   return cn(
-    "relative flex h-[40px] shrink-0 items-center gap-[4px] overflow-x-auto border-b border-[var(--folk-nav-bar-border)] bg-white px-[16px]",
+    "folk-tab-bar folk-tab-scroll relative flex h-[40px] shrink-0 items-stretch gap-0 overflow-x-auto overflow-y-visible border-b border-[var(--folk-nav-bar-border)] bg-white px-[16px]",
     className
+  )
+}
+
+/** Filter / search row directly above list table or kanban. */
+export function listViewFilterBarClass(className?: string) {
+  return cn(
+    "flex min-h-[41px] shrink-0 flex-wrap items-center gap-[8px] border-b border-folk-border bg-white px-[16px] py-[6px]",
+    className,
+  )
+}
+
+/** Scrollable list body beneath filter toolbar. */
+export function listViewBodyClass(className?: string) {
+  return cn("min-h-0 flex-1 overflow-auto bg-white outline-none", className)
+}
+
+/** Kanban board scroll row. */
+export function listViewKanbanScrollClass(className?: string) {
+  return cn(
+    "folk-kanban-scroll flex h-full min-h-0 items-start gap-[16px] overflow-x-auto overflow-y-hidden bg-white p-[16px] outline-none",
+    className,
   )
 }
 
@@ -113,5 +155,12 @@ export function profilePageTabBarClass(className?: string) {
   return cn(
     "folk-tab-bar relative flex h-full min-w-0 flex-1 items-stretch justify-between gap-0 overflow-visible px-[16px]",
     className
+  )
+}
+
+export function pageNavTabsScrollClass(className?: string) {
+  return cn(
+    "folk-tab-scroll flex min-w-0 flex-1 items-stretch gap-[12px] overflow-x-auto",
+    className,
   )
 }

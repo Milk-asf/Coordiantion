@@ -115,7 +115,7 @@ export function DocumentSidebarForm({
                   onSetValidFromPickerOpen(!validFromPickerOpen)
                   onSetValidToPickerOpen(false)
                 }}
-                className="flex h-[36px] w-full items-center gap-[8px] rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium transition-colors hover:border-[#ccc] focus:border-[#a3c4f3]"
+                className="flex h-[36px] w-full items-center gap-[8px] rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium transition-colors hover:border-[#bababa] focus:border-[#a3c4f3]"
                 tabIndex={0}
               >
                 <CalendarDays className="h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
@@ -161,7 +161,7 @@ export function DocumentSidebarForm({
                   onSetValidToPickerOpen(!validToPickerOpen)
                   onSetValidFromPickerOpen(false)
                 }}
-                className="flex h-[36px] w-full items-center gap-[8px] rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium transition-colors hover:border-[#ccc] focus:border-[#a3c4f3]"
+                className="flex h-[36px] w-full items-center gap-[8px] rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium transition-colors hover:border-[#bababa] focus:border-[#a3c4f3]"
                 tabIndex={0}
               >
                 <CalendarDays className="h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.5} />

@@ -3,6 +3,7 @@
 import { useRef, type ComponentType } from "react"
 import { ChevronLeft, Receipt, X } from "lucide-react"
 import { EditableField } from "@/components/editable-field"
+import { FolkSidebarField, FolkSidebarStaticValue } from "@/components/folk-sidebar"
 import { FixedDropdownMenu } from "@/components/fixed-dropdown-menu"
 import { DisplayFilterList, createDisplayFilterToggle, getDisplayFilterVisibleKeys } from "@/components/display-popover"
 
@@ -110,8 +111,8 @@ export function MultiSelectDropdown({
             className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${isActive ? "bg-folk-hover" : ""}`}
             tabIndex={0}
           >
-            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-none border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
-              {isActive && <span className="text-[10px] text-white">✓</span>}
+            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-[4px] border border-folk-text bg-white`}>
+              {isActive && <span className="text-[10px] leading-none text-folk-text">✓</span>}
             </div>
             <span className="text-folk-text">{item.label}</span>
           </button>
@@ -145,39 +146,33 @@ export function SidebarField({
   formatValue?: (value: string) => string
 }) {
   return (
-    <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
-      <span className="text-[13px] font-medium text-[#8d8d8d]">{label}</span>
-      <div className="min-w-0">
-        <EditableField
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          type={type}
-          options={options}
-          size="compact"
-          offsetClassName=""
-          emptyLabel="Empty"
-          displayClassName="block min-w-0 rounded-none px-[8px] py-[6px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-page"
-          dropdownButtonClassName="flex w-full min-w-0 items-center justify-between rounded-none border border-[#a3c4f3] bg-folk-page px-[8px] py-[5px] text-left text-[13px] font-medium text-folk-text shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
-          dropdownItemClassName="flex w-full items-center px-[8px] py-[6px] text-left text-[13px] font-medium transition-colors hover:bg-folk-hover"
-          inputClassName="w-full rounded-none border border-[#a3c4f3] bg-folk-page px-[8px] py-[5px] pr-[28px] text-[13px] font-medium text-folk-text shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
-        />
-        {formatValue && value && (
-          <div className="mt-[2px] px-[8px] text-[12px] text-folk-secondary">{formatValue(value)}</div>
-        )}
-      </div>
-    </div>
+    <FolkSidebarField label={label}>
+      <EditableField
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        type={type}
+        options={options}
+        size="compact"
+        offsetClassName=""
+        emptyLabel="Empty"
+        displayClassName="block min-w-0 rounded-md px-[8px] py-[6px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-page"
+        dropdownButtonClassName="flex w-full min-w-0 items-center justify-between rounded-md border border-[#a3c4f3] bg-folk-page px-[8px] py-[5px] text-left text-[13px] font-medium text-folk-text shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
+        dropdownItemClassName="flex w-full items-center px-[8px] py-[6px] text-left text-[13px] font-medium transition-colors hover:bg-folk-hover"
+        inputClassName="w-full rounded-md border border-[#a3c4f3] bg-folk-page px-[8px] py-[5px] pr-[28px] text-[13px] font-medium text-folk-text shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
+      />
+      {formatValue && value && (
+        <div className="mt-[2px] px-[8px] text-[12px] text-folk-secondary">{formatValue(value)}</div>
+      )}
+    </FolkSidebarField>
   )
 }
 
 export function SidebarStaticField({ label, value }: { label: string; value: string }) {
   return (
-    <div className="grid grid-cols-[84px_minmax(0,1fr)] items-center gap-[12px]">
-      <span className="text-[13px] font-medium text-[#8d8d8d]">{label}</span>
-      <div className={`min-w-0 rounded-none px-[8px] py-[6px] text-[13px] font-medium ${value === "Empty" ? "text-folk-placeholder" : "text-folk-text"}`}>
-        {value}
-      </div>
-    </div>
+    <FolkSidebarField label={label}>
+      <FolkSidebarStaticValue value={value === "Empty" ? "" : value} emptyLabel="Empty" />
+    </FolkSidebarField>
   )
 }
 

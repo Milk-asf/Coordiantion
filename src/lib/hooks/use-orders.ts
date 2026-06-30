@@ -12,6 +12,8 @@ export interface OrderInput {
   amount: number
   fundingSource: OrderFundingSource
   description: string
+  /** Status is applied via the dedicated status updater so approval metadata stays correct. */
+  status: OrderStatus
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */

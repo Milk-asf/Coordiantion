@@ -1,10 +1,10 @@
 "use client"
 
 import type { ComponentType, ReactNode } from "react"
-import { Activity, CalendarDays, FileText, PanelRightClose } from "lucide-react"
+import { Activity, CalendarDays, FileText } from "lucide-react"
+import { PanelToggleButton } from "@/components/panel-toggle-button"
 import { ProfileTabButton } from "@/components/profile-tab-button"
-import { profileMainTabScrollClass, profileTabBarClass, folkNavIconButtonClass } from "@/components/tab-active-indicator"
-import { IconButton } from "@/components/icon-button"
+import { profileMainTabScrollClass, profileTabBarClass } from "@/components/tab-active-indicator"
 import { cn } from "@/lib/utils"
 
 export type AccountDetailsTab = "details" | "activity" | "roster"
@@ -18,6 +18,35 @@ const accountDetailsTabs: Array<{
   { key: "activity", label: "Activity", icon: Activity },
   { key: "roster", label: "Roster", icon: CalendarDays },
 ]
+
+interface AccountDetailsSidebarToggleProps {
+  isOpen: boolean
+  onToggle: () => void
+  openTooltip?: string
+  closeTooltip?: string
+  className?: string
+}
+
+/** Keeps the sidebar show/hide control aligned with the main sidebar collapse button. */
+export function AccountDetailsSidebarToggle({
+  isOpen,
+  onToggle,
+  openTooltip = "Show account details",
+  closeTooltip = "Hide account details",
+  className,
+}: AccountDetailsSidebarToggleProps) {
+  return (
+    <div className={cn("flex shrink-0 items-center pl-[8px]", className)}>
+      <PanelToggleButton
+        side="right"
+        isOpen={isOpen}
+        onClick={onToggle}
+        ariaLabel={isOpen ? closeTooltip : openTooltip}
+        tooltip={isOpen ? closeTooltip : openTooltip}
+      />
+    </div>
+  )
+}
 
 interface AccountDetailsTabBarProps {
   activeTab: AccountDetailsTab
@@ -47,22 +76,13 @@ export function AccountDetailsTabBar({
           />
         ))}
       </div>
-      <div className="flex shrink-0 items-center gap-[2px]">
-        {onHideSidebar && (
-          <IconButton
-            type="button"
-            onClick={onHideSidebar}
-            tooltip={hideSidebarTooltip}
-            className={cn(
-              "flex h-[28px] w-[28px] items-center justify-center",
-              folkNavIconButtonClass()
-            )}
-            tabIndex={0}
-          >
-            <PanelRightClose className="h-[14px] w-[14px]" strokeWidth={1.5} />
-          </IconButton>
-        )}
-      </div>
+      {onHideSidebar && (
+        <AccountDetailsSidebarToggle
+          isOpen
+          onToggle={onHideSidebar}
+          closeTooltip={hideSidebarTooltip}
+        />
+      )}
     </div>
   )
 }

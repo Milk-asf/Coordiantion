@@ -10,12 +10,13 @@ import { useColumnResize } from "@/lib/hooks/use-column-resize"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import type { StaffMember, StaffDetails } from "@/lib/types"
 import { EntityIcon } from "@/components/entity-icon"
-import { FloatingSidePanel, FloatingSidePanelHost } from "@/components/floating-side-panel"
+import { FormModal } from "@/components/form-modal"
 import { EditableField } from "@/components/editable-field"
 import { ContactChip } from "@/components/contact-chip"
 import { DetailRow } from "@/components/detail-row"
-import { listViewTabBarClass } from "@/components/tab-active-indicator"
+import { listViewBodyClass, listViewFilterBarClass, listViewTabBarClass, pageTitleTextClass } from "@/components/tab-active-indicator"
 import { ProfileTabButton } from "@/components/profile-tab-button"
+import { TableAddFooter, TableAddNewButton } from "@/components/table-add-row"
 import {
   Users,
   Plus,
@@ -43,6 +44,8 @@ import {
 import { CategoryChip } from "@/components/category-chip"
 import { CsvDropdown } from "@/components/csv-dropdown"
 import { PageLoader, PageError } from "@/components/page-state"
+import { InviteMemberModal } from "@/components/invite-member-modal"
+import { PageTitleBar } from "@/components/page-title-bar"
 import { TableColumnMenuPortal } from "@/components/table-column-menu-portal"
 import { TableMultiFilter, uniqueNonEmpty, type TableFilterDefinition } from "@/components/table-multi-filter"
 import { TableDisplayPopover } from "@/components/display-popover"
@@ -100,11 +103,11 @@ function StaffProfile({ member, onUpdateField, onClose }: { member: StaffMember;
   const d = member.details
 
   return (
-    <FloatingSidePanel>
-        <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-folk-border-subtle bg-folk-nav px-[16px]">
+    <FormModal onClose={onClose} width={440} position="right">
+        <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-folk-border-subtle bg-white px-[16px]">
           <div className="flex min-w-0 items-center gap-[8px]">
             <EntityIcon text={member.iconText} size="sm" />
-            <span className="truncate text-[13px] font-medium text-folk-text">{member.name}</span>
+            <span className={pageTitleTextClass("truncate")}>{member.name}</span>
             {member.status === "invited" && <span className="rounded-none border border-folk-border bg-folk-hover px-[6px] py-[1px] text-[11px] font-medium text-folk-secondary">Invited</span>}
           </div>
           <div className="flex items-center gap-[4px]">
@@ -121,7 +124,7 @@ function StaffProfile({ member, onUpdateField, onClose }: { member: StaffMember;
           <div className="flex items-center gap-[12px] px-[20px] pb-[20px] pt-[24px]">
             <EntityIcon text={member.iconText} size="lg" />
             <div>
-              <h2 className="text-[18px] font-semibold text-folk-text">{d.preferredName || d.firstName} {d.lastName}</h2>
+              <h2 className={pageTitleTextClass()}>{d.preferredName || d.firstName} {d.lastName}</h2>
               {d.role && <p className="text-[13px] font-medium text-folk-secondary">{d.role}{d.department ? ` · ${d.department}` : ""}</p>}
             </div>
           </div>
@@ -191,6 +194,12 @@ function StaffProfile({ member, onUpdateField, onClose }: { member: StaffMember;
                 {sf("s-certifications") && <DetailRow label="Certifications" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
                   <EditableField value={d.certifications} onChange={(v) => onUpdateField("certifications", v)} placeholder="Certifications" size="compact" />
                 </DetailRow>}
+                {sf("s-ndis-screening-number") && <DetailRow label="NDIS Screening" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                  <EditableField value={d.ndisScreeningNumber} onChange={(v) => onUpdateField("ndisScreeningNumber", v)} placeholder="Screening number" size="compact" />
+                </DetailRow>}
+                {sf("s-ndis-screening-expiry") && <DetailRow label="Screening Expiry" labelWidthClassName="w-[130px]" rowClassName="flex items-center py-[6px]">
+                  <EditableField value={d.ndisScreeningExpiry} onChange={(v) => onUpdateField("ndisScreeningExpiry", v)} type="date" placeholder="Expiry date" size="compact" />
+                </DetailRow>}
 
                 <div className="my-[12px] h-px bg-[#e8e8e8]" />
                 <h3 className="mb-[6px] text-[12px] font-semibold text-folk-text">Emergency Contact</h3>
@@ -209,7 +218,7 @@ function StaffProfile({ member, onUpdateField, onClose }: { member: StaffMember;
             )}
           </div>
         </div>
-    </FloatingSidePanel>
+    </FormModal>
   )
 }
 
@@ -242,6 +251,7 @@ export default function StaffPage() {
   const [newViewName, setNewViewName] = useState("")
   const [viewContextMenu, setViewContextMenu] = useState<{ viewId: string; x: number; y: number } | null>(null)
   const [deleteViewConfirm, setDeleteViewConfirm] = useState<SavedView | null>(null)
+  const [isInviteOpen, setIsInviteOpen] = useState(false)
   const [listFilters, setListFilters] = useState<StaffListFilterState>(emptyStaffListFilters)
   const displayBtnRef = useRef<HTMLButtonElement>(null)
   const viewNameInputRef = useRef<HTMLInputElement>(null)
@@ -474,13 +484,42 @@ export default function StaffPage() {
   return (
     <div className="relative flex h-full">
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Title + primary actions */}
-        <div className="flex shrink-0 items-center justify-between border-b border-folk-border bg-folk-nav px-[16px] py-[14px]">
-          <h1 className="text-[16px] font-semibold leading-[1.2] tracking-[-0.02em] text-folk-text">
-            Staff
-          </h1>
+        <PageTitleBar title="Staff" />
+
+        {/* Saved views + actions */}
+        <div className={listViewTabBarClass("h-[44px] justify-between gap-[8px]")}>
+          <div className="folk-tab-bar folk-tab-scroll flex min-w-0 flex-1 items-stretch gap-0 overflow-x-auto overflow-y-visible">
+            <ProfileTabButton
+              variant="profile"
+              showIcon
+              isActive={activeViewId === null}
+              onClick={handleSelectAllView}
+              icon={Table2}
+              label="All"
+            />
+            {savedViews.map((view) => (
+              <ProfileTabButton
+                key={view.id}
+                variant="profile"
+                showIcon
+                isActive={activeViewId === view.id}
+                onClick={() => handleSelectView(view)}
+                onContextMenu={(e) => { e.preventDefault(); setViewContextMenu({ viewId: view.id, x: e.clientX, y: e.clientY }) }}
+                icon={Table2}
+                label={view.name}
+              />
+            ))}
+            <button
+              onClick={() => { setIsCreateViewOpen(true); setTimeout(() => viewNameInputRef.current?.focus(), 50) }}
+              className="flex h-[24px] w-[24px] shrink-0 self-center items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+              aria-label="Add view"
+              tabIndex={0}
+            >
+              <Plus className="h-[14px] w-[14px]" strokeWidth={1.5} />
+            </button>
+          </div>
           {canManageStaff && (
-            <div className="flex items-center gap-[8px]">
+            <div className="flex shrink-0 items-center gap-[8px] self-center">
               <CsvDropdown
                 entityType="staff"
                 columns={csvColumns}
@@ -488,7 +527,7 @@ export default function StaffPage() {
                 data={exportCsvData}
                 onImport={handleCsvImport}
               />
-              <button onClick={() => router.push("/settings/members")} className="outline-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors" tabIndex={0}>
+              <button onClick={() => setIsInviteOpen(true)} className="primary-btn folk-pill-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors" tabIndex={0}>
                 <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
                 <span className="hidden sm:inline">Add new</span>
               </button>
@@ -496,37 +535,7 @@ export default function StaffPage() {
           )}
         </div>
 
-        {/* Saved views */}
-        <div className={listViewTabBarClass()}>
-          <ProfileTabButton
-            variant="toolbar"
-            isActive={activeViewId === null}
-            onClick={handleSelectAllView}
-            icon={Table2}
-            label="All"
-          />
-          {savedViews.map((view) => (
-            <ProfileTabButton
-              key={view.id}
-              variant="toolbar"
-              isActive={activeViewId === view.id}
-              onClick={() => handleSelectView(view)}
-              onContextMenu={(e) => { e.preventDefault(); setViewContextMenu({ viewId: view.id, x: e.clientX, y: e.clientY }) }}
-              icon={Table2}
-              label={view.name}
-            />
-          ))}
-          <button
-            onClick={() => { setIsCreateViewOpen(true); setTimeout(() => viewNameInputRef.current?.focus(), 50) }}
-            className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
-            aria-label="Add view"
-            tabIndex={0}
-          >
-            <Plus className="h-[14px] w-[14px]" strokeWidth={1.5} />
-          </button>
-        </div>
-
-        <div className="flex min-h-[41px] shrink-0 flex-wrap items-center gap-[8px] border-b border-folk-border bg-folk-nav px-[16px] py-[6px]">
+        <div className={listViewFilterBarClass()}>
           <TableMultiFilter
             filters={staffFilterDefinitions}
             values={listFilters}
@@ -553,7 +562,7 @@ export default function StaffPage() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto bg-folk-surface">
+        <div className={listViewBodyClass()}>
           <table className={`w-full ${TABLE_GRID}`} style={{ tableLayout: "fixed", minWidth: visibleColumns.reduce((sum, col) => sum + getWidth(col.key, col.minWidth), 240) }}>
             <thead>
               <tr>
@@ -691,6 +700,11 @@ export default function StaffPage() {
               })}
             </tbody>
           </table>
+          {canManageStaff && (
+            <TableAddFooter>
+              <TableAddNewButton onClick={() => setIsInviteOpen(true)} />
+            </TableAddFooter>
+          )}
         </div>
 
         <div className="shrink-0 border-t border-folk-border px-[20px] py-[10px]">
@@ -699,9 +713,7 @@ export default function StaffPage() {
       </div>
 
       {selectedMember && (
-        <FloatingSidePanelHost>
-          <StaffProfile member={selectedMember} onUpdateField={(field, value) => handleUpdateField(selectedMember.id, field, value)} onClose={() => { setSelectedMember(null); setSelectedCell(null) }} />
-        </FloatingSidePanelHost>
+        <StaffProfile member={selectedMember} onUpdateField={(field, value) => handleUpdateField(selectedMember.id, field, value)} onClose={() => { setSelectedMember(null); setSelectedCell(null) }} />
       )}
 
       {isCreateViewOpen && (
@@ -774,6 +786,8 @@ export default function StaffPage() {
           </div>
         </div>
       )}
+
+      <InviteMemberModal isOpen={isInviteOpen} onClose={() => setIsInviteOpen(false)} />
     </div>
   )
 }

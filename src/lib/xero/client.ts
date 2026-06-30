@@ -3,7 +3,9 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { encryptSecret, decryptSecret } from "@/lib/crypto/secure-store"
 import type { Invoice as AppInvoice, InvoiceLineItem } from "@/lib/types"
 
-// Scopes: identity + offline access (for refresh tokens) + accounting invoices/contacts.
+// Scopes: identity + offline access (for refresh tokens) + accounting invoices/contacts
+// + AU payroll (employees, pay runs, timesheets, settings) so approved timesheets can
+// be pushed to Xero Payroll for pay runs.
 export const XERO_SCOPES = [
   "openid",
   "profile",
@@ -11,6 +13,10 @@ export const XERO_SCOPES = [
   "offline_access",
   "accounting.invoices",
   "accounting.contacts",
+  "payroll.employees",
+  "payroll.payruns",
+  "payroll.timesheets",
+  "payroll.settings",
 ]
 
 export interface IntegrationConnection {

@@ -93,7 +93,7 @@ function IntegrationsContent() {
         </div>
       )}
 
-      <div className="rounded-[14px] border border-[#e2e2e2] bg-folk-surface p-[20px]">
+      <div className="rounded-[14px] border border-[#d9d9d9] bg-folk-surface p-[20px]">
         <div className="flex items-start justify-between gap-[16px]">
           <div className="flex items-start gap-[12px]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -189,7 +189,7 @@ function IntegrationsContent() {
                 type="button"
                 onClick={handleDisconnect}
                 disabled={isDisconnecting}
-                className="rounded-none border border-folk-border px-[14px] py-[8px] text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+                className="outline-btn px-[14px] py-[8px] text-[13px] font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
                 tabIndex={0}
               >
                 {isDisconnecting ? "Disconnecting…" : "Disconnect"}
@@ -201,7 +201,7 @@ function IntegrationsContent() {
                   type="button"
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="rounded-none bg-[#1a1a1a] px-[14px] py-[8px] text-[13px] font-medium text-white transition-colors hover:bg-[#333] disabled:opacity-50"
+                  className="primary-btn disabled:opacity-50"
                   tabIndex={0}
                 >
                   {isSaving ? "Saving…" : "Save settings"}

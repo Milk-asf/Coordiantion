@@ -18,23 +18,47 @@ export function folkCanvasClass(className?: string) {
   return cn("bg-white", className)
 }
 
+export function folkPrimaryBtnClass(className?: string) {
+  return cn("primary-btn", className)
+}
+
 export function folkOutlineBtnClass(className?: string) {
-  return cn(
-    "inline-flex h-[32px] items-center justify-center gap-[6px] rounded-folk-btn border border-folk-border-strong bg-white px-[14px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover disabled:opacity-45",
-    className
-  )
+  return cn("outline-btn", className)
 }
 
 export function folkIconBtnClass(className?: string) {
+  return cn("icon-btn", className)
+}
+
+/** Pill-shaped filter trigger (Filter, Display). */
+export function folkFilterBtnClass(className?: string) {
+  return cn("outline-btn folk-pill-btn", className)
+}
+
+/** Pill-shaped add trigger (Add new, Add shift, Add task). Solid black fill. */
+export function folkAddBtnClass(className?: string) {
+  return cn("primary-btn folk-pill-btn", className)
+}
+
+/** Primary (solid) pill action trigger — Add new, Approve all, Create invoices, etc. */
+export function folkPrimaryAddBtnClass(className?: string) {
   return cn(
-    "inline-flex h-[28px] w-[28px] items-center justify-center rounded-folk-input border border-folk-border-strong bg-white text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text",
-    className
+    "primary-btn folk-pill-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors",
+    className,
+  )
+}
+
+/** Pill-shaped clock on/off actions — dark fill on light sidebar band. */
+export function folkClockBtnClass(className?: string) {
+  return cn(
+    "folk-clock-btn inline-flex h-[29px] shrink-0 items-center justify-center gap-[6px] rounded-full bg-[#1a1a1a] px-[16px] text-[13px] font-medium text-white transition-colors hover:bg-[#000000] disabled:opacity-50",
+    className,
   )
 }
 
 export function folkQuickActionClass(className?: string) {
   return cn(
-    "inline-flex h-[28px] items-center gap-[5px] rounded-folk-btn border border-folk-border-strong bg-white px-[10px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover",
+    "outline-btn h-[29px] min-h-[29px] gap-[5px] px-[10px] text-[12px] font-medium",
     className
   )
 }

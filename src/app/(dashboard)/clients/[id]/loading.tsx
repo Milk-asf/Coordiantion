@@ -1,7 +1,7 @@
 export default function ClientProfileLoading() {
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-[44px] shrink-0 items-center gap-[12px] border-b border-folk-border-subtle bg-folk-nav px-[16px]">
+      <div className="flex h-[44px] shrink-0 items-center gap-[12px] border-b border-folk-border-subtle bg-white px-[16px]">
         <div className="h-[28px] w-[28px] animate-pulse rounded-full bg-[var(--folk-border-subtle)]" />
         <div className="h-[16px] w-[140px] animate-pulse rounded-none bg-[var(--folk-border-subtle)]" />
         <div className="ml-auto flex items-center gap-[8px]">

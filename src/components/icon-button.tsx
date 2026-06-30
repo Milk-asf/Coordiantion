@@ -1,9 +1,10 @@
 "use client"
 
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react"
+import { cn } from "@/lib/utils"
+import { folkIconBtnClass } from "@/lib/folk-ui"
 import { Tooltip } from "@/components/tooltip"
 import { motion } from "@/lib/motion"
-import { cn } from "@/lib/utils"
 
 interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   tooltip: string
@@ -21,7 +22,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
         ref={ref}
         type={type}
         aria-label={ariaLabel ?? tooltip}
-        className={cn(motion.interactive, className)}
+        className={cn(motion.interactive, folkIconBtnClass(), className)}
         {...props}
       >
         {children}

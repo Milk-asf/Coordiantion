@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Ban, Building2, User } from "lucide-react"
 import { motion } from "@/lib/motion"
-import type { RosterShiftCancelledBy } from "@/lib/roster/types"
+import { getCancellationClaimSuggestion } from "@/lib/roster/compliance"
+import type { RosterShift, RosterShiftCancelledBy } from "@/lib/roster/types"
 import { cn } from "@/lib/utils"
 
 interface CancelShiftDialogProps {
   isOpen: boolean
+  shift?: Pick<RosterShift, "date" | "chargeTypes">
   onConfirm: (cancelledBy: RosterShiftCancelledBy, cancellationReason: string) => void
   onCancel: () => void
 }
@@ -32,7 +34,7 @@ const CANCELLED_BY_OPTIONS: {
   },
 ]
 
-export function CancelShiftDialog({ isOpen, onConfirm, onCancel }: CancelShiftDialogProps) {
+export function CancelShiftDialog({ isOpen, shift, onConfirm, onCancel }: CancelShiftDialogProps) {
   const [cancelledBy, setCancelledBy] = useState<RosterShiftCancelledBy>("client")
   const [reason, setReason] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -61,6 +63,8 @@ export function CancelShiftDialog({ isOpen, onConfirm, onCancel }: CancelShiftDi
 
     onConfirm(cancelledBy, trimmedReason)
   }
+
+  const claimSuggestion = shift ? getCancellationClaimSuggestion(cancelledBy, shift) : null
 
   if (!isOpen) return null
 
@@ -140,12 +144,19 @@ export function CancelShiftDialog({ isOpen, onConfirm, onCancel }: CancelShiftDi
                 if (error) setError(null)
               }}
               placeholder="Why was this shift cancelled?"
-              className="min-h-[88px] w-full resize-y rounded-none border border-folk-border bg-folk-page px-[12px] py-[8px] text-[13px] font-medium leading-[1.5] text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#ccc] focus:border-[#a3c4f3]"
+              className="min-h-[88px] w-full resize-y rounded-none border border-folk-border bg-folk-page px-[12px] py-[8px] text-[13px] font-medium leading-[1.5] text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]"
             />
             {error && (
               <p className="mt-[6px] text-[12px] font-medium text-red-600">{error}</p>
             )}
           </div>
+
+          {claimSuggestion && (
+            <div className="rounded-none border border-[#fde68a] bg-[#fffbeb] px-[12px] py-[10px] text-left">
+              <p className="text-[12px] font-semibold text-amber-900">NDIS billing note</p>
+              <p className="mt-[4px] text-[12px] leading-snug text-amber-900/90">{claimSuggestion}</p>
+            </div>
+          )}
         </div>
 
         <div className="mt-[20px] flex items-center gap-[10px]">

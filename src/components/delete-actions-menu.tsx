@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useState } from "react"
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+import { Archive, ArchiveRestore, MoreHorizontal, Pencil, Pin, PinOff, SquarePen, Trash2 } from "lucide-react"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { FixedSelectDropdown } from "@/components/fixed-select-dropdown"
 import type { FixedDropdownAlign } from "@/lib/dropdown-utils"
@@ -9,6 +9,12 @@ import type { FixedDropdownAlign } from "@/lib/dropdown-utils"
 interface DeleteActionsMenuProps {
   onDelete?: () => void
   onRename?: () => void
+  onEdit?: () => void
+  editLabel?: string
+  onPin?: () => void
+  isPinned?: boolean
+  onArchive?: () => void
+  isArchived?: boolean
   confirmTitle?: string
   confirmDescription?: string
   itemName?: string
@@ -23,6 +29,12 @@ interface DeleteActionsMenuProps {
 export function DeleteActionsMenu({
   onDelete,
   onRename,
+  onEdit,
+  editLabel = "Edit",
+  onPin,
+  isPinned = false,
+  onArchive,
+  isArchived = false,
   confirmTitle = "Are you sure?",
   confirmDescription,
   itemName,
@@ -64,7 +76,25 @@ export function DeleteActionsMenu({
     onRename?.()
   }
 
-  const menuItemCount = (onRename ? 1 : 0) + (onDelete ? 1 : 0)
+  const handleEditClick = (e: React.MouseEvent) => {
+    if (stopPropagation) e.stopPropagation()
+    setIsMenuOpen(false)
+    onEdit?.()
+  }
+
+  const handleArchiveClick = (e: React.MouseEvent) => {
+    if (stopPropagation) e.stopPropagation()
+    setIsMenuOpen(false)
+    onArchive?.()
+  }
+
+  const handlePinClick = (e: React.MouseEvent) => {
+    if (stopPropagation) e.stopPropagation()
+    setIsMenuOpen(false)
+    onPin?.()
+  }
+
+  const menuItemCount = (onEdit ? 1 : 0) + (onRename ? 1 : 0) + (onPin ? 1 : 0) + (onArchive ? 1 : 0) + (onDelete ? 1 : 0)
   const align: FixedDropdownAlign = menuAlign === "right" ? "right" : "left"
 
   return (
@@ -92,6 +122,18 @@ export function DeleteActionsMenu({
           align={align}
           menuClassName="rounded-none border-folk-border-subtle shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
         >
+          {onEdit && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={handleEditClick}
+              className="flex w-full items-center gap-[8px] px-[14px] py-[8px] text-left text-[13px] text-folk-text transition-colors hover:bg-folk-hover"
+              tabIndex={0}
+            >
+              <SquarePen className="h-[13px] w-[13px]" strokeWidth={1.75} />
+              {editLabel}
+            </button>
+          )}
           {onRename && (
             <button
               type="button"
@@ -102,6 +144,38 @@ export function DeleteActionsMenu({
             >
               <Pencil className="h-[13px] w-[13px]" strokeWidth={1.75} />
               Rename
+            </button>
+          )}
+          {onPin && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={handlePinClick}
+              className="flex w-full items-center gap-[8px] px-[14px] py-[8px] text-left text-[13px] text-folk-text transition-colors hover:bg-folk-hover"
+              tabIndex={0}
+            >
+              {isPinned ? (
+                <PinOff className="h-[13px] w-[13px]" strokeWidth={1.75} />
+              ) : (
+                <Pin className="h-[13px] w-[13px]" strokeWidth={1.75} />
+              )}
+              {isPinned ? "Unpin" : "Pin"}
+            </button>
+          )}
+          {onArchive && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={handleArchiveClick}
+              className="flex w-full items-center gap-[8px] px-[14px] py-[8px] text-left text-[13px] text-folk-text transition-colors hover:bg-folk-hover"
+              tabIndex={0}
+            >
+              {isArchived ? (
+                <ArchiveRestore className="h-[13px] w-[13px]" strokeWidth={1.75} />
+              ) : (
+                <Archive className="h-[13px] w-[13px]" strokeWidth={1.75} />
+              )}
+              {isArchived ? "Unarchive" : "Archive"}
             </button>
           )}
           {onDelete && (

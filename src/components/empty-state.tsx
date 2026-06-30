@@ -33,7 +33,7 @@ export function EmptyState({ icon: Icon, title, description, action, className }
         <button
           onClick={action.onClick}
           disabled={action.disabled}
-          className={`primary-btn mt-[16px] flex items-center gap-[6px] disabled:opacity-50 ${motion.interactive}`}
+          className={`primary-btn folk-pill-btn mt-[16px] flex items-center gap-[6px] disabled:opacity-50 ${motion.interactive}`}
           tabIndex={0}
         >
           <ActionIcon className="h-[14px] w-[14px]" strokeWidth={1.75} />

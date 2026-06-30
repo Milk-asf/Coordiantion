@@ -26,7 +26,7 @@ const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => ({
 }))
 
 const selectClassName =
-  "h-[28px] max-w-[132px] cursor-pointer appearance-none rounded-none border border-transparent bg-transparent pl-[6px] pr-[22px] text-[12px] font-semibold text-folk-text outline-none transition-colors hover:border-[#e8e8e8] hover:bg-folk-hover focus:border-[#a3c4f3] focus:bg-folk-surface"
+  "h-[28px] max-w-[132px] cursor-pointer appearance-none rounded-none border border-transparent bg-transparent pl-[6px] pr-[22px] text-[12px] font-semibold text-folk-text outline-none transition-colors hover:border-[#d9d9d9] hover:bg-folk-hover focus:border-[#a3c4f3] focus:bg-folk-surface"
 
 export function DatePicker({
   value,
@@ -228,7 +228,7 @@ export function DatePicker({
                   className={`rounded-[5px] border px-[8px] py-[3px] text-[11px] font-medium transition-colors ${
                     isSelected
                       ? "border-[#2563EB] bg-[#2563EB] text-white"
-                      : "border-folk-border bg-folk-surface text-[#555] hover:border-[#ccc] hover:bg-folk-hover"
+                      : "border-folk-border bg-folk-surface text-[#555] hover:border-[#bababa] hover:bg-folk-hover"
                   }`}
                   tabIndex={0}
                 >

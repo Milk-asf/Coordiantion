@@ -14,7 +14,7 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useOnboarding } from "@/lib/hooks/use-onboarding"
 import { getStep } from "@/lib/onboarding/onboarding-steps"
 
-type InviteRole = "admin" | "coordinator"
+type InviteRole = "admin" | "coordinator" | "support-worker"
 
 interface InviteRow {
   id: string
@@ -25,6 +25,7 @@ interface InviteRow {
 const roleLabels: Record<InviteRole, string> = {
   admin: "Team Leader",
   coordinator: "Coordinator",
+  "support-worker": "Support Worker",
 }
 
 const makeRow = (): InviteRow => ({

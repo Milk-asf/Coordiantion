@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react"
 import { Building2, ChevronDown, Download, Paperclip, Upload, X } from "lucide-react"
 import { EntityIcon } from "@/components/entity-icon"
 import { SearchableEntityDropdown } from "@/components/searchable-entity-dropdown"
+import { FixedSelectDropdown, FixedSelectOption } from "@/components/fixed-select-dropdown"
 import { Button } from "@/components/button"
 import {
   getOrderFundingSourceLabel,
@@ -11,9 +12,10 @@ import {
   getOrderStatusLabel,
   isOrderEditable,
   orderFundingSources,
+  orderStatuses,
 } from "@/lib/orders"
 import type { OrderInput } from "@/lib/hooks/use-orders"
-import type { Client, Order, OrderFundingSource } from "@/lib/types"
+import type { Client, Order, OrderFundingSource, OrderStatus } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 interface OrderSidebarFormProps {
@@ -38,6 +40,7 @@ const emptyForm: OrderInput = {
   amount: 0,
   fundingSource: "none",
   description: "",
+  status: "draft",
 }
 
 export function OrderSidebarForm({
@@ -65,14 +68,17 @@ export function OrderSidebarForm({
           amount: order.amount,
           fundingSource: order.fundingSource,
           description: order.description,
+          status: order.status,
         }
       : emptyForm
   )
   const [file, setFile] = useState<File | null>(null)
   const [isClientOpen, setIsClientOpen] = useState(false)
   const [isFundingOpen, setIsFundingOpen] = useState(false)
+  const [isStatusOpen, setIsStatusOpen] = useState(false)
   const clientBtnRef = useRef<HTMLButtonElement>(null)
   const fundingBtnRef = useRef<HTMLButtonElement>(null)
+  const statusBtnRef = useRef<HTMLButtonElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const clientOptions = useMemo(
@@ -91,7 +97,8 @@ export function OrderSidebarForm({
   )
 
   const attachmentLabel = file?.name || order?.attachmentName || ""
-  const canSave = form.title.trim().length > 0 && form.amount >= 0 && editable
+  const statusChanged = !!order && form.status !== order.status
+  const canSave = form.title.trim().length > 0 && form.amount >= 0 && (editable || statusChanged)
 
   const handleSelectClient = (clientId: string) => {
     const client = clients.find((item) => item.id === clientId)
@@ -116,8 +123,8 @@ export function OrderSidebarForm({
             {isEditing ? "Order details" : "Add order"}
           </h2>
           {order && (
-            <span className={cn("mt-[6px] inline-flex h-[22px] items-center rounded-none px-[8px] text-[11px] font-medium", getOrderStatusClasses(order.status))}>
-              {getOrderStatusLabel(order.status)}
+            <span className={cn("mt-[6px] inline-flex h-[22px] items-center rounded-none px-[8px] text-[11px] font-medium", getOrderStatusClasses(form.status))}>
+              {getOrderStatusLabel(form.status)}
             </span>
           )}
         </div>
@@ -148,6 +155,39 @@ export function OrderSidebarForm({
           )}
 
           <div className="mb-[14px]">
+            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Status</label>
+            <button
+              ref={statusBtnRef}
+              type="button"
+              onClick={() => setIsStatusOpen((open) => !open)}
+              className="flex h-[36px] w-full items-center justify-between rounded-none border border-folk-border bg-folk-surface px-[10px] text-left transition-colors hover:border-[#bababa]"
+              tabIndex={0}
+            >
+              <span className="text-[13px] font-medium text-folk-text">{getOrderStatusLabel(form.status)}</span>
+              <ChevronDown className="h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
+            </button>
+            <FixedSelectDropdown
+              isOpen={isStatusOpen}
+              anchorRef={statusBtnRef}
+              onClose={() => setIsStatusOpen(false)}
+              estimatedHeight={orderStatuses.length * 32 + 8}
+            >
+              {orderStatuses.map((status) => (
+                <FixedSelectOption
+                  key={status.value}
+                  isActive={form.status === status.value}
+                  onClick={() => {
+                    setForm((current) => ({ ...current, status: status.value as OrderStatus }))
+                    setIsStatusOpen(false)
+                  }}
+                >
+                  {status.label}
+                </FixedSelectOption>
+              ))}
+            </FixedSelectDropdown>
+          </div>
+
+          <div className="mb-[14px]">
             <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Client</label>
             <button
               ref={clientBtnRef}
@@ -156,7 +196,7 @@ export function OrderSidebarForm({
               onClick={() => editable && setIsClientOpen((open) => !open)}
               className={cn(
                 "flex h-[36px] w-full items-center gap-[8px] rounded-none border border-folk-border px-[10px] text-left transition-colors",
-                editable ? "bg-folk-surface hover:border-[#ccc]" : "cursor-not-allowed bg-folk-page text-folk-secondary"
+                editable ? "bg-folk-surface hover:border-[#bababa]" : "cursor-not-allowed bg-folk-page text-folk-secondary"
               )}
               tabIndex={0}
             >
@@ -212,7 +252,7 @@ export function OrderSidebarForm({
               onClick={() => editable && setIsFundingOpen((open) => !open)}
               className={cn(
                 "flex h-[36px] w-full items-center justify-between rounded-none border border-folk-border px-[10px] text-left transition-colors",
-                editable ? "bg-folk-surface hover:border-[#ccc]" : "cursor-not-allowed bg-folk-page text-folk-secondary"
+                editable ? "bg-folk-surface hover:border-[#bababa]" : "cursor-not-allowed bg-folk-page text-folk-secondary"
               )}
               tabIndex={0}
             >
@@ -221,27 +261,25 @@ export function OrderSidebarForm({
               </span>
               <ChevronDown className="h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
             </button>
-            {isFundingOpen && (
-              <>
-                <div className="fixed inset-0 z-[55]" onClick={() => setIsFundingOpen(false)} />
-                <div className="relative z-[60] mt-[4px] overflow-hidden rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk">
-                  {orderFundingSources.map((source) => (
-                    <button
-                      key={source.value}
-                      type="button"
-                      onClick={() => {
-                        setForm((current) => ({ ...current, fundingSource: source.value as OrderFundingSource }))
-                        setIsFundingOpen(false)
-                      }}
-                      className="flex w-full px-[14px] py-[8px] text-left text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
-                      tabIndex={0}
-                    >
-                      {source.label}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
+            <FixedSelectDropdown
+              isOpen={isFundingOpen}
+              anchorRef={fundingBtnRef}
+              onClose={() => setIsFundingOpen(false)}
+              estimatedHeight={orderFundingSources.length * 32 + 8}
+            >
+              {orderFundingSources.map((source) => (
+                <FixedSelectOption
+                  key={source.value}
+                  isActive={form.fundingSource === source.value}
+                  onClick={() => {
+                    setForm((current) => ({ ...current, fundingSource: source.value as OrderFundingSource }))
+                    setIsFundingOpen(false)
+                  }}
+                >
+                  {source.label}
+                </FixedSelectOption>
+              ))}
+            </FixedSelectDropdown>
           </div>
 
           <div className="mb-[14px]">
@@ -304,7 +342,7 @@ export function OrderSidebarForm({
 
       <div className="border-t border-folk-border px-[24px] py-[14px]">
         <div className="flex flex-wrap gap-[8px]">
-          {editable && (
+          {(editable || statusChanged) && (
             <Button onClick={handleSave} disabled={!canSave || isSaving} className="h-[36px] rounded-none px-[16px]">
               {isSaving ? "Saving…" : isEditing ? "Save changes" : "Create order"}
             </Button>

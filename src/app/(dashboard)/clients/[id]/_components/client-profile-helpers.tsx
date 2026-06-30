@@ -7,7 +7,7 @@ import { EntityIcon } from "@/components/entity-icon"
 import { EditableField } from "@/components/editable-field"
 import { ContactChip } from "@/components/contact-chip"
 import { MultiChip } from "@/components/multi-chip"
-import { DetailRow } from "@/components/detail-row"
+import { FolkSidebarField } from "@/components/folk-sidebar"
 import { DatePicker } from "@/components/date-picker"
 import {
   FIXED_DROPDOWN_BACKDROP_Z_CLASS,
@@ -82,14 +82,9 @@ export const FIELD_ADDRESS_CLASS =
 
 export function SidebarDetailRow({ icon: Icon, label, children }: { icon?: React.ComponentType<{ className?: string; strokeWidth?: number }>; label: string; children: React.ReactNode }) {
   return (
-    <DetailRow
-      icon={Icon}
-      label={label}
-      layout="inline"
-      labelWidthClassName="w-[140px]"
-    >
+    <FolkSidebarField label={label} icon={Icon}>
       {children}
-    </DetailRow>
+    </FolkSidebarField>
   )
 }
 
@@ -274,7 +269,7 @@ export function SidebarCheckInField({
                     value={days}
                     onChange={(e) => handleDaysChange(e.target.value)}
                     placeholder="30"
-                    className="h-[30px] w-[60px] rounded-none border border-folk-border bg-folk-page px-[8px] text-center text-[13px] font-medium text-folk-text outline-none transition-colors hover:border-[#ccc] focus:border-[#a3c4f3]"
+                    className="h-[30px] w-[60px] rounded-none border border-folk-border bg-folk-page px-[8px] text-center text-[13px] font-medium text-folk-text outline-none transition-colors hover:border-[#bababa] focus:border-[#a3c4f3]"
                     aria-label="Check-in interval in days"
                   />
                   <span>days</span>

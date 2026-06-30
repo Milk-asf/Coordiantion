@@ -123,7 +123,7 @@ export function BillableSidebarForm({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col border-l border-folk-border bg-folk-surface">
+    <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center justify-between px-[24px] pb-[4px] pt-[20px]">
         <div>
           <h2 className="text-[13px] font-semibold text-folk-text">
@@ -138,7 +138,7 @@ export function BillableSidebarForm({
         <button
           type="button"
           onClick={onClose}
-          className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+          className="icon-btn flex h-[24px] w-[24px] items-center justify-center text-folk-secondary hover:text-folk-text"
           tabIndex={0}
           aria-label="Close billable form"
         >
@@ -346,7 +346,7 @@ export function BillableSidebarForm({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-none border border-folk-border bg-folk-surface px-[12px] py-[6px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+            className="outline-btn px-[12px] py-[6px] text-[12px] font-medium"
             tabIndex={0}
           >
             Cancel

@@ -2,7 +2,8 @@ import { cn } from "@/lib/utils"
 
 /**
  * Grid lines on cell edges so sticky rows/columns keep borders while content scrolls.
- * Use border-b + border-r only (never gap + border — that doubles lines).
+ * Use border-b + border-r only (never gap + border — that doubles lines). 2px to match
+ * the app-wide table/divider weight; single-side edges keep touching lines from stacking.
  */
 export const ROSTER_GRID_CELL_BORDER = "border-b border-r border-[var(--folk-border)]"
 

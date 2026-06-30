@@ -3,9 +3,11 @@
 import { useMemo, useState } from "react"
 import { ChevronDown, ListFilter, Plus, ShoppingCart, X } from "lucide-react"
 import { Button } from "@/components/button"
+import { PageTitleBar } from "@/components/page-title-bar"
+import { listViewBodyClass, listViewFilterBarClass } from "@/components/tab-active-indicator"
 import { EmptyState } from "@/components/empty-state"
 import { PageError, PageLoader } from "@/components/page-state"
-import { SearchBar } from "@/components/search-bar"
+import { ExpandableTableSearch } from "@/components/expandable-table-search"
 import { useToast } from "@/components/toast"
 import { useClients } from "@/lib/hooks/use-clients"
 import { useOrders } from "@/lib/hooks/use-orders"
@@ -30,6 +32,7 @@ import {
   TABLE_PROFILE_CELL_LAST,
   TABLE_TEXT_CELL,
 } from "@/lib/table-styles"
+import { FormModal } from "@/components/form-modal"
 import { OrderSidebarForm } from "./_components/order-sidebar-form"
 
 type SidebarMode = "add" | "edit"
@@ -108,9 +111,11 @@ export default function OrdersPage() {
     try {
       if (sidebarMode === "edit" && editingOrder) {
         await updateOrder(editingOrder.id, input, file)
+        if (input.status !== editingOrder.status) await updateOrderStatus(editingOrder.id, input.status)
         toast("Order updated", "success")
       } else {
-        await addOrder(input, file)
+        const created = await addOrder(input, file)
+        if (created && input.status !== "draft") await updateOrderStatus(created.id, input.status)
         toast("Order created", "success")
       }
       closeSidebar()
@@ -166,27 +171,26 @@ export default function OrdersPage() {
     <div className="flex h-full flex-col">
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-folk-border bg-folk-nav px-[16px]">
-            <span className="text-[13px] font-medium text-folk-text">Orders</span>
-            <Button onClick={openAddSidebar} className="h-[32px] rounded-none px-[14px]">
+          <PageTitleBar title="Orders" />
+          <div className="flex h-[44px] shrink-0 items-center justify-end gap-[8px] border-b border-folk-border-subtle bg-white px-[16px]">
+            <Button onClick={openAddSidebar} variant="primary" className="folk-pill-btn h-[29px] px-[12px]">
               <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
               <span>Add new</span>
             </Button>
           </div>
 
-          <div className="flex h-[41px] shrink-0 items-center gap-[8px] border-b border-folk-border bg-folk-nav px-[16px]">
-            <SearchBar
+          <div className={listViewFilterBarClass("flex-nowrap")}>
+            <ExpandableTableSearch
               value={searchQuery}
               onChange={setSearchQuery}
-              placeholder="Search orders"
-              className="w-[220px]"
+              placeholder="Search orders…"
               ariaLabel="Search orders"
             />
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setIsFilterOpen((open) => !open)}
-                className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+                className="flex items-center gap-[6px] folk-pill-btn border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                 tabIndex={0}
               >
                 <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -265,7 +269,7 @@ export default function OrdersPage() {
             </span>
           </div>
 
-          <div className="flex-1 overflow-auto bg-folk-surface">
+          <div className={listViewBodyClass()}>
             {filteredOrders.length === 0 ? (
               <EmptyState
                 icon={ShoppingCart}
@@ -339,25 +343,22 @@ export default function OrdersPage() {
         </div>
 
         {isSidebarOpen && (
-          <>
-            <div className="w-[4px] shrink-0 border-l border-folk-border" />
-            <div className="flex h-full w-[360px] shrink-0 flex-col overflow-y-auto bg-folk-surface">
-              <OrderSidebarForm
-                mode={sidebarMode === "edit" ? "edit" : "add"}
-                order={editingOrder}
-                clients={clients}
-                isAdmin={isAdmin}
-                isSaving={isSaving}
-                onSave={handleSave}
-                onSend={() => handleStatusChange("sent", "Order sent for approval")}
-                onApprove={() => handleStatusChange("approved", "Order approved")}
-                onReturn={() => handleStatusChange("returned", "Order returned")}
-                onDelete={editingOrder ? handleDelete : undefined}
-                onDownloadAttachment={handleDownloadAttachment}
-                onClose={closeSidebar}
-              />
-            </div>
-          </>
+          <FormModal onClose={closeSidebar} width={500}>
+            <OrderSidebarForm
+              mode={sidebarMode === "edit" ? "edit" : "add"}
+              order={editingOrder}
+              clients={clients}
+              isAdmin={isAdmin}
+              isSaving={isSaving}
+              onSave={handleSave}
+              onSend={() => handleStatusChange("sent", "Order sent for approval")}
+              onApprove={() => handleStatusChange("approved", "Order approved")}
+              onReturn={() => handleStatusChange("returned", "Order returned")}
+              onDelete={editingOrder ? handleDelete : undefined}
+              onDownloadAttachment={handleDownloadAttachment}
+              onClose={closeSidebar}
+            />
+          </FormModal>
         )}
       </div>
     </div>

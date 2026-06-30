@@ -31,6 +31,8 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { serviceChargeTypes } from "@/lib/ndis-charges"
 import type { Task, Attachment } from "@/lib/types"
 import { PageLoader, PageError } from "@/components/page-state"
+import { PageTitleBar } from "@/components/page-title-bar"
+import { listViewBodyClass, listViewFilterBarClass, pageNavTabsScrollClass } from "@/components/tab-active-indicator"
 import { ProfileTabButton } from "@/components/profile-tab-button"
 import { useToast } from "@/components/toast"
 import { Switch } from "@/components/switch"
@@ -515,7 +517,7 @@ export default function TasksPage() {
 
   const renderTaskListHeader = () => (
     <div
-      className="sticky top-0 z-10 grid items-center gap-x-[14px] border-b border-[#e8e8e8] bg-folk-page px-[24px] py-[8px]"
+      className="sticky top-0 z-10 grid items-center gap-x-[14px] border-b border-[#d9d9d9] bg-folk-page px-[24px] py-[8px]"
       style={{ gridTemplateColumns: taskGridTemplate }}
     >
       {visibleTaskColumns.map((col) => {
@@ -541,7 +543,7 @@ export default function TasksPage() {
     return (
       <div
         key={task.id}
-        className="group grid cursor-pointer items-center gap-x-[14px] border-b border-folk-border-subtle px-[24px] transition-colors hover:bg-folk-page"
+        className={`group grid cursor-pointer items-center gap-x-[14px] border-b border-folk-border-subtle px-[24px] transition-colors hover:bg-folk-page ${isSelected ? "bg-folk-page" : ""}`}
         style={{ gridTemplateColumns: taskGridTemplate }}
         onClick={() => setSelectedTaskId(task.id)}
         role="button"
@@ -551,17 +553,11 @@ export default function TasksPage() {
         <div className="flex items-center justify-center">
           <button
             onClick={(e) => { e.stopPropagation(); handleToggleComplete(task.id) }}
-            className={`flex h-[18px] w-[18px] items-center justify-center rounded-none border-[1.5px] transition-colors ${
-              task.status === "done"
-                ? "border-[#2563EB] bg-[#2563EB] text-white"
-                : isSelected
-                  ? "border-[#bbb] bg-[#ededed] text-folk-secondary"
-                  : "border-[#ccc] hover:border-[#999]"
-            }`}
+            className="flex h-[18px] w-[18px] items-center justify-center rounded-[4px] border border-folk-text bg-white text-folk-text transition-colors"
             tabIndex={0}
             aria-label={task.status === "done" ? "Mark as incomplete" : "Mark as complete"}
           >
-            {(task.status === "done" || isSelected) && <span className="text-[9px]">✓</span>}
+            {(task.status === "done" || isSelected) && <span className="text-[9px] leading-none">✓</span>}
           </button>
         </div>
         {isColVisible("date") && (
@@ -609,43 +605,43 @@ export default function TasksPage() {
 
   return (
     <div className="flex h-full flex-col">
+      <PageTitleBar title={isInvoicingMode ? "Invoicing" : "Tasks"} />
       {/* View tabs */}
-      <div className="flex h-[44px] shrink-0 items-center justify-between gap-[8px] border-b border-folk-border bg-folk-nav px-[16px]">
-        <div className="flex min-w-0 flex-1 items-center gap-[8px] overflow-x-auto">
-          <span className="text-[13px] font-medium text-folk-text">
-            {isInvoicingMode ? "Invoicing" : "Tasks"}
-          </span>
-          <div className="h-[16px] w-px bg-[var(--folk-border)]" />
-          <ProfileTabButton
-            variant="toolbar"
-            isActive={activeTaskViewId === null}
-            onClick={handleSelectAllTaskView}
-            icon={Table2}
-            label="All"
-          />
-          {taskSavedViews.length > 0 && <div className="h-[16px] w-px bg-[var(--folk-border)]" />}
-          {taskSavedViews.map((view) => (
+      <div className="flex h-[44px] shrink-0 items-stretch justify-between gap-[8px] border-b border-folk-border bg-white px-[16px]">
+        <div className={pageNavTabsScrollClass()}>
+          <div className="folk-tab-bar flex items-stretch gap-0 overflow-y-visible">
             <ProfileTabButton
-              key={view.id}
-              variant="toolbar"
-              isActive={activeTaskViewId === view.id}
-              onClick={() => handleSelectTaskView(view)}
-              onContextMenu={(e) => {
-                e.preventDefault()
-                setTaskViewContextMenu({ viewId: view.id, x: e.clientX, y: e.clientY })
-              }}
+              variant="profile"
+              showIcon
+              isActive={activeTaskViewId === null}
+              onClick={handleSelectAllTaskView}
               icon={Table2}
-              label={view.name}
+              label="All"
             />
-          ))}
-          <button
-            onClick={() => { setIsCreateTaskViewOpen(true); setTimeout(() => taskViewNameInputRef.current?.focus(), 50) }}
-            className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
-            aria-label="Add view"
-            tabIndex={0}
-          >
-            <Plus className="h-[14px] w-[14px]" strokeWidth={1.5} />
-          </button>
+            {taskSavedViews.map((view) => (
+              <ProfileTabButton
+                key={view.id}
+                variant="profile"
+                showIcon
+                isActive={activeTaskViewId === view.id}
+                onClick={() => handleSelectTaskView(view)}
+                onContextMenu={(e) => {
+                  e.preventDefault()
+                  setTaskViewContextMenu({ viewId: view.id, x: e.clientX, y: e.clientY })
+                }}
+                icon={Table2}
+                label={view.name}
+              />
+            ))}
+            <button
+              onClick={() => { setIsCreateTaskViewOpen(true); setTimeout(() => taskViewNameInputRef.current?.focus(), 50) }}
+              className="flex h-[24px] w-[24px] shrink-0 self-center items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+              aria-label="Add view"
+              tabIndex={0}
+            >
+              <Plus className="h-[14px] w-[14px]" strokeWidth={1.5} />
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-[8px]">
           {viewMode === "week" && (
@@ -670,7 +666,7 @@ export default function TasksPage() {
               <button
                 onClick={() => setWeekOffset(0)}
                 disabled={weekOffset === 0}
-                className={`flex items-center gap-[5px] rounded-none border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${weekOffset === 0 ? "border-[#e8e8e8] bg-folk-surface text-[#ccc] cursor-default" : "border-folk-border bg-folk-surface text-folk-text hover:bg-folk-hover"}`}
+                className={`flex items-center gap-[5px] rounded-none border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${weekOffset === 0 ? "border-[#d9d9d9] bg-folk-surface text-[#ccc] cursor-default" : "border-folk-border bg-folk-surface text-folk-text hover:bg-folk-hover"}`}
                 tabIndex={0}
               >
                 This week
@@ -680,7 +676,7 @@ export default function TasksPage() {
           {!isInvoicingMode && (
             <div className="flex items-center gap-[8px]">
               <div
-                className="flex items-center gap-[5px] rounded-none border border-[#e8e8e8] bg-folk-page px-[10px] py-[4px]"
+                className="flex items-center gap-[5px] rounded-none border border-[#d9d9d9] bg-folk-page px-[10px] py-[4px]"
                 title="Billable time on completed tasks"
               >
                 <Clock className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} aria-hidden="true" />
@@ -691,7 +687,7 @@ export default function TasksPage() {
               <button
                 ref={createBtnRef}
                 onClick={() => { if (isQuickAdding) { resetQuickAdd() } else { setIsQuickAdding(true); setQuickActiveField("title"); setTimeout(() => quickInputRef.current?.focus(), 0) } }}
-                className="outline-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
+                className="primary-btn folk-pill-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
                 tabIndex={0}
               >
                 <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -936,12 +932,12 @@ export default function TasksPage() {
       </div>
 
           {/* Filter & display bar */}
-          <div className="flex h-[41px] shrink-0 items-center gap-[8px] overflow-x-auto border-b border-folk-border bg-folk-nav px-[16px]">
+          <div className={listViewFilterBarClass("overflow-x-auto")}>
             <div className="relative">
               <button
                 ref={filterBtnRef}
                 onClick={() => { setIsFilterMenuOpen(!isFilterMenuOpen); setActiveFilterDropdown(null) }}
-                className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+                className="flex items-center gap-[6px] folk-pill-btn border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                 tabIndex={0}
               >
                 <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -1037,7 +1033,7 @@ export default function TasksPage() {
               <button
                 ref={pageSizeBtnRef}
                 onClick={() => setIsPageSizeOpen(!isPageSizeOpen)}
-                className="flex items-center gap-[5px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+                className="folk-pill-btn flex items-center gap-[5px] border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                 tabIndex={0}
               >
                 <span>{pageSize} per page</span>
@@ -1160,8 +1156,8 @@ export default function TasksPage() {
                         const isActive = statusFilter.includes(opt.key)
                         return (
                           <button key={opt.key} onClick={() => setStatusFilter((prev) => isActive ? prev.filter((f) => f !== opt.key) : [...prev, opt.key])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${isActive ? "bg-folk-hover" : ""}`} tabIndex={0}>
-                            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-none border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
-                              {isActive && <span className="text-[10px] text-white">✓</span>}
+                            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-[4px] border border-folk-text bg-white`}>
+                              {isActive && <span className="text-[10px] leading-none text-folk-text">✓</span>}
                             </div>
                             <span className="text-folk-text">{opt.label}</span>
                           </button>
@@ -1201,8 +1197,8 @@ export default function TasksPage() {
                         const isActive = dateFilter.includes(opt.key)
                         return (
                           <button key={opt.key} onClick={() => setDateFilter((prev) => isActive ? prev.filter((f) => f !== opt.key) : [...prev, opt.key])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${isActive ? "bg-folk-hover" : ""}`} tabIndex={0}>
-                            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-none border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
-                              {isActive && <span className="text-[10px] text-white">✓</span>}
+                            <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-[4px] border border-folk-text bg-white`}>
+                              {isActive && <span className="text-[10px] leading-none text-folk-text">✓</span>}
                             </div>
                             <span className="text-folk-text">{opt.label}</span>
                           </button>
@@ -1234,8 +1230,8 @@ export default function TasksPage() {
                       const isActive = participantFilter.includes(name)
                       return (
                         <button key={name} onClick={() => setParticipantFilter((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${isActive ? "bg-folk-hover" : ""}`} tabIndex={0}>
-                          <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-none border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
-                            {isActive && <span className="text-[10px] text-white">✓</span>}
+                          <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-[4px] border border-folk-text bg-white`}>
+                            {isActive && <span className="text-[10px] leading-none text-folk-text">✓</span>}
                           </div>
                           <span className="text-folk-text">{name}</span>
                         </button>
@@ -1267,8 +1263,8 @@ export default function TasksPage() {
                       const isActive = assigneeFilter.includes(name)
                       return (
                         <button key={name} onClick={() => setAssigneeFilter((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${isActive ? "bg-folk-hover" : ""}`} tabIndex={0}>
-                          <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-none border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
-                            {isActive && <span className="text-[10px] text-white">✓</span>}
+                          <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-[4px] border border-folk-text bg-white`}>
+                            {isActive && <span className="text-[10px] leading-none text-folk-text">✓</span>}
                           </div>
                           <span className="text-folk-text">{name}</span>
                         </button>
@@ -1300,8 +1296,8 @@ export default function TasksPage() {
                       const isActive = chargeFilter.includes(val)
                       return (
                         <button key={val} onClick={() => setChargeFilter((prev) => isActive ? prev.filter((f) => f !== val) : [...prev, val])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${isActive ? "bg-folk-hover" : ""}`} tabIndex={0}>
-                          <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-none border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
-                            {isActive && <span className="text-[10px] text-white">✓</span>}
+                          <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-[4px] border border-folk-text bg-white`}>
+                            {isActive && <span className="text-[10px] leading-none text-folk-text">✓</span>}
                           </div>
                           <span className="text-folk-text">{chargeLabel(val)}</span>
                         </button>
@@ -1318,14 +1314,14 @@ export default function TasksPage() {
               })()}
 
           {/* Task list scroll container */}
-          <div className="flex-1 overflow-auto bg-folk-surface">
+          <div className={listViewBodyClass()}>
             {viewMode === "list" ? (
               isInvoicingMode ? (
                 <>
                   <button
                     type="button"
                     onClick={() => setShowPrevious(!showPrevious)}
-                    className="flex w-full items-center gap-[4px] border-b border-[#e8e8e8] bg-folk-hover px-[12px] py-[6px] text-left"
+                    className="flex w-full items-center gap-[4px] border-b border-[#d9d9d9] bg-folk-hover px-[12px] py-[6px] text-left"
                     tabIndex={0}
                   >
                     <ChevronDown className={`h-[12px] w-[12px] text-folk-secondary transition-transform ${showPrevious ? "" : "-rotate-90"}`} strokeWidth={2} />
@@ -1354,7 +1350,7 @@ export default function TasksPage() {
                   <button
                     type="button"
                     onClick={() => setShowThisWeek(!showThisWeek)}
-                    className="flex w-full items-center gap-[4px] border-b border-[#e8e8e8] bg-folk-hover px-[12px] py-[6px] text-left"
+                    className="flex w-full items-center gap-[4px] border-b border-[#d9d9d9] bg-folk-hover px-[12px] py-[6px] text-left"
                     tabIndex={0}
                   >
                     <ChevronDown className={`h-[12px] w-[12px] text-folk-secondary transition-transform ${showThisWeek ? "" : "-rotate-90"}`} strokeWidth={2} />
@@ -1383,7 +1379,7 @@ export default function TasksPage() {
                       <button
                         type="button"
                         onClick={() => setShowPrevious(!showPrevious)}
-                        className="flex w-full items-center gap-[4px] border-b border-[#e8e8e8] bg-folk-hover px-[12px] py-[6px] text-left"
+                        className="flex w-full items-center gap-[4px] border-b border-[#d9d9d9] bg-folk-hover px-[12px] py-[6px] text-left"
                         tabIndex={0}
                       >
                         <ChevronDown className={`h-[12px] w-[12px] text-folk-secondary transition-transform ${showPrevious ? "" : "-rotate-90"}`} strokeWidth={2} />
@@ -1414,7 +1410,7 @@ export default function TasksPage() {
                       <button
                         type="button"
                         onClick={() => setArchivedExpanded(!archivedExpanded)}
-                        className="flex w-full items-center gap-[4px] border-b border-[#e8e8e8] bg-folk-hover px-[12px] py-[6px] text-left"
+                        className="flex w-full items-center gap-[4px] border-b border-[#d9d9d9] bg-folk-hover px-[12px] py-[6px] text-left"
                         tabIndex={0}
                       >
                         <ChevronDown className={`h-[12px] w-[12px] text-folk-secondary transition-transform ${archivedExpanded ? "" : "-rotate-90"}`} strokeWidth={2} />
@@ -1474,7 +1470,7 @@ export default function TasksPage() {
 
                       return (
                         <div key={dateStr}>
-                          <div className={`flex items-center gap-[8px] border-b border-[#e8e8e8] px-[12px] py-[6px] ${isToday ? "bg-blue-50/60" : "bg-folk-surface"}`}>
+                          <div className={`flex items-center gap-[8px] border-b border-[#d9d9d9] px-[12px] py-[6px] ${isToday ? "bg-blue-50/60" : "bg-folk-surface"}`}>
                             <span className={`text-[13px] font-semibold ${isToday ? "text-blue-600" : "text-folk-text"}`}>
                               {dayLabel}
                             </span>
@@ -1494,7 +1490,7 @@ export default function TasksPage() {
                     })}
                     {noDateTasks.length > 0 && (
                       <div>
-                        <div className="flex items-center gap-[8px] border-b border-[#e8e8e8] bg-folk-surface px-[12px] py-[6px]">
+                        <div className="flex items-center gap-[8px] border-b border-[#d9d9d9] bg-folk-surface px-[12px] py-[6px]">
                           <span className="text-[13px] font-semibold text-folk-secondary">No date</span>
                           <span className="text-[11px] font-medium text-folk-placeholder">
                             {noDateTasks.length} {noDateTasks.length === 1 ? "task" : "tasks"}

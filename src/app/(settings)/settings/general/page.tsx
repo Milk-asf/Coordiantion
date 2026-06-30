@@ -14,7 +14,7 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
 import { SettingsGuard } from "@/components/settings-guard"
 
-const inputClass = "h-[44px] w-full rounded-none border border-folk-border-subtle bg-folk-page px-[14px] text-[14px] text-folk-text outline-none transition-colors placeholder:text-[#c0c0c0] focus:border-[#d0d0d0] focus:ring-2 focus:ring-[#e8e8e8]"
+const inputClass = "h-[44px] w-full rounded-none border border-folk-border-subtle bg-folk-page px-[14px] text-[14px] text-folk-text outline-none transition-colors placeholder:text-[#c0c0c0] focus:border-[#bababa] focus:ring-2 focus:ring-[#e8e8e8]"
 const labelClass = "mb-[8px] block text-[13px] font-semibold text-folk-text"
 
 const australianBanks = [
@@ -185,7 +185,7 @@ export default function GeneralSettingsPage() {
           {isDirty && (
             <button
               onClick={handleSave}
-              className="flex items-center gap-[6px] rounded-none bg-[var(--folk-border-subtle)] px-[16px] py-[8px] text-[13px] font-medium text-folk-text transition-colors hover:bg-[#e8e8e8]"
+              className="outline-btn flex items-center gap-[6px] px-[16px] py-[8px] text-[13px] font-medium"
               tabIndex={0}
               aria-label="Save changes"
             >
@@ -228,7 +228,7 @@ export default function GeneralSettingsPage() {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                className="flex items-center gap-[6px] rounded-none bg-[var(--folk-border-subtle)] px-[14px] py-[8px] text-[13px] font-medium text-folk-text transition-colors hover:bg-[#e8e8e8] disabled:opacity-50"
+                className="outline-btn flex items-center gap-[6px] px-[14px] py-[8px] text-[13px] font-medium disabled:opacity-50"
                 tabIndex={0}
               >
                 <Upload className="h-[13px] w-[13px]" strokeWidth={1.75} />

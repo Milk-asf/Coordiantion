@@ -13,8 +13,13 @@ import { TasksProvider } from "@/lib/tasks-context"
 import { NotesProvider } from "@/lib/notes-context"
 import { IncidentsProvider } from "@/lib/incidents-context"
 import { DocumentsProvider } from "@/lib/documents-context"
+import { FormsProvider } from "@/lib/forms-context"
+import { AnalyticsProvider } from "@/lib/analytics/context"
+import { ListsProvider } from "@/lib/lists/context"
+import { TimesheetsProvider } from "@/lib/timesheets-context"
 import { RosterProvider } from "@/lib/roster-context"
 import { SuitabilityProvider } from "@/lib/suitability-context"
+import { RecentlyVisitedTracker } from "@/lib/hooks/use-recently-visited"
 
 export default function DashboardLayout({
   children,
@@ -31,9 +36,14 @@ export default function DashboardLayout({
                 <NotesProvider>
                   <IncidentsProvider>
                   <DocumentsProvider>
+                  <FormsProvider>
+                  <AnalyticsProvider>
+                  <ListsProvider>
                   <SuitabilityProvider>
                     <RosterProvider>
+                    <TimesheetsProvider>
                     <KeyboardShortcutsProvider>
+                      <RecentlyVisitedTracker />
                       <div className="flex h-screen flex-col overflow-hidden md:flex-row">
                         <div className="hidden md:flex">
                           <Sidebar />
@@ -45,8 +55,12 @@ export default function DashboardLayout({
                         <CommandPalette />
                       </div>
                     </KeyboardShortcutsProvider>
+                    </TimesheetsProvider>
                     </RosterProvider>
                   </SuitabilityProvider>
+                  </ListsProvider>
+                  </AnalyticsProvider>
+                  </FormsProvider>
                   </DocumentsProvider>
                   </IncidentsProvider>
                 </NotesProvider>

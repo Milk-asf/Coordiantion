@@ -66,7 +66,6 @@ export function CommandPalette() {
   }, [isOpen])
 
   const pages: CommandItem[] = useMemo(() => [
-    { id: "p-dashboard", label: "Dashboard", icon: <SquareCheck className="h-[16px] w-[16px]" />, action: () => router.push("/"), category: "page" },
     { id: "p-tasks", label: "Tasks", icon: <SquareCheck className="h-[16px] w-[16px]" />, action: () => router.push("/tasks"), category: "page" },
     { id: "p-clients", label: "Clients", icon: <User className="h-[16px] w-[16px]" />, action: () => router.push("/clients"), category: "page" },
     { id: "p-contacts", label: "Contacts", icon: <BookOpen className="h-[16px] w-[16px]" />, action: () => router.push("/contacts"), category: "page" },
@@ -188,7 +187,7 @@ export function CommandPalette() {
             placeholder="Search pages, clients, tasks…"
             className="h-[48px] flex-1 bg-transparent text-[14px] text-folk-text outline-none placeholder:text-folk-placeholder"
           />
-          <kbd className="rounded-none border border-[#e8e8e8] bg-folk-hover px-[6px] py-[2px] text-[11px] text-folk-secondary">esc</kbd>
+          <kbd className="rounded-none border border-[#d9d9d9] bg-folk-hover px-[6px] py-[2px] text-[11px] text-folk-secondary">esc</kbd>
         </div>
 
         {/* Results */}
@@ -238,15 +237,15 @@ export function CommandPalette() {
         {/* Footer */}
         <div className="flex items-center gap-[16px] border-t border-folk-border-subtle px-[16px] py-[10px]">
           <span className="flex items-center gap-[4px] text-[11px] text-folk-placeholder">
-            <kbd className="rounded-[3px] border border-[#e8e8e8] bg-folk-hover px-[4px] py-[1px] text-[10px]">↑↓</kbd>
+            <kbd className="rounded-[3px] border border-[#d9d9d9] bg-folk-hover px-[4px] py-[1px] text-[10px]">↑↓</kbd>
             navigate
           </span>
           <span className="flex items-center gap-[4px] text-[11px] text-folk-placeholder">
-            <kbd className="rounded-[3px] border border-[#e8e8e8] bg-folk-hover px-[4px] py-[1px] text-[10px]">↵</kbd>
+            <kbd className="rounded-[3px] border border-[#d9d9d9] bg-folk-hover px-[4px] py-[1px] text-[10px]">↵</kbd>
             open
           </span>
           <span className="flex items-center gap-[4px] text-[11px] text-folk-placeholder">
-            <kbd className="rounded-[3px] border border-[#e8e8e8] bg-folk-hover px-[4px] py-[1px] text-[10px]">⌘K</kbd>
+            <kbd className="rounded-[3px] border border-[#d9d9d9] bg-folk-hover px-[4px] py-[1px] text-[10px]">⌘K</kbd>
             toggle
           </span>
         </div>

@@ -1,4 +1,5 @@
 /** Folk CRM table — light grid borders, 36px rows per design brief. */
+
 export const TABLE_ROW_HEIGHT = "h-[36px] max-h-[36px]"
 
 export const TABLE_HEADER_HEIGHT = "h-[32px] max-h-[32px]"
@@ -17,6 +18,11 @@ export const TABLE_CHECKBOX_CELL = "w-[40px] min-w-[40px] max-w-[40px] border-r 
 export const TABLE_CELL_STICKY_EDGE = `${TABLE_ROW_HEIGHT} align-middle border-b border-folk-border bg-folk-surface ${TABLE_CELL_X} ${TABLE_STICKY_DIVIDER}`
 
 export const TABLE_HEADER_STICKY_EDGE = `${TABLE_HEADER_HEIGHT} align-middle border-b border-folk-border bg-white ${TABLE_CELL_X} text-[11px] font-medium uppercase tracking-normal text-folk-secondary ${TABLE_STICKY_DIVIDER}`
+
+/** Sticky trailing column (e.g. add-field control) — no closing edge line. */
+export const TABLE_HEADER_STICKY_RIGHT = `${TABLE_HEADER_HEIGHT} align-middle border-b border-folk-border bg-white`
+
+export const TABLE_CELL_STICKY_RIGHT = `${TABLE_ROW_HEIGHT} align-middle border-b border-folk-border bg-folk-surface`
 
 export const TABLE_HEADER_STICKY_CHECKBOX = `${TABLE_HEADER_HEIGHT} align-middle border-b border-folk-border bg-white ${TABLE_CHECKBOX_CELL}`
 
@@ -37,6 +43,8 @@ export const TABLE_CHIP = "folk-chip inline-flex h-[20px] shrink-0 items-center 
 export const TABLE_TEXT_CELL = "overflow-hidden whitespace-nowrap text-[13px] font-normal text-folk-text"
 
 export const TABLE_NAME_CELL = "overflow-hidden whitespace-nowrap text-[13px] font-semibold text-folk-text"
+
+export const TABLE_STAFF_NAME_CELL = "truncate text-[13px] font-medium text-folk-text"
 
 export const TABLE_ROW_HOVER = "group-hover:bg-folk-hover"
 

@@ -1,10 +1,9 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { isSupabaseConfigured } from "@/lib/supabase/config"
 
 function isConfigured() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  return !!(url && key && url.startsWith("http") && key.length > 20)
+  return isSupabaseConfigured()
 }
 
 export async function updateSession(request: NextRequest) {

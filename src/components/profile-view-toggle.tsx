@@ -10,7 +10,7 @@ interface ProfileViewToggleProps {
 
 export function ProfileViewToggle({ viewMode, onViewModeChange }: ProfileViewToggleProps) {
   const buttonClass = (isActive: boolean) =>
-    `flex h-[28px] w-[28px] items-center justify-center rounded-full transition-colors ${
+    `flex h-[28px] w-[28px] items-center justify-center rounded-none transition-colors ${
       isActive ? "bg-[var(--folk-border-subtle)] text-folk-text" : "text-folk-secondary hover:text-folk-text"
     }`
 

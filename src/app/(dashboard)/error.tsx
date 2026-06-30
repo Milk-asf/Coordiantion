@@ -40,7 +40,7 @@ export default function DashboardError({
         </button>
         <button
           onClick={reset}
-          className="flex items-center gap-[6px] rounded-none bg-[#1a1a1a] px-[14px] py-[9px] text-[13px] font-medium text-white transition-colors hover:bg-black"
+          className="primary-btn flex items-center gap-[6px]"
           tabIndex={0}
         >
           <RotateCcw className="h-[14px] w-[14px]" strokeWidth={1.5} />

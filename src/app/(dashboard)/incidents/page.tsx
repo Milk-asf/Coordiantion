@@ -1,23 +1,39 @@
 "use client"
 
-import { useMemo, useRef, useState, type RefObject } from "react"
-import { useRouter } from "next/navigation"
-import { AlertTriangle, ChevronDown, ListFilter, Plus, X } from "lucide-react"
-import { Button } from "@/components/button"
+import { useMemo, useRef, useState, useEffect, type RefObject } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { AlertTriangle, ArrowUpDown, ChevronDown, Kanban, ListFilter, Plus, Table2, X } from "lucide-react"
+import { folkPrimaryAddBtnClass } from "@/lib/folk-ui"
 import { EmptyState } from "@/components/empty-state"
+import { PageTitleBar } from "@/components/page-title-bar"
 import { FixedDropdownMenu } from "@/components/fixed-dropdown-menu"
 import { FixedSelectDropdown, FixedSelectOption } from "@/components/fixed-select-dropdown"
 import { PageError, PageLoader } from "@/components/page-state"
-import { SearchBar } from "@/components/search-bar"
+import { ExpandableTableSearch } from "@/components/expandable-table-search"
+import { listViewBodyClass, listViewFilterBarClass, tabButtonClass } from "@/components/tab-active-indicator"
+import { useToast } from "@/components/toast"
 import { useClients } from "@/lib/hooks/use-clients"
 import { useIncidents } from "@/lib/hooks/use-incidents"
 import { usePermissions } from "@/lib/hooks/use-permissions"
+import { useStaff } from "@/lib/hooks/use-staff"
 import {
+  DEFAULT_INCIDENT_SORT,
   formatIncidentDate,
   getIncidentCategoryLabel,
+  getIncidentDisplayId,
+  getInvestigationStatusLabel,
   INCIDENT_CATEGORIES,
+  INCIDENT_SORT_OPTIONS,
+  parseIncidentSortKey,
+  sortIncidents,
+  type IncidentSortKey,
 } from "@/lib/incident-definitions"
+import type { IncidentInvestigationStatus } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import { IncidentKanban } from "./_components/incident-kanban"
+import { IncidentTableStatusChip } from "./_components/incident-table-status-chip"
+import { IncidentCategoryChip } from "./_components/incident-category-chip"
+import { IncidentParticipantChips, IncidentStaffChip } from "./_components/incident-entity-chips"
 import {
   TABLE_CELL_INNER,
   TABLE_FULL,
@@ -30,20 +46,41 @@ import {
 
 export default function IncidentsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const { toast } = useToast()
   const { clients } = useClients()
+  const { staff } = useStaff()
   const { canViewIncidents, canManageIncidents } = usePermissions()
-  const { incidents, isLoading, fetchError, refetch } = useIncidents()
+  const { incidents, isLoading, fetchError, refetch, updateIncidentInvestigationStatus } = useIncidents()
+
+  const [viewMode, setViewMode] = useState<"table" | "kanban">(
+    searchParams.get("view") === "kanban" ? "kanban" : "table",
+  )
+
+  useEffect(() => {
+    if (searchParams.get("view") === "kanban") setViewMode("kanban")
+  }, [searchParams])
 
   const [searchQuery, setSearchQuery] = useState("")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
   const [reportableFilter, setReportableFilter] = useState<"all" | "yes" | "no">("all")
   const [clientFilter, setClientFilter] = useState<string>("all")
   const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const [isSortOpen, setIsSortOpen] = useState(false)
+  const [sortKey, setSortKey] = useState<IncidentSortKey>(() => {
+    if (typeof window === "undefined") return DEFAULT_INCIDENT_SORT
+    return parseIncidentSortKey(localStorage.getItem("incidents-sort"))
+  })
   const [activeFilterSelect, setActiveFilterSelect] = useState<"category" | "reportable" | "client" | null>(null)
   const categoryFilterRef = useRef<HTMLButtonElement>(null)
   const reportableFilterRef = useRef<HTMLButtonElement>(null)
   const clientFilterRef = useRef<HTMLButtonElement>(null)
   const filterBtnRef = useRef<HTMLButtonElement>(null)
+  const sortBtnRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    localStorage.setItem("incidents-sort", sortKey)
+  }, [sortKey])
 
   const categoryFilterOptions = useMemo(
     () => [
@@ -81,6 +118,8 @@ export default function IncidentsPage() {
     closeFilterSelects()
   }
 
+  const closeSortPanel = () => setIsSortOpen(false)
+
   const getFilterLabel = (options: { value: string; label: string }[], value: string) =>
     options.find((option) => option.value === value)?.label ?? "Select"
 
@@ -93,23 +132,42 @@ export default function IncidentsPage() {
       if (clientFilter !== "all" && !incident.clientIds.includes(clientFilter)) return false
       if (!query) return true
       const haystack = [
+        incident.incidentNumber,
         incident.clientNames,
         incident.completedByName,
         incident.reportedByName,
         incident.location,
         incident.description,
         getIncidentCategoryLabel(incident.category),
-        incident.incidentStatus,
+        getInvestigationStatusLabel(incident.investigationStatus),
       ].join(" ").toLowerCase()
       return haystack.includes(query)
     })
   }, [categoryFilter, clientFilter, incidents, reportableFilter, searchQuery])
+
+  const sortedIncidents = useMemo(
+    () => sortIncidents(filteredIncidents, sortKey),
+    [filteredIncidents, sortKey],
+  )
 
   const activeFilterCount = [
     categoryFilter !== "all",
     reportableFilter !== "all",
     clientFilter !== "all",
   ].filter(Boolean).length
+
+  const handleKanbanStatusChange = async (incidentId: string, status: IncidentInvestigationStatus) => {
+    const { incident: saved, error } = await updateIncidentInvestigationStatus(incidentId, status)
+    if (!saved) {
+      toast(error || "Failed to update status", "error")
+      return false
+    }
+    if (error) {
+      toast(error, "error")
+      return true
+    }
+    return true
+  }
 
   if (!canViewIncidents && !isLoading) {
     return (
@@ -129,30 +187,59 @@ export default function IncidentsPage() {
 
   return (
     <div className="flex h-full flex-col bg-white">
-      <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-folk-border bg-folk-nav px-[16px]">
-        <span className="text-[13px] font-medium text-folk-text">Incidents</span>
-        {canManageIncidents && (
-          <Button onClick={() => router.push("/incidents/new")} className="h-[32px] rounded-none px-[14px]">
+      <PageTitleBar title="Incidents" />
+      {canManageIncidents && (
+        <div className="flex h-[44px] shrink-0 items-center justify-end gap-[8px] border-b border-folk-border-subtle bg-white px-[16px]">
+          <button type="button" onClick={() => router.push("/incidents/new")} className={folkPrimaryAddBtnClass()} tabIndex={0}>
             <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-            <span>Report incident</span>
-          </Button>
-        )}
+            <span>Add new</span>
+          </button>
+        </div>
+      )}
+
+      <div className="flex h-[44px] shrink-0 items-stretch border-b border-folk-border bg-white px-[16px]">
+        <div className="folk-tab-bar flex h-full items-stretch [&_.folk-tab:last-child]:mr-0">
+          <button
+            type="button"
+            onClick={() => setViewMode("table")}
+            className={tabButtonClass(viewMode === "table")}
+            aria-current={viewMode === "table" ? "page" : undefined}
+            aria-selected={viewMode === "table"}
+            tabIndex={0}
+          >
+            <Table2 className="h-[14px] w-[14px] shrink-0" strokeWidth={1.75} />
+            <span className="folk-tab-label">Table</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("kanban")}
+            className={tabButtonClass(viewMode === "kanban")}
+            aria-current={viewMode === "kanban" ? "page" : undefined}
+            aria-selected={viewMode === "kanban"}
+            tabIndex={0}
+          >
+            <Kanban className="h-[14px] w-[14px] shrink-0" strokeWidth={1.75} />
+            <span className="folk-tab-label">Kanban</span>
+          </button>
+        </div>
       </div>
 
-      <div className="flex h-[41px] shrink-0 items-center gap-[8px] border-b border-folk-border bg-folk-nav px-[16px]">
-        <SearchBar
+      <div className={listViewFilterBarClass("flex-nowrap")}>
+        <ExpandableTableSearch
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder="Search incidents"
-          className="w-[220px]"
+          placeholder="Search incidents…"
           ariaLabel="Search incidents"
         />
         <div className="relative">
           <button
             ref={filterBtnRef}
             type="button"
-            onClick={() => setIsFilterOpen((open) => !open)}
-            className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+            onClick={() => {
+              setIsFilterOpen((open) => !open)
+              setIsSortOpen(false)
+            }}
+            className="flex items-center gap-[6px] folk-pill-btn border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
             tabIndex={0}
           >
             <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -230,49 +317,144 @@ export default function IncidentsPage() {
                 )}
           </FixedDropdownMenu>
         </div>
-        <span className="ml-auto text-[12px] font-medium text-folk-secondary">
-          {filteredIncidents.length} {filteredIncidents.length === 1 ? "report" : "reports"}
-        </span>
+        <div className="relative">
+          <button
+            ref={sortBtnRef}
+            type="button"
+            onClick={() => {
+              setIsSortOpen((open) => !open)
+              setIsFilterOpen(false)
+              closeFilterSelects()
+            }}
+            className="folk-pill-btn flex items-center gap-[6px] border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+            aria-expanded={isSortOpen}
+            tabIndex={0}
+          >
+            <ArrowUpDown className="h-[13px] w-[13px]" strokeWidth={1.5} />
+            <span>Sort</span>
+            {sortKey !== DEFAULT_INCIDENT_SORT && (
+              <span className="rounded-none bg-[#eef4fc] px-[5px] py-[0.5px] text-[10px] font-semibold text-[#2563EB]">
+                1
+              </span>
+            )}
+            <ChevronDown className="h-[12px] w-[12px] text-folk-secondary" strokeWidth={1.75} />
+          </button>
+          <FixedDropdownMenu
+            isOpen={isSortOpen}
+            anchorRef={sortBtnRef}
+            onClose={closeSortPanel}
+            estimatedHeight={INCIDENT_SORT_OPTIONS.length * 36 + 16}
+            minWidth={240}
+            className="py-[4px]"
+          >
+            {INCIDENT_SORT_OPTIONS.map((option) => {
+              const isSelected = sortKey === option.value
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => {
+                    setSortKey(option.value)
+                    closeSortPanel()
+                  }}
+                  className={cn(
+                    "flex w-full px-[12px] py-[8px] text-left text-[13px] font-medium transition-colors hover:bg-folk-hover",
+                    isSelected ? "bg-[var(--folk-border-subtle)] text-folk-text" : "text-folk-text",
+                  )}
+                  role="option"
+                  aria-selected={isSelected}
+                  tabIndex={0}
+                >
+                  {option.label}
+                </button>
+              )
+            })}
+          </FixedDropdownMenu>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-auto bg-folk-surface">
-        <table className={TABLE_FULL} style={{ tableLayout: "fixed", minWidth: 1080 }}>
+      {viewMode === "kanban" ? (
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
+          {filteredIncidents.length === 0 ? (
+            <div className="flex h-full items-center justify-center px-[24px]">
+              <EmptyState
+                icon={AlertTriangle}
+                title="No incidents match your filters"
+                description="Try adjusting your search or filters."
+                className="py-[40px]"
+              />
+            </div>
+          ) : (
+            <IncidentKanban
+              incidents={sortedIncidents}
+              clients={clients}
+              staff={staff}
+              canManage={canManageIncidents}
+              onStatusChange={handleKanbanStatusChange}
+              onOpenIncident={(incidentId) =>
+                router.push(`/incidents/${incidentId}?from=kanban`)
+              }
+            />
+          )}
+        </div>
+      ) : (
+        <div className={listViewBodyClass()}>
+        <table className={TABLE_FULL} style={{ tableLayout: "fixed", minWidth: 1180 }}>
           <thead>
             <tr>
+              <th className={`${TABLE_PANEL_HEADER} w-[120px]`}>ID</th>
+              <th className={`${TABLE_PANEL_HEADER} w-[200px]`}>Participant/s</th>
               <th className={`${TABLE_PANEL_HEADER} w-[120px]`}>Date</th>
-              <th className={`${TABLE_PANEL_HEADER} w-[180px]`}>Participant/s</th>
               <th className={`${TABLE_PANEL_HEADER} w-[180px]`}>Category</th>
-              <th className={`${TABLE_PANEL_HEADER} w-[90px]`}>Status</th>
+              <th className={`${TABLE_PANEL_HEADER} w-[160px]`}>Completed by</th>
+              <th className={`${TABLE_PANEL_HEADER} w-[110px]`}>Status</th>
               <th className={`${TABLE_PANEL_HEADER} w-[110px]`}>Reportable</th>
-              <th className={`${TABLE_PANEL_HEADER} w-[140px]`}>Completed by</th>
               <th className={`${TABLE_PANEL_HEADER_LAST} w-[120px]`}>Recorded</th>
             </tr>
           </thead>
           <tbody>
-            {filteredIncidents.map((incident) => (
+            {sortedIncidents.map((incident) => (
               <tr
                 key={incident.id}
                 onClick={() => router.push(`/incidents/${incident.id}`)}
                 className="cursor-pointer transition-colors hover:bg-folk-hover"
               >
                 <td className={`${TABLE_PROFILE_CELL} ${TABLE_TEXT_CELL}`}>
-                  <div className={TABLE_CELL_INNER}>{formatIncidentDate(incident.incidentDate)}</div>
-                </td>
-                <td className={`${TABLE_PROFILE_CELL} ${TABLE_TEXT_CELL}`}>
                   <div className={TABLE_CELL_INNER}>
-                    <span className="truncate">{incident.clientNames || "—"}</span>
-                  </div>
-                </td>
-                <td className={`${TABLE_PROFILE_CELL} ${TABLE_TEXT_CELL}`}>
-                  <div className={TABLE_CELL_INNER}>
-                    <span className="line-clamp-2">{getIncidentCategoryLabel(incident.category)}</span>
+                    <span className="font-mono text-[12px] font-medium tracking-[0.01em] text-folk-text">
+                      {getIncidentDisplayId(incident)}
+                    </span>
                   </div>
                 </td>
                 <td className={TABLE_PROFILE_CELL}>
                   <div className={TABLE_CELL_INNER}>
-                    <span className="inline-flex h-[22px] items-center rounded-none border border-folk-border px-[8px] text-[11px] font-medium capitalize text-folk-text">
-                      {incident.incidentStatus}
-                    </span>
+                    <IncidentParticipantChips
+                      clientIds={incident.clientIds}
+                      clientNames={incident.clientNames}
+                      clients={clients}
+                    />
+                  </div>
+                </td>
+                <td className={`${TABLE_PROFILE_CELL} ${TABLE_TEXT_CELL}`}>
+                  <div className={TABLE_CELL_INNER}>{formatIncidentDate(incident.incidentDate)}</div>
+                </td>
+                <td className={TABLE_PROFILE_CELL}>
+                  <div className={TABLE_CELL_INNER}>
+                    <IncidentCategoryChip category={incident.category} />
+                  </div>
+                </td>
+                <td className={TABLE_PROFILE_CELL}>
+                  <div className={TABLE_CELL_INNER}>
+                    <IncidentStaffChip
+                      staffId={incident.completedByStaffId}
+                      name={incident.completedByName}
+                      staff={staff}
+                    />
+                  </div>
+                </td>
+                <td className={TABLE_PROFILE_CELL}>
+                  <div className={TABLE_CELL_INNER}>
+                    <IncidentTableStatusChip incident={incident} />
                   </div>
                 </td>
                 <td className={TABLE_PROFILE_CELL}>
@@ -287,11 +469,6 @@ export default function IncidentsPage() {
                     </span>
                   </div>
                 </td>
-                <td className={`${TABLE_PROFILE_CELL} ${TABLE_TEXT_CELL}`}>
-                  <div className={TABLE_CELL_INNER}>
-                    <span className="truncate">{incident.completedByName || "—"}</span>
-                  </div>
-                </td>
                 <td className={`${TABLE_PROFILE_CELL_LAST} ${TABLE_TEXT_CELL} text-folk-secondary`}>
                   <div className={TABLE_CELL_INNER}>{formatIncidentDate(incident.createdAt.slice(0, 10))}</div>
                 </td>
@@ -299,7 +476,8 @@ export default function IncidentsPage() {
             ))}
           </tbody>
         </table>
-      </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,54 +1,26 @@
 "use client"
 
-import { Suspense, useEffect, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { Suspense, useActionState, useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff } from "lucide-react"
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
+import { loginAction, type LoginActionState } from "./actions"
 
 function LoginForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
+  const [urlError, setUrlError] = useState("")
+  const [state, formAction, isPending] = useActionState<LoginActionState, FormData>(
+    loginAction,
+    {},
+  )
 
   useEffect(() => {
-    const urlError = searchParams.get("error")
-    if (urlError) setError(decodeURIComponent(urlError))
+    const error = searchParams.get("error")
+    if (error) setUrlError(decodeURIComponent(error))
   }, [searchParams])
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setIsLoading(true)
-
-    if (!isSupabaseConfigured()) {
-      setError("Supabase is not configured. Add your credentials to .env.local")
-      setIsLoading(false)
-      return
-    }
-
-    try {
-      const supabase = createClient()!
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-
-      if (error) {
-        setError(error.message)
-        setIsLoading(false)
-        return
-      }
-
-      router.push("/tasks")
-      router.refresh()
-    } catch {
-      setError("Something went wrong. Please try again.")
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const error = state.error ?? urlError
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-folk-surface">
@@ -61,13 +33,13 @@ function LoginForm() {
           <p className="mt-[4px] text-[13px] font-medium text-folk-secondary">Sign in to your account</p>
         </div>
 
-        <form onSubmit={handleLogin} className="flex flex-col gap-[14px]">
+        <form action={formAction} className="flex flex-col gap-[14px]">
           <div>
             <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Email</label>
             <input
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              name="email"
+              autoComplete="email"
               placeholder="you@company.com"
               required
               className="h-[40px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
@@ -79,8 +51,8 @@ function LoginForm() {
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                name="password"
+                autoComplete="current-password"
                 placeholder="••••••••"
                 required
                 className="h-[40px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] pr-[40px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
@@ -105,10 +77,10 @@ function LoginForm() {
 
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isPending}
             className="h-[40px] w-full rounded-none bg-[#1a1a1a] text-[13px] font-medium text-white transition-colors hover:bg-[#3d3d3d] disabled:opacity-50"
           >
-            {isLoading ? "Signing in..." : "Sign in"}
+            {isPending ? "Signing in..." : "Sign in"}
           </button>
         </form>
 

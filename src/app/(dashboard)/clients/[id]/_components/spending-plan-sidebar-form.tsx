@@ -266,7 +266,7 @@ export function SpendingPlanSidebarForm({
             value={planName}
             onChange={(e) => onSetPlanName(e.target.value)}
             placeholder="e.g. Weekly support coordination"
-            className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#ccc] focus:border-[#a3c4f3]"
+            className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]"
           />
         </div>
 
@@ -281,7 +281,7 @@ export function SpendingPlanSidebarForm({
                 onSetIsChargeDropdownOpen(false)
                 onSetIsCadenceDropdownOpen(false)
               }}
-              className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#ccc]"
+              className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
               tabIndex={0}
             >
               <span className="min-w-0 flex-1 truncate text-left">
@@ -330,7 +330,7 @@ export function SpendingPlanSidebarForm({
                 onSetIsBudgetDropdownOpen(false)
                 onSetIsCadenceDropdownOpen(false)
               }}
-              className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#ccc]"
+              className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
               tabIndex={0}
             >
               <span className="min-w-0 flex-1 truncate text-left">
@@ -393,7 +393,7 @@ export function SpendingPlanSidebarForm({
               inputMode="decimal"
               value={quantity}
               onChange={(e) => onSetQuantity(formatNumberInput(e.target.value))}
-              className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none hover:border-[#ccc] focus:border-[#a3c4f3]"
+              className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none hover:border-[#bababa] focus:border-[#a3c4f3]"
             />
           </div>
           <div className="flex-1">
@@ -418,7 +418,7 @@ export function SpendingPlanSidebarForm({
                 onSetIsBudgetDropdownOpen(false)
                 onSetIsChargeDropdownOpen(false)
               }}
-              className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#ccc]"
+              className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
               tabIndex={0}
             >
               <span className="min-w-0 flex-1 truncate text-left">
@@ -478,7 +478,7 @@ export function SpendingPlanSidebarForm({
                   onSetIsChargeDropdownOpen(false)
                   onSetIsCadenceDropdownOpen(false)
                 }}
-                className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#ccc]"
+                className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
                 tabIndex={0}
               >
                 <span className="min-w-0 flex-1 truncate text-left">{activeDateSourceLabel}</span>
@@ -526,7 +526,7 @@ export function SpendingPlanSidebarForm({
                 onSetStartPickerOpen(!startPickerOpen)
                 onSetEndPickerOpen(false)
               }}
-              className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#ccc]"
+              className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
               tabIndex={0}
             >
               {startDate ? (
@@ -555,7 +555,7 @@ export function SpendingPlanSidebarForm({
                 onSetEndPickerOpen(!endPickerOpen)
                 onSetStartPickerOpen(false)
               }}
-              className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#ccc]"
+              className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
               tabIndex={0}
             >
               {endDate ? (
@@ -581,7 +581,7 @@ export function SpendingPlanSidebarForm({
             value={description}
             onChange={(e) => onSetDescription(e.target.value)}
             placeholder="Optional notes"
-            className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#ccc] focus:border-[#a3c4f3]"
+            className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]"
           />
         </div>
 

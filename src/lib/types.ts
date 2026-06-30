@@ -210,6 +210,8 @@ export interface Task {
   secondaryChargeType: string
   secondaryTimeSpent: number
   isCheckUp?: boolean
+  /** Billing quality gate. A done task with a charge is pending until approved. */
+  billingApproval?: "none" | "approved" | "rejected"
 }
 
 export interface Attachment {
@@ -231,7 +233,7 @@ export interface WorkspaceMember {
   id: string
   workspace_id: string
   user_id: string | null
-  role: "super-admin" | "admin" | "coordinator"
+  role: "super-admin" | "admin" | "coordinator" | "support-worker"
   status: "active" | "pending" | "invited" | "deactivated"
   invited_email: string | null
   team: string | null
@@ -256,6 +258,8 @@ export interface StaffDetails {
   employmentType: string
   startDate: string
   endDate: string
+  ndisScreeningNumber: string
+  ndisScreeningExpiry: string
   qualifications: string
   certifications: string
   emergencyContactName: string
@@ -269,6 +273,7 @@ export const emptyStaffDetails: StaffDetails = {
   email: "", mobile: "", phone: "",
   role: "", department: "", employmentType: "",
   startDate: "", endDate: "",
+  ndisScreeningNumber: "", ndisScreeningExpiry: "",
   qualifications: "", certifications: "",
   emergencyContactName: "", emergencyContactPhone: "",
   notes: "",
@@ -371,6 +376,46 @@ export interface Order {
   updatedAt: string
 }
 
+export type ReimbursementStatus = "draft" | "sent" | "returned" | "approved"
+export type ReimbursementCategory =
+  | "travel"
+  | "meals"
+  | "equipment"
+  | "training"
+  | "phone"
+  | "accommodation"
+  | "other"
+
+export interface Reimbursement {
+  id: string
+  workspaceId: string
+  title: string
+  amount: number
+  category: ReimbursementCategory
+  /** Optional participant this expense relates to. */
+  clientId: string | null
+  clientName: string
+  /** Optional roster shift this expense was incurred on. */
+  shiftId: string | null
+  dateIncurred: string | null
+  description: string
+  attachmentName: string
+  attachmentStoragePath: string
+  attachmentMimeType: string
+  attachmentSize: number
+  status: ReimbursementStatus
+  reviewNote: string
+  createdBy: string | null
+  createdByName: string
+  approvedBy: string | null
+  approvedByName: string
+  approvedAt: string | null
+  paidAt: string | null
+  paidByName: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface Note {
   id: string
   workspaceId: string
@@ -385,12 +430,13 @@ export interface Note {
   updatedAt: string
 }
 
-export type IncidentStatus = "confirmed" | "alleged"
+export type IncidentStatus = "confirmed" | "alleged" | "not_an_incident"
 
-export type IncidentInvestigationStatus = "not_started" | "in_progress" | "completed"
+export type IncidentInvestigationStatus = "sent" | "in_progress" | "completed" | "closed" | "not_an_incident"
 
 export interface Incident {
   id: string
+  incidentNumber: string
   workspaceId: string
   completedByStaffId: string | null
   completedByName: string
@@ -410,11 +456,18 @@ export interface Incident {
   isReportable: boolean
   ndisReportableCategory: string | null
   description: string
+  userActivities: string
   witnessDetails: string
   impactDetails: string
   actionsTaken: string
   emergencyServicesContacted: "no" | "yes"
   organisationNotified: boolean
+  providerAwareAt: string | null
+  contributingFactors: string
+  preventativeMeasures: string
+  referredToNotifier: string
+  commissionAdvisedAt: string | null
+  familyCarerGuardianNotified: "yes" | "no" | ""
   attachments: Attachment[]
   createdBy: string | null
   createdByName: string
@@ -428,6 +481,27 @@ export interface Incident {
   investigationCorrectiveActions: string
   investigationPreventativeActions: string
   investigationCompletedAt: string | null
+  investigationWellbeingActions: string
+  ndisReportableIncidentType: string
+  investigationRequiredFlag: "yes" | "no" | ""
+  investigationIncidentDetails: string
+  investigationFindings: string
+  investigationMitigationActions: string
+  investigationActionsCompleted: string
+  investigationActionsCompletedAt: string | null
+  participantFeedbackProcess: string
+  participantFeedbackComments: string
+  improvementActions: string
+  staffPerformanceManagementRequired: "yes" | "no" | ""
+  improvementActionsImplemented: string
+  incidentResolvedAt: string | null
+  resolvedByStaffId: string | null
+  resolvedByName: string
+  investigationAttachments: Attachment[]
+  closedByStaffId: string | null
+  closedByName: string
+  closureNotes: string
+  closedAt: string | null
 }
 
 export interface WorkspaceEmailSettings {

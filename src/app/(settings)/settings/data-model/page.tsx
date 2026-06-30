@@ -5,7 +5,7 @@ import { Plus, MoreHorizontal, X, Settings2, EyeOff, Eye, FileText, Layers, Alig
 import { DeleteActionsMenu } from "@/components/delete-actions-menu"
 import { cn } from "@/lib/utils"
 import { SettingsGuard } from "@/components/settings-guard"
-import { SearchBar } from "@/components/search-bar"
+import { ExpandableTableSearch } from "@/components/expandable-table-search"
 import { Switch } from "@/components/switch"
 import { Button } from "@/components/button"
 import { ProfileTabButton } from "@/components/profile-tab-button"
@@ -102,7 +102,7 @@ export default function DataModelSettingsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="mb-[20px] flex h-[44px] items-center gap-[2px] border-b border-folk-border bg-folk-nav">
+      <div className="mb-[20px] flex h-[44px] items-center gap-[2px] border-b border-folk-border bg-white">
         {entityTabs.map((tab) => (
           <ProfileTabButton
             key={tab}
@@ -115,13 +115,13 @@ export default function DataModelSettingsPage() {
 
       {/* Create field button + search */}
       <div className="mb-[16px] flex items-center gap-[10px]">
-        <SearchBar
+        <ExpandableTableSearch
           value={search}
           onChange={setSearch}
           placeholder="Search fields…"
-          className="flex-1"
+          ariaLabel="Search fields"
         />
-        <Button onClick={() => setIsCreateOpen(true)} className="h-[36px] shrink-0 px-[12px]">
+        <Button onClick={() => setIsCreateOpen(true)} className="ml-auto h-[36px] shrink-0 px-[12px]">
           <Plus className="h-[14px] w-[14px]" strokeWidth={1.75} />
           Create field
         </Button>
@@ -129,7 +129,7 @@ export default function DataModelSettingsPage() {
 
       {/* Fields table */}
       <div className="overflow-hidden">
-        <div className="grid grid-cols-[35%_20%_20%_15%_10%] items-center border-b border-[#efefef] px-[20px] py-[10px]">
+        <div className="grid grid-cols-[35%_20%_20%_15%_10%] items-center border-b border-[#d9d9d9] px-[20px] py-[10px]">
           <span className="text-[12px] font-medium text-folk-secondary">Name</span>
           <span className="text-[12px] font-medium text-folk-secondary">Type</span>
           <span className="text-[12px] font-medium text-folk-secondary">Editable by</span>
@@ -149,7 +149,7 @@ export default function DataModelSettingsPage() {
 
         {disabledFields.length > 0 && (
           <>
-            <div className="border-b border-[#efefef] px-[20px] pb-[8px] pt-[20px]">
+            <div className="border-b border-[#d9d9d9] px-[20px] pb-[8px] pt-[20px]">
               <span className="text-[11px] font-semibold uppercase tracking-wide text-folk-secondary">Disabled fields</span>
             </div>
             {disabledFields.map((field) => (
@@ -184,7 +184,7 @@ export default function DataModelSettingsPage() {
               </div>
               <button
                 onClick={() => { setIsCreateOpen(false); setIsTypeOpen(false) }}
-                className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+                className="icon-btn flex h-[28px] w-[28px] items-center justify-center text-folk-secondary hover:text-folk-text"
                 tabIndex={0}
                 aria-label="Close"
               >
@@ -265,7 +265,7 @@ export default function DataModelSettingsPage() {
                   onClick={handleCreate}
                   disabled={!newName.trim()}
                   className={cn(
-                    "rounded-none px-[16px] py-[7px] text-[13px] font-medium transition-colors",
+                    "px-[16px] py-[7px] text-[13px] font-medium transition-colors",
                     newName.trim()
                       ? "primary-btn"
                       : "cursor-not-allowed bg-[#e8e8e8] text-folk-placeholder"
@@ -294,7 +294,7 @@ export default function DataModelSettingsPage() {
               </div>
               <button
                 onClick={handleCloseEdit}
-                className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+                className="icon-btn flex h-[28px] w-[28px] items-center justify-center text-folk-secondary hover:text-folk-text"
                 tabIndex={0}
                 aria-label="Close"
               >
@@ -405,7 +405,7 @@ export default function DataModelSettingsPage() {
                   {!editingField.isSystem && (
                     <button
                       onClick={() => { handleToggleEnabled(editingField.id); setEditingField(null) }}
-                      className="flex items-center gap-[6px] rounded-none border border-sidebar-border px-[12px] py-[7px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+                      className="outline-btn flex items-center gap-[6px] px-[12px] py-[7px] text-[13px] font-medium"
                       tabIndex={0}
                     >
                       {editingField.isEnabled ? (
@@ -436,7 +436,7 @@ export default function DataModelSettingsPage() {
                     onClick={handleSaveEdit}
                     disabled={!editName.trim()}
                     className={cn(
-                      "rounded-none px-[16px] py-[7px] text-[13px] font-medium transition-colors",
+                      "px-[16px] py-[7px] text-[13px] font-medium transition-colors",
                       editName.trim()
                         ? "primary-btn"
                         : "cursor-not-allowed bg-[#e8e8e8] text-folk-placeholder"
@@ -448,7 +448,7 @@ export default function DataModelSettingsPage() {
                 ) : (
                   <button
                     onClick={handleCloseEdit}
-                    className="rounded-none border border-sidebar-border px-[16px] py-[7px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+                    className="outline-btn px-[16px] py-[7px] text-[13px] font-medium"
                     tabIndex={0}
                   >
                     Close
@@ -479,7 +479,7 @@ function FieldRow({
   return (
     <div
       className={cn(
-        "grid grid-cols-[35%_20%_20%_15%_10%] items-center border-b border-[#efefef] px-[20px] py-[10px] transition-colors cursor-pointer last:border-b-0",
+        "grid grid-cols-[35%_20%_20%_15%_10%] items-center border-b border-[#d9d9d9] px-[20px] py-[10px] transition-colors cursor-pointer last:border-b-0",
         isDisabledRow ? "opacity-60" : "hover:bg-folk-hover"
       )}
       onClick={onRowClick}

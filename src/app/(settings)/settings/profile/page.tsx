@@ -32,9 +32,9 @@ const timezoneOptions = [
   "(UTC-10) Hawaii-Aleutian Standard Time",
 ]
 
-const inputClass = "h-[44px] w-full rounded-none border border-folk-border-subtle bg-folk-page px-[14px] text-[14px] text-folk-text outline-none transition-colors placeholder:text-[#c0c0c0] focus:border-[#d0d0d0] focus:ring-2 focus:ring-[#e8e8e8]"
+const inputClass = "h-[44px] w-full rounded-none border border-folk-border-subtle bg-folk-page px-[14px] text-[14px] text-folk-text outline-none transition-colors placeholder:text-[#c0c0c0] focus:border-[#bababa] focus:ring-2 focus:ring-[#e8e8e8]"
 const labelClass = "mb-[8px] block text-[13px] font-semibold text-folk-text"
-const changeBtnClass = "h-[44px] shrink-0 rounded-none border border-folk-border bg-folk-surface px-[16px] text-[13px] font-semibold text-folk-text transition-colors hover:bg-folk-hover"
+const changeBtnClass = "outline-btn h-[44px] shrink-0 px-[16px] text-[13px] font-semibold"
 
 function ProfileSelect({ label, value, options, onChange, icon }: { label: string; value: string; options: readonly string[]; onChange: (v: string) => void; icon?: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -262,7 +262,7 @@ export default function ProfileSettingsPage() {
                   onClick={handleChangeEmail}
                   disabled={!isEmailFormValid || isChangingEmail}
                   className={cn(
-                    "h-[38px] rounded-none px-[20px] text-[13px] font-semibold transition-colors",
+                    "h-[38px] px-[20px] text-[13px] font-semibold transition-colors",
                     isEmailFormValid
                       ? "primary-btn"
                       : "bg-[#e8e8e8] text-[#c0c0c0] cursor-not-allowed"
@@ -273,7 +273,7 @@ export default function ProfileSettingsPage() {
                 <button
                   type="button"
                   onClick={resetEmailEditing}
-                  className="h-[38px] rounded-none border border-folk-border bg-folk-surface px-[20px] text-[13px] font-semibold text-folk-text transition-colors hover:bg-folk-hover"
+                  className="outline-btn h-[38px] px-[20px] text-[13px] font-semibold"
                 >
                   Cancel
                 </button>
@@ -310,7 +310,7 @@ export default function ProfileSettingsPage() {
             onClick={handleUpdateProfile}
             disabled={!hasChanges || isSaving}
             className={cn(
-              "h-[38px] rounded-none px-[20px] text-[13px] font-semibold transition-colors",
+              "h-[38px] px-[20px] text-[13px] font-semibold transition-colors",
               hasChanges
                 ? "primary-btn"
                 : "bg-[#e8e8e8] text-[#c0c0c0] cursor-not-allowed"

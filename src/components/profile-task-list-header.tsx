@@ -25,7 +25,7 @@ function HeaderIcon({
 export function ProfileTaskListHeader({ trailingIcon: TrailingIcon, trailingLabel }: ProfileTaskListHeaderProps) {
   return (
     <div
-      className={`${profileTaskGridClassName} sticky top-0 z-10 border-[#e8e8e8] bg-white py-[8px]`}
+      className={`${profileTaskGridClassName} sticky top-0 z-10 border-[#d9d9d9] bg-white py-[8px]`}
       style={{ gridTemplateColumns: profileTaskGridTemplate }}
     >
       <div aria-hidden="true" />

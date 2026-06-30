@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react"
 import { Plus, X } from "lucide-react"
-import { EntityIcon } from "@/components/entity-icon"
+import { EntityNameRow, type EntityNameRowVariant } from "@/components/entity-name-row"
 import { SearchableEntityDropdown } from "@/components/searchable-entity-dropdown"
 import type { SearchableEntityOption } from "@/components/searchable-entity-dropdown"
 
@@ -13,6 +13,7 @@ interface EntityMultiPickerProps {
   onChange: (ids: string[]) => void
   placeholder?: string
   required?: boolean
+  nameVariant?: EntityNameRowVariant
 }
 
 export function EntityMultiPicker({
@@ -22,6 +23,7 @@ export function EntityMultiPicker({
   onChange,
   placeholder = "Add",
   required = false,
+  nameVariant = "client",
 }: EntityMultiPickerProps) {
   const [isOpen, setIsOpen] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -59,14 +61,17 @@ export function EntityMultiPicker({
           {selectedOptions.map((option) => (
             <span
               key={option.id}
-              className="inline-flex items-center gap-[6px] rounded-none border border-folk-border bg-folk-hover px-[8px] py-[4px] text-[12px] font-medium text-folk-text"
+              className="inline-flex max-w-full items-center gap-[6px] rounded-none border border-folk-border bg-folk-surface py-[2px] pl-[6px] pr-[4px]"
             >
-              <EntityIcon text={option.iconText} size="xs" />
-              <span className="max-w-[160px] truncate">{option.label}</span>
+              <EntityNameRow
+                name={option.label}
+                iconText={option.iconText}
+                variant={nameVariant}
+              />
               <button
                 type="button"
                 onClick={() => handleRemove(option.id)}
-                className="flex h-[14px] w-[14px] items-center justify-center text-folk-secondary transition-colors hover:text-folk-text"
+                className="flex h-[14px] w-[14px] shrink-0 items-center justify-center text-folk-secondary transition-colors hover:text-folk-text"
                 aria-label={`Remove ${option.label}`}
                 tabIndex={0}
               >

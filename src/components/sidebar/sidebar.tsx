@@ -9,8 +9,6 @@ import {
   BookOpen,
   User,
   Package,
-  ChevronsLeft,
-  ChevronsRight,
   LogOut,
   ChevronDown,
   Settings,
@@ -18,22 +16,28 @@ import {
   CheckCircle2,
   AlertTriangle,
   Clock,
+  Undo2,
   FileCheck,
   StickyNote,
   ClipboardList,
   CalendarRange,
+  BarChart3,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { sidebarWorkspaceHeaderClass } from "@/components/tab-active-indicator"
 import { EntityIcon } from "@/components/entity-icon"
+import { PanelToggleButton } from "@/components/panel-toggle-button"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import { useWorkspaceSettings } from "@/lib/hooks/use-workspace-settings"
 import { useNotifications, type AppNotification } from "@/lib/hooks/use-notifications"
+import { useIncidents } from "@/lib/hooks/use-incidents"
 import { SetupWidget } from "@/components/sidebar/setup-widget"
 import { SidebarBusinessNavGroup } from "@/components/sidebar/sidebar-nav-group"
+import { SidebarListsGroup } from "@/components/sidebar/sidebar-lists-group"
 import { FinanceNavPanel } from "@/components/sidebar/finance-nav-panel"
-import { isBusinessGroupActive } from "@/lib/business-nav"
+import { FINANCE_DEFAULT_HREF, isBusinessGroupActive } from "@/lib/business-nav"
 
 interface NavItem {
   label: string
@@ -61,7 +65,7 @@ const navigation: NavSection[] = [
   },
   {
     title: "Business",
-    items: [],
+    items: [{ label: "Reports", href: "/reports", icon: BarChart3 }],
   },
   {
     title: "People",
@@ -75,7 +79,7 @@ const navigation: NavSection[] = [
 
 const COLLAPSED_WIDTH = 60
 const MIN_WIDTH = 148
-const DEFAULT_WIDTH = 148
+const DEFAULT_WIDTH = 210
 const MAX_WIDTH = 360
 const COLLAPSE_THRESHOLD = 100
 
@@ -104,9 +108,35 @@ export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { activeWorkspace } = useWorkspace()
-  const { canViewStaff, canViewIncidents, isLoading: permissionsLoading } = usePermissions()
+  const {
+    canViewStaff,
+    canViewIncidents,
+    canViewRoster,
+    canViewTasks,
+    canViewNotes,
+    canViewDocuments,
+    canViewForms,
+    canViewClients,
+    canViewContacts,
+    canViewFinance,
+    isSupportWorker,
+    isLoading: permissionsLoading,
+  } = usePermissions()
+  const navVisibilityByLabel: Record<string, boolean> = {
+    Roster: canViewRoster,
+    Tasks: canViewTasks,
+    Notes: canViewNotes,
+    Documents: canViewDocuments,
+    Forms: canViewForms,
+    Reports: !isSupportWorker,
+    Incidents: canViewIncidents,
+    Clients: canViewClients,
+    Contacts: canViewContacts,
+    Staff: canViewStaff,
+  }
   const { settings: orgSettings } = useWorkspaceSettings()
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications()
+  const { unviewedCount: unviewedIncidentsCount } = useIncidents()
   const isFinanceGroupActive = isBusinessGroupActive(pathname)
   const prevPathnameRef = useRef(pathname)
 
@@ -161,8 +191,13 @@ export function Sidebar() {
   }, [isFinancePanelOpen])
 
   const handleToggleFinancePanel = useCallback(() => {
+    // Selecting Finance from outside the group lands on Invoices (the panel auto-opens on navigation).
+    if (!isFinanceGroupActive) {
+      router.push(FINANCE_DEFAULT_HREF)
+      return
+    }
     setIsFinancePanelOpen((prev) => !prev)
-  }, [])
+  }, [isFinanceGroupActive, router])
 
   const handleCloseFinancePanel = useCallback(() => {
     setIsFinancePanelOpen(false)
@@ -266,37 +301,41 @@ export function Sidebar() {
     }
   }, [isDragging, isCollapsed, width])
 
-  const renderNavLink = (item: NavItem) => {
-    const isActive = pathname === item.href
+  const renderNavLink = (item: NavItem, badgeOverride?: number) => {
+    const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
     const Icon = item.icon
+    const badge = badgeOverride ?? item.badge
 
     return (
       <li key={item.href}>
         <Link
           href={item.href}
           className={cn(
-            "mx-1 flex h-[32px] items-center gap-2 rounded-[4px] px-[12px] text-[13px] font-normal transition-colors",
+            "mx-1 flex h-[32px] items-center gap-2 rounded-[4px] px-[12px] text-[12px] font-normal transition-colors",
             isActive
-              ? "bg-sidebar-active font-medium text-sidebar-text"
-              : "text-sidebar-text hover:bg-sidebar-hover",
-            isCollapsed && "mx-0 justify-center px-0"
+              ? "bg-sidebar-active font-medium text-sidebar-active-text"
+              : "text-[#616161] hover:bg-sidebar-hover",
+            isCollapsed && "relative mx-0 justify-center px-0"
           )}
           aria-current={isActive ? "page" : undefined}
           tabIndex={0}
         >
-          <Icon className="h-[16px] w-[16px] shrink-0" strokeWidth={1.75} />
+          <Icon className="h-[14px] w-[14px] shrink-0" strokeWidth={1.75} />
           {!isCollapsed && (
             <>
               <span className="truncate">{item.label}</span>
-              {item.badge != null && item.badge > 0 && (
+              {badge != null && badge > 0 && (
                 <span
                   className="ml-auto flex h-[20px] min-w-[20px] items-center justify-center rounded-full text-[11px] font-medium"
                   style={{ backgroundColor: "var(--primary-color-light)", color: "var(--primary-color-text)" }}
                 >
-                  {item.badge}
+                  {badge}
                 </span>
               )}
             </>
+          )}
+          {isCollapsed && badge != null && badge > 0 && (
+            <span className="absolute right-1.5 top-1 h-2 w-2 rounded-full bg-red-500" />
           )}
         </Link>
       </li>
@@ -310,97 +349,95 @@ export function Sidebar() {
       ref={sidebarRef}
       style={{ width: `${width}px` }}
       className={cn(
-        "relative flex h-full shrink-0 flex-col overflow-visible border-r border-folk-border bg-sidebar-bg",
+        "folk-sidebar-surface relative flex h-full shrink-0 flex-col overflow-visible border-r border-folk-border",
         !isDragging && !instantWidthChange && "transition-[width] duration-200"
       )}
     >
-      {/* Company name + collapse */}
-      <div className="flex h-[40px] shrink-0 items-center justify-between px-3">
+      {/* Company name + collapse — 52px row aligned with page title bar. */}
+      <div className={sidebarWorkspaceHeaderClass("justify-between")}>
         {!isCollapsed && (
-          <div className="flex items-center gap-2 overflow-hidden px-1 py-0.5">
+          <div className="flex h-[24px] items-center gap-[6px] overflow-hidden rounded-[6px] border border-folk-border px-[8px]">
             {orgSettings.logoUrl ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
                 src={orgSettings.logoUrl}
                 alt="Organisation logo"
-                className="h-7 w-7 shrink-0 rounded-none object-contain"
+                className="h-[16px] w-[16px] shrink-0 rounded-[4px] object-contain"
               />
             ) : (
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-none bg-green-600 text-[10px] font-semibold text-white">
+              <div className="flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-[4px] bg-folk-hover text-[10px] font-medium text-[#9e9e9e]">
                 {(orgSettings.orgName || activeWorkspace?.name)?.[0]?.toUpperCase() || "W"}
               </div>
             )}
-            <span className="truncate text-[15px] font-semibold text-sidebar-text">
+            <span className="truncate text-[14px] font-medium text-[#202020]">
               {orgSettings.orgName || activeWorkspace?.name || "Workspace"}
             </span>
+            <ChevronDown className="h-[12px] w-[12px] shrink-0 text-[#616161]" strokeWidth={1.75} />
           </div>
         )}
-        <button
+        <PanelToggleButton
+          side="left"
+          isOpen={!isCollapsed}
           onClick={handleToggleCollapse}
-          className={cn(
-            "flex h-6 w-6 shrink-0 items-center justify-center rounded-none text-sidebar-muted transition-colors hover:text-sidebar-text",
-            isCollapsed && "mx-auto"
-          )}
-          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          tabIndex={0}
-        >
-          {isCollapsed ? (
-            <ChevronsRight className="h-[14px] w-[14px]" strokeWidth={1.75} />
-          ) : (
-            <ChevronsLeft className="h-[14px] w-[14px]" strokeWidth={1.75} />
-          )}
-        </button>
+          ariaLabel={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className={cn(isCollapsed && "mx-auto")}
+        />
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-2" role="navigation" aria-label="Main navigation">
-        <div className="relative" ref={notifRef}>
-          <button
-            ref={notifBtnRef}
-            onClick={() => {
-              if (!isNotifOpen && notifBtnRef.current) {
-                const rect = notifBtnRef.current.getBoundingClientRect()
-                setNotifPos({ top: rect.top, left: rect.right + 8 })
-              }
-              setIsNotifOpen(!isNotifOpen)
-            }}
-            className={cn(
-              "flex w-full items-center gap-2 rounded-none px-2 py-[6px] text-[13px] font-medium transition-colors",
-              isNotifOpen
-                ? "bg-sidebar-active text-sidebar-text"
-                : "text-sidebar-text hover:bg-sidebar-hover",
-              isCollapsed && "justify-center px-0"
-            )}
-            aria-label="Notifications"
-            tabIndex={0}
-          >
-            <Bell className="h-[16px] w-[16px] shrink-0" strokeWidth={1.75} />
-            {!isCollapsed && (
-              <>
-                <span className="truncate">Notifications</span>
-                {unreadCount > 0 && (
-                  <span
-                    className="ml-auto flex h-[22px] min-w-[22px] items-center justify-center rounded-none text-[12px] font-medium"
-                    style={{ backgroundColor: "var(--primary-color-light)", color: "var(--primary-color-text)" }}
-                  >
-                    {unreadCount}
-                  </span>
+      <nav className="folk-tab-scroll flex-1 overflow-y-auto px-2" role="navigation" aria-label="Main navigation">
+        <ul className="space-y-px pt-[14px]">
+          <li className={cn("relative", isCollapsed && "mx-0")}>
+            <div className="relative" ref={notifRef}>
+              <button
+                ref={notifBtnRef}
+                onClick={() => {
+                  if (!isNotifOpen && notifBtnRef.current) {
+                    const rect = notifBtnRef.current.getBoundingClientRect()
+                    setNotifPos({ top: rect.top, left: rect.right + 8 })
+                  }
+                  setIsNotifOpen(!isNotifOpen)
+                }}
+                className={cn(
+                  "folk-sidebar-nav-item mx-1 flex h-[32px] w-full items-center gap-2 rounded-[4px] px-[12px] text-[12px] font-normal transition-colors",
+                  isNotifOpen
+                    ? "bg-sidebar-active font-medium text-sidebar-active-text"
+                    : "text-[#616161] hover:bg-sidebar-hover",
+                  isCollapsed && "relative mx-0 justify-center px-0",
                 )}
-              </>
-            )}
-            {isCollapsed && unreadCount > 0 && (
-              <span className="absolute right-1.5 top-1 h-2 w-2 rounded-full bg-red-500" />
-            )}
-          </button>
-
-        </div>
+                aria-label="Notifications"
+                tabIndex={0}
+              >
+                <Bell className="h-[14px] w-[14px] shrink-0" strokeWidth={1.75} />
+                {!isCollapsed && (
+                  <>
+                    <span className="truncate">Notifications</span>
+                    {unreadCount > 0 && (
+                      <span
+                        className="ml-auto flex h-[20px] min-w-[20px] items-center justify-center rounded-full text-[11px] font-medium"
+                        style={{ backgroundColor: "var(--primary-color-light)", color: "var(--primary-color-text)" }}
+                      >
+                        {unreadCount}
+                      </span>
+                    )}
+                  </>
+                )}
+                {isCollapsed && unreadCount > 0 && (
+                  <span className="absolute right-1.5 top-1 h-2 w-2 rounded-full bg-red-500" />
+                )}
+              </button>
+            </div>
+          </li>
+        </ul>
 
         {navigation.map((section) => {
           const items = section.items.filter((item) => {
-            if (item.label === "Staff" && !permissionsLoading && !canViewStaff) return false
-            if (item.label === "Incidents" && !permissionsLoading && !canViewIncidents) return false
-            return true
+            if (permissionsLoading) return true
+            return navVisibilityByLabel[item.label] !== false
           })
+          // The Business section contains the Finance group (gated separately) plus Reports.
+          const showFinanceGroup = section.title === "Business" && (permissionsLoading || canViewFinance)
+          if (section.title === "Business" && !showFinanceGroup && items.length === 0) return null
           if (items.length === 0 && section.title !== "Business") return null
           return (
             <div key={section.title} className="mt-4">
@@ -413,7 +450,7 @@ export function Sidebar() {
                 <div className="mx-auto mb-1 h-px w-5 bg-sidebar-border" />
               )}
               <ul className="space-y-px">
-                {section.title === "Business" && (
+                {showFinanceGroup && (
                   <SidebarBusinessNavGroup
                     isCollapsed={isCollapsed}
                     isPanelOpen={isFinancePanelOpen}
@@ -421,11 +458,16 @@ export function Sidebar() {
                     onTogglePanel={handleToggleFinancePanel}
                   />
                 )}
-                {items.map(renderNavLink)}
+                {items.map((item) => renderNavLink(
+                  item,
+                  item.label === "Incidents" && canViewIncidents ? unviewedIncidentsCount : undefined,
+                ))}
               </ul>
             </div>
           )
         })}
+
+        <SidebarListsGroup isCollapsed={isCollapsed} />
       </nav>
 
       {/* Setup widget */}
@@ -466,6 +508,15 @@ export function Sidebar() {
               <p className="truncate text-[12px] font-medium text-folk-text">{userName || "User"}</p>
               <p className="truncate text-[11px] text-folk-secondary">{userEmail}</p>
             </div>
+            <Link
+              href="/timesheets"
+              onClick={() => setIsUserMenuOpen(false)}
+              className="flex w-full items-center gap-2 px-3 py-[6px] text-[12px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+              tabIndex={0}
+            >
+              <Clock className="h-[14px] w-[14px]" strokeWidth={1.75} />
+              My work
+            </Link>
             <Link
               href="/settings"
               onClick={() => setIsUserMenuOpen(false)}
@@ -515,6 +566,10 @@ export function Sidebar() {
         onClose={() => setIsNotifOpen(false)}
         onMarkAllRead={handleMarkAllRead}
         onMarkRead={markAsRead}
+        onNavigate={(href) => {
+          setIsNotifOpen(false)
+          router.push(href)
+        }}
         position={notifPos}
       />
     )}
@@ -530,6 +585,10 @@ const notifIcon: Record<AppNotification["type"], React.ComponentType<{ className
   "invoice-overdue": AlertTriangle,
   "new-client": User,
   "plan-expiring": Clock,
+  "timesheet-returned": Undo2,
+  "timesheet-approved": CheckCircle2,
+  "travel-claim-returned": Undo2,
+  "travel-claim-approved": CheckCircle2,
 }
 
 const notifColor: Record<AppNotification["type"], string> = {
@@ -540,6 +599,10 @@ const notifColor: Record<AppNotification["type"], string> = {
   "invoice-overdue": "text-orange-500 bg-orange-50",
   "new-client": "text-violet-500 bg-violet-50",
   "plan-expiring": "text-amber-500 bg-amber-50",
+  "timesheet-returned": "text-amber-500 bg-amber-50",
+  "timesheet-approved": "text-green-500 bg-green-50",
+  "travel-claim-returned": "text-amber-500 bg-amber-50",
+  "travel-claim-approved": "text-green-500 bg-green-50",
 }
 
 function formatNotifTime(date: Date): string {
@@ -560,12 +623,14 @@ const NotificationPanel = forwardRef<HTMLDivElement, {
   onClose: () => void
   onMarkAllRead: () => void
   onMarkRead: (id: string) => void
+  onNavigate: (href: string) => void
   position: { top: number; left: number }
 }>(function NotificationPanel({
   notifications,
   onClose,
   onMarkAllRead,
   onMarkRead,
+  onNavigate,
   position,
 }, ref) {
   return (
@@ -604,10 +669,18 @@ const NotificationPanel = forwardRef<HTMLDivElement, {
                     "flex gap-2.5 px-4 py-3 transition-colors hover:bg-folk-page",
                     !n.read && "bg-blue-50/30"
                   )}
-                  onClick={() => onMarkRead(n.id)}
+                  onClick={() => {
+                    onMarkRead(n.id)
+                    if (n.href) onNavigate(n.href)
+                  }}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === "Enter") onMarkRead(n.id) }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      onMarkRead(n.id)
+                      if (n.href) onNavigate(n.href)
+                    }
+                  }}
                 >
                   <div className={cn("mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full", colors)}>
                     <Icon className="h-3 w-3" strokeWidth={2} />

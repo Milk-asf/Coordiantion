@@ -5,6 +5,7 @@ import { CSS } from "@dnd-kit/utilities"
 import type { RosterShift } from "@/lib/roster/types"
 import { buildShiftDragId, getRosterShiftCursorClass } from "@/lib/roster/dnd-utils"
 import { RosterShiftBlock } from "@/components/roster/roster-shift-block"
+import { usePermissions } from "@/lib/hooks/use-permissions"
 import { cn } from "@/lib/utils"
 
 interface RosterDraggableShiftProps {
@@ -22,9 +23,11 @@ export function RosterDraggableShift({
   disabled = false,
   onClick,
 }: RosterDraggableShiftProps) {
+  const { canManageRoster } = usePermissions()
+  const isDragDisabled = disabled || !canManageRoster
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: buildShiftDragId(shift.id),
-    disabled,
+    disabled: isDragDisabled,
     data: { shift },
   })
 
@@ -41,7 +44,7 @@ export function RosterDraggableShift({
       data-shift-string-id={shift.shiftStringId ?? undefined}
       className={cn(
         "touch-none",
-        getRosterShiftCursorClass(disabled, isDragging),
+        getRosterShiftCursorClass(isDragDisabled, isDragging),
         isDragging && "relative z-20 opacity-40",
         className
       )}

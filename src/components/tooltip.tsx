@@ -41,6 +41,11 @@ export function Tooltip({ label, children, side = "top", className }: TooltipPro
 
   const hide = useCallback(() => setIsVisible(false), [])
 
+  const tooltipOffsetClass =
+    side === "top"
+      ? "-translate-x-1/2 -translate-y-[calc(100%+8px)]"
+      : "-translate-x-1/2 translate-y-[8px]"
+
   return (
     <>
       <span
@@ -57,9 +62,9 @@ export function Tooltip({ label, children, side = "top", className }: TooltipPro
         <span
           role="tooltip"
           className={cn(
-            "pointer-events-none fixed z-[220] -translate-x-1/2 whitespace-nowrap rounded-none bg-[#1a1a1a] px-[8px] py-[4px] text-[11px] font-medium leading-none text-white shadow-[0_2px_8px_rgba(0,0,0,0.15)]",
+            "pointer-events-none fixed z-[220] whitespace-nowrap rounded-none bg-[#1a1a1a] px-[8px] py-[4px] text-[11px] font-medium leading-none text-white shadow-[0_2px_8px_rgba(0,0,0,0.15)]",
             motion.fadeIn,
-            side === "top" ? "-translate-y-full" : ""
+            tooltipOffsetClass
           )}
           style={{ top: position.top, left: position.left }}
         >

@@ -74,7 +74,7 @@ export function DocumentPreview({ doc, getDownloadUrl, onClose }: DocumentPrevie
       <div
         className={`relative flex h-[90vh] w-[90vw] max-w-[900px] flex-col overflow-hidden rounded-none border border-folk-border bg-folk-surface shadow-[0_8px_32px_rgba(0,0,0,0.12)] ${motion.scaleIn}`}
       >
-        <div className="flex h-[52px] shrink-0 items-center justify-between border-b border-folk-border-subtle bg-folk-nav px-[20px]">
+        <div className="flex h-[52px] shrink-0 items-center justify-between border-b border-folk-border-subtle bg-white px-[20px]">
           <div className="flex min-w-0 items-center gap-[10px]">
             <DocIcon className="h-[16px] w-[16px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
             <div className="min-w-0">
@@ -86,7 +86,7 @@ export function DocumentPreview({ doc, getDownloadUrl, onClose }: DocumentPrevie
             <button
               onClick={handleDownload}
               disabled={!url}
-              className="flex h-[32px] items-center gap-[6px] rounded-none border border-folk-border px-[10px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover disabled:opacity-40"
+              className="flex h-[29px] items-center gap-[6px] rounded-none border border-folk-border px-[10px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover disabled:opacity-40"
               tabIndex={0}
               aria-label="Download file"
             >
@@ -95,7 +95,7 @@ export function DocumentPreview({ doc, getDownloadUrl, onClose }: DocumentPrevie
             </button>
             <button
               onClick={onClose}
-              className="flex h-[32px] w-[32px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+              className="flex h-[29px] w-[29px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
               tabIndex={0}
               aria-label="Close preview"
             >

@@ -40,7 +40,7 @@ export function OnboardingShell({ step, index, title, children }: OnboardingShel
       </header>
 
       <main className="flex flex-1 items-start justify-center px-[24px] pb-[40px]">
-        <div className="w-full max-w-[1040px] overflow-hidden rounded-[14px] border border-[#e2e2e2] bg-folk-surface shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+        <div className="w-full max-w-[1040px] overflow-hidden rounded-[14px] border border-[#d9d9d9] bg-folk-surface shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)]">
             <section className="flex flex-col gap-[24px] px-[40px] py-[40px]">
               <div className="flex items-center justify-between">

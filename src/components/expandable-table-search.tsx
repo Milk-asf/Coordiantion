@@ -80,10 +80,10 @@ export function ExpandableTableSearch({
         onClick={!isExpanded ? handleOpen : undefined}
         onKeyDown={handleContainerKeyDown}
         className={cn(
-          "folk-input-wrap flex h-[28px] items-center overflow-hidden border border-folk-border-strong bg-white transition-[width,border-radius,padding,background-color,border-color] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
+          "flex items-center overflow-hidden border border-folk-border-strong bg-folk-surface text-folk-text shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-[width,border-radius,padding,background-color,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
           isExpanded
-            ? cn("rounded-folk-input px-[10px]", expandedWidthClassName)
-            : "w-[28px] cursor-pointer justify-center rounded-full px-0 hover:bg-folk-hover"
+            ? cn("h-[28px] min-w-0 justify-start rounded-full px-[10px]", expandedWidthClassName)
+            : "h-[28px] w-[28px] shrink-0 cursor-pointer justify-center rounded-full hover:bg-folk-hover"
         )}
       >
         <Search

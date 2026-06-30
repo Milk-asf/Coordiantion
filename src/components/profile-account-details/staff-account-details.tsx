@@ -22,6 +22,7 @@ import {
   UserRound,
   CalendarDays,
   ChevronDown,
+  ShieldCheck,
 } from "lucide-react"
 import { EntityIcon } from "@/components/entity-icon"
 import { getCategoryChipClasses } from "@/lib/chip-colors"
@@ -211,6 +212,25 @@ export function StaffAccountDetails({
         {sf("s-end-date") && (
           <SidebarDetailRow label="End Date">
             <SidebarEditableField value={d.endDate} onChange={(v) => onUpdateField("endDate", v)} type="date" placeholder="End date" />
+          </SidebarDetailRow>
+        )}
+        {sf("s-ndis-screening-number") && (
+          <SidebarDetailRow icon={ShieldCheck} label="NDIS screening">
+            <SidebarEditableField
+              value={d.ndisScreeningNumber}
+              onChange={(v) => onUpdateField("ndisScreeningNumber", v)}
+              placeholder="Screening number"
+            />
+          </SidebarDetailRow>
+        )}
+        {sf("s-ndis-screening-expiry") && (
+          <SidebarDetailRow icon={CalendarDays} label="Screening expiry">
+            <SidebarEditableField
+              value={d.ndisScreeningExpiry}
+              onChange={(v) => onUpdateField("ndisScreeningExpiry", v)}
+              type="date"
+              placeholder="Expiry date"
+            />
           </SidebarDetailRow>
         )}
       </ProfileAccordionSection>

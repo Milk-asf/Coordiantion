@@ -101,7 +101,7 @@ export function SuitabilityTab({ view, entityId }: SuitabilityTabProps) {
 
   return (
     <div className="relative flex h-full flex-col">
-      <div className="flex h-[41px] shrink-0 items-center justify-between border-b border-folk-border bg-folk-nav px-[16px]">
+      <div className="flex h-[41px] shrink-0 items-center justify-between border-b border-folk-border bg-white px-[16px]">
         <input
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}

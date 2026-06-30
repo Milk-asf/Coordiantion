@@ -35,7 +35,6 @@ import {
   UserPlus,
   Users,
   FolderOpen,
-  PanelRightOpen,
   ListFilter,
   X,
   Building2,
@@ -49,6 +48,8 @@ import {
   CalendarClock,
   CalendarRange,
   AlertTriangle,
+  ClipboardList,
+  Coins,
 } from "lucide-react"
 import { EntityIcon } from "@/components/entity-icon"
 import { CategoryChip } from "@/components/category-chip"
@@ -65,25 +66,25 @@ import { FilesTab } from "./_components/files-tab"
 import { ProfileSidebar } from "./_components/profile-sidebar"
 import { ProfileNotesTab } from "@/components/profile-notes-tab"
 import { ProfileIncidentsTab } from "@/components/profile-incidents-tab"
+import { ProfileShiftNotesTab } from "@/components/profile-shift-notes-tab"
 import { ActivityOverviewSummary } from "@/components/profile-account-details/activity-overview-summary"
-import { AccountDetailsTabBar, type AccountDetailsTab } from "@/components/profile-account-details/profile-account-details-panel"
+import { NotesOverviewSummary } from "@/components/profile-account-details/notes-overview-summary"
+import { IncidentsOverviewSummary } from "@/components/profile-account-details/incidents-overview-summary"
+import { AccountDetailsTabBar, AccountDetailsSidebarToggle, type AccountDetailsTab } from "@/components/profile-account-details/profile-account-details-panel"
 import { ProfileRecordHeader, ProfileNavTextAction } from "@/components/profile-record-header"
 import { IconButton } from "@/components/icon-button"
 import { ProfileTabButton } from "@/components/profile-tab-button"
 import { profileMainTabScrollClass, profilePageTabBarClass, profilePageTabRowClass, folkNavIconButtonClass } from "@/components/tab-active-indicator"
 import { cn } from "@/lib/utils"
-import { ProfileTabMeasurer } from "@/components/profile-tab-measurer"
-import { ProfileTabOverflowMenu } from "@/components/profile-tab-overflow-menu"
-import { useProfileTabOverflow } from "@/lib/hooks/use-profile-tab-overflow"
 import { NoteEditorModal } from "@/app/(dashboard)/notes/_components/note-editor-modal"
 import { useToast } from "@/components/toast"
 import { saveDocumentForm, ensureFolderPath } from "@/lib/document-form"
 import { BudgetsTab } from "./_components/budgets-tab"
+import { BillableEntriesTab } from "./_components/billable-entries-tab"
 import { SpendingPlanTab } from "./_components/spending-plan-tab"
 import { GoalsTab } from "./_components/goals-tab"
 import { type GoalFormData } from "./_components/goal-sidebar-form"
 import { SuitabilityTab } from "@/components/suitability-tab"
-import { FolkMetricCard, FolkMetricNumber, FolkMetricUsage } from "@/components/folk-metrics"
 import { CareplanTab } from "./_components/careplan-tab"
 import {
   TABLE_FULL,
@@ -100,12 +101,14 @@ const tabs = [
   { key: "careplan", label: "Careplan", icon: FileHeart },
   { key: "budgets", label: "Budgets", icon: DollarSign },
   { key: "spending-plan", label: "Spending plan", icon: CalendarClock },
+  { key: "billable-entries", label: "Billable entries", icon: Coins },
   { key: "goals", label: "Goals", icon: Target },
   { key: "contacts", label: "Contacts", icon: Users },
   { key: "suitability", label: "Suitability", icon: ShieldCheck },
   { key: "tasks", label: "Tasks", icon: CheckSquare },
   { key: "notes", label: "Notes", icon: SquarePen },
   { key: "incidents", label: "Incidents", icon: AlertTriangle },
+  { key: "shift-notes", label: "Shift notes", icon: ClipboardList },
   { key: "files", label: "Files", icon: FolderOpen },
 ]
 
@@ -148,7 +151,6 @@ export default function ParticipantProfilePage() {
   const [newContact, setNewContact] = useState({ firstName: "", email: "", phone: "", relationship: "" })
   const [isRelationshipOpen, setIsRelationshipOpen] = useState(false)
   const relationshipRef = useRef<HTMLButtonElement>(null)
-  const tabsContainerRef = useRef<HTMLDivElement>(null)
   const headerRef = useRef<HTMLDivElement>(null)
   const isResizing = useRef(false)
 
@@ -235,6 +237,10 @@ export default function ParticipantProfilePage() {
     () => allIncidents.filter((incident) => incident.clientIds.includes(id)),
     [allIncidents, id]
   )
+  const clientShiftNotes = useMemo(
+    () => shifts.filter((s) => s.clientId === id && s.progressNote).sort((a, b) => b.date.localeCompare(a.date)),
+    [shifts, id]
+  )
 
   const visibleTabs = useMemo(
     () => tabs.filter((tab) => tab.key !== "incidents" || canViewIncidents),
@@ -258,26 +264,9 @@ export default function ParticipantProfilePage() {
     if (tabKey === "notes") return clientNotes.length
     if (tabKey === "incidents") return clientIncidents.length
     if (tabKey === "contacts") return clientContactCount
+    if (tabKey === "shift-notes") return clientShiftNotes.length
     return undefined
-  }, [clientTaskCount, clientNotes.length, clientIncidents.length, clientContactCount])
-
-  const {
-    overflowBtnRef,
-    isTabOverflowOpen,
-    setIsTabOverflowOpen,
-    visibleIndices,
-    overflowIndices,
-    showOverflow,
-  } = useProfileTabOverflow({
-    tabs: visibleTabs,
-    activeTabKey: activeTab,
-    headerRef,
-    tabsContainerRef,
-    getTabBadge,
-    remeasureKey: `${clientTaskCount}-${clientNotes.length}-${clientIncidents.length}-${clientContactCount}`,
-    isSidebarVisible,
-    sidebarWidth,
-  })
+  }, [clientTaskCount, clientNotes.length, clientIncidents.length, clientContactCount, clientShiftNotes.length])
 
   const openNote = useCallback((noteId: string) => {
     const note = notes.find((n) => n.id === noteId)
@@ -1302,16 +1291,12 @@ export default function ParticipantProfilePage() {
           }
         />
 
-        {/* Hidden measurer for tab widths (kept inside headerRef) */}
-        <ProfileTabMeasurer tabs={visibleTabs} getTabBadge={getTabBadge} />
       </div>
 
       <div className={profilePageTabRowClass()}>
         <div className={profilePageTabBarClass()}>
-          <div ref={tabsContainerRef} className={profileMainTabScrollClass()}>
-            {visibleIndices.map((index) => {
-              const tab = visibleTabs[index]
-              if (!tab) return null
+          <div className={profileMainTabScrollClass()}>
+            {visibleTabs.map((tab) => {
               const TabIcon = tab.icon
               const isActive = activeTab === tab.key
               return (
@@ -1325,40 +1310,12 @@ export default function ParticipantProfilePage() {
                 />
               )
             })}
-            {showOverflow && (
-              <ProfileTabOverflowMenu
-                tabs={visibleTabs}
-                overflowIndices={overflowIndices}
-                activeTabKey={activeTab}
-                isOpen={isTabOverflowOpen}
-                overflowBtnRef={overflowBtnRef}
-                onToggle={() => setIsTabOverflowOpen(!isTabOverflowOpen)}
-                onClose={() => setIsTabOverflowOpen(false)}
-                onSelectTab={(tabKey) => {
-                  setActiveTab(tabKey)
-                  setIsTabOverflowOpen(false)
-                  resetBudgetForm()
-                  resetSpendingPlanForm()
-                  resetItemForm()
-                  resetGoalForm()
-                  resetCarePlanForm()
-                }}
-                getTabBadge={getTabBadge}
-              />
-            )}
           </div>
           {!isSidebarVisible && (
-            <IconButton
-              onClick={() => setIsSidebarVisible(true)}
-              tooltip="Show account details"
-              className={cn(
-                "ml-[8px] flex h-[28px] w-[28px] shrink-0 items-center justify-center",
-                folkNavIconButtonClass()
-              )}
-              tabIndex={0}
-            >
-              <PanelRightOpen className="h-[18px] w-[18px]" strokeWidth={1.75} />
-            </IconButton>
+            <AccountDetailsSidebarToggle
+              isOpen={false}
+              onToggle={() => setIsSidebarVisible(true)}
+            />
           )}
         </div>
         {isSidebarVisible && (
@@ -1648,6 +1605,12 @@ export default function ParticipantProfilePage() {
               getPlanPeriodCost={getPlanPeriodCost}
               getPlanTotalCost={getPlanTotalCost}
             />
+          ) : activeTab === "billable-entries" ? (
+            <BillableEntriesTab
+              clientId={client.id}
+              clientName={client.displayName || client.name}
+              enabledCharges={enabledCharges}
+            />
           ) : activeTab === "goals" ? (
             <GoalsTab
               goals={goals}
@@ -1657,9 +1620,9 @@ export default function ParticipantProfilePage() {
           ) : activeTab === "contacts" ? (
             <div className="relative flex h-full flex-col">
               {/* Toolbar */}
-              <div className="flex h-[41px] shrink-0 items-center justify-between border-b border-folk-border bg-folk-nav px-[16px]">
+              <div className="flex h-[41px] shrink-0 items-center justify-between border-b border-folk-border bg-white px-[16px]">
                 <button
-                  className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+                  className="flex items-center gap-[6px] folk-pill-btn border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                   tabIndex={0}
                 >
                   <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -1667,8 +1630,7 @@ export default function ParticipantProfilePage() {
                 </button>
                 <button
                   onClick={() => setIsAddContactOpen(true)}
-                  className="outline-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
-                  
+                  className="primary-btn folk-pill-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
                   tabIndex={0}
                 >
                   <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -1758,191 +1720,18 @@ export default function ParticipantProfilePage() {
               onOpenIncident={(incidentId) => router.push(`/incidents/${incidentId}`)}
               onCreateIncident={canViewIncidents ? () => router.push(`/incidents/new?client=${id}`) : undefined}
             />
+          ) : activeTab === "shift-notes" ? (
+            <ProfileShiftNotesTab
+              shifts={clientShiftNotes}
+              variant="client"
+              emptyDescription="Progress notes recorded for this participant will appear here."
+            />
           ) : activeTab !== "overview" ? (
             <div className="flex h-full items-center justify-center">
               <p className="text-[13px] font-medium text-folk-placeholder">No content yet</p>
             </div>
           ) : (
-          <div className="flex w-full flex-col px-[16px] py-[24px]">
-            {/* Highlights */}
-            {(() => {
-              const now = new Date()
-              now.setHours(0, 0, 0, 0)
-              const activeBudgets = budgets.filter((budget) => {
-                const end = budget.endDate ? new Date(`${budget.endDate}T00:00:00`) : null
-                return !end || end >= now
-              })
-              const hasBudgetMetrics = activeBudgets.length > 0
-              const budgetEmptyLabel = budgets.length === 0 ? "No budgets yet" : "No active budgets"
-
-              const totalBudget = hasBudgetMetrics
-                ? activeBudgets.reduce((sum, budget) => sum + getBudgetTotal(budget), 0)
-                : 0
-              const totalUsed = hasBudgetMetrics
-                ? activeBudgets.reduce((sum, budget) => sum + getBudgetUsed(budget), 0)
-                : 0
-              const usedPct = totalBudget > 0 ? Math.round((totalUsed / totalBudget) * 100) : 0
-
-              const planEndDate = client.participant.planEndDate
-                ? new Date(`${client.participant.planEndDate}T00:00:00`)
-                : activeBudgets.reduce<Date | null>((latest, budget) => {
-                    if (!budget.endDate) return latest
-                    const end = new Date(`${budget.endDate}T00:00:00`)
-                    return !latest || end > latest ? end : latest
-                  }, null)
-              const daysLeft = planEndDate ? Math.max(0, Math.ceil((planEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))) : null
-
-              const fmt = (n: number) => `$${n.toLocaleString("en-AU", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-              const daysValueColor = daysLeft !== null && daysLeft <= 30 ? "text-amber-500" : "text-folk-text"
-
-              const recentTask = clientTasks.find((t) => t.status !== "done") ?? clientTasks[0] ?? null
-
-              const todayStart = new Date()
-              todayStart.setHours(0, 0, 0, 0)
-
-              const cadence = client.participant.checkInPeriod
-              const advanceByCadence = (dateStr: string) => {
-                const d = new Date(dateStr + "T00:00:00")
-                const cadenceDays = parseInt(cadence, 10)
-                if (/^\d+$/.test(cadence) && cadenceDays > 0) {
-                  d.setDate(d.getDate() + cadenceDays)
-                } else {
-                  switch (cadence) {
-                    case "Weekly": d.setDate(d.getDate() + 7); break
-                    case "Fortnightly": d.setDate(d.getDate() + 14); break
-                    case "Monthly": d.setMonth(d.getMonth() + 1); break
-                    case "Quarterly": d.setMonth(d.getMonth() + 3); break
-                    default: d.setMonth(d.getMonth() + 1); break
-                  }
-                }
-                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-              }
-
-              let nextCheckInDate: string | null = null
-              let nextCheckInTaskId: string | null = null
-              if (cadence && cadence !== "As needed") {
-                const incompleteCheckIns = clientTasks
-                  .filter((t) => t.isCheckUp && t.status !== "done" && t.dueDate)
-                  .sort((a, b) => (a.dueDate! < b.dueDate! ? -1 : 1))
-                if (incompleteCheckIns.length > 0) {
-                  nextCheckInDate = incompleteCheckIns[0].dueDate!
-                  nextCheckInTaskId = incompleteCheckIns[0].id
-                } else {
-                  const lastCompleted = clientTasks
-                    .filter((t) => t.isCheckUp && t.status === "done" && t.dueDate)
-                    .sort((a, b) => (a.dueDate! < b.dueDate! ? 1 : -1))[0]
-                  if (lastCompleted) nextCheckInDate = advanceByCadence(lastCompleted.dueDate!)
-                  else if (client.participant.checkInStartDate) nextCheckInDate = client.participant.checkInStartDate
-                }
-              }
-
-              const checkInDaysUntil = nextCheckInDate
-                ? Math.ceil((new Date(nextCheckInDate + "T00:00:00").getTime() - todayStart.getTime()) / 86400000)
-                : null
-              const checkInDaysLabel = checkInDaysUntil === null
-                ? ""
-                : checkInDaysUntil < 0
-                  ? `Overdue by ${Math.abs(checkInDaysUntil)} ${Math.abs(checkInDaysUntil) === 1 ? "day" : "days"}`
-                  : checkInDaysUntil === 0
-                    ? "Due today"
-                    : `In ${checkInDaysUntil} ${checkInDaysUntil === 1 ? "day" : "days"}`
-
-              const taskStatusLabel: Record<string, string> = { todo: "To do", "in-progress": "In progress", done: "Done" }
-              const initialsOf = (name: string) => name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-              const taskClientInitials = recentTask?.client ? initialsOf(recentTask.client) : ""
-              const taskAssigneeInitials = recentTask?.assignee ? initialsOf(recentTask.assignee) : ""
-
-              return (
-                <div className="w-full">
-                  <h3 className="mb-[16px] text-[13px] font-medium text-folk-secondary">Highlights</h3>
-                  <div className="grid w-full grid-cols-1 gap-[12px] sm:grid-cols-2">
-                    <FolkMetricNumber
-                      title="Budget total"
-                      variant="featured"
-                      value={hasBudgetMetrics ? fmt(totalBudget) : ""}
-                      emptyLabel={budgetEmptyLabel}
-                      onClick={() => setActiveTab("budgets")}
-                    />
-                    <FolkMetricUsage
-                      title="Amount used"
-                      variant="featured"
-                      percent={hasBudgetMetrics ? usedPct : NaN}
-                      emptyLabel="—"
-                      onClick={() => setActiveTab("budgets")}
-                    />
-                  </div>
-
-                  <div className="mt-[12px] grid w-full grid-cols-1 gap-[12px] sm:grid-cols-3">
-                    <FolkMetricNumber
-                      title="Days left"
-                      variant="compact"
-                      value={daysLeft !== null ? `${daysLeft} ${daysLeft === 1 ? "day" : "days"}` : ""}
-                      emptyLabel={budgetEmptyLabel}
-                      valueClassName={`text-[20px] font-semibold leading-none tracking-tight ${daysValueColor}`}
-                      onClick={() => setActiveTab("budgets")}
-                    />
-                    <FolkMetricCard
-                      title="Task"
-                      onClick={() => recentTask && router.push(`/tasks?task=${recentTask.id}`)}
-                      disabled={!recentTask}
-                      minHeightClassName="min-h-[96px]"
-                      contentClassName="px-[16px] pb-[16px] pt-[8px]"
-                    >
-                      {recentTask ? (
-                        <>
-                          <p className="truncate text-[15px] font-semibold text-folk-text">{recentTask.title || "Untitled task"}</p>
-                          <div className="mt-[8px] flex items-end justify-between gap-[12px]">
-                            <p className="text-[12px] text-folk-secondary">
-                              {recentTask.dueDate
-                                ? new Date(recentTask.dueDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short" })
-                                : taskStatusLabel[recentTask.status]}
-                            </p>
-                            {(taskClientInitials || taskAssigneeInitials) && (
-                              <div className="flex shrink-0 items-center">
-                                {taskAssigneeInitials && (
-                                  <span className="group/avatar relative">
-                                    <EntityIcon text={taskAssigneeInitials} size="xsm" className="ring-2 ring-white" />
-                                    <span className="pointer-events-none absolute bottom-[calc(100%+5px)] left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-none bg-[#1a1a1a] px-[6px] py-[3px] text-[10px] font-medium text-white opacity-0 transition-opacity duration-75 group-hover/avatar:opacity-100">{recentTask.assignee}</span>
-                                  </span>
-                                )}
-                                {taskClientInitials && (
-                                  <span className={`group/avatar relative ${taskAssigneeInitials ? "-ml-[6px]" : ""}`}>
-                                    <EntityIcon text={taskClientInitials} size="sm" className="ring-2 ring-white" />
-                                    <span className="pointer-events-none absolute bottom-[calc(100%+5px)] left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-none bg-[#1a1a1a] px-[6px] py-[3px] text-[10px] font-medium text-white opacity-0 transition-opacity duration-75 group-hover/avatar:opacity-100">{recentTask.client}</span>
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </>
-                      ) : (
-                        <p className="text-[14px] font-normal text-folk-placeholder">No tasks yet</p>
-                      )}
-                    </FolkMetricCard>
-
-                    <FolkMetricCard
-                      title="Next check-in"
-                      onClick={() => nextCheckInTaskId && router.push(`/tasks?task=${nextCheckInTaskId}`)}
-                      disabled={!nextCheckInTaskId}
-                      minHeightClassName="min-h-[96px]"
-                      contentClassName="px-[16px] pb-[16px] pt-[8px]"
-                    >
-                      {nextCheckInDate ? (
-                        <>
-                          <p className="truncate text-[15px] font-semibold text-folk-text">
-                            {new Date(nextCheckInDate + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "long" })}
-                          </p>
-                          <p className="mt-[4px] text-[12px] text-folk-secondary">{checkInDaysLabel}</p>
-                        </>
-                      ) : (
-                        <p className="text-[14px] font-normal text-folk-placeholder">No check-in scheduled</p>
-                      )}
-                    </FolkMetricCard>
-                  </div>
-                </div>
-              )
-            })()}
-
+          <div className="flex w-full flex-col gap-[28px] px-[16px] py-[24px]">
             <ActivityOverviewSummary
               entries={activityLog}
               currentUserName={currentUserName}
@@ -1951,6 +1740,18 @@ export default function ParticipantProfilePage() {
                 setIsSidebarVisible(true)
               }}
             />
+            <NotesOverviewSummary
+              notes={clientNotes}
+              onViewAll={() => setActiveTab("notes")}
+              onOpenNote={openNote}
+            />
+            {canViewIncidents && (
+              <IncidentsOverviewSummary
+                incidents={clientIncidents}
+                onViewAll={() => setActiveTab("incidents")}
+                onOpenIncident={(incidentId) => router.push(`/incidents/${incidentId}`)}
+              />
+            )}
           </div>
           )}
         </div>
@@ -2094,13 +1895,11 @@ export default function ParticipantProfilePage() {
           coordinatorInputRef={coordinatorInputRef}
           onSetIsCoordinatorOpen={setIsCoordinatorOpen}
           onSetCoordinatorSearch={setCoordinatorSearch}
-          stakeholders={clientContacts}
           activityLog={activityLog}
           currentUserName={currentUserName}
           accountDetailsTab={accountDetailsTab}
           onAccountDetailsTabChange={setAccountDetailsTab}
           hideAccountDetailsTabBar={isSidebarVisible}
-          onAddStakeholder={() => setIsAddContactOpen(true)}
           isDocumentFormOpen={isDocumentFormOpen}
           editingDocument={editingDocument}
           docName={docName}

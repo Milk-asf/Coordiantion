@@ -35,7 +35,7 @@ export function StaffActivityOverviewSummary({
           </button>
         )}
       </div>
-      <div className="w-full rounded-none border border-[#e2e2e2] bg-folk-surface px-[16px] py-[14px] shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+      <div className="w-full rounded-none border border-[#d9d9d9] bg-folk-surface px-[16px] py-[14px] shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
         {activities.length === 0 ? (
           <p className="text-[13px] text-folk-placeholder">No activity yet</p>
         ) : (

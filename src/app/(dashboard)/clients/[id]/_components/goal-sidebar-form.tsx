@@ -53,8 +53,8 @@ export function GoalSidebarForm({ goal, onSave, onDelete, onClose, onOpenTask, r
   }
 
   const labelCls = "mb-[4px] block text-[12px] font-medium text-folk-secondary"
-  const inputCls = "h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#ccc] focus:border-[#a3c4f3]"
-  const textareaCls = "min-h-[76px] w-full resize-y rounded-none border border-folk-border bg-folk-page px-[12px] py-[8px] text-[13px] font-medium leading-[1.5] text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#ccc] focus:border-[#a3c4f3]"
+  const inputCls = "h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]"
+  const textareaCls = "min-h-[76px] w-full resize-y rounded-none border border-folk-border bg-folk-page px-[12px] py-[8px] text-[13px] font-medium leading-[1.5] text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]"
 
   return (
     <>
@@ -108,7 +108,7 @@ export function GoalSidebarForm({ goal, onSave, onDelete, onClose, onOpenTask, r
                 ref={statusDropdownRef}
                 type="button"
                 onClick={() => setIsStatusOpen((v) => !v)}
-                className="flex h-[36px] w-full items-center justify-between rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium outline-none transition-colors hover:border-[#ccc] focus:border-[#a3c4f3]"
+                className="flex h-[36px] w-full items-center justify-between rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium outline-none transition-colors hover:border-[#bababa] focus:border-[#a3c4f3]"
                 tabIndex={0}
               >
                 <span className={`inline-flex h-[24px] items-center whitespace-nowrap rounded-none px-[12px] text-[12px] font-medium ${goalStatusConfig[status].chip}`}>{goalStatusConfig[status].label}</span>

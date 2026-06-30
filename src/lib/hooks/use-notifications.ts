@@ -4,14 +4,27 @@ import { useMemo } from "react"
 import { useTasks } from "./use-tasks"
 import { useInvoices } from "./use-invoices"
 import { useClients } from "@/lib/clients-context"
+import { useTimesheets } from "@/lib/timesheets-context"
 
 export interface AppNotification {
   id: string
-  type: "overdue-task" | "task-completed" | "invoice-sent" | "invoice-paid" | "invoice-overdue" | "new-client" | "plan-expiring"
+  type:
+    | "overdue-task"
+    | "task-completed"
+    | "invoice-sent"
+    | "invoice-paid"
+    | "invoice-overdue"
+    | "new-client"
+    | "plan-expiring"
+    | "timesheet-returned"
+    | "timesheet-approved"
+    | "travel-claim-returned"
+    | "travel-claim-approved"
   title: string
   description: string
   timestamp: Date
   read: boolean
+  href?: string
 }
 
 function getReadIds(): Set<string> {
@@ -40,6 +53,7 @@ export function useNotifications() {
   const { tasks } = useTasks()
   const { invoices } = useInvoices()
   const { clients } = useClients()
+  const { myTimesheets } = useTimesheets()
 
   const notifications = useMemo(() => {
     const items: AppNotification[] = []
@@ -110,6 +124,66 @@ export function useNotifications() {
       }
     }
 
+    // Workers see the outcome of their own submitted timesheets: returned ones
+    // need adjusting, approved ones are heading to invoicing.
+    for (const timesheet of myTimesheets) {
+      const stamp = timesheet.reviewedAt || timesheet.updatedAt
+      if (timesheet.status === "returned" && isEnabled("timesheet-returned")) {
+        items.push({
+          id: `timesheet-returned-${timesheet.id}-${stamp}`,
+          type: "timesheet-returned",
+          title: "Timesheet returned",
+          description: timesheet.reviewNote
+            ? `Adjust and resubmit: ${timesheet.reviewNote}`
+            : "Your timesheet was returned. Adjust and resubmit it.",
+          timestamp: new Date(stamp),
+          read: readIds.has(`timesheet-returned-${timesheet.id}-${stamp}`),
+          href: "/timesheets",
+        })
+      }
+      if (timesheet.status === "approved" && isEnabled("timesheet-approved")) {
+        items.push({
+          id: `timesheet-approved-${timesheet.id}-${stamp}`,
+          type: "timesheet-approved",
+          title: "Timesheet approved",
+          description: "Your timesheet was approved and sent to invoicing.",
+          timestamp: new Date(stamp),
+          read: readIds.has(`timesheet-approved-${timesheet.id}-${stamp}`),
+          href: "/timesheets",
+        })
+      }
+
+      if (timesheet.status === "draft") continue
+      for (const claim of timesheet.travelClaims) {
+        if (claim.status === "returned" && isEnabled("travel-claim-returned")) {
+          const claimId = `travel-claim-returned-${timesheet.id}-${claim.id}-${stamp}`
+          items.push({
+            id: claimId,
+            type: "travel-claim-returned",
+            title: "Travel claim returned",
+            description: claim.reviewNote
+              ? `Adjust and resubmit: ${claim.reviewNote}`
+              : "A travel claim was returned. Adjust and resubmit it.",
+            timestamp: new Date(stamp),
+            read: readIds.has(claimId),
+            href: "/timesheets",
+          })
+        }
+        if (claim.status === "approved" && isEnabled("travel-claim-approved")) {
+          const claimId = `travel-claim-approved-${timesheet.id}-${claim.id}-${stamp}`
+          items.push({
+            id: claimId,
+            type: "travel-claim-approved",
+            title: "Travel claim approved",
+            description: `Your ${claim.distanceKm > 0 ? `${claim.distanceKm} km ` : ""}travel claim was approved.`,
+            timestamp: new Date(stamp),
+            read: readIds.has(claimId),
+            href: "/timesheets",
+          })
+        }
+      }
+    }
+
     for (const client of clients) {
       const planEnd = client.participant?.planEndDate
       if (planEnd && isEnabled("plan-expiring")) {
@@ -130,7 +204,7 @@ export function useNotifications() {
 
     items.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
     return items
-  }, [tasks, invoices, clients])
+  }, [tasks, invoices, clients, myTimesheets])
 
   const unreadCount = notifications.filter((n) => !n.read).length
 

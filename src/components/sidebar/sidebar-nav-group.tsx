@@ -19,22 +19,22 @@ export function SidebarBusinessNavGroup({
   const GroupIcon = BUSINESS_NAV_GROUP.icon
 
   return (
-    <li>
+    <li className={cn("mx-1", isCollapsed && "mx-0")}>
       <button
         type="button"
         onClick={onTogglePanel}
         className={cn(
-          "flex w-full items-center gap-2 rounded-none px-2 py-[6px] text-[13px] font-medium transition-colors",
+          "folk-sidebar-nav-item flex h-[32px] w-full items-center gap-2 rounded-[4px] px-[12px] text-[12px] font-normal leading-none transition-colors",
           isGroupActive || isPanelOpen
-            ? "bg-sidebar-active text-sidebar-text"
-            : "text-sidebar-text hover:bg-sidebar-hover",
-          isCollapsed && "justify-center px-0"
+            ? "bg-sidebar-active font-medium text-sidebar-active-text"
+            : "text-[#616161] hover:bg-sidebar-hover",
+          isCollapsed && "relative justify-center px-0"
         )}
         aria-expanded={isPanelOpen}
         title={isCollapsed ? BUSINESS_NAV_GROUP.label : undefined}
         tabIndex={0}
       >
-        <GroupIcon className="h-[16px] w-[16px] shrink-0" strokeWidth={1.75} />
+        <GroupIcon className="h-[14px] w-[14px] shrink-0" strokeWidth={1.75} />
         {!isCollapsed && <span className="truncate">{BUSINESS_NAV_GROUP.label}</span>}
       </button>
     </li>

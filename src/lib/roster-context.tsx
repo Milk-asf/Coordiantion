@@ -6,8 +6,9 @@ import { useWorkspace } from "@/lib/workspace-context"
 import { useStaff } from "@/lib/hooks/use-staff"
 import { useClients } from "@/lib/hooks/use-clients"
 import { usePermissions } from "@/lib/hooks/use-permissions"
+import { useCurrentStaffId } from "@/lib/hooks/use-current-staff"
 import { resolveSessionType } from "@/lib/roster/settings"
-import type { RosterShift, RosterShiftCancelledBy, RosterShiftInput, RosterShiftStatus } from "@/lib/roster/types"
+import type { RosterShift, RosterShiftCancelledBy, RosterShiftInput, RosterShiftStatus, ShiftProgressNote } from "@/lib/roster/types"
 import { endOfWeek, shiftDurationHours, startOfWeek, toDateStr } from "@/lib/roster/week-utils"
 import { normalizeShiftChargeTypes, primaryShiftChargeType } from "@/lib/roster/charge-utils"
 import { normalizeTimeInput } from "@/lib/roster/shift-utils"
@@ -32,6 +33,7 @@ interface RosterShiftRow {
   cancellation_reason: string | null
   shift_string_id: string | null
   shift_string_order: number | null
+  progress_note: ShiftProgressNote | null
 }
 
 function storageKey(workspaceId: string | undefined) {
@@ -56,6 +58,31 @@ function normalizeSessionType(value: unknown): string {
 function normalizeCancelledBy(value: unknown): RosterShiftCancelledBy | null {
   if (value === "client" || value === "organisation") return value
   return null
+}
+
+function parseProgressNote(value: unknown): ShiftProgressNote | null {
+  if (!value || typeof value !== "object") return null
+  const raw = value as Record<string, unknown>
+  const str = (key: string) => (typeof raw[key] === "string" ? (raw[key] as string) : "")
+  // A note must have at least some content to be considered present.
+  if (!raw.supportProvided && !raw.goalProgress && !raw.observations && !raw.concerns && !raw.followUp && !raw.signature) {
+    return null
+  }
+  return {
+    supportProvided: str("supportProvided"),
+    goalProgress: str("goalProgress"),
+    observations: str("observations"),
+    concerns: str("concerns"),
+    incidentOccurred: raw.incidentOccurred === true,
+    followUp: str("followUp"),
+    authorStaffId: typeof raw.authorStaffId === "string" ? (raw.authorStaffId as string) : null,
+    authorName: str("authorName"),
+    signature: str("signature"),
+    recordedAt: str("recordedAt"),
+    updatedAt: str("updatedAt"),
+    approvalStatus:
+      raw.approvalStatus === "approved" || raw.approvalStatus === "rejected" ? raw.approvalStatus : "none",
+  }
 }
 
 function migrateLegacyShift(raw: Record<string, unknown>, staffName: string, clientName: string): RosterShift {
@@ -83,6 +110,7 @@ function migrateLegacyShift(raw: Record<string, unknown>, staffName: string, cli
     cancellationReason: typeof raw.cancellationReason === "string" ? raw.cancellationReason : "",
     shiftStringId: typeof raw.shiftStringId === "string" && raw.shiftStringId ? raw.shiftStringId : null,
     shiftStringOrder: typeof raw.shiftStringOrder === "number" ? raw.shiftStringOrder : 0,
+    progressNote: parseProgressNote(raw.progressNote),
   }
 }
 
@@ -115,6 +143,7 @@ interface RosterContextValue {
   getClientHoursForWeek: (weekStart: Date, clientId: string) => number
   addShift: (input: RosterShiftInput) => Promise<RosterShift | null>
   updateShift: (id: string, input: Partial<RosterShiftInput>) => Promise<boolean>
+  updateShiftProgressNote: (id: string, note: ShiftProgressNote | null) => Promise<boolean>
   deleteShift: (id: string) => Promise<boolean>
   duplicateShift: (id: string, date?: string) => Promise<RosterShift | null>
   copyWeek: (weekStart: Date) => Promise<number>
@@ -127,7 +156,8 @@ export function RosterProvider({ children }: { children: ReactNode }) {
   const { activeWorkspace } = useWorkspace()
   const { staff } = useStaff()
   const { clients } = useClients()
-  const { canManageWorkspaceSettings } = usePermissions()
+  const { canManageWorkspaceSettings, isSupportWorker } = usePermissions()
+  const currentStaffId = useCurrentStaffId()
   const [shifts, setShifts] = useState<RosterShift[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
@@ -162,6 +192,7 @@ export function RosterProvider({ children }: { children: ReactNode }) {
       cancellationReason: row.cancellation_reason ?? "",
       shiftStringId: row.shift_string_id ?? null,
       shiftStringOrder: row.shift_string_order ?? 0,
+      progressNote: parseProgressNote(row.progress_note),
     }
   }, [clientsById, staffById])
 
@@ -263,6 +294,7 @@ export function RosterProvider({ children }: { children: ReactNode }) {
       cancellationReason: input.status === "cancelled" ? (input.cancellationReason?.trim() ?? "") : "",
       shiftStringId: input.shiftStringId ?? null,
       shiftStringOrder: input.shiftStringId ? (input.shiftStringOrder ?? 0) : 0,
+      progressNote: null,
     }
   }, [clientsById, staffById])
 
@@ -302,6 +334,7 @@ export function RosterProvider({ children }: { children: ReactNode }) {
         cancellation_reason: shift.cancellationReason,
         shift_string_id: shift.shiftStringId,
         shift_string_order: shift.shiftStringOrder,
+        progress_note: shift.progressNote,
       })
       .select("*")
       .single()
@@ -347,8 +380,12 @@ export function RosterProvider({ children }: { children: ReactNode }) {
       mergedInput.cancellationReason = mergedInput.cancellationReason || existing.cancellationReason
     }
 
-    const updated = buildShiftFromInput(mergedInput, id)
-    if (!updated) return false
+    const built = buildShiftFromInput(mergedInput, id)
+    if (!built) return false
+
+    // The progress note is managed independently of schedule edits, so carry
+    // the existing note forward rather than dropping it on a shift update.
+    const updated: RosterShift = { ...built, progressNote: existing.progressNote }
 
     if (!isSupabaseConfigured()) {
       persistLocal(shifts.map((shift) => (shift.id === id ? updated : shift)))
@@ -396,6 +433,37 @@ export function RosterProvider({ children }: { children: ReactNode }) {
     setShifts((prev) => prev.map((shift) => (shift.id === id ? saved : shift)))
     return true
   }, [buildShiftFromInput, enrichShift, persistLocal, shifts])
+
+  const updateShiftProgressNote = useCallback(async (id: string, note: ShiftProgressNote | null) => {
+    const existing = shifts.find((shift) => shift.id === id)
+    if (!existing) return false
+
+    const updated: RosterShift = { ...existing, progressNote: note }
+
+    if (!isSupabaseConfigured()) {
+      persistLocal(shifts.map((shift) => (shift.id === id ? updated : shift)))
+      return true
+    }
+
+    const supabase = createClient()
+    if (!supabase) {
+      persistLocal(shifts.map((shift) => (shift.id === id ? updated : shift)))
+      return true
+    }
+
+    const { error } = await supabase
+      .from("roster_shifts")
+      .update({ progress_note: note, updated_at: new Date().toISOString() })
+      .eq("id", id)
+
+    if (error) {
+      persistLocal(shifts.map((shift) => (shift.id === id ? updated : shift)))
+      return true
+    }
+
+    setShifts((prev) => prev.map((shift) => (shift.id === id ? updated : shift)))
+    return true
+  }, [persistLocal, shifts])
 
   const deleteShift = useCallback(async (id: string) => {
     if (!isSupabaseConfigured()) {
@@ -510,9 +578,13 @@ export function RosterProvider({ children }: { children: ReactNode }) {
   )
 
   const visibleShifts = useMemo(() => {
-    if (canManageWorkspaceSettings) return shifts
-    return shifts.map((shift) => ({ ...shift, adminNotes: "" }))
-  }, [canManageWorkspaceSettings, shifts])
+    // Support workers only ever see shifts assigned to them.
+    const scoped = isSupportWorker
+      ? shifts.filter((shift) => Boolean(currentStaffId) && shift.staffId === currentStaffId)
+      : shifts
+    if (canManageWorkspaceSettings) return scoped
+    return scoped.map((shift) => ({ ...shift, adminNotes: "" }))
+  }, [canManageWorkspaceSettings, currentStaffId, isSupportWorker, shifts])
 
   return (
     <RosterContext.Provider
@@ -527,6 +599,7 @@ export function RosterProvider({ children }: { children: ReactNode }) {
         getClientHoursForWeek,
         addShift,
         updateShift,
+        updateShiftProgressNote,
         deleteShift,
         duplicateShift,
         copyWeek,

@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import {
   Handshake,
-  ListFilter,
   Plus,
   Table2,
   UserRound,
@@ -11,17 +10,27 @@ import {
   Mail,
   Phone,
   ChevronDown,
-  ChevronLeft,
   X,
   UserPlus,
   SlidersHorizontal,
 } from "lucide-react"
 import { EntityIcon } from "@/components/entity-icon"
+import { ListViewToolbar } from "@/components/list-view-toolbar"
+import { PageTitleBar } from "@/components/page-title-bar"
+import { listViewBodyClass, pageNavTabsScrollClass } from "@/components/tab-active-indicator"
 import { useContacts } from "@/lib/hooks/use-contacts"
 import { useClients } from "@/lib/hooks/use-clients"
 import { useFieldConfig } from "@/lib/hooks/use-field-config"
+import { useListQueryState } from "@/lib/hooks/use-list-query-state"
 import { useSavedViews } from "@/lib/hooks/use-saved-views"
 import { useColumnResize } from "@/lib/hooks/use-column-resize"
+import {
+  applyListQuery,
+  CONTACT_QUERY_FIELDS,
+  matchContactFilter,
+  type ListQuerySort,
+} from "@/lib/list-query"
+import type { TableFilterDefinition } from "@/components/table-multi-filter"
 import { relationshipConfig } from "@/lib/types"
 import { CategoryChip } from "@/components/category-chip"
 import { CsvDropdown } from "@/components/csv-dropdown"
@@ -39,9 +48,8 @@ import {
 } from "@/lib/table-styles"
 import { useToast } from "@/components/toast"
 import { ProfileTabButton } from "@/components/profile-tab-button"
+import { TableAddFooter, TableAddNewButton } from "@/components/table-add-row"
 import { DisplayFieldList, TableDisplayPopover } from "@/components/display-popover"
-import { ExpandableTableSearch } from "@/components/expandable-table-search"
-import { matchesTableSearch } from "@/lib/table-search"
 
 const allColumns = [
   { key: "name", label: "Name", icon: UserRound, isSystem: true },
@@ -58,6 +66,9 @@ interface SavedView {
   name: string
   columnKeys: string[]
   displayRelationships: string[]
+  filters: Record<string, string[]>
+  search: string
+  sort: ListQuerySort | null
 }
 
 export default function ContactsPage() {
@@ -80,15 +91,17 @@ export default function ContactsPage() {
 
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(defaultVisibleKeys)
   const [isDisplayOpen, setIsDisplayOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
   const [displayRelationships, setDisplayRelationships] = useState<string[]>([])
 
-  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false)
-  const [activeFilterDropdown, setActiveFilterDropdown] = useState<string | null>(null)
-  const [filterClients, setFilterClients] = useState<string[]>([])
-  const [filterRelationships, setFilterRelationships] = useState<string[]>([])
-  const filterBtnRef = useRef<HTMLButtonElement>(null)
-  const filterPillRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const {
+    state: queryState,
+    setSearch,
+    setFilters,
+    setSort,
+    handleFilterChange,
+    handleSelectSort,
+    clearSort,
+  } = useListQueryState()
 
   const [isCreateViewOpen, setIsCreateViewOpen] = useState(false)
   const [newViewName, setNewViewName] = useState("")
@@ -101,12 +114,18 @@ export default function ContactsPage() {
   const applySavedView = useCallback((view: SavedView) => {
     setVisibleColumnKeys(view.columnKeys)
     setDisplayRelationships(view.displayRelationships || [])
-  }, [])
+    setFilters(view.filters ?? {})
+    setSearch(view.search ?? "")
+    setSort(view.sort ?? null)
+  }, [setFilters, setSearch, setSort])
 
   const resetSavedViewState = useCallback(() => {
     setVisibleColumnKeys(defaultVisibleKeys)
     setDisplayRelationships([])
-  }, [])
+    setFilters({})
+    setSearch("")
+    setSort(null)
+  }, [setFilters, setSearch, setSort])
 
   const {
     savedViews,
@@ -124,6 +143,9 @@ export default function ContactsPage() {
       name,
       columnKeys: [...visibleColumnKeys],
       displayRelationships: [...displayRelationships],
+      filters: { ...queryState.filters },
+      search: queryState.search,
+      sort: queryState.sort,
     }),
     applyView: applySavedView,
     resetState: resetSavedViewState,
@@ -131,12 +153,15 @@ export default function ContactsPage() {
       ...view,
       columnKeys: [...visibleColumnKeys],
       displayRelationships: [...displayRelationships],
+      filters: { ...queryState.filters },
+      search: queryState.search,
+      sort: queryState.sort,
     }),
   })
 
   useEffect(() => {
     syncActiveView()
-  }, [displayRelationships, syncActiveView, visibleColumnKeys])
+  }, [displayRelationships, queryState.filters, queryState.search, queryState.sort, syncActiveView, visibleColumnKeys])
 
   const visibleColumns = visibleColumnKeys
     .filter((key) => key === "name" || !contactDisabled.has(key))
@@ -181,32 +206,58 @@ export default function ContactsPage() {
     )
   }, [])
 
-  const handleToggleRelationship = useCallback((key: string) => {
-    setDisplayRelationships((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
-    )
+  const uniqueClientNames = useMemo(
+    () => [...new Set(contacts.map((c) => c.clientName).filter(Boolean))].sort(),
+    [contacts],
+  )
+  const uniqueRelationships = useMemo(
+    () => [...new Set(contacts.map((c) => c.relationship).filter(Boolean))].sort(),
+    [contacts],
+  )
+
+  const contactFilters: TableFilterDefinition[] = useMemo(
+    () => [
+      { key: "client", label: "Client", icon: Building2 },
+      { key: "relationship", label: "Relationship", icon: Handshake },
+    ],
+    [],
+  )
+
+  const filterOptions = useMemo(
+    () => ({
+      client: uniqueClientNames,
+      relationship: uniqueRelationships,
+    }),
+    [uniqueClientNames, uniqueRelationships],
+  )
+
+  const sortFields = useMemo(
+    () =>
+      CONTACT_QUERY_FIELDS.filter((field) => field.sortable !== false).map((field) => ({
+        key: field.key,
+        label: field.label,
+      })),
+    [],
+  )
+
+  const formatFilterOption = useCallback((filterKey: string, value: string) => {
+    if (filterKey === "relationship") return relationshipConfig[value]?.label ?? value
+    return value
   }, [])
 
-  const uniqueClientNames = useMemo(() => [...new Set(contacts.map((c) => c.clientName).filter(Boolean))].sort(), [contacts])
-  const uniqueRelationships = useMemo(() => [...new Set(contacts.map((c) => c.relationship).filter(Boolean))].sort(), [contacts])
+  const queriedContacts = useMemo(
+    () =>
+      applyListQuery(contacts, queryState, {
+        fields: CONTACT_QUERY_FIELDS,
+        matchFilter: matchContactFilter,
+      }),
+    [contacts, queryState],
+  )
 
   const filteredContacts = useMemo(() => {
-    let result = contacts
-    if (displayRelationships.length > 0) result = result.filter((c) => displayRelationships.includes(c.relationship))
-    if (filterClients.length > 0) result = result.filter((c) => filterClients.includes(c.clientName))
-    if (filterRelationships.length > 0) result = result.filter((c) => filterRelationships.includes(c.relationship))
-    if (!searchQuery.trim()) return result
-    return result.filter((contact) =>
-      matchesTableSearch(
-        searchQuery,
-        contact.name,
-        contact.email,
-        contact.phone,
-        contact.clientName,
-        contact.relationship
-      )
-    )
-  }, [contacts, displayRelationships, filterClients, filterRelationships, searchQuery])
+    if (displayRelationships.length === 0) return queriedContacts
+    return queriedContacts.filter((contact) => displayRelationships.includes(contact.relationship))
+  }, [displayRelationships, queriedContacts])
 
   const handleCreateView = () => {
     const createdView = createView(newViewName)
@@ -295,41 +346,43 @@ export default function ContactsPage() {
 
   return (
     <div className="flex h-full flex-col">
+      <PageTitleBar title="Contacts" />
       {/* View tabs */}
-      <div className="flex h-[44px] shrink-0 items-center justify-between gap-[8px] border-b border-folk-border bg-folk-nav px-[16px]">
-        <div className="flex min-w-0 flex-1 items-center gap-[8px] overflow-x-auto">
-          <span className="shrink-0 text-[13px] font-medium text-folk-text">Contacts</span>
-          <div className="h-[16px] w-px bg-[var(--folk-border)]" />
-          <ProfileTabButton
-            variant="toolbar"
-            isActive={activeViewId === null}
-            onClick={handleSelectAllView}
-            icon={Table2}
-            label="All"
-          />
-          {savedViews.length > 0 && <div className="h-[16px] w-px bg-[var(--folk-border)]" />}
-          {savedViews.map((view) => (
+      <div className="flex h-[44px] shrink-0 items-stretch justify-between gap-[8px] border-b border-folk-border bg-white px-[16px]">
+        <div className={pageNavTabsScrollClass()}>
+          <div className="folk-tab-bar flex items-stretch gap-0 overflow-y-visible">
             <ProfileTabButton
-              key={view.id}
-              variant="toolbar"
-              isActive={activeViewId === view.id}
-              onClick={() => handleSelectView(view)}
-              onContextMenu={(e) => {
-                e.preventDefault()
-                setViewContextMenu({ viewId: view.id, x: e.clientX, y: e.clientY })
-              }}
+              variant="profile"
+              showIcon
+              isActive={activeViewId === null}
+              onClick={handleSelectAllView}
               icon={Table2}
-              label={view.name}
+              label="All"
             />
-          ))}
-          <button
-            onClick={() => { setIsCreateViewOpen(true); setTimeout(() => viewNameInputRef.current?.focus(), 50) }}
-            className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
-            aria-label="Add view"
-            tabIndex={0}
-          >
-            <Plus className="h-[14px] w-[14px]" strokeWidth={1.5} />
-          </button>
+            {savedViews.map((view) => (
+              <ProfileTabButton
+                key={view.id}
+                variant="profile"
+                showIcon
+                isActive={activeViewId === view.id}
+                onClick={() => handleSelectView(view)}
+                onContextMenu={(e) => {
+                  e.preventDefault()
+                  setViewContextMenu({ viewId: view.id, x: e.clientX, y: e.clientY })
+                }}
+                icon={Table2}
+                label={view.name}
+              />
+            ))}
+            <button
+              onClick={() => { setIsCreateViewOpen(true); setTimeout(() => viewNameInputRef.current?.focus(), 50) }}
+              className="flex h-[24px] w-[24px] shrink-0 self-center items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+              aria-label="Add view"
+              tabIndex={0}
+            >
+              <Plus className="h-[14px] w-[14px]" strokeWidth={1.5} />
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-[8px]">
           <CsvDropdown
@@ -341,7 +394,7 @@ export default function ContactsPage() {
           />
           <button
             onClick={() => setIsModalOpen(true)}
-            className="outline-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
+            className="primary-btn folk-pill-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
             tabIndex={0}
           >
             <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -350,73 +403,21 @@ export default function ContactsPage() {
         </div>
       </div>
 
-      {/* Filter & display bar */}
-      <div className="flex h-[41px] shrink-0 items-center gap-[8px] border-b border-folk-border bg-folk-nav px-[16px]">
-        <div className="relative">
-          <button
-            ref={filterBtnRef}
-            onClick={() => { setIsFilterMenuOpen(!isFilterMenuOpen); setActiveFilterDropdown(null) }}
-            className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
-            tabIndex={0}
-          >
-            <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
-            <span>Filter</span>
-          </button>
-          {isFilterMenuOpen && (
-            <FixedDropdownMenu
-              isOpen={isFilterMenuOpen}
-              anchorRef={filterBtnRef}
-              onClose={() => setIsFilterMenuOpen(false)}
-              estimatedHeight={120}
-              minWidth={180}
-              className="py-[4px]"
-            >
-              <p className="px-[16px] py-[6px] text-[11px] font-medium text-folk-secondary">Filter by</p>
-              {[
-                { key: "client", label: "Client", icon: Building2 },
-                { key: "relationship", label: "Relationship", icon: Handshake },
-              ].map((item) => {
-                const Icon = item.icon
-                return (
-                  <button
-                    key={item.key}
-                    onClick={() => { setActiveFilterDropdown(item.key); setIsFilterMenuOpen(false) }}
-                    className="flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
-                    tabIndex={0}
-                  >
-                    <Icon className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} />
-                    {item.label}
-                  </button>
-                )
-              })}
-            </FixedDropdownMenu>
-          )}
-        </div>
-        {filterClients.length > 0 && (
-          <div className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text">
-            <Building2 className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} />
-            <button ref={(el) => { filterPillRefs.current["client"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "client" ? null : "client")} className="hover:underline" tabIndex={0}>Client</button>
-            <span className="text-folk-secondary">is</span>
-            <span>{filterClients.length} {filterClients.length === 1 ? "value" : "values"}</span>
-            <button onClick={() => setFilterClients([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear client filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
-          </div>
-        )}
-        {filterRelationships.length > 0 && (
-          <div className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text">
-            <Handshake className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} />
-            <button ref={(el) => { filterPillRefs.current["relationship"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "relationship" ? null : "relationship")} className="hover:underline" tabIndex={0}>Relationship</button>
-            <span className="text-folk-secondary">is</span>
-            <span>{filterRelationships.length} {filterRelationships.length === 1 ? "value" : "values"}</span>
-            <button onClick={() => setFilterRelationships([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear relationship filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
-          </div>
-        )}
-        <div className="ml-auto flex shrink-0 items-center gap-[8px]">
-          <ExpandableTableSearch
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="Search contacts…"
-            ariaLabel="Search contacts"
-          />
+      <ListViewToolbar
+        filters={contactFilters}
+        filterValues={queryState.filters}
+        filterOptions={filterOptions}
+        onFilterChange={handleFilterChange}
+        formatFilterOption={formatFilterOption}
+        search={queryState.search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search contacts…"
+        searchAriaLabel="Search contacts"
+        sortFields={sortFields}
+        sort={queryState.sort}
+        onSelectSort={handleSelectSort}
+        onClearSort={clearSort}
+        trailing={
           <TableDisplayPopover
             fields={displayFields}
             visibleKeys={visibleColumnKeys}
@@ -443,87 +444,11 @@ export default function ContactsPage() {
               />
             }
           />
-        </div>
-      </div>
-
-      {/* Filter value dropdowns */}
-      {activeFilterDropdown && (() => {
-        const anchor = filterPillRefs.current[activeFilterDropdown] || filterBtnRef.current
-        if (!anchor) return null
-        const anchorRef = { current: anchor }
-
-        if (activeFilterDropdown === "client") return (
-          <FixedDropdownMenu
-            isOpen
-            anchorRef={anchorRef}
-            anchorElement={anchor}
-            onClose={() => setActiveFilterDropdown(null)}
-            estimatedHeight={280}
-            minWidth={200}
-            className="py-[4px]"
-          >
-                <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0}>
-                  <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
-                  <span>Back</span>
-                </button>
-                <p className="px-[16px] py-[4px] text-[11px] font-medium text-folk-secondary">Filter by client</p>
-                {uniqueClientNames.map((name) => {
-                  const isActive = filterClients.includes(name)
-                  return (
-                    <button key={name} onClick={() => setFilterClients((prev) => isActive ? prev.filter((f) => f !== name) : [...prev, name])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${isActive ? "bg-folk-hover" : ""}`} tabIndex={0}>
-                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-none border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
-                        {isActive && <span className="text-[10px] text-white">✓</span>}
-                      </div>
-                      <span className="text-folk-text">{name}</span>
-                    </button>
-                  )
-                })}
-                {uniqueClientNames.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-folk-secondary">No clients</p>}
-                <div className="border-t border-folk-border-subtle px-[8px] py-[4px]">
-                  <button onClick={() => { setFilterClients([]); setActiveFilterDropdown(null) }} className="w-full rounded-none px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
-                </div>
-          </FixedDropdownMenu>
-        )
-
-        if (activeFilterDropdown === "relationship") return (
-          <FixedDropdownMenu
-            isOpen
-            anchorRef={anchorRef}
-            anchorElement={anchor}
-            onClose={() => setActiveFilterDropdown(null)}
-            estimatedHeight={280}
-            minWidth={200}
-            className="py-[4px]"
-          >
-                <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0}>
-                  <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
-                  <span>Back</span>
-                </button>
-                <p className="px-[16px] py-[4px] text-[11px] font-medium text-folk-secondary">Filter by relationship</p>
-                {uniqueRelationships.map((key) => {
-                  const isActive = filterRelationships.includes(key)
-                  const label = relationshipConfig[key]?.label || key
-                  return (
-                    <button key={key} onClick={() => setFilterRelationships((prev) => isActive ? prev.filter((f) => f !== key) : [...prev, key])} className={`flex w-full items-center gap-[8px] px-[16px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${isActive ? "bg-folk-hover" : ""}`} tabIndex={0}>
-                      <div className={`flex h-[16px] w-[16px] items-center justify-center rounded-none border ${isActive ? "border-[#2563EB] bg-[#2563EB]" : "border-[#d0d0d0]"}`}>
-                        {isActive && <span className="text-[10px] text-white">✓</span>}
-                      </div>
-                      <span className="text-folk-text">{label}</span>
-                    </button>
-                  )
-                })}
-                {uniqueRelationships.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-folk-secondary">No relationships</p>}
-                <div className="border-t border-folk-border-subtle px-[8px] py-[4px]">
-                  <button onClick={() => { setFilterRelationships([]); setActiveFilterDropdown(null) }} className="w-full rounded-none px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
-                </div>
-          </FixedDropdownMenu>
-        )
-
-        return null
-      })()}
+        }
+      />
 
       {/* Table */}
-      <div className="flex-1 overflow-auto bg-folk-surface">
+      <div className={listViewBodyClass()}>
         <table className={TABLE_FULL} style={{ tableLayout: "fixed", minWidth: visibleColumns.reduce((sum, col) => sum + getWidth(col.key, 200), 0) }}>
           <thead>
             <tr>
@@ -597,6 +522,9 @@ export default function ContactsPage() {
             })}
           </tbody>
         </table>
+        <TableAddFooter>
+          <TableAddNewButton onClick={() => setIsModalOpen(true)} />
+        </TableAddFooter>
         {hasMore && (
           <div className="flex justify-center py-[16px]">
             <button

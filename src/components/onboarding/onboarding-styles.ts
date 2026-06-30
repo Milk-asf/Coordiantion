@@ -4,7 +4,7 @@ export const inputClass =
 export const labelClass = "mb-[6px] block text-[12px] font-semibold text-folk-text"
 
 export const primaryBtnClass =
-  "flex h-[42px] w-full items-center justify-center rounded-folk-btn bg-folk-text text-[13px] font-semibold text-white transition-colors hover:bg-[#333333] disabled:opacity-50"
+  "primary-btn flex h-[42px] w-full items-center justify-center text-[13px] font-semibold disabled:opacity-50"
 
 export const secondaryBtnClass =
-  "flex h-[42px] w-full items-center justify-center rounded-folk-btn border border-folk-border bg-folk-surface text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+  "outline-btn flex h-[42px] w-full items-center justify-center text-[13px] font-medium text-folk-secondary hover:text-folk-text"

@@ -10,11 +10,12 @@ import { useColumnResize } from "@/lib/hooks/use-column-resize"
 import { useAssignableCoordinators } from "@/lib/hooks/use-assignable-coordinators"
 import { contactCsvColumns, parseContactsFromCsvRow } from "@/lib/participants/csv-contacts"
 import { usePermissions } from "@/lib/hooks/use-permissions"
+import { useCurrentStaffId } from "@/lib/hooks/use-current-staff"
+import { useSuitabilityContext } from "@/lib/suitability-context"
 import { useTasks } from "@/lib/tasks-context"
 import type { Client, ParticipantDetails } from "@/lib/types"
 import { EntityIcon } from "@/components/entity-icon"
 import { mergeDiagnoses } from "@/app/(dashboard)/clients/[id]/_components/client-profile-helpers"
-import { FloatingSidePanelHost } from "@/components/floating-side-panel"
 import {
   Plus,
   SlidersHorizontal,
@@ -50,6 +51,7 @@ import {
 import { CsvDropdown } from "@/components/csv-dropdown"
 import { CategoryChip } from "@/components/category-chip"
 import { PageLoader, PageError } from "@/components/page-state"
+import { PageTitleBar } from "@/components/page-title-bar"
 import {
   TABLE_CELL_BASE,
   TABLE_CELL_INNER,
@@ -67,8 +69,9 @@ import {
   tableCellSelectionClass,
   type TableCellSelection,
 } from "@/lib/table-styles"
-import { listViewTabBarClass } from "@/components/tab-active-indicator"
+import { listViewBodyClass, listViewFilterBarClass, listViewTabBarClass } from "@/components/tab-active-indicator"
 import { ProfileTabButton } from "@/components/profile-tab-button"
+import { TableAddFooter, TableAddNewButton } from "@/components/table-add-row"
 import { FolkStatusPill } from "@/lib/folk-ui"
 import { ClientProfilePanel } from "@/app/(dashboard)/clients/_components/client-profile-panel"
 import { useToast } from "@/components/toast"
@@ -138,7 +141,9 @@ export default function ClientsPage() {
   const { getContactsForClient, addContact } = useContacts()
   const { participantDisabled } = useFieldConfig()
   const staffNames = useAssignableCoordinators()
-  const { canManageClients, canAssignClients } = usePermissions()
+  const { canManageClients, canAssignClients, isSupportWorker } = usePermissions()
+  const currentStaffId = useCurrentStaffId()
+  const { getStatus: getSuitabilityStatus } = useSuitabilityContext()
   const { tasks: allTasks } = useTasks()
 
   const availablePropertyColumns = useMemo(
@@ -372,8 +377,15 @@ export default function ClientsPage() {
 
   const activeClients = clients.filter((c) => c.status !== "archived")
 
-  const uniqueStatuses = useMemo(() => [...new Set(clients.map((c) => c.status))].sort(), [clients])
-  const uniqueCoordinators = useMemo(() => [...new Set(clients.map((c) => c.owner).filter(Boolean))].sort(), [clients])
+  // Support workers only see participants marked "preferred" for them.
+  const scopedClients = useMemo(() => {
+    if (!isSupportWorker) return clients
+    if (!currentStaffId) return []
+    return clients.filter((client) => getSuitabilityStatus(currentStaffId, client.id) === "preferred")
+  }, [clients, isSupportWorker, currentStaffId, getSuitabilityStatus])
+
+  const uniqueStatuses = useMemo(() => [...new Set(scopedClients.map((c) => c.status))].sort(), [scopedClients])
+  const uniqueCoordinators = useMemo(() => [...new Set(scopedClients.map((c) => c.owner).filter(Boolean))].sort(), [scopedClients])
 
   const clientFilterDefinitions = useMemo<TableFilterDefinition[]>(() => [
     { key: "status", label: "Status", icon: Tag },
@@ -388,12 +400,12 @@ export default function ClientsPage() {
   const clientFilterOptions = useMemo(() => ({
     status: uniqueStatuses,
     coordinator: uniqueCoordinators,
-    fundingType: uniqueNonEmpty(clients.map((c) => c.participant.fundingType)),
-    gender: uniqueNonEmpty(clients.map((c) => c.participant.gender)),
-    language: uniqueNonEmpty(clients.map((c) => c.participant.language)),
+    fundingType: uniqueNonEmpty(scopedClients.map((c) => c.participant.fundingType)),
+    gender: uniqueNonEmpty(scopedClients.map((c) => c.participant.gender)),
+    language: uniqueNonEmpty(scopedClients.map((c) => c.participant.language)),
     checkUp: [...CLIENT_CHECK_UP_OPTIONS],
     budget: [...CLIENT_BUDGET_OPTIONS],
-  }), [clients, uniqueCoordinators, uniqueStatuses])
+  }), [scopedClients, uniqueCoordinators, uniqueStatuses])
 
   const formatClientFilterOption = useCallback((key: string, value: string) => {
     if (key === "checkUp") return CLIENT_CHECK_UP_LABELS[value as keyof typeof CLIENT_CHECK_UP_LABELS] ?? value
@@ -408,7 +420,7 @@ export default function ClientsPage() {
   }, [])
 
   const filteredClients = useMemo(() => {
-    const filtered = filterClients(clients, listFilters, getNextCheckUp)
+    const filtered = filterClients(scopedClients, listFilters, getNextCheckUp)
     if (!searchQuery.trim()) return filtered
     return filtered.filter((client) =>
       matchesTableSearch(
@@ -423,7 +435,7 @@ export default function ClientsPage() {
         client.status
       )
     )
-  }, [clients, listFilters, getNextCheckUp, searchQuery])
+  }, [scopedClients, listFilters, getNextCheckUp, searchQuery])
 
   const exportCsvData = useMemo(() =>
     activeClients.map((c) => {
@@ -515,13 +527,45 @@ export default function ClientsPage() {
   return (
     <div className="relative flex h-full min-h-0">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        {/* Title + primary actions */}
-        <div className="flex shrink-0 items-center justify-between border-b border-folk-border bg-folk-nav px-[16px] py-[14px]">
-          <h1 className="text-[16px] font-semibold leading-[1.2] tracking-[-0.02em] text-folk-text">
-            Clients
-          </h1>
+        <PageTitleBar title="Clients" />
+
+        {/* Saved views + actions */}
+        <div className={listViewTabBarClass("h-[44px] justify-between gap-[8px]")}>
+          <div className="folk-tab-bar folk-tab-scroll flex min-w-0 flex-1 items-stretch gap-0 overflow-x-auto overflow-y-visible">
+            <ProfileTabButton
+              variant="profile"
+              showIcon
+              isActive={activeViewId === null}
+              onClick={handleSelectAllView}
+              icon={Table2}
+              label="All"
+            />
+            {savedViews.map((view) => (
+              <ProfileTabButton
+                key={view.id}
+                variant="profile"
+                showIcon
+                isActive={activeViewId === view.id}
+                onClick={() => handleSelectView(view)}
+                onContextMenu={(e) => {
+                  e.preventDefault()
+                  setViewContextMenu({ viewId: view.id, x: e.clientX, y: e.clientY })
+                }}
+                icon={Table2}
+                label={view.name}
+              />
+            ))}
+            <button
+              onClick={() => { setIsCreateViewOpen(true); setTimeout(() => viewNameInputRef.current?.focus(), 50) }}
+              className="flex h-[24px] w-[24px] shrink-0 self-center items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+              aria-label="Add view"
+              tabIndex={0}
+            >
+              <Plus className="h-[14px] w-[14px]" strokeWidth={1.5} />
+            </button>
+          </div>
           {canManageClients && (
-            <div className="flex shrink-0 items-center gap-[8px]">
+            <div className="flex shrink-0 items-center gap-[8px] self-center">
               <CsvDropdown
                 entityType="clients"
                 columns={csvColumns}
@@ -531,7 +575,7 @@ export default function ClientsPage() {
               />
               <button
                 onClick={() => setIsCreateClientOpen(true)}
-                className="primary-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
+                className="primary-btn folk-pill-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
                 tabIndex={0}
               >
                 <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -541,40 +585,7 @@ export default function ClientsPage() {
           )}
         </div>
 
-        {/* Saved views */}
-        <div className={listViewTabBarClass()}>
-          <ProfileTabButton
-            variant="toolbar"
-            isActive={activeViewId === null}
-            onClick={handleSelectAllView}
-            icon={Table2}
-            label="All"
-          />
-          {savedViews.map((view) => (
-            <ProfileTabButton
-              key={view.id}
-              variant="toolbar"
-              isActive={activeViewId === view.id}
-              onClick={() => handleSelectView(view)}
-              onContextMenu={(e) => {
-                e.preventDefault()
-                setViewContextMenu({ viewId: view.id, x: e.clientX, y: e.clientY })
-              }}
-              icon={Table2}
-              label={view.name}
-            />
-          ))}
-          <button
-            onClick={() => { setIsCreateViewOpen(true); setTimeout(() => viewNameInputRef.current?.focus(), 50) }}
-            className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
-            aria-label="Add view"
-            tabIndex={0}
-          >
-            <Plus className="h-[14px] w-[14px]" strokeWidth={1.5} />
-          </button>
-        </div>
-
-        <div className="flex min-h-[41px] shrink-0 flex-wrap items-center gap-[8px] border-b border-folk-border bg-folk-nav px-[16px] py-[6px]">
+        <div className={listViewFilterBarClass()}>
           <TableMultiFilter
             filters={clientFilterDefinitions}
             values={listFilters}
@@ -601,7 +612,7 @@ export default function ClientsPage() {
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-auto bg-white">
+        <div className={listViewBodyClass()}>
           <table className={TABLE_GRID} style={{ tableLayout: "fixed", width: tableMinWidth, minWidth: tableMinWidth }}>
             <thead>
               <tr>
@@ -869,6 +880,11 @@ export default function ClientsPage() {
               })}
             </tbody>
           </table>
+          {canManageClients && (
+            <TableAddFooter>
+              <TableAddNewButton onClick={() => setIsCreateClientOpen(true)} />
+            </TableAddFooter>
+          )}
           {hasMore && (
             <div className="flex justify-center py-[16px]">
               <button
@@ -886,18 +902,16 @@ export default function ClientsPage() {
       </div>
 
       {openClient && (
-        <FloatingSidePanelHost>
-          <ClientProfilePanel
-            client={openClient}
-            participantData={getParticipantData(openClient)}
-            onUpdateField={(field, value) => handleUpdateField(openClient.id, field, value)}
-            onUpdateFields={(fields) => handleUpdateFields(openClient.id, fields)}
-            onClose={() => { setSelectedClient(null); setSelectedCell(null) }}
-            staffNames={staffNames}
-            canAssignClients={canAssignClients}
-            onAssign={(name) => updateClient(openClient.id, { owner: name })}
-          />
-        </FloatingSidePanelHost>
+        <ClientProfilePanel
+          client={openClient}
+          participantData={getParticipantData(openClient)}
+          onUpdateField={(field, value) => handleUpdateField(openClient.id, field, value)}
+          onUpdateFields={(fields) => handleUpdateFields(openClient.id, fields)}
+          onClose={() => { setSelectedClient(null); setSelectedCell(null) }}
+          staffNames={staffNames}
+          canAssignClients={canAssignClients}
+          onAssign={(name) => updateClient(openClient.id, { owner: name })}
+        />
       )}
 
       {isCreateViewOpen && (

@@ -34,9 +34,9 @@ interface GoalsTabProps {
 export function GoalsTab({ goals, onAddNew, onEditGoal }: GoalsTabProps) {
   return (
     <div className="relative flex h-full flex-col">
-      <div className="flex h-[41px] shrink-0 items-center justify-between border-b border-folk-border bg-folk-nav px-[16px]">
+      <div className="flex h-[41px] shrink-0 items-center justify-between border-b border-folk-border bg-white px-[16px]">
         <button
-          className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+          className="flex items-center gap-[6px] folk-pill-btn border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
           tabIndex={0}
         >
           <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -44,7 +44,7 @@ export function GoalsTab({ goals, onAddNew, onEditGoal }: GoalsTabProps) {
         </button>
         <button
           onClick={onAddNew}
-          className="outline-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
+          className="primary-btn folk-pill-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
           tabIndex={0}
         >
           <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />

@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, type RefObject } from "react"
-import type { Client, ParticipantDetails, Budget, BudgetLineItem, BudgetPeriod, ClientGoal, Contact, ActivityEntry, Document } from "@/lib/types"
+import type { Client, ParticipantDetails, Budget, BudgetLineItem, BudgetPeriod, ClientGoal, ActivityEntry, Document } from "@/lib/types"
 import type { FundingReleaseCadence, NdisFundingComponent } from "@/lib/ndis-funding-pools"
 import type { BudgetReleasePeriod } from "@/lib/types"
 import type { NdisChargeItem } from "@/lib/ndis-charges"
@@ -10,6 +10,7 @@ import { CarePlanSidebarForm } from "./care-plan-sidebar-form"
 import { BudgetSidebarForm } from "./budget-sidebar-form"
 import { SpendingPlanSidebarForm } from "./spending-plan-sidebar-form"
 import { DocumentSidebarForm } from "@/components/document-sidebar-form"
+import { FormModal } from "@/components/form-modal"
 import { ClientAccountDetails } from "@/components/profile-account-details/client-account-details"
 import { formatNumberInput, parseFormattedNumber } from "@/lib/number-input"
 import { FixedSelectDropdown } from "@/components/fixed-select-dropdown"
@@ -156,14 +157,12 @@ interface ProfileSidebarProps {
   onSetIsCoordinatorOpen: (open: boolean) => void
   onSetCoordinatorSearch: (search: string) => void
 
-  stakeholders: Contact[]
   activityLog: ActivityEntry[]
   currentUserName: string
   accountDetailsTab: AccountDetailsTab
   onAccountDetailsTabChange: (tab: AccountDetailsTab) => void
   hideAccountDetailsTabBar?: boolean
   embedded?: boolean
-  onAddStakeholder: () => void
 
   isDocumentFormOpen: boolean
   editingDocument: Document | null
@@ -226,7 +225,7 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
     onInitItemForm, onInitEditItemForm, onResetItemForm, onSaveItem,
     isCoordinatorOpen, coordinatorSearch, coordinatorInputRef,
     onSetIsCoordinatorOpen, onSetCoordinatorSearch,
-    stakeholders, activityLog, currentUserName, accountDetailsTab, onAccountDetailsTabChange, hideAccountDetailsTabBar, embedded, onAddStakeholder,
+    activityLog, currentUserName, accountDetailsTab, onAccountDetailsTabChange, hideAccountDetailsTabBar, embedded,
     isDocumentFormOpen, editingDocument, docName, docValidFrom, docValidTo, docPendingFile, docValidFromPickerOpen, docValidToPickerOpen, isSavingDocument,
     onSetDocName, onSetDocValidFrom, onSetDocValidTo, onSetDocPendingFile, onSetDocValidFromPickerOpen, onSetDocValidToPickerOpen, onResetDocumentForm, onSaveDocument, onPreviewDocument,
     onSetSidebarVisible, onMouseDown, onUpdateField, onUpdateFields, onUpdateClient,
@@ -248,7 +247,32 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
         className={embedded ? "flex h-full min-h-0 w-full flex-col overflow-y-auto bg-folk-surface" : "flex h-full min-h-0 shrink-0 flex-col overflow-y-auto bg-folk-surface"}
         style={embedded ? undefined : { width: sidebarWidth }}
       >
-      {isGoalFormOpen ? (
+      <div>
+        <ClientAccountDetails
+          client={client}
+          p={p}
+          pf={pf}
+          staffNames={staffNames}
+          canAssignClients={canAssignClients}
+          activityLog={activityLog}
+          currentUserName={currentUserName}
+          isCoordinatorOpen={isCoordinatorOpen}
+          coordinatorSearch={coordinatorSearch}
+          coordinatorInputRef={coordinatorInputRef}
+          onSetIsCoordinatorOpen={onSetIsCoordinatorOpen}
+          onSetCoordinatorSearch={onSetCoordinatorSearch}
+          onUpdateField={onUpdateField}
+          onUpdateFields={onUpdateFields}
+          onUpdateClient={onUpdateClient}
+          activeTab={accountDetailsTab}
+          onTabChange={onAccountDetailsTabChange}
+          onHideSidebar={() => onSetSidebarVisible(false)}
+          hideTabBar={hideAccountDetailsTabBar}
+        />
+      </div>
+      </div>
+      {isGoalFormOpen && (
+        <FormModal onClose={onResetGoalForm} width={460}>
         <GoalSidebarForm
           key={editingGoal?.id ?? "new"}
           goal={editingGoal}
@@ -258,7 +282,10 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
           onOpenTask={onOpenGoalTask}
           resolveTask={onResolveGoalTask}
         />
-      ) : isCarePlanFormOpen ? (
+        </FormModal>
+      )}
+      {isCarePlanFormOpen && (
+        <FormModal onClose={onResetCarePlanForm} width={460}>
         <CarePlanSidebarForm
           isEditing={Boolean(carePlanExistingDocumentName)}
           existingDocumentName={carePlanExistingDocumentName}
@@ -276,7 +303,10 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
           onSave={onSaveCarePlan}
           onClose={onResetCarePlanForm}
         />
-      ) : isBudgetFormOpen ? (
+        </FormModal>
+      )}
+      {isBudgetFormOpen && (
+        <FormModal onClose={onResetBudgetForm} width={460}>
         <BudgetSidebarForm
           isEditing={Boolean(editingBudgetId)}
           p={p}
@@ -308,7 +338,10 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
           onDelete={editingBudgetId ? onDeleteBudget : undefined}
           editingBudgetId={editingBudgetId}
         />
-      ) : isSpendingPlanFormOpen ? (
+        </FormModal>
+      )}
+      {isSpendingPlanFormOpen && (
+        <FormModal onClose={onResetSpendingPlanForm} width={460}>
         <SpendingPlanSidebarForm
           isEditing={Boolean(editingSpendingPlanId)}
           budgets={budgets}
@@ -352,7 +385,10 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
           onDelete={editingSpendingPlanId ? onDeleteSpendingPlan : undefined}
           editingSpendingPlanId={editingSpendingPlanId}
         />
-      ) : isDocumentFormOpen ? (
+        </FormModal>
+      )}
+      {isDocumentFormOpen && (
+        <FormModal onClose={onResetDocumentForm} width={460}>
         <DocumentSidebarForm
           isEditing={Boolean(editingDocument)}
           name={docName}
@@ -373,8 +409,11 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
           onClose={onResetDocumentForm}
           onPreview={editingDocument ? onPreviewDocument : undefined}
         />
-      ) : isItemFormOpen ? (
-        <>
+        </FormModal>
+      )}
+      {isItemFormOpen && (
+        <FormModal onClose={() => onResetItemForm()} width={460}>
+        <div className="flex h-full min-h-0 flex-col">
         <div className="flex items-center justify-between px-[24px] pb-[4px] pt-[20px]">
           <h2 className="text-[13px] font-semibold text-folk-text">{editingItemId ? "Edit item" : "Add item"}</h2>
           <button
@@ -387,7 +426,7 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
           </button>
         </div>
 
-        <div className="space-y-[14px] px-[24px] py-[14px]">
+        <div className="min-h-0 flex-1 space-y-[14px] overflow-y-auto px-[24px] py-[14px]">
           <div>
             <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Charge item *</label>
             <div className="relative">
@@ -395,7 +434,7 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
                 ref={itemChargeDropdownRef}
                 type="button"
                 onClick={() => onSetIsItemChargeDropdownOpen(!isItemChargeDropdownOpen)}
-                className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#ccc]"
+                className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
               >
                 <span className="min-w-0 flex-1 truncate text-left">
                   {(() => { const c = enabledCharges.find((ch) => ch.itemNumber === itemChargeItemNumber); return c ? `${c.shortName} – $${c.price.toFixed(2)}/${c.unit}` : "Select charge item" })()}
@@ -449,7 +488,7 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
           <div className="flex gap-[10px]">
             <div className="flex-1">
               <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Quantity *</label>
-              <input type="text" inputMode="decimal" value={itemQuantity} onChange={(e) => onSetItemQuantity(formatNumberInput(e.target.value))} className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none hover:border-[#ccc] focus:border-[#a3c4f3]" />
+              <input type="text" inputMode="decimal" value={itemQuantity} onChange={(e) => onSetItemQuantity(formatNumberInput(e.target.value))} className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none hover:border-[#bababa] focus:border-[#a3c4f3]" />
             </div>
             <div className="flex-1">
               <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Unit</label>
@@ -464,7 +503,7 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
                 ref={itemPeriodDropdownRef}
                 type="button"
                 onClick={() => onSetIsItemPeriodDropdownOpen(!isItemPeriodDropdownOpen)}
-                className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#ccc]"
+                className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
               >
                 <span className="min-w-0 flex-1 text-left">{periodLabels[itemPeriod]}</span>
                 <ChevronDown className={`ml-[8px] h-[14px] w-[14px] shrink-0 text-folk-secondary transition-transform ${isItemPeriodDropdownOpen ? "rotate-180" : ""}`} strokeWidth={1.5} />
@@ -499,7 +538,7 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
 
           <div>
             <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Description</label>
-            <input type="text" value={itemDescription} onChange={(e) => onSetItemDescription(e.target.value)} placeholder="Optional description" className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#ccc] focus:border-[#a3c4f3]" />
+            <input type="text" value={itemDescription} onChange={(e) => onSetItemDescription(e.target.value)} placeholder="Optional description" className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]" />
           </div>
 
           {(() => {
@@ -532,37 +571,9 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
             {editingItemId ? "Save changes" : "Add item"}
           </button>
         </div>
-        </>
-      ) : (
-      <>
-      <div>
-        <ClientAccountDetails
-          client={client}
-          p={p}
-          pf={pf}
-          staffNames={staffNames}
-          canAssignClients={canAssignClients}
-          activityLog={activityLog}
-          currentUserName={currentUserName}
-          stakeholders={stakeholders}
-          isCoordinatorOpen={isCoordinatorOpen}
-          coordinatorSearch={coordinatorSearch}
-          coordinatorInputRef={coordinatorInputRef}
-          onSetIsCoordinatorOpen={onSetIsCoordinatorOpen}
-          onSetCoordinatorSearch={onSetCoordinatorSearch}
-          onAddStakeholder={onAddStakeholder}
-          onUpdateField={onUpdateField}
-          onUpdateFields={onUpdateFields}
-          onUpdateClient={onUpdateClient}
-          activeTab={accountDetailsTab}
-          onTabChange={onAccountDetailsTabChange}
-          onHideSidebar={() => onSetSidebarVisible(false)}
-          hideTabBar={hideAccountDetailsTabBar}
-        />
-                  </div>
-      </>
+        </div>
+        </FormModal>
       )}
-      </div>
     </>
   )
 }

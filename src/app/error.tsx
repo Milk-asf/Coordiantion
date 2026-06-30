@@ -26,7 +26,7 @@ export default function Error({
       </p>
       <button
         onClick={reset}
-        className="rounded-none bg-[#1a1a1a] px-[16px] py-[10px] text-[14px] font-medium text-white transition-colors hover:bg-black"
+        className="primary-btn"
         tabIndex={0}
       >
         Try again

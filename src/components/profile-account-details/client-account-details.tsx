@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, type RefObject } from "react"
-import type { ActivityEntry, Client, Contact, ParticipantDetails } from "@/lib/types"
-import { relationshipConfig } from "@/lib/types"
+import type { ActivityEntry, Client, ParticipantDetails } from "@/lib/types"
 import {
   SidebarDetailRow,
   SidebarEditableField,
@@ -25,20 +24,10 @@ import {
   Languages,
   UserRound,
   CalendarDays,
-  Plus,
   Info,
   ChevronDown,
 } from "lucide-react"
 import { EntityIcon } from "@/components/entity-icon"
-import { CategoryChip } from "@/components/category-chip"
-import {
-  TABLE_FULL,
-  TABLE_PANEL_CELL,
-  TABLE_PANEL_CELL_LAST,
-  TABLE_PANEL_HEADER_STICKY,
-  TABLE_PANEL_HEADER_STICKY_LAST,
-  TABLE_PANEL_TEXT,
-} from "@/lib/table-styles"
 
 interface ClientAccountDetailsProps {
   client: Client
@@ -48,13 +37,11 @@ interface ClientAccountDetailsProps {
   canAssignClients: boolean
   activityLog: ActivityEntry[]
   currentUserName: string
-  stakeholders: Contact[]
   isCoordinatorOpen: boolean
   coordinatorSearch: string
   coordinatorInputRef: RefObject<HTMLInputElement | null>
   onSetIsCoordinatorOpen: (open: boolean) => void
   onSetCoordinatorSearch: (search: string) => void
-  onAddStakeholder: () => void
   onUpdateField: (field: keyof ParticipantDetails, value: string) => void
   onUpdateFields: (fields: Partial<ParticipantDetails>) => void
   onUpdateClient: (id: string, updates: Partial<Client>) => void
@@ -66,7 +53,6 @@ interface ClientAccountDetailsProps {
 
 const defaultOpenSections = {
   clientInformation: true,
-  team: false,
   fundingInformation: false,
   medicalInformation: false,
   financialDetails: false,
@@ -80,13 +66,11 @@ export function ClientAccountDetails({
   canAssignClients,
   activityLog,
   currentUserName,
-  stakeholders,
   isCoordinatorOpen,
   coordinatorSearch,
   coordinatorInputRef,
   onSetIsCoordinatorOpen,
   onSetCoordinatorSearch,
-  onAddStakeholder,
   onUpdateField,
   onUpdateFields,
   onUpdateClient,
@@ -288,74 +272,6 @@ export function ClientAccountDetails({
               displayClassName={p.preferredSignMethod ? getFieldPillClass("preferredSignMethod", p.preferredSignMethod) : undefined}
             />
           </SidebarDetailRow>
-        )}
-      </ProfileAccordionSection>
-
-      <ProfileAccordionSection
-        title="Team"
-        isOpen={openSections.team}
-        onToggle={() => toggleSection("team")}
-      >
-        <div className="mb-[8px] flex items-center justify-end">
-          <button
-            type="button"
-            onClick={onAddStakeholder}
-            className="outline-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
-            tabIndex={0}
-          >
-            <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-            <span>Add new</span>
-          </button>
-        </div>
-        {stakeholders.length === 0 ? (
-          <p className="py-[4px] text-[13px] font-medium text-folk-placeholder">No contacts yet</p>
-        ) : (
-          <div className="-mx-[16px] overflow-x-auto border-t border-folk-border">
-            <table className={`${TABLE_FULL} min-w-[480px]`}>
-              <thead>
-                <tr>
-                  <th className={TABLE_PANEL_HEADER_STICKY}>Contact name</th>
-                  <th className={TABLE_PANEL_HEADER_STICKY}>Relationship</th>
-                  <th className={TABLE_PANEL_HEADER_STICKY}>Email</th>
-                  <th className={TABLE_PANEL_HEADER_STICKY_LAST}>Phone number</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stakeholders.map((c) => {
-                  const rel = relationshipConfig[c.relationship] ?? { label: c.relationship || "—" }
-                  const initials = c.name.split(" ").filter(Boolean).map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
-                  return (
-                    <tr key={c.id} className="transition-colors hover:bg-folk-hover">
-                      <td className={`${TABLE_PANEL_CELL} ${TABLE_PANEL_TEXT}`}>
-                        <div className="flex min-w-0 items-center gap-[8px]">
-                          <EntityIcon text={initials || "?"} size="sm" />
-                          <span className="truncate">{c.name}</span>
-                        </div>
-                      </td>
-                      <td className={`${TABLE_PANEL_CELL} ${TABLE_PANEL_TEXT}`}>
-                        {c.relationship ? (
-                          <CategoryChip label={rel.label} categoryKey={c.relationship} size="lg" />
-                        ) : (
-                          <span className="text-folk-placeholder">—</span>
-                        )}
-                      </td>
-                      <td className={`${TABLE_PANEL_CELL} ${TABLE_PANEL_TEXT}`}>
-                        {c.email || <span className="text-folk-placeholder">—</span>}
-                      </td>
-                      <td className={`${TABLE_PANEL_CELL_LAST} ${TABLE_PANEL_TEXT}`}>
-                        {c.phone || <span className="text-folk-placeholder">—</span>}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-            <div className="border-t border-folk-border px-[16px] py-[8px]">
-              <span className="text-[12px] font-medium text-folk-secondary">
-                {stakeholders.length} {stakeholders.length === 1 ? "contact" : "contacts"}
-              </span>
-            </div>
-          </div>
         )}
       </ProfileAccordionSection>
 

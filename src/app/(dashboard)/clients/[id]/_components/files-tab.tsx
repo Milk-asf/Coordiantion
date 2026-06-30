@@ -102,7 +102,7 @@ export function FilesTab({
 
   return (
     <div className="relative flex h-full flex-col">
-      <div className="flex h-[41px] shrink-0 items-center justify-between border-b border-folk-border bg-folk-nav px-[16px]">
+      <div className="flex h-[41px] shrink-0 items-center justify-between border-b border-folk-border bg-white px-[16px]">
         <div className="flex min-w-0 items-center gap-[6px]">
           <button
             onClick={() => setCurrentPath(rootFolder)}
@@ -135,7 +135,7 @@ export function FilesTab({
           <div className="relative shrink-0">
             <button
               onClick={() => setIsAddNewOpen(!isAddNewOpen)}
-              className="outline-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
+              className="primary-btn folk-pill-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
               tabIndex={0}
               aria-label="Add new"
             >
@@ -170,7 +170,7 @@ export function FilesTab({
       </div>
 
       {isNewFolderOpen && (
-        <div className="flex items-center gap-[8px] border-b border-folk-border bg-folk-nav px-[16px] py-[8px]">
+        <div className="flex items-center gap-[8px] border-b border-folk-border bg-white px-[16px] py-[8px]">
           <FolderPlus className="h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
           <input
             autoFocus
@@ -226,7 +226,7 @@ export function FilesTab({
                         setCurrentPath(folder.path)
                       }
                     }}
-                    className="group flex cursor-pointer flex-col rounded-none border border-[#e2e2e2] bg-folk-surface p-[16px] text-left transition-all hover:border-folk-border hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+                    className="group flex cursor-pointer flex-col rounded-none border border-[#d9d9d9] bg-folk-surface p-[16px] text-left transition-all hover:border-folk-border hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
                     tabIndex={0}
                   >
                     <div className="flex items-start justify-between">
@@ -250,7 +250,7 @@ export function FilesTab({
                 return (
                   <div
                     key={doc.id}
-                    className="group flex flex-col rounded-none border border-[#e2e2e2] bg-folk-surface p-[16px] transition-all hover:border-folk-border hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+                    className="group flex flex-col rounded-none border border-[#d9d9d9] bg-folk-surface p-[16px] transition-all hover:border-folk-border hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
                   >
                     <div className="flex items-start justify-between">
                       <DocIcon className="h-[20px] w-[20px] shrink-0 text-folk-secondary" strokeWidth={1.5} />

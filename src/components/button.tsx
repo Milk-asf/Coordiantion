@@ -26,7 +26,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       type={type}
       className={cn(
-        "flex h-[32px] items-center justify-center gap-[5px] rounded-folk-btn px-[14px] text-[13px] font-medium disabled:opacity-45",
+        "flex h-[29px] items-center justify-center gap-[5px] px-[12px] text-[13px] font-medium disabled:opacity-45",
         motion.interactive,
         variantClasses[variant],
         className

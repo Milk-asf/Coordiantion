@@ -13,6 +13,8 @@ interface ProfileTabButtonProps {
   className?: string
   children?: ReactNode
   showIndicator?: boolean
+  /** Force the icon to render. Defaults to true for the toolbar variant. */
+  showIcon?: boolean
   variant?: "profile" | "toolbar"
   onClick?: () => void
   href?: string
@@ -29,10 +31,11 @@ export function ProfileTabButton({
   className = "",
   children,
   variant = "profile",
+  showIcon: showIconProp,
   onContextMenu,
 }: ProfileTabButtonProps) {
   const iconClassName = variant === "toolbar" ? "h-[13px] w-[13px]" : "h-[14px] w-[14px]"
-  const showIcon = variant === "toolbar" && Icon
+  const showIcon = (showIconProp ?? variant === "toolbar") && Icon
   const profileBadgeClassName =
     "folk-tab-badge inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full border px-[5px] text-[11px] font-normal leading-none tabular-nums"
   const badgeClassName = variant === "toolbar"

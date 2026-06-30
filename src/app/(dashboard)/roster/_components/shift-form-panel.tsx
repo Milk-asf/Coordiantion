@@ -20,7 +20,7 @@ import {
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { CancelShiftDialog } from "@/components/roster/cancel-shift-dialog"
 import { IconButton } from "@/components/icon-button"
-import { FloatingSidePanel } from "@/components/floating-side-panel"
+import { FormModal } from "@/components/form-modal"
 import { FixedDatePickerDropdown } from "@/components/fixed-date-picker-dropdown"
 import { FixedSelectDropdown, FixedSelectOption } from "@/components/fixed-select-dropdown"
 import { FixedTimePickerDropdown } from "@/components/fixed-time-picker-dropdown"
@@ -29,6 +29,7 @@ import { EntityIcon } from "@/components/entity-icon"
 import { ProfileTabButton } from "@/components/profile-tab-button"
 import { SearchableEntityDropdown } from "@/components/searchable-entity-dropdown"
 import { profileMainTabScrollClass, profilePageTabRowClass } from "@/components/tab-active-indicator"
+import { useWorkspace } from "@/lib/workspace-context"
 import { useCharges } from "@/lib/hooks/use-charges"
 import { useSuitability } from "@/lib/hooks/use-suitability"
 import { suitabilityStatusConfig } from "@/lib/suitability/config"
@@ -53,7 +54,19 @@ import {
 import { buildShiftGoalSnapshot, findAttachedGoalId, removeShiftFromGoals } from "@/lib/roster/goal-links"
 import { syncShiftGoalLink } from "@/lib/roster/sync-shift-goal-link"
 import { goalTypeConfig } from "@/app/(dashboard)/clients/[id]/_components/goals-tab"
-import type { RosterShift, RosterShiftInput, ShiftFormContext } from "@/lib/roster/types"
+import type { RosterShift, RosterShiftInput, ShiftFormContext, ShiftProgressNote } from "@/lib/roster/types"
+import {
+  EMPTY_PROGRESS_NOTE_DRAFT,
+  ShiftProgressNoteEditor,
+  type ProgressNoteDraft,
+} from "./shift-progress-note"
+import {
+  getShiftComplianceIssues,
+  hasBlockingComplianceIssues,
+  complianceIssuesToMessages,
+  getCancellationClaimSuggestion,
+} from "@/lib/roster/compliance"
+import { downloadSupportLog } from "@/lib/roster/support-log-export"
 import {
   getShiftIssueDescriptions,
   getShiftCancelledByLabel,
@@ -69,17 +82,16 @@ import {
 } from "@/lib/roster/week-utils"
 import { useToast } from "@/components/toast"
 import { SuitabilityDisallowedChip } from "@/components/suitability-status-select"
+import { FolkSidebarField, folkSidebarValueButtonClass } from "@/components/folk-sidebar"
 import { cn } from "@/lib/utils"
 
-const PANEL_WIDTH = 404
-const PROPERTY_LABEL_CLASS = "text-[13px] font-medium text-[#8d8d8d]"
+const PANEL_WIDTH = 540
 const FORM_LABEL_CLASS = "mb-[4px] block text-[12px] font-medium text-folk-secondary"
 const FORM_INPUT_CLASS =
-  "h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#ccc] focus:border-[#a3c4f3]"
+  "h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]"
 const FORM_TEXTAREA_CLASS =
-  "min-h-[76px] w-full resize-y rounded-none border border-folk-border bg-folk-page px-[12px] py-[8px] text-[13px] font-medium leading-[1.5] text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#ccc] focus:border-[#a3c4f3]"
-const VALUE_BUTTON_CLASS =
-  "flex min-w-0 items-center gap-[7px] rounded-none px-[8px] py-[6px] text-left transition-colors hover:bg-folk-page"
+  "min-h-[76px] w-full resize-y rounded-none border border-folk-border bg-folk-page px-[12px] py-[8px] text-[13px] font-medium leading-[1.5] text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]"
+const VALUE_BUTTON_CLASS = folkSidebarValueButtonClass()
 const INLINE_INPUT_CLASS =
   "w-full bg-transparent text-[13px] font-medium text-folk-text placeholder-[#ccc] outline-none"
 
@@ -114,11 +126,14 @@ export function ShiftFormPanel({
   onSelectShift,
 }: ShiftFormPanelProps) {
   const { toast } = useToast()
-  const { activeStaff, activeClients, shifts, addShift, updateShift, deleteShift, duplicateShift } = useRosterContext()
+  const { currentUserName } = useWorkspace()
+  const { activeStaff, activeClients, shifts, addShift, updateShift, updateShiftProgressNote, deleteShift, duplicateShift } =
+    useRosterContext()
   const { clients, updateClient } = useClients()
   const { enabledCharges } = useCharges()
   const { isDisallowed } = useSuitability()
-  const { canManageWorkspaceSettings } = usePermissions()
+  const { canManageWorkspaceSettings, canManageRoster } = usePermissions()
+  const canEditShift = canManageRoster
   const { settings: rosterSettings } = useRosterSettings()
 
   const [title, setTitle] = useState("")
@@ -142,6 +157,9 @@ export function ShiftFormPanel({
   const [isStringShift, setIsStringShift] = useState(false)
   const [startTimeFocused, setStartTimeFocused] = useState(false)
   const [endTimeFocused, setEndTimeFocused] = useState(false)
+  const [activeTab, setActiveTab] = useState<"details" | "note">("details")
+  const [noteDraft, setNoteDraft] = useState<ProgressNoteDraft>(EMPTY_PROGRESS_NOTE_DRAFT)
+  const [isSavingNote, setIsSavingNote] = useState(false)
 
   const clientBtnRef = useRef<HTMLButtonElement>(null)
   const staffBtnRef = useRef<HTMLButtonElement>(null)
@@ -155,6 +173,8 @@ export function ShiftFormPanel({
 
   const isEditing = Boolean(shift)
   const isCancelledShift = shift ? isShiftCancelled(shift) : false
+  const showNoteTab = isEditing && !isCancelledShift
+  const hasSavedNote = Boolean(shift?.progressNote)
   const isAddingStringPart = Boolean(!isEditing && defaults?.shiftStringId)
   const hasStringLink = Boolean(shift?.shiftStringId || defaults?.shiftStringId || isStringShift)
   const activeStringId = shift?.shiftStringId ?? defaults?.shiftStringId ?? null
@@ -360,13 +380,29 @@ export function ShiftFormPanel({
     setGoalId("")
     setError(null)
     setActiveDropdown(null)
+    // Non-admins can't edit details, so open them straight on the note tab.
+    const canShowNote = Boolean(shift) && !(shift ? isShiftCancelled(shift) : false)
+    setActiveTab(!canEditShift && canShowNote ? "note" : "details")
+    setNoteDraft(
+      shift?.progressNote
+        ? {
+            supportProvided: shift.progressNote.supportProvided,
+            goalProgress: shift.progressNote.goalProgress,
+            observations: shift.progressNote.observations,
+            concerns: shift.progressNote.concerns,
+            incidentOccurred: shift.progressNote.incidentOccurred,
+            followUp: shift.progressNote.followUp,
+            signature: shift.progressNote.signature,
+          }
+        : EMPTY_PROGRESS_NOTE_DRAFT
+    )
 
     const initialClientId = shift?.clientId ?? defaults?.clientId ?? activeClients[0]?.id ?? ""
     if (shift?.id && initialClientId) {
       const client = clients.find((item) => item.id === initialClientId)
       setGoalId(findAttachedGoalId(client, shift.id) ?? "")
     }
-  }, [activeClients, activeStaff, clients, defaults, isOpen, rosterSettings.sessionTypes, shift, shifts])
+  }, [activeClients, activeStaff, canEditShift, clients, defaults, isOpen, rosterSettings.sessionTypes, shift, shifts])
 
   useEffect(() => {
     if (!isOpen || !goalId) return
@@ -443,15 +479,76 @@ export function ShiftFormPanel({
 
   const durationLabel = useMemo(() => formatDuration(startTime, endTime), [endTime, startTime])
 
-  const issueDescriptions = useMemo(
-    () => getShiftIssueDescriptions(shifts, { ...input, id: shift?.id }),
-    [input, shift?.id, shifts]
+  const issueDescriptions = useMemo(() => {
+    const conflicts = getShiftIssueDescriptions(shifts, { ...input, id: shift?.id })
+    const complianceIssues = getShiftComplianceIssues(
+      { ...input, id: shift?.id, progressNote: shift?.progressNote ?? undefined },
+      {
+        shifts,
+        staff: selectedStaff,
+        client: selectedClient ?? clients.find((c) => c.id === clientId),
+        enabledCharges,
+        isDisallowedPair: staffId && clientId ? isDisallowed(staffId, clientId) : false,
+        compliance: rosterSettings.compliance,
+      },
+    )
+    return [...conflicts, ...complianceIssuesToMessages(complianceIssues)]
+  }, [
+    shifts,
+    input,
+    shift?.id,
+    shift?.progressNote,
+    selectedStaff,
+    selectedClient,
+    clients,
+    clientId,
+    enabledCharges,
+    staffId,
+    isDisallowed,
+    rosterSettings.compliance,
+  ])
+
+  const blockingComplianceIssues = useMemo(
+    () =>
+      getShiftComplianceIssues(
+        { ...input, id: shift?.id, progressNote: shift?.progressNote ?? undefined },
+        {
+          shifts,
+          staff: selectedStaff,
+          client: selectedClient ?? clients.find((c) => c.id === clientId),
+          enabledCharges,
+          isDisallowedPair: staffId && clientId ? isDisallowed(staffId, clientId) : false,
+          compliance: rosterSettings.compliance,
+        },
+      ),
+    [
+      shifts,
+      input,
+      shift?.id,
+      shift?.progressNote,
+      selectedStaff,
+      selectedClient,
+      clients,
+      clientId,
+      enabledCharges,
+      staffId,
+      isDisallowed,
+      rosterSettings.compliance,
+    ],
   )
 
+  const hasBlockingIssues = hasBlockingComplianceIssues(blockingComplianceIssues)
+
   const handleSave = async (options?: { continueString?: boolean }) => {
+    if (!canEditShift) return
     const validationError = validateShiftInput(input)
     if (validationError) {
       setError(validationError)
+      return
+    }
+
+    if (hasBlockingIssues) {
+      setError(blockingComplianceIssues.filter((i) => i.level === "block").map((i) => i.message).join(" "))
       return
     }
 
@@ -573,8 +670,46 @@ export function ShiftFormPanel({
     onContinueString(buildStringSegmentDefaults(anchorShift, shifts))
   }
 
-  const handleDelete = async () => {
+  const handleSaveNote = async () => {
     if (!shift) return
+
+    if (!noteDraft.supportProvided.trim()) {
+      setError("Describe the support provided before saving the shift note.")
+      return
+    }
+
+    setIsSavingNote(true)
+    setError(null)
+
+    const now = new Date().toISOString()
+    const note: ShiftProgressNote = {
+      supportProvided: noteDraft.supportProvided.trim(),
+      goalProgress: noteDraft.goalProgress.trim(),
+      observations: noteDraft.observations.trim(),
+      concerns: noteDraft.concerns.trim(),
+      incidentOccurred: noteDraft.incidentOccurred,
+      followUp: noteDraft.followUp.trim(),
+      signature: noteDraft.signature,
+      authorStaffId: shift.staffId || null,
+      authorName: shift.progressNote?.authorName || currentUserName,
+      recordedAt: shift.progressNote?.recordedAt || now,
+      updatedAt: now,
+    }
+
+    const success = await updateShiftProgressNote(shift.id, note)
+    setIsSavingNote(false)
+
+    if (!success) {
+      setError("Unable to save shift note. Try again.")
+      return
+    }
+
+    toast(hasSavedNote ? "Shift note updated" : "Shift note saved", "success")
+    onClose()
+  }
+
+  const handleDelete = async () => {
+    if (!shift || !canEditShift) return
 
     const client = clients.find((item) => item.id === shift.clientId)
     if (client) {
@@ -593,7 +728,7 @@ export function ShiftFormPanel({
   }
 
   const handleDuplicate = async () => {
-    if (!shift) return
+    if (!shift || !canEditShift) return
     const created = await duplicateShift(shift.id)
     if (!created) {
       toast("Unable to duplicate shift", "error")
@@ -601,6 +736,50 @@ export function ShiftFormPanel({
     }
     toast("Shift copied", "success")
     onClose()
+  }
+
+  const handleMarkComplete = async () => {
+    if (!shift || !canEditShift || isCancelledShift) return
+
+    const completeIssues = getShiftComplianceIssues(
+      { ...input, id: shift.id, progressNote: shift.progressNote ?? undefined },
+      {
+        shifts,
+        staff: selectedStaff,
+        client: selectedClient ?? clients.find((c) => c.id === clientId),
+        enabledCharges,
+        isDisallowedPair: staffId && clientId ? isDisallowed(staffId, clientId) : false,
+        targetStatus: "completed",
+        compliance: rosterSettings.compliance,
+      },
+    )
+
+    if (hasBlockingComplianceIssues(completeIssues)) {
+      setError(completeIssues.filter((i) => i.level === "block").map((i) => i.message).join(" "))
+      if (rosterSettings.compliance.progressNoteOnComplete !== "off" && !shift.progressNote?.supportProvided?.trim()) {
+        setActiveTab("note")
+      }
+      return
+    }
+
+    setIsSaving(true)
+    const success = await updateShift(shift.id, { status: "completed" })
+    setIsSaving(false)
+
+    if (!success) {
+      setError("Unable to mark shift complete.")
+      return
+    }
+
+    toast("Shift marked complete", "success")
+    onClose()
+  }
+
+  const handleExportSupportLog = () => {
+    if (!shift) return
+    const client = clients.find((c) => c.id === shift.clientId)
+    downloadSupportLog(shift, client)
+    toast("Support log downloaded", "success")
   }
 
   const handleCancelShift = async (cancelledBy: "client" | "organisation", cancellationReason: string) => {
@@ -620,6 +799,8 @@ export function ShiftFormPanel({
     }
 
     toast("Shift cancelled", "success")
+    const suggestion = getCancellationClaimSuggestion(cancelledBy, shift)
+    if (suggestion) toast(suggestion, "info")
     setIsCancelOpen(false)
     onClose()
   }
@@ -637,22 +818,46 @@ export function ShiftFormPanel({
 
   return (
     <>
-      <FloatingSidePanel width={PANEL_WIDTH}>
-        <div className="flex h-[44px] shrink-0 items-center justify-between gap-[12px] border-b border-folk-border bg-folk-nav px-[12px]">
-          <h2 className="min-w-0 truncate text-[13px] font-semibold text-folk-text">
-            {isEditing ? (shift?.title.trim() || "Shift") : "New shift"}
-          </h2>
-          <div className="flex shrink-0 items-center gap-[4px]">
-            <IconButton
+      <FormModal onClose={onClose} width={PANEL_WIDTH} position="right">
+        <div className="shrink-0 bg-white">
+          <div className="flex items-start justify-between gap-[12px] px-[24px] pb-[14px] pt-[20px]">
+            <h2 className="min-w-0 text-[18px] font-semibold leading-tight text-folk-text">
+              {isEditing ? (shift?.title.trim() || "Shift") : "New shift"}
+            </h2>
+            <button
               type="button"
               onClick={onClose}
-              tooltip="Close"
-              className="flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-full text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+              className="-mr-[6px] -mt-[2px] flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-full text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
               tabIndex={0}
+              aria-label="Close shift"
             >
-              <X className="h-[14px] w-[14px]" strokeWidth={1.75} />
-            </IconButton>
+              <X className="h-[16px] w-[16px]" strokeWidth={1.5} />
+            </button>
           </div>
+
+          {showNoteTab && (
+            <div className={profilePageTabRowClass("h-[40px] border-b-0")}>
+              <div className={profileMainTabScrollClass("h-full w-full px-[12px]")}>
+                {(
+                  [
+                    { id: "details" as const, label: "Details" },
+                    { id: "note" as const, label: hasSavedNote ? "Shift note" : "Add note" },
+                  ] as const
+                ).map(({ id, label }) => (
+                  <ProfileTabButton
+                    key={id}
+                    isActive={activeTab === id}
+                    onClick={() => {
+                      setActiveTab(id)
+                      setError(null)
+                      setActiveDropdown(null)
+                    }}
+                    label={label}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -663,12 +868,23 @@ export function ShiftFormPanel({
               </div>
             )}
 
+            {activeTab === "note" && shift ? (
+              <ShiftProgressNoteEditor
+                value={noteDraft}
+                onChange={setNoteDraft}
+                clientName={selectedClient?.displayName ?? shift.clientName}
+                goalTitle={selectedGoal?.title}
+                authorName={shift.progressNote?.authorName}
+                recordedAt={shift.progressNote?.recordedAt}
+              />
+            ) : (
+              <>
             {issueDescriptions.length > 0 && !isCancelledShift && (
               <div className="mb-[14px] rounded-none border border-amber-200 bg-amber-50 px-[12px] py-[10px]">
                 <div className="flex items-start gap-[8px]">
                   <AlertTriangle className="mt-[1px] h-[14px] w-[14px] shrink-0 text-amber-600" strokeWidth={2} />
                   <div className="min-w-0">
-                    <p className="text-[12px] font-semibold text-amber-900">Scheduling issue</p>
+                    <p className="text-[12px] font-semibold text-amber-900">Scheduling & compliance</p>
                     <ul className="mt-[6px] space-y-[4px]">
                       {issueDescriptions.map((description) => (
                         <li key={description} className="text-[12px] font-medium leading-snug text-amber-800">
@@ -711,7 +927,7 @@ export function ShiftFormPanel({
               />
             )}
 
-            <div className="space-y-[14px]">
+            <fieldset disabled={!canEditShift} className="m-0 min-w-0 space-y-[14px] border-0 p-0">
               <div>
                 <label className={FORM_LABEL_CLASS} htmlFor="shift-title">
                   Title
@@ -732,7 +948,7 @@ export function ShiftFormPanel({
                   ref={sessionTypeBtnRef}
                   type="button"
                   onClick={() => setActiveDropdown(activeDropdown === "sessionType" ? null : "sessionType")}
-                  className="flex h-[36px] w-full items-center justify-between gap-[8px] rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium outline-none transition-colors hover:border-[#ccc] focus:border-[#a3c4f3]"
+                  className="flex h-[36px] w-full items-center justify-between gap-[8px] rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium outline-none transition-colors hover:border-[#bababa] focus:border-[#a3c4f3]"
                   tabIndex={0}
                   aria-expanded={activeDropdown === "sessionType"}
                 >
@@ -934,8 +1150,8 @@ export function ShiftFormPanel({
                     onClick={() => setActiveDropdown(activeDropdown === "charge" ? null : "charge")}
                     disabled={availableCharges.length === 0}
                     className={cn(
-                      "inline-flex items-center gap-[4px] rounded-none border border-dashed border-[#d0d0d0] px-[8px] py-[4px] text-[12px] font-medium text-folk-secondary transition-colors hover:border-[#bbb] hover:text-folk-secondary",
-                      availableCharges.length === 0 && "cursor-not-allowed opacity-50 hover:border-[#d0d0d0] hover:text-folk-secondary"
+                      "inline-flex items-center gap-[4px] rounded-none border border-dashed border-[#bababa] px-[8px] py-[4px] text-[12px] font-medium text-folk-secondary transition-colors hover:border-[#bbb] hover:text-folk-secondary",
+                      availableCharges.length === 0 && "cursor-not-allowed opacity-50 hover:border-[#bababa] hover:text-folk-secondary"
                     )}
                     tabIndex={0}
                     aria-expanded={activeDropdown === "charge"}
@@ -1028,9 +1244,9 @@ export function ShiftFormPanel({
                   />
                 </div>
               )}
-            </div>
+            </fieldset>
 
-            {!isCancelledShift && !showStringPartsDropdown && (
+            {canEditShift && !isCancelledShift && !showStringPartsDropdown && (
               <div className="mt-[18px] border-t border-folk-border-subtle pt-[14px]">
                 <div className="mb-[10px] flex items-center gap-[6px]">
                   <Link2 className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={2} />
@@ -1085,30 +1301,45 @@ export function ShiftFormPanel({
                 )}
               </div>
             )}
+              </>
+            )}
 
           </div>
         </div>
 
         <div className="flex shrink-0 items-center justify-between gap-[8px] border-t border-folk-border-subtle px-[24px] py-[12px]">
           <div className="flex min-w-0 items-center gap-[8px]">
-            {isEditing && !isCancelledShift && (
-              <button
+            {canEditShift && isEditing && !isCancelledShift && activeTab === "details" && (
+              <>
+                {shift?.status !== "completed" && (
+                  <button
+                    type="button"
+                    onClick={handleMarkComplete}
+                    disabled={isSaving}
+                    className="outline-btn folk-pill-btn px-[12px] py-[6px] text-[12px] font-medium disabled:opacity-50"
+                    tabIndex={0}
+                  >
+                    Mark complete
+                  </button>
+                )}
+                <button
                 type="button"
                 onClick={() => setIsCancelOpen(true)}
                 disabled={isCancelling || isSaving}
-                className="rounded-none border border-[#fdba74] px-[12px] py-[6px] text-[12px] font-medium text-[#c2410c] transition-colors hover:bg-[#fff7ed] disabled:opacity-50"
+                className="folk-pill-btn border border-[#fdba74] px-[12px] py-[6px] text-[12px] font-medium text-[#c2410c] transition-colors hover:bg-[#fff7ed] disabled:opacity-50"
                 tabIndex={0}
               >
                 Cancel shift
               </button>
+              </>
             )}
-            {isEditing && (
+            {canEditShift && isEditing && (
               <>
                 <IconButton
                   type="button"
                   onClick={handleDuplicate}
                   tooltip="Copy shift"
-                  className="flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-full border border-folk-border text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+                  className="icon-btn shrink-0"
                   tabIndex={0}
                 >
                   <Copy className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -1126,29 +1357,55 @@ export function ShiftFormPanel({
             )}
           </div>
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-[8px]">
-            {!isEditing && isStringShift && !isCancelledShift && (
-              <button
+            {activeTab === "note" ? (
+              <>
+                {rosterSettings.compliance.enableSupportLogExport && shift && (
+                  <button
+                    type="button"
+                    onClick={handleExportSupportLog}
+                    className="outline-btn folk-pill-btn px-[12px] py-[7px] text-[13px] font-medium"
+                    tabIndex={0}
+                  >
+                    Export log
+                  </button>
+                )}
+                <button
                 type="button"
-                onClick={() => handleSave({ continueString: true })}
-                disabled={isSaving}
-                className="rounded-none border border-[#c7d2fe] bg-[#eef2ff] px-[12px] py-[6px] text-[12px] font-medium text-[#4338ca] transition-colors hover:bg-[#e0e7ff] disabled:opacity-50"
+                onClick={handleSaveNote}
+                disabled={isSavingNote}
+                className="primary-btn folk-pill-btn px-[16px] py-[7px] text-[13px] font-medium transition-colors disabled:opacity-50"
                 tabIndex={0}
               >
-                {isSaving ? "Saving…" : "Create & add next part"}
+                {isSavingNote ? "Saving…" : "Save note"}
               </button>
-            )}
-            <button
-              type="button"
-              onClick={() => handleSave()}
-              disabled={isSaving || isCancelledShift}
-              className="primary-btn px-[12px] py-[6px] text-[12px] font-medium transition-colors disabled:opacity-50"
-              tabIndex={0}
-            >
-              {isSaving ? "Saving…" : isEditing ? "Save changes" : isStringShift ? "Create part" : "Create shift"}
-            </button>
+              </>
+            ) : canEditShift ? (
+              <>
+                {!isEditing && isStringShift && !isCancelledShift && (
+                  <button
+                    type="button"
+                    onClick={() => handleSave({ continueString: true })}
+                    disabled={isSaving}
+                    className="folk-pill-btn rounded-full border border-[#c7d2fe] bg-[#eef2ff] px-[16px] py-[7px] text-[13px] font-medium text-[#4338ca] transition-colors hover:bg-[#e0e7ff] disabled:opacity-50"
+                    tabIndex={0}
+                  >
+                    {isSaving ? "Saving…" : "Create & add next part"}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleSave()}
+                  disabled={isSaving || isCancelledShift}
+                  className="primary-btn folk-pill-btn px-[16px] py-[7px] text-[13px] font-medium transition-colors disabled:opacity-50"
+                  tabIndex={0}
+                >
+                  {isSaving ? "Saving…" : isEditing ? "Save changes" : isStringShift ? "Create part" : "Create shift"}
+                </button>
+              </>
+            ) : null}
           </div>
         </div>
-      </FloatingSidePanel>
+      </FormModal>
 
       <FixedDatePickerDropdown
         isOpen={activeDropdown === "date"}
@@ -1293,6 +1550,7 @@ export function ShiftFormPanel({
 
       <CancelShiftDialog
         isOpen={isCancelOpen}
+        shift={shift ?? undefined}
         onConfirm={handleCancelShift}
         onCancel={() => setIsCancelOpen(false)}
       />
@@ -1406,15 +1664,9 @@ function PropertyRow({
   align?: "center" | "start"
 }) {
   return (
-    <div
-      className={cn(
-        "grid grid-cols-[84px_minmax(0,1fr)] gap-[12px]",
-        align === "start" ? "items-start" : "items-center"
-      )}
-    >
-      <span className={cn(PROPERTY_LABEL_CLASS, align === "start" && "pt-[8px]")}>{label}</span>
-      <div className="min-w-0">{children}</div>
-    </div>
+    <FolkSidebarField label={label} align={align === "start" ? "start" : "center"}>
+      {children}
+    </FolkSidebarField>
   )
 }
 

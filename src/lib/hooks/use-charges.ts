@@ -196,6 +196,28 @@ export function useCharges() {
     [persistToSupabase]
   )
 
+  const bulkAddChargeItems = useCallback(
+    (items: ChargeItem[]) => {
+      let added = 0
+      setChargeItems((prev) => {
+        const existing = new Set(prev.map((ci) => ci.itemNumber))
+        const seen = new Set<string>()
+        const toAdd = items.filter((item) => {
+          if (existing.has(item.itemNumber) || seen.has(item.itemNumber)) return false
+          seen.add(item.itemNumber)
+          return true
+        })
+        added = toAdd.length
+        if (toAdd.length === 0) return prev
+        const next = [...prev, ...toAdd]
+        persistToSupabase(next)
+        return next
+      })
+      return added
+    },
+    [persistToSupabase]
+  )
+
   const removeChargeItem = useCallback(
     (id: string) => {
       setChargeItems((prev) => {
@@ -234,6 +256,7 @@ export function useCharges() {
     enabledItemNumbers,
     chargeItems,
     addChargeItem,
+    bulkAddChargeItems,
     removeChargeItem,
     updateChargeItem,
     isEnabled,

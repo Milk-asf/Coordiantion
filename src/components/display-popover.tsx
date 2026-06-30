@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } 
 import { createPortal } from "react-dom"
 import { Eye, EyeOff, GripVertical, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { folkFilterBtnClass } from "@/lib/folk-ui"
 import { motion } from "@/lib/motion"
 import { useFixedDropdownPosition } from "@/lib/hooks/use-fixed-dropdown-position"
 import { FIXED_DROPDOWN_MENU_Z_CLASS } from "@/lib/dropdown-utils"
@@ -40,7 +41,7 @@ export function DisplayPopoverTrigger({
       type="button"
       onClick={onClick}
       className={cn(
-        "outline-btn px-[8px] py-[4px]",
+        folkFilterBtnClass("h-[28px] min-h-[28px] gap-[5px] px-[10px] text-[12px]"),
         isOpen && "bg-folk-hover",
         className
       )}

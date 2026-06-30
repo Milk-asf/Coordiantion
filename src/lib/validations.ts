@@ -98,7 +98,7 @@ export const generatePdfSchema = z.object({
 export const inviteMemberSchema = z.object({
   email: z.string().email("A valid email address is required"),
   workspaceId: z.string().uuid("A valid workspace ID is required"),
-  role: z.enum(["super-admin", "admin", "coordinator"]).optional().default("coordinator"),
+  role: z.enum(["super-admin", "admin", "coordinator", "support-worker"]).optional().default("coordinator"),
 })
 
 export const xeroWorkspaceSchema = z.object({

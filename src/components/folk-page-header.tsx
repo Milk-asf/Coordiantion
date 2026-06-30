@@ -14,7 +14,7 @@ interface FolkPageHeaderProps {
 /** Folk central pane header: breadcrumb → title → action row */
 export function FolkPageHeader({ groupLabel, viewLabel, title, actions, className }: FolkPageHeaderProps) {
   return (
-    <div className={cn("shrink-0 border-b border-folk-border bg-folk-nav px-[24px] pb-[16px] pt-[20px]", className)}>
+    <div className={cn("shrink-0 border-b border-folk-border bg-white px-[24px] pb-[16px] pt-[20px]", className)}>
       <div className="mb-[8px] flex items-center gap-[6px] text-[12px] font-normal text-folk-secondary">
         <span>{groupLabel}</span>
         <span className="text-folk-border">/</span>

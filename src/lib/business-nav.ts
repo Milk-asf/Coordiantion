@@ -1,13 +1,11 @@
 import type { LucideIcon } from "lucide-react"
 import {
-  CalendarClock,
   CircleDollarSign,
-  Clock,
-  DollarSign,
+  ClipboardCheck,
+  Coins,
   FileCheck,
-  FileSpreadsheet,
+  Contact,
   FileText,
-  MapPin,
   ShoppingCart,
   Wallet,
 } from "lucide-react"
@@ -44,35 +42,31 @@ function withoutExcludedFinanceRoutes(items: BusinessNavItem[]): BusinessNavItem
 export const BUSINESS_NAV_SECTIONS: BusinessNavSection[] = [
   {
     items: withoutExcludedFinanceRoutes([
+      { label: "Approvals", href: "/business/approvals", icon: ClipboardCheck },
       { label: "Invoices", href: "/business/invoices", icon: FileText },
       { label: "NDIS claims", href: "/business/ndis-claims", icon: FileCheck },
     ]),
   },
   {
-    title: "Clients",
-    items: withoutExcludedFinanceRoutes([
-      { label: "Budgets", href: "/budgets", icon: DollarSign },
-      { label: "Planned Spending", href: "/planned-spending", icon: CalendarClock },
-    ]),
-  },
-  {
     title: "Accounts",
     items: withoutExcludedFinanceRoutes([
-      { label: "Statements", href: "/business/statements", icon: FileSpreadsheet },
+      { label: "Finance contacts", href: "/business/finance-contacts", icon: Contact },
       { label: "Orders", href: "/business/orders", icon: ShoppingCart },
     ]),
   },
   {
     title: "Employees",
     items: withoutExcludedFinanceRoutes([
-      { label: "Travel claims", href: "/business/travel-claims", icon: MapPin },
       { label: "Reimbursements", href: "/business/reimbursements", icon: Wallet },
-      { label: "Timesheets", href: "/business/timesheets", icon: Clock },
+      { label: "Pay runs", href: "/business/pay-runs", icon: Coins },
     ]),
   },
 ]
 
 export const BUSINESS_NAV_ITEMS: BusinessNavItem[] = BUSINESS_NAV_SECTIONS.flatMap((section) => section.items)
+
+/** The landing route when opening the Finance group from the sidebar. */
+export const FINANCE_DEFAULT_HREF = "/business/invoices"
 
 export function isBusinessRoute(pathname: string) {
   return pathname === BUSINESS_ROUTE_PREFIX || pathname.startsWith(`${BUSINESS_ROUTE_PREFIX}/`)

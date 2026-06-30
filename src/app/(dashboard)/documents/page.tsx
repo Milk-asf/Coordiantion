@@ -22,9 +22,13 @@ import {
 import { useDocuments } from "@/lib/hooks/use-documents"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import { DocumentPreview } from "@/components/document-preview"
+import { PageTitleBar } from "@/components/page-title-bar"
+import { listViewBodyClass, listViewFilterBarClass } from "@/components/tab-active-indicator"
 import { DocumentSidebarForm } from "@/components/document-sidebar-form"
+import { FormModal } from "@/components/form-modal"
 import { useToast } from "@/components/toast"
 import { saveDocumentForm, ensureFolderPath, formatDocumentValidity } from "@/lib/document-form"
+import { cn } from "@/lib/utils"
 import { EmptyState } from "@/components/empty-state"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { ExpandableTableSearch } from "@/components/expandable-table-search"
@@ -404,11 +408,10 @@ export default function DocumentsPage() {
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
     >
+      <PageTitleBar title="Documents" />
       {/* Header */}
-      <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-folk-border-subtle bg-folk-nav px-[16px]">
+      <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-folk-border-subtle bg-white px-[16px]">
         <div className="flex items-center gap-[8px]">
-          <span className="text-[13px] font-medium text-folk-text">Documents</span>
-          <div className="h-[16px] w-px bg-[var(--folk-border)]" />
           {/* Breadcrumb inline */}
           <button
             onClick={() => { setCurrentPath(""); setSearchQuery(""); setGlobalSearch("") }}
@@ -445,7 +448,7 @@ export default function DocumentsPage() {
             <div className="relative" ref={uploadPickerRef}>
               <button
                 onClick={(e) => { if (isAddNewOpen) { setIsAddNewOpen(false) } else { openAddNew(e.currentTarget) } }}
-                className="outline-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
+                className="primary-btn folk-pill-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
                 tabIndex={0}
                 aria-label="Add new"
               >
@@ -527,13 +530,13 @@ export default function DocumentsPage() {
       </div>
 
       {/* Toolbar: Filter, Search, Display */}
-      <div className="flex h-[41px] shrink-0 items-center gap-[8px] border-b border-folk-border bg-folk-nav px-[16px]">
+      <div className={listViewFilterBarClass("flex-nowrap")}>
         {/* Filter */}
         <div className="relative">
           <button
             ref={filterBtnRef}
             onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className={`flex items-center gap-[6px] rounded-none border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${typeFilter !== "all" ? "border-blue-200 bg-blue-50 text-blue-600" : "border-folk-border text-folk-text hover:bg-folk-hover"}`}
+            className={`flex items-center gap-[6px] folk-pill-btn border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${typeFilter !== "all" ? "border-blue-200 bg-blue-50 text-blue-600" : "border-folk-border text-folk-text hover:bg-folk-hover"}`}
             tabIndex={0}
           >
             <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -594,7 +597,7 @@ export default function DocumentsPage() {
 
       {/* Inline new file creation */}
       {isNewFileOpen && (
-        <div className="flex h-[44px] shrink-0 items-center gap-[8px] border-b border-folk-border-subtle bg-folk-nav px-[20px]">
+        <div className="flex h-[44px] shrink-0 items-center gap-[8px] border-b border-folk-border-subtle bg-white px-[20px]">
           <Folder className="h-[14px] w-[14px] text-folk-secondary" strokeWidth={1.75} />
           <input
             ref={newFileInputRef}
@@ -611,7 +614,7 @@ export default function DocumentsPage() {
       )}
 
       {/* Content */}
-      <div className={`relative flex-1 overflow-auto bg-folk-surface ${isDragOver ? "bg-blue-50/50" : ""}`}>
+      <div className={listViewBodyClass(cn("relative", isDragOver && "bg-blue-50/50"))}>
         {isDragOver && isInsideFile && (
           <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-none border-2 border-dashed border-blue-400 bg-blue-50/80">
             <p className="text-[14px] font-medium text-blue-600">Drop a document here to add</p>
@@ -913,31 +916,28 @@ export default function DocumentsPage() {
     </div>
 
     {isDocumentFormOpen && (
-      <>
-        <div className="w-[4px] shrink-0 border-l border-folk-border" />
-        <div className="flex h-full min-h-0 w-[320px] shrink-0 flex-col overflow-y-auto bg-folk-surface">
-          <DocumentSidebarForm
-            isEditing={Boolean(editingDocument)}
-            name={docName}
-            validFrom={docValidFrom}
-            validTo={docValidTo}
-            file={docPendingFile}
-            existingDocumentName={editingDocument?.name}
-            isSaving={isSavingDocument}
-            validFromPickerOpen={docValidFromPickerOpen}
-            validToPickerOpen={docValidToPickerOpen}
-            onSetName={setDocName}
-            onSetValidFrom={setDocValidFrom}
-            onSetValidTo={setDocValidTo}
-            onSetFile={setDocPendingFile}
-            onSetValidFromPickerOpen={setDocValidFromPickerOpen}
-            onSetValidToPickerOpen={setDocValidToPickerOpen}
-            onSave={handleSaveDocument}
-            onClose={resetDocumentForm}
-            onPreview={editingDocument ? handlePreviewDocument : undefined}
-          />
-        </div>
-      </>
+      <FormModal onClose={resetDocumentForm} width={460}>
+        <DocumentSidebarForm
+          isEditing={Boolean(editingDocument)}
+          name={docName}
+          validFrom={docValidFrom}
+          validTo={docValidTo}
+          file={docPendingFile}
+          existingDocumentName={editingDocument?.name}
+          isSaving={isSavingDocument}
+          validFromPickerOpen={docValidFromPickerOpen}
+          validToPickerOpen={docValidToPickerOpen}
+          onSetName={setDocName}
+          onSetValidFrom={setDocValidFrom}
+          onSetValidTo={setDocValidTo}
+          onSetFile={setDocPendingFile}
+          onSetValidFromPickerOpen={setDocValidFromPickerOpen}
+          onSetValidToPickerOpen={setDocValidToPickerOpen}
+          onSave={handleSaveDocument}
+          onClose={resetDocumentForm}
+          onPreview={editingDocument ? handlePreviewDocument : undefined}
+        />
+      </FormModal>
     )}
     </div>
   )

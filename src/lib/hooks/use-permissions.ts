@@ -13,11 +13,15 @@ export interface Permissions {
   userEmail: string | null
   isLoading: boolean
   isSuperAdmin: boolean
+  /** Support workers have the smallest permission set (roster, incidents, and assigned clients only). */
+  isSupportWorker: boolean
 
   canAccessBilling: boolean
   canManageWorkspaceSettings: boolean
   canManageMembers: boolean
   canManageStaff: boolean
+  /** Only admins can create, edit, cancel or delete roster shifts. */
+  canManageRoster: boolean
   canViewStaff: boolean
   canManageClients: boolean
   canCreateTasks: boolean
@@ -26,6 +30,18 @@ export interface Permissions {
   canManageIncidents: boolean
   canAssignClients: boolean
   canAssignTasks: boolean
+
+  // Navigation visibility — which top-level areas this role can open.
+  canViewRoster: boolean
+  canViewTasks: boolean
+  canViewNotes: boolean
+  canViewDocuments: boolean
+  canViewForms: boolean
+  canViewClients: boolean
+  canViewContacts: boolean
+  canViewFinance: boolean
+  /** Support workers only see clients assigned to them, not the whole list. */
+  canViewAllClients: boolean
 }
 
 const noPermissions: Permissions = {
@@ -34,10 +50,12 @@ const noPermissions: Permissions = {
   userEmail: null,
   isLoading: true,
   isSuperAdmin: false,
+  isSupportWorker: false,
   canAccessBilling: false,
   canManageWorkspaceSettings: false,
   canManageMembers: false,
   canManageStaff: false,
+  canManageRoster: false,
   canViewStaff: false,
   canManageClients: false,
   canCreateTasks: false,
@@ -46,10 +64,55 @@ const noPermissions: Permissions = {
   canManageIncidents: false,
   canAssignClients: false,
   canAssignTasks: false,
+  canViewRoster: false,
+  canViewTasks: false,
+  canViewNotes: false,
+  canViewDocuments: false,
+  canViewForms: false,
+  canViewClients: false,
+  canViewContacts: false,
+  canViewFinance: false,
+  canViewAllClients: false,
 }
 
 function derivePermissions(role: Role, userId: string | null = null, userEmail: string | null = null): Permissions {
   const isAdmin = role === "super-admin" || role === "admin"
+  const isSupportWorker = role === "support-worker"
+
+  // Support workers get the minimal footprint: their roster, incidents, and the
+  // clients assigned to them. Everything else is hidden.
+  if (isSupportWorker) {
+    return {
+      role,
+      userId,
+      userEmail,
+      isLoading: false,
+      isSuperAdmin: false,
+      isSupportWorker: true,
+      canAccessBilling: false,
+      canManageWorkspaceSettings: false,
+      canManageMembers: false,
+      canManageStaff: false,
+      canManageRoster: false,
+      canViewStaff: false,
+      canManageClients: false,
+      canCreateTasks: false,
+      canManageDocuments: false,
+      canViewIncidents: true,
+      canManageIncidents: false,
+      canAssignClients: false,
+      canAssignTasks: false,
+      canViewRoster: true,
+      canViewTasks: false,
+      canViewNotes: false,
+      canViewDocuments: false,
+      canViewForms: false,
+      canViewClients: true,
+      canViewContacts: false,
+      canViewFinance: false,
+      canViewAllClients: false,
+    }
+  }
 
   return {
     role,
@@ -57,10 +120,12 @@ function derivePermissions(role: Role, userId: string | null = null, userEmail: 
     userEmail,
     isLoading: false,
     isSuperAdmin: role === "super-admin",
+    isSupportWorker: false,
     canAccessBilling: role === "super-admin",
     canManageWorkspaceSettings: isAdmin,
     canManageMembers: isAdmin,
     canManageStaff: isAdmin,
+    canManageRoster: isAdmin,
     canViewStaff: isAdmin,
     canManageClients: true,
     canCreateTasks: true,
@@ -69,6 +134,15 @@ function derivePermissions(role: Role, userId: string | null = null, userEmail: 
     canManageIncidents: isAdmin,
     canAssignClients: isAdmin,
     canAssignTasks: isAdmin,
+    canViewRoster: true,
+    canViewTasks: true,
+    canViewNotes: true,
+    canViewDocuments: true,
+    canViewForms: true,
+    canViewClients: true,
+    canViewContacts: true,
+    canViewFinance: true,
+    canViewAllClients: true,
   }
 }
 

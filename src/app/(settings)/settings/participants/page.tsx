@@ -5,7 +5,7 @@ import { Plus, X, UserRound } from "lucide-react"
 import { useClients } from "@/lib/hooks/use-clients"
 import { useContacts } from "@/lib/hooks/use-contacts"
 import { CsvDropdown } from "@/components/csv-dropdown"
-import { SearchBar } from "@/components/search-bar"
+import { ExpandableTableSearch } from "@/components/expandable-table-search"
 import { Switch } from "@/components/switch"
 import { Badge } from "@/components/badge"
 import { Button } from "@/components/button"
@@ -216,7 +216,7 @@ export default function ParticipantsSettingsPage() {
             <div className="w-full max-w-[420px] rounded-none border border-folk-border-subtle bg-folk-surface p-[24px] shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
               <div className="mb-[16px] flex items-center justify-between">
                 <h2 className="text-[16px] font-bold text-folk-text">Add a participant</h2>
-                <button onClick={() => setIsAddOpen(false)} className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover" tabIndex={0} aria-label="Close">
+                <button onClick={() => setIsAddOpen(false)} className="icon-btn flex h-[28px] w-[28px] items-center justify-center text-folk-secondary" tabIndex={0} aria-label="Close">
                   <X className="h-[16px] w-[16px]" strokeWidth={1.75} />
                 </button>
               </div>
@@ -273,12 +273,13 @@ export default function ParticipantsSettingsPage() {
       )}
 
       <div className="mb-[16px] flex items-center gap-[10px]">
-        <SearchBar
+        <ExpandableTableSearch
           value={search}
           onChange={setSearch}
           placeholder="Search participants…"
-          className="flex-1"
+          ariaLabel="Search participants"
         />
+        <div className="flex-1" />
         <CsvDropdown
           entityType="clients"
           columns={csvColumns}
@@ -293,7 +294,7 @@ export default function ParticipantsSettingsPage() {
       </div>
 
       <div className="overflow-hidden">
-        <div className="grid grid-cols-[1fr_100px_80px_40px] items-center border-b border-[#efefef] px-[20px] py-[10px]">
+        <div className="grid grid-cols-[1fr_100px_80px_40px] items-center border-b border-[#d9d9d9] px-[20px] py-[10px]">
           <span className="text-[12px] font-medium text-folk-secondary">Name</span>
           <span className="text-[12px] font-medium text-folk-secondary">Status</span>
           <span className="text-[12px] font-medium text-folk-secondary">Active</span>
@@ -370,7 +371,7 @@ function ParticipantRow({
 }) {
   return (
     <div className={cn(
-      "grid grid-cols-[1fr_100px_80px_40px] items-center border-b border-[#efefef] px-[20px] py-[10px] transition-colors last:border-b-0",
+      "grid grid-cols-[1fr_100px_80px_40px] items-center border-b border-[#d9d9d9] px-[20px] py-[10px] transition-colors last:border-b-0",
       isDisabledRow ? "opacity-60" : "hover:bg-folk-hover"
     )}>
       <div className="flex items-center gap-[12px]">

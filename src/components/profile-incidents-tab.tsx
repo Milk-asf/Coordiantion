@@ -6,6 +6,7 @@ import {
   getIncidentCategoryLabel,
 } from "@/lib/incident-definitions"
 import type { Incident } from "@/lib/types"
+import { IncidentTableStatusChip } from "@/app/(dashboard)/incidents/_components/incident-table-status-chip"
 import {
   TABLE_FULL,
   TABLE_PANEL_CELL,
@@ -55,9 +56,7 @@ export function ProfileIncidentsTab({
                 <td className={`${TABLE_PANEL_CELL} ${TABLE_PANEL_TEXT}`}>{formatIncidentDate(incident.incidentDate)}</td>
                 <td className={`${TABLE_PANEL_CELL} ${TABLE_PANEL_TEXT}`}>{getIncidentCategoryLabel(incident.category)}</td>
                 <td className={TABLE_PANEL_CELL}>
-                  <span className="inline-flex h-[22px] items-center rounded-none border border-folk-border px-[8px] text-[11px] font-medium capitalize text-folk-text">
-                    {incident.incidentStatus}
-                  </span>
+                  <IncidentTableStatusChip incident={incident} />
                 </td>
                 <td className={TABLE_PANEL_CELL}>
                   <span className={cn(

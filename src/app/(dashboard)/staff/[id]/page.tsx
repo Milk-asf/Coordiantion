@@ -16,15 +16,12 @@ import { useFieldConfig } from "@/lib/hooks/use-field-config"
 import { EntityIcon } from "@/components/entity-icon"
 import { StaffAccountDetails } from "@/components/profile-account-details/staff-account-details"
 import { StaffActivityOverviewSummary } from "@/components/profile-account-details/staff-activity-overview-summary"
-import { AccountDetailsTabBar, type AccountDetailsTab } from "@/components/profile-account-details/profile-account-details-panel"
+import { AccountDetailsTabBar, AccountDetailsSidebarToggle, type AccountDetailsTab } from "@/components/profile-account-details/profile-account-details-panel"
 import { ProfileRecordHeader, ProfileNavTextAction } from "@/components/profile-record-header"
 import { IconButton } from "@/components/icon-button"
 import { ProfileTabButton } from "@/components/profile-tab-button"
 import { profileMainTabScrollClass, profilePageTabBarClass, profilePageTabRowClass, folkNavIconButtonClass } from "@/components/tab-active-indicator"
 import { cn } from "@/lib/utils"
-import { ProfileTabMeasurer } from "@/components/profile-tab-measurer"
-import { ProfileTabOverflowMenu } from "@/components/profile-tab-overflow-menu"
-import { useProfileTabOverflow } from "@/lib/hooks/use-profile-tab-overflow"
 import { DocumentPreview } from "@/components/document-preview"
 import { DocumentSidebarForm } from "@/components/document-sidebar-form"
 import { ProfileNotesTab } from "@/components/profile-notes-tab"
@@ -32,6 +29,11 @@ import { NoteEditorModal } from "@/app/(dashboard)/notes/_components/note-editor
 import { useToast } from "@/components/toast"
 import { saveDocumentForm, ensureFolderPath } from "@/lib/document-form"
 import { FilesTab } from "@/app/(dashboard)/clients/[id]/_components/files-tab"
+import { ProfileTimesheetsTab } from "@/components/profile-timesheets-tab"
+import { ProfileShiftNotesTab } from "@/components/profile-shift-notes-tab"
+import { useTimesheets } from "@/lib/timesheets-context"
+import { useRoster } from "@/lib/hooks/use-roster"
+import { formatRelativeTime } from "@/lib/hooks/use-recently-visited"
 import { mergeDiagnoses } from "@/app/(dashboard)/clients/[id]/_components/client-profile-helpers"
 import { EmptyState } from "@/components/empty-state"
 import { SectionToolbar } from "@/components/section-toolbar"
@@ -55,13 +57,14 @@ import {
   SquarePen,
   CheckSquare,
   FolderOpen,
-  PanelRightOpen,
-  UserPlus,
   Users,
   Tag,
   Building2,
   ListFilter,
   ShieldCheck,
+  ClipboardList,
+  LogIn,
+  LogOut,
 } from "lucide-react"
 
 const tabs = [
@@ -69,6 +72,8 @@ const tabs = [
   { key: "clients", label: "Clients", icon: Users },
   { key: "suitability", label: "Suitability", icon: ShieldCheck },
   { key: "tasks", label: "Tasks", icon: CheckSquare },
+  { key: "timesheets", label: "Timesheets", icon: Clock },
+  { key: "shift-notes", label: "Shift notes", icon: ClipboardList },
   { key: "notes", label: "Notes", icon: SquarePen },
   { key: "files", label: "Files", icon: FolderOpen },
 ]
@@ -163,15 +168,11 @@ function StaffProfileTasksTab({
               <div className="flex items-center justify-center">
                 <button
                   onClick={() => onToggleComplete(task)}
-                  className={`flex h-[18px] w-[18px] items-center justify-center rounded-none border-[1.5px] transition-colors ${
-                    isDone
-                      ? "border-[#2563EB] bg-[#2563EB] text-white hover:border-[#1d4ed8] hover:bg-[#1d4ed8]"
-                      : "border-[#ccc] hover:border-[#999]"
-                  }`}
+                  className="flex h-[18px] w-[18px] items-center justify-center rounded-[4px] border border-folk-text bg-white text-folk-text transition-colors"
                   tabIndex={0}
                   aria-label={isDone ? "Mark as incomplete" : "Mark as complete"}
                 >
-                  {isDone && <span className="text-[9px]">✓</span>}
+                  {isDone && <span className="text-[9px] leading-none">✓</span>}
                 </button>
               </div>
             </div>
@@ -196,12 +197,8 @@ interface ActivityItem {
   time: string
 }
 
-function getActivities(staffName: string): ActivityItem[] {
-  return [
-    { id: "1", icon: UserPlus, content: <><strong>{staffName}</strong> was assigned a new client</>, time: "2d ago" },
-    { id: "2", icon: FileText, content: <><strong>{staffName}</strong> submitted a progress note</>, time: "3d ago" },
-    { id: "3", icon: CheckSquare, content: <><strong>{staffName}</strong> completed 3 tasks</>, time: "5d ago" },
-  ]
+interface SortableActivityItem extends ActivityItem {
+  ts: number
 }
 
 export default function StaffProfilePage() {
@@ -219,10 +216,11 @@ export default function StaffProfilePage() {
   const { documents, files, uploadDocument, deleteDocument, updateDocument, replaceDocumentFile, getDownloadUrl, createFile, deleteFile } = useDocuments()
   const { allCharges, enabledCharges } = useCharges()
   const { invoices } = useInvoices()
+  const { timesheets } = useTimesheets()
+  const { shifts } = useRoster()
   const { canAssignClients } = usePermissions()
   const { isFieldEnabled } = useFieldConfig()
   const sf = isFieldEnabled
-  const tabsContainerRef = useRef<HTMLDivElement>(null)
   const headerRef = useRef<HTMLDivElement>(null)
   const isResizing = useRef(false)
 
@@ -362,6 +360,85 @@ export default function StaffProfilePage() {
     return allTasks.filter((t) => t.assignee === member.name).length
   }, [allTasks, member])
 
+  const staffTimesheets = useMemo(() => {
+    if (!member) return []
+    const name = member.name.trim().toLowerCase()
+    return timesheets
+      .filter(
+        (t) =>
+          !t.clockActive &&
+          (t.staffId === member.id || t.submittedByName.trim().toLowerCase() === name),
+      )
+      .sort((a, b) => b.startDate.localeCompare(a.startDate))
+  }, [timesheets, member])
+
+  const staffShiftNotes = useMemo(() => {
+    if (!member) return []
+    return shifts
+      .filter((s) => s.staffId === member.id && s.progressNote)
+      .sort((a, b) => b.date.localeCompare(a.date))
+  }, [shifts, member])
+
+  const staffActivities = useMemo<ActivityItem[]>(() => {
+    if (!member) return []
+    const name = member.name.trim().toLowerCase()
+    const items: SortableActivityItem[] = []
+
+    for (const t of timesheets) {
+      const mine = t.staffId === member.id || t.submittedByName.trim().toLowerCase() === name
+      if (!mine || !t.clockedInAt) continue
+
+      const onTs = Date.parse(t.clockedInAt)
+      if (!Number.isNaN(onTs)) {
+        items.push({
+          id: `clock-on-${t.id}`,
+          icon: LogIn,
+          content: <><strong>{member.name}</strong> clocked on</>,
+          time: formatRelativeTime(onTs),
+          ts: onTs,
+        })
+      }
+
+      if (!t.clockActive) {
+        const parsedOff = Date.parse(`${t.endDate}T${t.endTime}:00`)
+        const offTs = Number.isNaN(parsedOff) ? Date.parse(t.updatedAt) : parsedOff
+        if (!Number.isNaN(offTs)) {
+          items.push({
+            id: `clock-off-${t.id}`,
+            icon: LogOut,
+            content: <><strong>{member.name}</strong> clocked off</>,
+            time: formatRelativeTime(offTs),
+            ts: offTs,
+          })
+        }
+      }
+    }
+
+    for (const s of staffShiftNotes) {
+      const note = s.progressNote
+      if (!note) continue
+      const parsedNote = Date.parse(note.recordedAt || "")
+      const noteTs = Number.isNaN(parsedNote) ? Date.parse(`${s.date}T00:00:00`) : parsedNote
+      if (Number.isNaN(noteTs)) continue
+      items.push({
+        id: `shift-note-${s.id}`,
+        icon: ClipboardList,
+        content: (
+          <>
+            <strong>{member.name}</strong> submitted a shift note
+            {s.clientName ? <> for <strong>{s.clientName}</strong></> : null}
+          </>
+        ),
+        time: formatRelativeTime(noteTs),
+        ts: noteTs,
+      })
+    }
+
+    return items
+      .sort((a, b) => b.ts - a.ts)
+      .map((item) => ({ id: item.id, icon: item.icon, content: item.content, time: item.time }))
+  }, [member, timesheets, staffShiftNotes])
+
   const assignedClientCount = useMemo(() => {
     if (!member) return 0
     return clients.filter((c) => c.owner === member.name).length
@@ -371,26 +448,10 @@ export default function StaffProfilePage() {
     if (tabKey === "tasks") return staffTaskCount
     if (tabKey === "notes") return staffNotes.length
     if (tabKey === "clients") return assignedClientCount
+    if (tabKey === "timesheets") return staffTimesheets.length
+    if (tabKey === "shift-notes") return staffShiftNotes.length
     return undefined
-  }, [staffTaskCount, staffNotes.length, assignedClientCount])
-
-  const {
-    overflowBtnRef,
-    isTabOverflowOpen,
-    setIsTabOverflowOpen,
-    visibleIndices,
-    overflowIndices,
-    showOverflow,
-  } = useProfileTabOverflow({
-    tabs,
-    activeTabKey: activeTab,
-    headerRef,
-    tabsContainerRef,
-    getTabBadge,
-    remeasureKey: `${staffTaskCount}-${staffNotes.length}-${assignedClientCount}`,
-    isSidebarVisible,
-    sidebarWidth,
-  })
+  }, [staffTaskCount, staffNotes.length, assignedClientCount, staffTimesheets.length, staffShiftNotes.length])
 
   const openNote = useCallback((noteId: string) => {
     const note = notes.find((n) => n.id === noteId)
@@ -489,7 +550,7 @@ export default function StaffProfilePage() {
   }
 
   const d = member.details
-  const activities = getActivities(member.name)
+  const activities = staffActivities
   const assignedClients = clients.filter((c) => c.owner === member.name)
 
   const getClientBudgetUsage = (client: (typeof clients)[number]) => {
@@ -649,16 +710,12 @@ export default function StaffProfilePage() {
           }
         />
 
-        {/* Hidden measurer for tab widths (kept inside headerRef) */}
-        <ProfileTabMeasurer tabs={tabs} getTabBadge={getTabBadge} />
       </div>
 
       <div className={profilePageTabRowClass()}>
         <div className={profilePageTabBarClass()}>
-          <div ref={tabsContainerRef} className={profileMainTabScrollClass()}>
-            {visibleIndices.map((index) => {
-              const tab = tabs[index]
-              if (!tab) return null
+          <div className={profileMainTabScrollClass()}>
+            {tabs.map((tab) => {
               const TabIcon = tab.icon
               const isActive = activeTab === tab.key
               return (
@@ -672,35 +729,13 @@ export default function StaffProfilePage() {
                 />
               )
             })}
-            {showOverflow && (
-              <ProfileTabOverflowMenu
-                tabs={tabs}
-                overflowIndices={overflowIndices}
-                activeTabKey={activeTab}
-                isOpen={isTabOverflowOpen}
-                overflowBtnRef={overflowBtnRef}
-                onToggle={() => setIsTabOverflowOpen(!isTabOverflowOpen)}
-                onClose={() => setIsTabOverflowOpen(false)}
-                onSelectTab={(tabKey) => {
-                  setActiveTab(tabKey)
-                  setIsTabOverflowOpen(false)
-                }}
-                getTabBadge={getTabBadge}
-              />
-            )}
           </div>
           {!isSidebarVisible && (
-            <IconButton
-              onClick={() => setIsSidebarVisible(true)}
-              tooltip="Show staff details"
-              className={cn(
-                "ml-[8px] flex h-[28px] w-[28px] shrink-0 items-center justify-center",
-                folkNavIconButtonClass()
-              )}
-              tabIndex={0}
-            >
-              <PanelRightOpen className="h-[18px] w-[18px]" strokeWidth={1.75} />
-            </IconButton>
+            <AccountDetailsSidebarToggle
+              isOpen={false}
+              onToggle={() => setIsSidebarVisible(true)}
+              openTooltip="Show staff details"
+            />
           )}
         </div>
         {isSidebarVisible && (
@@ -936,9 +971,9 @@ export default function StaffProfilePage() {
           {activeTab === "clients" ? (
             <div className="relative flex h-full flex-col">
               {/* Toolbar */}
-              <div className="flex h-[41px] shrink-0 items-center justify-between border-b border-folk-border bg-folk-nav px-[16px]">
+              <div className="flex h-[41px] shrink-0 items-center justify-between border-b border-folk-border bg-white px-[16px]">
                 <button
-                  className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+                  className="flex items-center gap-[6px] folk-pill-btn border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                   tabIndex={0}
                 >
                   <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -949,7 +984,7 @@ export default function StaffProfilePage() {
                     <button
                       ref={assignBtnRef}
                       onClick={() => { setIsAssignClientOpen(!isAssignClientOpen); setTimeout(() => assignClientInputRef.current?.focus(), 50) }}
-                      className="flex items-center gap-[5px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+                      className="flex items-center gap-[5px] folk-pill-btn border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                       tabIndex={0}
                     >
                       <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -1079,6 +1114,17 @@ export default function StaffProfilePage() {
               onDeleteDocument={deleteDocument}
               onOpenDoc={openDocumentForm}
               onPreviewDoc={setPreviewDoc}
+            />
+          ) : activeTab === "timesheets" ? (
+            <ProfileTimesheetsTab
+              timesheets={staffTimesheets}
+              emptyDescription={`Timesheets submitted by ${member.name} will appear here.`}
+            />
+          ) : activeTab === "shift-notes" ? (
+            <ProfileShiftNotesTab
+              shifts={staffShiftNotes}
+              variant="staff"
+              emptyDescription={`Progress notes recorded by ${member.name} will appear here.`}
             />
           ) : activeTab === "notes" ? (
             <ProfileNotesTab

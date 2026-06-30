@@ -68,15 +68,11 @@ export function ProfileTasksTab({
               <div className="flex items-center justify-center">
                 <button
                   onClick={() => onToggleComplete(task)}
-                  className={`flex h-[18px] w-[18px] items-center justify-center rounded-none border-[1.5px] transition-colors ${
-                    isDone
-                      ? "border-[#2563EB] bg-[#2563EB] text-white hover:border-[#1d4ed8] hover:bg-[#1d4ed8]"
-                      : "border-[#ccc] hover:border-[#999]"
-                  }`}
+                  className="flex h-[18px] w-[18px] items-center justify-center rounded-[4px] border border-folk-text bg-white text-folk-text transition-colors"
                   tabIndex={0}
                   aria-label={isDone ? "Mark as incomplete" : "Mark as complete"}
                 >
-                  {isDone && <span className="text-[9px]">✓</span>}
+                  {isDone && <span className="text-[9px] leading-none">✓</span>}
                 </button>
               </div>
             </div>

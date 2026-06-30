@@ -17,7 +17,7 @@ export default function SettingsGroupLayout({
         <ClientsProvider>
           <ContactsProvider>
             <StaffProvider>
-              <div className="flex h-screen w-full overflow-hidden bg-folk-surface">
+              <div className="settings-shell flex h-screen w-full overflow-hidden bg-folk-surface">
                 {children}
               </div>
             </StaffProvider>

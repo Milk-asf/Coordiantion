@@ -15,7 +15,7 @@ export function OnboardingPreview({ step }: OnboardingPreviewProps) {
 function SidebarPreview() {
   return (
     <div className="pointer-events-none flex h-full w-full select-none items-center justify-center">
-      <div className="flex h-[420px] w-full max-w-[480px] overflow-hidden rounded-none border border-[#e2e2e2] bg-folk-surface shadow-[0_8px_32px_rgba(0,0,0,0.04)]">
+      <div className="flex h-[420px] w-full max-w-[480px] overflow-hidden rounded-none border border-[#d9d9d9] bg-folk-surface shadow-[0_8px_32px_rgba(0,0,0,0.04)]">
         <div className="flex w-[160px] shrink-0 flex-col gap-[8px] border-folk-border-subtle bg-folk-page p-[12px]">
           <div className="flex items-center gap-[6px]">
             <div className="flex h-[20px] w-[20px] items-center justify-center rounded-[5px] bg-green-600 text-[9px] font-semibold text-white">
@@ -37,7 +37,7 @@ function SidebarPreview() {
           <div className="space-y-[8px]">
             {Array.from({ length: 7 }).map((_, i) => (
               <div key={i} className="flex items-center gap-[8px]">
-                <div className="h-[8px] w-[8px] rounded-none border border-[#ddd]" />
+                <div className="h-[8px] w-[8px] rounded-none border border-[#bababa]" />
                 <div
                   className="h-[6px] rounded-none bg-[#eee]"
                   style={{ width: `${50 + ((i * 17) % 40)}%` }}
@@ -54,7 +54,7 @@ function SidebarPreview() {
 function TablePreview() {
   return (
     <div className="pointer-events-none flex h-full w-full select-none items-center justify-center">
-      <div className="flex h-[420px] w-full max-w-[480px] flex-col overflow-hidden rounded-none border border-[#e2e2e2] bg-folk-surface shadow-[0_8px_32px_rgba(0,0,0,0.04)]">
+      <div className="flex h-[420px] w-full max-w-[480px] flex-col overflow-hidden rounded-none border border-[#d9d9d9] bg-folk-surface shadow-[0_8px_32px_rgba(0,0,0,0.04)]">
         <div className="flex items-center gap-[8px] border-b border-folk-border-subtle px-[16px] py-[12px]">
           <div className="h-[8px] w-[80px] rounded-none bg-[var(--folk-border)]" />
           <div className="ml-auto h-[8px] w-[40px] rounded-none bg-[var(--folk-border)]" />

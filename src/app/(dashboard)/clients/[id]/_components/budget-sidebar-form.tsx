@@ -235,7 +235,7 @@ export function BudgetSidebarForm({
               type="text"
               value={budgetName}
               onChange={(e) => onSetBudgetName(e.target.value)}
-              className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none hover:border-[#ccc] focus:border-[#a3c4f3]"
+              className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none hover:border-[#bababa] focus:border-[#a3c4f3]"
             />
           </div>
 
@@ -249,7 +249,7 @@ export function BudgetSidebarForm({
                   onSetIsComponentDropdownOpen(!isComponentDropdownOpen)
                   onSetIsCadenceDropdownOpen(false)
                 }}
-                className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#ccc]"
+                className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
                 tabIndex={0}
               >
                 <span className="min-w-0 flex-1 truncate text-left">
@@ -301,7 +301,7 @@ export function BudgetSidebarForm({
                 inputMode="decimal"
                 value={allocatedAmount}
                 onChange={(e) => onSetAllocatedAmount(formatNumberInput(e.target.value))}
-                className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page pl-[24px] pr-[12px] text-[13px] font-medium text-folk-text outline-none hover:border-[#ccc] focus:border-[#a3c4f3]"
+                className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page pl-[24px] pr-[12px] text-[13px] font-medium text-folk-text outline-none hover:border-[#bababa] focus:border-[#a3c4f3]"
               />
             </div>
           </div>
@@ -316,7 +316,7 @@ export function BudgetSidebarForm({
                   onSetIsCadenceDropdownOpen(!isCadenceDropdownOpen)
                   onSetIsComponentDropdownOpen(false)
                 }}
-                className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#ccc]"
+                className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
                 tabIndex={0}
               >
                 <span className="min-w-0 flex-1 truncate text-left">
@@ -365,7 +365,7 @@ export function BudgetSidebarForm({
                     onSetIsComponentDropdownOpen(false)
                     onSetIsCadenceDropdownOpen(false)
                   }}
-                  className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#ccc]"
+                  className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
                   tabIndex={0}
                 >
                   <span className="min-w-0 flex-1 truncate text-left">{activeDateSourceLabel}</span>
@@ -413,7 +413,7 @@ export function BudgetSidebarForm({
                   onSetBudgetStartPickerOpen(!budgetStartPickerOpen)
                   onSetBudgetEndPickerOpen(false)
                 }}
-                className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#ccc]"
+                className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
                 tabIndex={0}
               >
                 {budgetStartDate ? (
@@ -442,7 +442,7 @@ export function BudgetSidebarForm({
                   onSetBudgetEndPickerOpen(!budgetEndPickerOpen)
                   onSetBudgetStartPickerOpen(false)
                 }}
-                className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#ccc]"
+                className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
                 tabIndex={0}
               >
                 {budgetEndDate ? (
@@ -475,7 +475,7 @@ export function BudgetSidebarForm({
                   Reset schedule
                 </button>
               </div>
-              <div className="overflow-hidden rounded-none border border-[#e8e8e8]">
+              <div className="overflow-hidden rounded-none border border-[#d9d9d9]">
                 {releasePeriods.map((period) => (
                   <div
                     key={period.id}

@@ -21,6 +21,7 @@ interface TaskRow {
   secondary_charge_type: string | null
   secondary_time_spent: number | null
   is_check_up: boolean | null
+  billing_approval: Task["billingApproval"] | null
 }
 
 interface TaskRowUpdate {
@@ -38,6 +39,7 @@ interface TaskRowUpdate {
   secondary_charge_type?: string
   secondary_time_spent?: number
   is_check_up?: boolean
+  billing_approval?: Task["billingApproval"]
 }
 
 function dbToTask(row: TaskRow): Task {
@@ -56,6 +58,7 @@ function dbToTask(row: TaskRow): Task {
     secondaryChargeType: row.secondary_charge_type || "",
     secondaryTimeSpent: row.secondary_time_spent || 0,
     isCheckUp: row.is_check_up || false,
+    billingApproval: row.billing_approval || "none",
   }
 }
 
@@ -282,6 +285,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     if (updates.secondaryChargeType !== undefined) dbUpdates.secondary_charge_type = updates.secondaryChargeType
     if (updates.secondaryTimeSpent !== undefined) dbUpdates.secondary_time_spent = updates.secondaryTimeSpent
     if (updates.isCheckUp !== undefined) dbUpdates.is_check_up = updates.isCheckUp
+    if (updates.billingApproval !== undefined) dbUpdates.billing_approval = updates.billingApproval
 
     await supabase.from("tasks").update(dbUpdates).eq("id", id)
 

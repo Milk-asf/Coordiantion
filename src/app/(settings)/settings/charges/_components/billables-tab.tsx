@@ -5,7 +5,8 @@ import { Tag } from "lucide-react"
 import { DeleteActionsMenu } from "@/components/delete-actions-menu"
 import { Button } from "@/components/button"
 import { EmptyState } from "@/components/empty-state"
-import { SearchBar } from "@/components/search-bar"
+import { ExpandableTableSearch } from "@/components/expandable-table-search"
+import { FormModal } from "@/components/form-modal"
 import { useToast } from "@/components/toast"
 import { cn } from "@/lib/utils"
 import {
@@ -183,14 +184,13 @@ export function BillablesTab() {
         <div className="mb-[16px] flex flex-wrap items-center justify-between gap-[12px]">
           <h2 className="text-[14px] font-medium text-folk-text">Billables</h2>
           <div className="flex items-center gap-[10px]">
-            <SearchBar
+            <ExpandableTableSearch
               value={searchQuery}
               onChange={setSearchQuery}
-              placeholder="Search"
-              className="w-[220px]"
+              placeholder="Search billables…"
               ariaLabel="Search billables"
             />
-            <Button onClick={openAddSidebar} className="h-[36px] rounded-none px-[16px]">
+            <Button onClick={openAddSidebar} className="h-[36px] px-[16px]">
               Add
             </Button>
           </div>
@@ -241,7 +241,7 @@ export function BillablesTab() {
       </div>
 
       {isSidebarOpen && sidebarMode && (
-        <div className="sticky top-0 flex h-[min(720px,calc(100vh-180px))] w-[360px] shrink-0 self-start">
+        <FormModal onClose={closeSidebar} width={460}>
           <BillableSidebarForm
             key={editingItem?.id ?? "add"}
             mode={sidebarMode}
@@ -251,7 +251,7 @@ export function BillablesTab() {
             onClose={closeSidebar}
             onDelete={editingItem ? () => handleRemove(editingItem) : undefined}
           />
-        </div>
+        </FormModal>
       )}
     </div>
   )

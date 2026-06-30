@@ -16,9 +16,12 @@ import {
   CalendarRange,
   AlertTriangle,
   ChevronDown,
+  Clock,
+  LayoutList,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { usePermissions } from "@/lib/hooks/use-permissions"
+import { useIncidents } from "@/lib/hooks/use-incidents"
 import { useWorkspace } from "@/lib/workspace-context"
 import {
   BUSINESS_NAV_GROUP,
@@ -37,6 +40,8 @@ const navItems = [
   { label: "Clients", href: "/clients", icon: User },
   { label: "Contacts", href: "/contacts", icon: BookOpen },
   { label: "Staff", href: "/staff", icon: User },
+  { label: "Lists", href: "/lists", icon: LayoutList },
+  { label: "Timesheets", href: "/timesheets", icon: Clock },
   { label: "Settings", href: "/settings", icon: Settings },
 ]
 
@@ -45,14 +50,46 @@ export function MobileNav() {
   const [isBusinessOpen, setIsBusinessOpen] = useState(false)
   const pathname = usePathname()
   const { activeWorkspace } = useWorkspace()
-  const { canViewIncidents, isLoading: permissionsLoading } = usePermissions()
+  const {
+    canViewIncidents,
+    canViewRoster,
+    canViewTasks,
+    canViewNotes,
+    canViewDocuments,
+    canViewForms,
+    canViewClients,
+    canViewContacts,
+    canViewStaff,
+    canViewFinance,
+    isSupportWorker,
+    isLoading: permissionsLoading,
+  } = usePermissions()
+  const { unviewedCount: unviewedIncidentsCount } = useIncidents()
   const isBusinessActive = isBusinessGroupActive(pathname)
   const BusinessIcon = BUSINESS_NAV_GROUP.icon
 
+  const navVisibilityByLabel: Record<string, boolean> = {
+    Roster: canViewRoster,
+    Tasks: canViewTasks,
+    Notes: canViewNotes,
+    Documents: canViewDocuments,
+    Forms: canViewForms,
+    Incidents: canViewIncidents,
+    Clients: canViewClients,
+    Contacts: canViewContacts,
+    Staff: canViewStaff,
+    Timesheets: true,
+    Settings: !isSupportWorker,
+  }
+
+  const TOP_NAV_LABELS = new Set(["Roster", "Tasks", "Notes", "Documents", "Forms", "Incidents"])
   const workspaceNavItems = navItems.filter((item) => {
-    if (item.label === "Incidents" && !permissionsLoading && !canViewIncidents) return false
-    return true
+    if (permissionsLoading) return true
+    return navVisibilityByLabel[item.label] !== false
   })
+  const topNavItems = workspaceNavItems.filter((item) => TOP_NAV_LABELS.has(item.label))
+  const bottomNavItems = workspaceNavItems.filter((item) => !TOP_NAV_LABELS.has(item.label))
+  const showFinanceGroup = permissionsLoading || canViewFinance
 
   useEffect(() => {
     if (isBusinessActive) setIsBusinessOpen(true)
@@ -60,7 +97,7 @@ export function MobileNav() {
 
   return (
     <>
-      <header className="flex h-[52px] shrink-0 items-center justify-between border-b border-folk-border-subtle bg-folk-nav px-[16px] md:hidden">
+      <header className="flex h-[52px] shrink-0 items-center justify-between border-b border-folk-border-subtle bg-white px-[16px] md:hidden">
         <span className="truncate text-[14px] font-semibold text-folk-text">
           {activeWorkspace?.name || "Coordination"}
         </span>
@@ -78,13 +115,13 @@ export function MobileNav() {
         <div className="fixed inset-0 z-[100] md:hidden">
           <div className="absolute inset-0 bg-black/30" onClick={() => setIsOpen(false)} />
           <nav className="absolute inset-y-0 left-0 w-[280px] bg-folk-surface shadow-xl">
-            <div className="flex h-[52px] items-center justify-between border-b border-folk-border-subtle bg-folk-nav px-[16px]">
+            <div className="flex h-[52px] items-center justify-between border-b border-folk-border-subtle bg-white px-[16px]">
               <span className="text-[14px] font-semibold text-folk-text">
                 {activeWorkspace?.name || "Coordination"}
               </span>
               <button
                 onClick={() => setIsOpen(false)}
-                className="flex h-[32px] w-[32px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover"
+                className="flex h-[29px] w-[29px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover"
                 aria-label="Close navigation"
                 tabIndex={0}
               >
@@ -92,9 +129,10 @@ export function MobileNav() {
               </button>
             </div>
             <ul className="flex flex-col gap-[2px] p-[12px]">
-              {workspaceNavItems.slice(0, 6).map((item) => {
+              {topNavItems.map((item) => {
                 const Icon = item.icon
                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
+                const badge = item.label === "Incidents" && canViewIncidents ? unviewedIncidentsCount : 0
                 return (
                   <li key={item.href}>
                     <Link
@@ -109,12 +147,21 @@ export function MobileNav() {
                       tabIndex={0}
                     >
                       <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.5} />
-                      <span>{item.label}</span>
+                      <span className="flex-1">{item.label}</span>
+                      {badge > 0 && (
+                        <span
+                          className="flex h-[20px] min-w-[20px] items-center justify-center rounded-full text-[11px] font-medium"
+                          style={{ backgroundColor: "var(--primary-color-light)", color: "var(--primary-color-text)" }}
+                        >
+                          {badge}
+                        </span>
+                      )}
                     </Link>
                   </li>
                 )
               })}
 
+              {showFinanceGroup && (
               <li>
                 <button
                   type="button"
@@ -173,8 +220,9 @@ export function MobileNav() {
                   </div>
                 )}
               </li>
+              )}
 
-              {workspaceNavItems.slice(6).map((item) => {
+              {bottomNavItems.map((item) => {
                 const Icon = item.icon
                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
                 return (

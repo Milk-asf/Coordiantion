@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { MoreHorizontal, ChevronDown, Plus, X, Users } from "lucide-react"
-import { SearchBar } from "@/components/search-bar"
+import { ExpandableTableSearch } from "@/components/expandable-table-search"
 import { Switch } from "@/components/switch"
 import { Badge } from "@/components/badge"
 import { Button } from "@/components/button"
@@ -24,9 +24,10 @@ const roleConfig: Record<Role, { label: string; description: string; color: stri
   "super-admin": { label: "Super Admin", description: "Full access. Can manage billing, members, and account settings.", color: "bg-purple-50 text-purple-600 border-purple-100" },
   admin: { label: "Team Leader", description: "Can manage members, settings, and all data.", color: "bg-blue-50 text-blue-600 border-blue-100" },
   coordinator: { label: "Coordinator", description: "Can view and edit assigned clients, own tasks, and contacts.", color: "bg-green-50 text-green-600 border-green-100" },
+  "support-worker": { label: "Support Worker", description: "Limited access to their roster, incidents, and assigned clients only.", color: "bg-amber-50 text-amber-600 border-amber-100" },
 }
 
-const allRoles: Role[] = ["super-admin", "admin", "coordinator"]
+const allRoles: Role[] = ["super-admin", "admin", "coordinator", "support-worker"]
 
 export default function MembersSettingsPage() {
   const { members, updateMemberRole, updateMemberStatus, removeMember, refetch } = useMembers()
@@ -197,7 +198,7 @@ export default function MembersSettingsPage() {
             <div className="w-full max-w-[420px] rounded-none border border-folk-border-subtle bg-folk-surface p-[24px] shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
               <div className="mb-[16px] flex items-center justify-between">
                 <h2 className="text-[16px] font-bold text-folk-text">Invite a member</h2>
-                <button onClick={() => setIsInviteOpen(false)} className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover" tabIndex={0} aria-label="Close">
+                <button onClick={() => setIsInviteOpen(false)} className="icon-btn flex h-[28px] w-[28px] items-center justify-center text-folk-secondary" tabIndex={0} aria-label="Close">
                   <X className="h-[16px] w-[16px]" strokeWidth={1.75} />
                 </button>
               </div>
@@ -254,13 +255,13 @@ export default function MembersSettingsPage() {
       )}
 
       <div className="mb-[16px] flex items-center gap-[10px]">
-        <SearchBar
+        <ExpandableTableSearch
           value={search}
           onChange={setSearch}
           placeholder="Search members…"
-          className="flex-1"
+          ariaLabel="Search members"
         />
-        <Button onClick={() => setIsInviteOpen(true)} className="h-[36px] shrink-0 px-[12px]">
+        <Button onClick={() => setIsInviteOpen(true)} className="ml-auto h-[36px] shrink-0 px-[12px]">
           <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
           Invite member
         </Button>
@@ -268,7 +269,7 @@ export default function MembersSettingsPage() {
 
       {/* Active members */}
       <div className="overflow-hidden">
-        <div className="grid grid-cols-[1fr_120px_80px_48px] items-center border-b border-[#efefef] px-[20px] py-[10px]">
+        <div className="grid grid-cols-[1fr_120px_80px_48px] items-center border-b border-[#d9d9d9] px-[20px] py-[10px]">
           <span className="text-[12px] font-medium text-folk-secondary">Name</span>
           <span className="text-[12px] font-medium text-folk-secondary">Role</span>
           <span className="text-[12px] font-medium text-folk-secondary">Active</span>
@@ -375,7 +376,7 @@ function MemberRow({
 
   return (
     <div className={cn(
-      "grid grid-cols-[1fr_120px_80px_48px] items-center border-b border-[#efefef] px-[20px] py-[10px] transition-colors last:border-b-0",
+      "grid grid-cols-[1fr_120px_80px_48px] items-center border-b border-[#d9d9d9] px-[20px] py-[10px] transition-colors last:border-b-0",
       isDisabledRow ? "opacity-60" : "hover:bg-folk-hover"
     )}>
       <div className="flex items-center gap-[12px]">
@@ -404,7 +405,7 @@ function MemberRow({
           <button
             onClick={onRoleToggle}
             className={cn(
-              "flex items-center gap-[4px] rounded-none border px-[10px] py-[3px] text-[11px] font-medium transition-colors hover:opacity-80",
+              "flex items-center gap-[4px] rounded-full border px-[10px] py-[3px] text-[11px] font-medium transition-colors hover:opacity-80",
               roleConfig[member.role as Role]?.color ?? "bg-gray-50 text-gray-600 border-gray-100"
             )}
             tabIndex={0}
@@ -461,7 +462,7 @@ function MemberRow({
           <div className="relative">
             <button
               onClick={onMenuToggle}
-              className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-placeholder transition-colors hover:bg-[#ebebeb] hover:text-folk-secondary"
+              className="icon-btn flex h-[28px] w-[28px] items-center justify-center text-folk-placeholder hover:text-folk-secondary"
               tabIndex={0}
               aria-label="Member actions"
             >
