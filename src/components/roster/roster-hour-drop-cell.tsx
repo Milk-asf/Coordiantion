@@ -37,7 +37,7 @@ export function RosterHourDropCell({
           "pointer-events-none z-[1] h-[36px] w-[36px] opacity-0 transition-opacity group-hover/cell:opacity-100",
           SHIFT_SELECTOR_GROUP_HOVER_CLASSES,
           isOver && "opacity-100",
-          isOver && SHIFT_SELECTOR_ACTIVE_CLASSES
+          isOver && SHIFT_SELECTOR_ACTIVE_CLASSES,
         )}
       />
     </div>

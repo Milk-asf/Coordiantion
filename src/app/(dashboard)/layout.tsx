@@ -44,12 +44,12 @@ export default function DashboardLayout({
                     <TimesheetsProvider>
                     <KeyboardShortcutsProvider>
                       <RecentlyVisitedTracker />
-                      <div className="flex h-screen flex-col overflow-hidden md:flex-row">
-                        <div className="hidden md:flex">
+                      <div className="dashboard-shell flex h-screen flex-col overflow-hidden md:flex-row">
+                        <div className="dashboard-sidebar-wrap hidden md:flex">
                           <Sidebar />
                         </div>
                         <MobileNav />
-                        <main className="h-full flex-1 overflow-y-auto bg-white">
+                        <main className="dashboard-main h-full flex-1 overflow-y-auto bg-white">
                           {children}
                         </main>
                         <CommandPalette />

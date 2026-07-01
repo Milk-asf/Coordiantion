@@ -33,7 +33,6 @@ import { usePermissions } from "@/lib/hooks/use-permissions"
 import { useWorkspaceSettings } from "@/lib/hooks/use-workspace-settings"
 import { useNotifications, type AppNotification } from "@/lib/hooks/use-notifications"
 import { useIncidents } from "@/lib/hooks/use-incidents"
-import { SetupWidget } from "@/components/sidebar/setup-widget"
 import { SidebarBusinessNavGroup } from "@/components/sidebar/sidebar-nav-group"
 import { SidebarListsGroup } from "@/components/sidebar/sidebar-lists-group"
 import { FinanceNavPanel } from "@/components/sidebar/finance-nav-panel"
@@ -311,7 +310,7 @@ export function Sidebar() {
         <Link
           href={item.href}
           className={cn(
-            "mx-1 flex h-[32px] items-center gap-2 rounded-[4px] px-[12px] text-[12px] font-normal transition-colors",
+            "mx-1 flex h-[32px] items-center gap-2 rounded-[4px] px-[12px] text-[12px] font-normal no-underline transition-colors",
             isActive
               ? "bg-sidebar-active font-medium text-sidebar-active-text"
               : "text-[#616161] hover:bg-sidebar-hover",
@@ -386,7 +385,7 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="folk-tab-scroll flex-1 overflow-y-auto px-2" role="navigation" aria-label="Main navigation">
-        <ul className="space-y-px pt-[14px]">
+        <ul className="list-none space-y-px pt-[14px]">
           <li className={cn("relative", isCollapsed && "mx-0")}>
             <div className="relative" ref={notifRef}>
               <button
@@ -449,7 +448,7 @@ export function Sidebar() {
               {isCollapsed && (
                 <div className="mx-auto mb-1 h-px w-5 bg-sidebar-border" />
               )}
-              <ul className="space-y-px">
+              <ul className="list-none space-y-px">
                 {showFinanceGroup && (
                   <SidebarBusinessNavGroup
                     isCollapsed={isCollapsed}
@@ -470,15 +469,12 @@ export function Sidebar() {
         <SidebarListsGroup isCollapsed={isCollapsed} />
       </nav>
 
-      {/* Setup widget */}
-      <SetupWidget isCollapsed={isCollapsed} />
-
       {/* User menu at bottom */}
-      <div className="relative border-t border-sidebar-border px-2 pb-3 pt-2" ref={userMenuRef}>
+      <div className="folk-sidebar-footer relative border-t border-sidebar-border px-2 pb-3 pt-2" ref={userMenuRef}>
         <button
           onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
           className={cn(
-            "flex w-full items-center gap-2 rounded-none px-2 py-[6px] text-[13px] font-medium text-sidebar-text transition-colors hover:bg-sidebar-hover",
+            "folk-sidebar-nav-item flex w-full items-center gap-2 rounded-none px-2 py-[6px] text-[13px] font-medium text-sidebar-text transition-colors hover:bg-sidebar-hover",
             isCollapsed && "justify-center px-0"
           )}
           aria-label="User menu"

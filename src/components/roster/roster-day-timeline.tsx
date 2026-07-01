@@ -55,7 +55,7 @@ export function RosterDayTimeline({
       </div>
 
       <RosterTimelineDropZone rowId={rowId} dateStr={dateStr} height={timelineHeight}>
-        <div className="group relative h-full bg-folk-surface">
+        <div className="group/cell relative h-full bg-folk-surface">
           {hours.map((hour) => (
             <div
               key={hour}

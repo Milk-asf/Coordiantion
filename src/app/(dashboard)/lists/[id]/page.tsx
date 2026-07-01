@@ -200,7 +200,7 @@ export default function ListDetailPage() {
       />
 
       {/* View switcher */}
-      <div className="flex h-[44px] shrink-0 items-stretch border-b border-folk-border bg-white px-[16px]">
+      <div className="flex h-[44px] shrink-0 items-stretch border-b border-folk-border-subtle bg-white px-[16px]">
         <div className="folk-tab-bar flex h-full items-stretch [&_.folk-tab:last-child]:mr-0">
           <button
             type="button"
@@ -229,15 +229,6 @@ export default function ListDetailPage() {
 
       {/* Filter / sort toolbar */}
       <ListViewToolbar
-        leading={
-          <ListAddRecordsDropdown
-            sourceKey={list.source}
-            allRecords={allSourceRecords}
-            memberIds={list.recordIds ?? []}
-            onAdd={handleAddRecord}
-            onAddAll={handleAddAllRecords}
-          />
-        }
         filters={filterDefinitions}
         filterValues={queryState.filters}
         filterOptions={filterOptions}

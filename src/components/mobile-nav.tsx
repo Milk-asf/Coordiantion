@@ -97,7 +97,7 @@ export function MobileNav() {
 
   return (
     <>
-      <header className="flex h-[52px] shrink-0 items-center justify-between border-b border-folk-border-subtle bg-white px-[16px] md:hidden">
+      <header className="dashboard-mobile-header flex h-[52px] shrink-0 items-center justify-between border-b border-folk-border-subtle bg-white px-[16px] md:hidden">
         <span className="truncate text-[14px] font-semibold text-folk-text">
           {activeWorkspace?.name || "Coordination"}
         </span>

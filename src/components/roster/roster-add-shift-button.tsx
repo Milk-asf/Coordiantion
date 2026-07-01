@@ -5,10 +5,10 @@ import { usePermissions } from "@/lib/hooks/use-permissions"
 import { cn } from "@/lib/utils"
 
 const HOVER_REVEAL_CLASSES =
-  "opacity-0 pointer-events-none transition-all group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto"
+  "opacity-0 pointer-events-none transition-all group-hover/cell:opacity-100 group-hover/cell:pointer-events-auto group-focus-within/cell:opacity-100 group-focus-within/cell:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto"
 
 export const ROSTER_ADD_SHIFT_SURFACE_CLASSES =
-  "folk-pill-btn flex items-center justify-center border border-dashed border-[#b8c9eb] bg-white text-folk-text transition-colors hover:border-[#8fa8e0] hover:bg-[#f8faff] focus-visible:border-[#8fa8e0]"
+  "flex items-center justify-center rounded-[4px] border border-dashed border-[#b8c9eb] bg-white text-folk-text transition-colors hover:border-[#8fa8e0] hover:bg-[#f8faff] focus-visible:border-[#8fa8e0]"
 
 /** Dashed outline for unassigned / vacant shifts — matches add-shift hover styling. */
 export const ROSTER_UNASSIGNED_SHIFT_BORDER_CLASSES =
@@ -32,7 +32,6 @@ interface RosterAddShiftButtonProps {
   onClick: () => void
   compact?: boolean
   fullWidth?: boolean
-  alwaysVisible?: boolean
   className?: string
   label?: string
   onPointerDown?: (event: React.PointerEvent<HTMLButtonElement>) => void
@@ -42,7 +41,6 @@ export function RosterAddShiftButton({
   onClick,
   compact = false,
   fullWidth = true,
-  alwaysVisible = false,
   className,
   label = "Add shift",
   onPointerDown,
@@ -60,7 +58,7 @@ export function RosterAddShiftButton({
         "cursor-pointer",
         ROSTER_ADD_SHIFT_SURFACE_CLASSES,
         rosterAddShiftSizeClasses({ compact, fullWidth }),
-        !alwaysVisible && HOVER_REVEAL_CLASSES,
+        HOVER_REVEAL_CLASSES,
         className
       )}
       aria-label={label}

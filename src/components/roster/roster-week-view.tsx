@@ -643,11 +643,15 @@ export function RosterCalendar({ onCreateShift, onEditShift, pendingShiftPreview
                     const dateStr = toDateStr(day)
                     const cellShifts = getShiftsForCell(row.id, dateStr)
 
+                    const cellDefaults = buildCellDefaults(row.id, dateStr)
+                    const handleAddToCell = () => onCreateShift(cellDefaults)
+
                     return (
                       <RosterDropCell
                         key={`${row.id}-${dateStr}`}
                         rowId={row.id}
                         dateStr={dateStr}
+                        onAddShift={handleAddToCell}
                         className={cn(
                           "flex flex-col gap-[6px] p-[8px]",
                           GRID_CELL,
@@ -655,10 +659,10 @@ export function RosterCalendar({ onCreateShift, onEditShift, pendingShiftPreview
                         )}
                       >
                         {cellShifts.length === 0 ? (
-                          <div className="flex w-full flex-1 items-start">
+                          <div className="flex min-h-[80px] w-full flex-1 items-stretch">
                             <RosterAddShiftButton
                               label="Add shift"
-                              onClick={() => onCreateShift(buildCellDefaults(row.id, dateStr))}
+                              onClick={handleAddToCell}
                             />
                           </div>
                         ) : (
@@ -676,11 +680,13 @@ export function RosterCalendar({ onCreateShift, onEditShift, pendingShiftPreview
                                 onClick={handleShiftClick}
                               />
                             ))}
-                            <RosterAddShiftButton
-                              compact
-                              label="Add another shift"
-                              onClick={() => onCreateShift(buildCellDefaults(row.id, dateStr))}
-                            />
+                            <div className="sticky bottom-0 z-[1] mt-auto bg-folk-surface pt-[4px]">
+                              <RosterAddShiftButton
+                                compact
+                                label="Add another shift"
+                                onClick={handleAddToCell}
+                              />
+                            </div>
                           </>
                         )}
                       </RosterDropCell>

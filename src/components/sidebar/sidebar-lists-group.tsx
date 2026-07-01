@@ -3,17 +3,27 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Pin, Plus } from "lucide-react"
+import { LayoutList, Pin, Plus } from "lucide-react"
 import { DeleteActionsMenu } from "@/components/delete-actions-menu"
 import { cn } from "@/lib/utils"
 import { useLists } from "@/lib/lists/context"
 import { sortLists, type CustomList } from "@/lib/lists/definitions"
-import { NewListFlow } from "@/app/(dashboard)/lists/_components/new-list-flow"
-import { type NewListConfig } from "@/app/(dashboard)/lists/_components/new-list-modal"
+import { NewListModal, type NewListConfig } from "@/app/(dashboard)/lists/_components/new-list-modal"
 import { useToast } from "@/components/toast"
 
 interface SidebarListsGroupProps {
   isCollapsed: boolean
+}
+
+function listNavLinkClass(isActive: boolean, isCollapsed: boolean) {
+  return cn(
+    "mx-1 flex h-[32px] items-center gap-2 rounded-[4px] px-[12px] text-[12px] font-normal no-underline transition-colors",
+    isActive
+      ? "bg-sidebar-active font-medium text-sidebar-active-text"
+      : "text-[#616161] hover:bg-sidebar-hover",
+    isCollapsed && "relative mx-0 justify-center px-0",
+    !isCollapsed && "pr-[28px]",
+  )
 }
 
 export function SidebarListsGroup({ isCollapsed }: SidebarListsGroupProps) {
@@ -23,6 +33,7 @@ export function SidebarListsGroup({ isCollapsed }: SidebarListsGroupProps) {
   const { lists, createCustomList, togglePin, deleteList } = useLists()
   const [isCreating, setIsCreating] = useState(false)
   const orderedLists = sortLists(lists)
+  const isListsIndexActive = pathname === "/lists"
 
   const handleCreate = async (params: NewListConfig) => {
     setIsCreating(false)
@@ -57,7 +68,7 @@ export function SidebarListsGroup({ isCollapsed }: SidebarListsGroupProps) {
           </button>
         </>
       ) : (
-        <div className="mb-[6px] mt-[16px] flex items-center justify-between pl-[10px] pr-[6px]">
+        <div className="mb-[6px] mt-[16px] flex items-center justify-between px-[10px]">
           <p className="text-[11px] font-normal tracking-wide text-[#999999]">Lists</p>
           <button
             type="button"
@@ -71,20 +82,28 @@ export function SidebarListsGroup({ isCollapsed }: SidebarListsGroupProps) {
         </div>
       )}
 
-      <ul className="space-y-px">
+      <ul className="list-none space-y-px">
+        {!isCollapsed && (
+          <li>
+            <Link
+              href="/lists"
+              className={listNavLinkClass(isListsIndexActive, isCollapsed)}
+              aria-current={isListsIndexActive ? "page" : undefined}
+              tabIndex={0}
+            >
+              <LayoutList className="h-[14px] w-[14px] shrink-0" strokeWidth={1.75} />
+              <span className="truncate">All lists</span>
+            </Link>
+          </li>
+        )}
+
         {orderedLists.map((list) => {
           const isActive = pathname === `/lists/${list.id}`
           return (
             <li key={list.id} className="group/list relative">
               <Link
                 href={`/lists/${list.id}`}
-                className={cn(
-                  "mx-1 flex h-[32px] items-center gap-2 rounded-[4px] px-[12px] text-[12px] font-normal transition-colors",
-                  isActive
-                    ? "bg-sidebar-active font-medium text-sidebar-active-text"
-                    : "text-[#616161] hover:bg-sidebar-hover",
-                  isCollapsed ? "relative mx-0 justify-center px-0" : "pr-[28px]",
-                )}
+                className={listNavLinkClass(isActive, isCollapsed)}
                 aria-current={isActive ? "page" : undefined}
                 title={isCollapsed ? list.name : undefined}
                 tabIndex={0}
@@ -126,23 +145,9 @@ export function SidebarListsGroup({ isCollapsed }: SidebarListsGroupProps) {
             </li>
           )
         })}
-
-        {!isCollapsed && lists.length === 0 && (
-          <li>
-            <button
-              type="button"
-              onClick={() => setIsCreating(true)}
-              className="mx-1 flex h-[32px] w-[calc(100%-8px)] items-center gap-2 rounded-[4px] px-[12px] text-[12px] font-normal text-[#999999] transition-colors hover:bg-sidebar-hover hover:text-[#616161]"
-              tabIndex={0}
-            >
-              <Plus className="h-[14px] w-[14px] shrink-0" strokeWidth={1.75} />
-              <span className="truncate">New list</span>
-            </button>
-          </li>
-        )}
       </ul>
 
-      {isCreating && <NewListFlow onClose={() => setIsCreating(false)} onCreate={handleCreate} />}
+      {isCreating && <NewListModal onClose={() => setIsCreating(false)} onCreate={handleCreate} />}
     </div>
   )
 }

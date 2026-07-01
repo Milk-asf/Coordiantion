@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Briefcase, Building2, Columns3, LayoutList, Pin, Plus, Table2 } from "lucide-react"
+import { Briefcase, Building2, Calendar, Columns3, LayoutList, Pin, Plus, Table2 } from "lucide-react"
 import { EmptyState } from "@/components/empty-state"
 import { PageTitleBar } from "@/components/page-title-bar"
 import { ExpandableTableSearch } from "@/components/expandable-table-search"
@@ -18,8 +18,7 @@ import {
 } from "@/components/workspace-card"
 import { useLists } from "@/lib/lists/context"
 import { getListSource, sortLists, type CustomList } from "@/lib/lists/definitions"
-import { NewListFlow } from "./_components/new-list-flow"
-import { type NewListConfig } from "./_components/new-list-modal"
+import { NewListModal, type NewListConfig } from "./_components/new-list-modal"
 
 function formatDate(value: string): string {
   if (!value) return "—"
@@ -119,7 +118,7 @@ export default function ListsPage() {
         </>
       )}
 
-      {isCreating && <NewListFlow onClose={() => setIsCreating(false)} onCreate={handleCreate} />}
+      {isCreating && <NewListModal onClose={() => setIsCreating(false)} onCreate={handleCreate} />}
     </div>
   )
 }
@@ -153,7 +152,7 @@ function ListCard({ list, onOpen, onPin, onDelete }: ListCardProps) {
       content: <WorkspaceCardPill label={list.view === "kanban" ? "Kanban view" : "Table view"} tone="blue" />,
     },
     {
-      icon: Briefcase,
+      icon: Calendar,
       content: <WorkspaceCardText>{formatDate(list.createdAt)}</WorkspaceCardText>,
     },
   ]

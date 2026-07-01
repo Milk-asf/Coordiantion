@@ -53,7 +53,7 @@ interface ParticipantGroup {
   client: Client | null
   clientId: string
   name: string
-  recipientName: string
+    recipientName: string
   recipientEmail: string
   entries: BillableEntry[]
 }
@@ -349,24 +349,24 @@ export default function InvoicingPage() {
           continue
         }
         try {
-          const response = await fetch("/api/email/send-invoice", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              invoice,
+        const response = await fetch("/api/email/send-invoice", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            invoice,
               recipientEmail: group.recipientEmail,
               recipientName: group.recipientName,
               participantName: group.name,
               ndisNumber: group.client?.participant.ndisNumber || "",
-              orgSettings: settings,
+            orgSettings: settings,
               workspaceId: activeWorkspace.id,
-            }),
-          })
-          const result = await response.json()
+          }),
+        })
+        const result = await response.json()
           if (!response.ok) throw new Error(result.error || "Failed to send")
           await markInvoiceSent(invoice.id, { sentTo: group.recipientEmail, deliveryMethod: "participant-email" })
           emailed += 1
-        } catch (error) {
+      } catch (error) {
           messages.push(`${group.name}: ${error instanceof Error ? error.message : "send failed"}`)
         }
       }
@@ -407,11 +407,11 @@ export default function InvoicingPage() {
                 className="rounded-[8px] border border-folk-border bg-folk-page px-[8px] py-[4px] text-[12px] text-folk-text outline-none focus:border-[#a3c4f3]"
               />
             </div>
-            <div className="relative">
-              <button
+          <div className="relative">
+          <button
                 ref={createTriggerRef}
-                type="button"
-                onClick={() => {
+                    type="button"
+                    onClick={() => {
                   setSummary(null)
                   setIsCreateOpen((v) => !v)
                 }}
@@ -420,10 +420,10 @@ export default function InvoicingPage() {
                   "flex items-center gap-[6px] folk-pill-btn px-[10px] py-[6px] text-[13px] font-medium transition-colors",
                   includedGroups.length > 0 ? "primary-btn" : "cursor-not-allowed bg-[#efefef] text-[#b8b8b8]",
                 )}
-                tabIndex={0}
-              >
+            tabIndex={0}
+          >
                 <span>Create invoices</span>
-              </button>
+          </button>
               <FixedSelectDropdown
                 isOpen={isCreateOpen}
                 anchorRef={createTriggerRef}
@@ -443,7 +443,7 @@ export default function InvoicingPage() {
                       onChange={() => setSendMethod(sendMethod === "email" ? "create" : "email")}
                       ariaLabel="Email invoices to recipients"
                     />
-                  </div>
+              </div>
                   <div
                     onClick={() => setAmountsIncludeGst((v) => !v)}
                     className="flex cursor-pointer items-center justify-between gap-[12px] rounded-[6px] px-[8px] py-[7px] hover:bg-folk-hover"
@@ -453,31 +453,31 @@ export default function InvoicingPage() {
                       checked={amountsIncludeGst}
                       onChange={() => setAmountsIncludeGst((v) => !v)}
                       ariaLabel="Amounts include GST"
-                    />
-                  </div>
+              />
+              </div>
                   <div className="mt-[4px] border-t border-folk-border-subtle px-[8px] pb-[2px] pt-[8px]">
-                    <button
-                      type="button"
+              <button
+                type="button"
                       onClick={handleCreate}
                       disabled={isCreating || includedGroups.length === 0}
                       className="primary-btn folk-pill-btn flex w-full items-center justify-center gap-[6px] px-[10px] py-[7px] text-[13px] font-medium disabled:opacity-50"
-                      tabIndex={0}
-                    >
+                tabIndex={0}
+              >
                       {sendMethod === "email" ? <Mail className="h-[13px] w-[13px]" strokeWidth={1.75} /> : <DownloadIcon className="h-[13px] w-[13px]" strokeWidth={1.75} />}
                       {isCreating
                         ? "Working…"
                         : sendMethod === "email"
                           ? `Create & email ${includedGroups.length}`
                           : `Create ${includedGroups.length} ${includedGroups.length === 1 ? "invoice" : "invoices"}`}
-                    </button>
+              </button>
                     <p className="mt-[6px] text-center text-[11px] text-folk-secondary">
                       {includedEntries.length} {includedEntries.length === 1 ? "line" : "lines"} · {formatBillableAmount(totalAmount)}
                     </p>
-                  </div>
-                </div>
-              </FixedSelectDropdown>
             </div>
-          </div>
+            </div>
+              </FixedSelectDropdown>
+        </div>
+      </div>
         }
       />
 
@@ -524,7 +524,7 @@ export default function InvoicingPage() {
                   const groupIncluded = group.entries.filter((e) => isIncluded(e.id))
                   const allIncluded = groupIncluded.length === group.entries.length
                   const groupTotal = groupIncluded.reduce((sum, e) => sum + e.amount, 0)
-                  return (
+            return (
                     <Fragment key={group.clientId}>
                       <tr
                         className={cn("group cursor-pointer bg-folk-page", allIncluded && "[&>td]:bg-folk-hover")}
@@ -578,7 +578,7 @@ export default function InvoicingPage() {
                       {!isCollapsed &&
                         group.entries.map((entry) => {
                           const included = isIncluded(entry.id)
-                          return (
+                  return (
                             <tr key={entry.id} className={cn("group", included && "[&>td]:bg-folk-hover", !included && "opacity-45")}>
                               <td className={cn(TABLE_CELL_BASE, TABLE_ROW_HOVER)}>
                                 <div className={cn(TABLE_CELL_INNER, "gap-[10px]")}>
@@ -593,26 +593,26 @@ export default function InvoicingPage() {
                                       onChange={() => toggleEntry(entry.id)}
                                       ariaLabel={included ? "Exclude line" : "Include line"}
                                     />
-                                  </span>
+                            </span>
                                   <span className={cn("truncate pl-[21px]", TABLE_TEXT_CELL)}>
                                     {entry.description || entry.chargeName || "Support item"}
-                                  </span>
+                            </span>
                                 </div>
                               </td>
                               <td className={cn(TABLE_CELL_BASE, TABLE_ROW_HOVER)}>
                                 <div className={TABLE_CELL_INNER}>
                                   <span className={cn("truncate", TABLE_TEXT_CELL, "text-folk-secondary")}>
                                     {entry.chargeItemNumber || "—"}
-                                  </span>
-                                </div>
-                              </td>
+                              </span>
+                          </div>
+                        </td>
                               <td className={cn(TABLE_CELL_BASE, TABLE_ROW_HOVER)}>
                                 <div className={TABLE_CELL_INNER}>
                                   <span className={cn("truncate", TABLE_TEXT_CELL, "text-folk-secondary")}>
                                     {formatBillableDate(entry.serviceDate)}
-                                  </span>
-                                </div>
-                              </td>
+                          </span>
+                        </div>
+                      </td>
                               <td className={cn(TABLE_CELL_BASE, TABLE_ROW_HOVER)}>
                                 <div className={NUMERIC_INNER}>
                                   <span className={cn("truncate", TABLE_TEXT_CELL, "text-folk-secondary")}>
@@ -630,14 +630,14 @@ export default function InvoicingPage() {
                                   <span className={cn("truncate", TABLE_TEXT_CELL, "font-medium")}>{formatBillableAmount(entry.amount)}</span>
                                 </div>
                               </td>
-                            </tr>
+                    </tr>
                           )
                         })}
-                    </Fragment>
+                  </Fragment>
                   )
                 })}
-              </tbody>
-            </table>
+          </tbody>
+        </table>
           </>
         )}
       </div>
@@ -655,7 +655,7 @@ export default function InvoicingPage() {
           <div className="fixed inset-0 z-[51] flex items-center justify-center p-[16px]">
             <div className="w-full max-w-[460px] rounded-[12px] border border-folk-border bg-folk-surface p-[20px] shadow-folk">
               <h3 className="text-[15px] font-semibold text-folk-text">Invoicing complete</h3>
-              <p className="mt-[6px] text-[13px] text-folk-secondary">
+                  <p className="mt-[6px] text-[13px] text-folk-secondary">
                 {summary.created} {summary.created === 1 ? "invoice" : "invoices"} created
                 {summary.emailed > 0 && `, ${summary.emailed} emailed`}
                 {summary.failed > 0 && `, ${summary.failed} failed`}.
@@ -663,18 +663,18 @@ export default function InvoicingPage() {
               {summary.messages.length > 0 && (
                 <div className="mt-[12px] max-h-[180px] overflow-y-auto rounded-[8px] border border-folk-border bg-folk-page px-[12px] py-[10px] text-[12px] font-medium text-folk-secondary">
                   {summary.messages.join(" · ")}
-                </div>
-              )}
+                    </div>
+                  )}
               <div className="mt-[16px] flex justify-end">
-                <button
-                  type="button"
+                    <button
+                      type="button"
                   onClick={() => setSummary(null)}
                   className="primary-btn px-[12px] py-[7px] text-[13px] font-medium"
                   tabIndex={0}
-                >
-                  Close
-                </button>
-              </div>
+                    >
+                      Close
+                    </button>
+                  </div>
             </div>
           </div>
         </>

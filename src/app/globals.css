@@ -49,6 +49,23 @@
   body {
     @apply antialiased font-normal text-folk-text bg-white;
     color: var(--folk-text);
+    margin: 0;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  ul,
+  ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  button {
+    font: inherit;
   }
 
   /*
@@ -273,6 +290,18 @@
 /** Side nav only — main sidebar + finance panel */
 .folk-sidebar-surface {
   background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-right: 1px solid var(--folk-border);
+}
+
+.folk-sidebar-surface nav a {
+  text-decoration: none;
+}
+
+.folk-sidebar-surface nav ul {
+  list-style: none;
 }
 
 /** Sidebar nav buttons — reset native button chrome so hover fills the full row. */
@@ -288,7 +317,7 @@ button.folk-sidebar-nav-item {
 .folk-tab {
   position: relative;
   display: inline-flex;
-  shrink: 0;
+  flex-shrink: 0;
   align-items: center;
   gap: 6px;
   height: 100%;

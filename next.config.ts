@@ -10,6 +10,8 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+  // Keep local `npm run build` from wiping the dev server's `.next` cache (which breaks CSS in dev).
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   onDemandEntries: {
     maxInactiveAge: 60 * 60 * 1000,
     pagesBufferLength: 10,
