@@ -8,7 +8,6 @@ import { formatTimeLabel, getAllDayTimeOptions, timeToMinutes } from "@/lib/rost
 import { cn } from "@/lib/utils"
 
 const ITEM_HEIGHT = 36
-const LIST_PADDING = 4
 const CYCLE_COUNT = 5
 const INTERVAL_MINUTES = 15
 
@@ -25,8 +24,11 @@ interface FixedTimePickerDropdownProps {
   minWidth?: number
 }
 
-function getNearestOptionIndex(options: string[], value: string): number {
+function getOptionIndex(options: string[], value: string): number {
   if (!value) return 0
+
+  const exactIndex = options.indexOf(value)
+  if (exactIndex >= 0) return exactIndex
 
   const targetMinutes = timeToMinutes(value)
   if (Number.isNaN(targetMinutes)) return 0
@@ -67,7 +69,6 @@ export function FixedTimePickerDropdown({
 }: FixedTimePickerDropdownProps) {
   const listRef = useRef<HTMLDivElement>(null)
   const isRepositioningRef = useRef(false)
-  const scrollEndTimerRef = useRef<number | null>(null)
 
   const baseOptions = useMemo(() => {
     const options = getAllDayTimeOptions(intervalMinutes)
@@ -91,7 +92,7 @@ export function FixedTimePickerDropdown({
     const list = listRef.current
     if (!list || slotsPerCycle === 0) return
 
-    const localIndex = getNearestOptionIndex(baseOptions, nextValue)
+    const localIndex = getOptionIndex(baseOptions, nextValue)
     const middleCycle = Math.floor(CYCLE_COUNT / 2)
     const globalIndex = middleCycle * slotsPerCycle + localIndex
     const targetTop = globalIndex * ITEM_HEIGHT - list.clientHeight / 2 + ITEM_HEIGHT / 2
@@ -117,29 +118,10 @@ export function FixedTimePickerDropdown({
     }
   }, [cycleHeight])
 
-  const getCenteredOption = useCallback((): string | null => {
-    const list = listRef.current
-    if (!list || slotsPerCycle === 0) return null
-
-    const center = list.scrollTop + list.clientHeight / 2 - LIST_PADDING
-    const globalIndex = Math.max(0, Math.round(center / ITEM_HEIGHT))
-    const localIndex = ((globalIndex % slotsPerCycle) + slotsPerCycle) % slotsPerCycle
-    return baseOptions[localIndex] ?? null
-  }, [baseOptions, slotsPerCycle])
-
   const handleScroll = useCallback(() => {
     if (isRepositioningRef.current) return
-
     maintainInfiniteScroll()
-
-    if (scrollEndTimerRef.current) window.clearTimeout(scrollEndTimerRef.current)
-    scrollEndTimerRef.current = window.setTimeout(() => {
-      const centered = getCenteredOption()
-      if (!centered || centered === value) return
-      if (!isTimeSelectable(centered, minMinutes, maxMinutes)) return
-      onChange(centered)
-    }, 120)
-  }, [getCenteredOption, maintainInfiniteScroll, maxMinutes, minMinutes, onChange, value])
+  }, [maintainInfiniteScroll])
 
   useEffect(() => {
     if (!isOpen) return
@@ -153,12 +135,6 @@ export function FixedTimePickerDropdown({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen])
 
-  useEffect(() => {
-    return () => {
-      if (scrollEndTimerRef.current) window.clearTimeout(scrollEndTimerRef.current)
-    }
-  }, [])
-
   if (!isOpen || !menuStyle) return null
 
   return createPortal(
@@ -166,7 +142,7 @@ export function FixedTimePickerDropdown({
       <div className={cn("fixed inset-0 z-[210]", FIXED_DROPDOWN_BACKDROP_Z_CLASS)} data-floating-overlay onClick={onClose} />
       <div
         className={cn(
-          `fixed z-[211] overflow-hidden rounded-none border border-folk-border bg-folk-surface shadow-folk`,
+          `fixed z-[211] overflow-hidden rounded-[6px] border border-folk-border bg-folk-surface shadow-folk`,
           FIXED_DROPDOWN_MENU_Z_CLASS
         )}
         data-floating-overlay

@@ -167,7 +167,7 @@ export default function OnboardingTeamPage() {
                   <button
                     type="button"
                     onClick={() => handleRemoveRow(row.id)}
-                    className="flex h-[42px] w-[42px] items-center justify-center rounded-none text-folk-placeholder transition-colors hover:bg-folk-hover hover:text-folk-text"
+                    className="flex h-[42px] w-[42px] items-center justify-center rounded-[6px] text-folk-placeholder transition-colors hover:bg-folk-hover hover:text-folk-text"
                     aria-label="Remove row"
                     tabIndex={0}
                   >
@@ -179,7 +179,7 @@ export default function OnboardingTeamPage() {
             <button
               type="button"
               onClick={handleAddRow}
-              className="flex items-center gap-[6px] self-start rounded-none px-[8px] py-[6px] text-[12px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+              className="flex items-center gap-[6px] self-start rounded-[6px] px-[8px] py-[6px] text-[12px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
               tabIndex={0}
             >
               <Plus className="h-[12px] w-[12px]" strokeWidth={1.75} />
@@ -189,7 +189,7 @@ export default function OnboardingTeamPage() {
         </div>
 
         {error && (
-          <p className="rounded-none bg-red-50 px-[12px] py-[8px] text-[12px] font-medium text-red-600">
+          <p className="rounded-[6px] bg-red-50 px-[12px] py-[8px] text-[12px] font-medium text-red-600">
             {error}
           </p>
         )}

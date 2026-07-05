@@ -74,7 +74,7 @@ export function FixedDatePickerDropdown({
       />
       <div
         className={cn(
-          "fixed rounded-none border border-folk-border bg-folk-surface shadow-folk",
+          "fixed rounded-[6px] border border-folk-border bg-folk-surface shadow-folk",
           FIXED_DROPDOWN_MENU_Z_CLASS,
         )}
         data-floating-overlay

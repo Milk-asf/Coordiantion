@@ -20,6 +20,8 @@ import { TimesheetsProvider } from "@/lib/timesheets-context"
 import { RosterProvider } from "@/lib/roster-context"
 import { SuitabilityProvider } from "@/lib/suitability-context"
 import { RecentlyVisitedTracker } from "@/lib/hooks/use-recently-visited"
+import { RequireMfaGate } from "@/components/require-mfa-gate"
+import { SupportWorkerRouteGuard } from "@/components/support-worker-route-guard"
 
 export default function DashboardLayout({
   children,
@@ -44,6 +46,8 @@ export default function DashboardLayout({
                     <TimesheetsProvider>
                     <KeyboardShortcutsProvider>
                       <RecentlyVisitedTracker />
+                      <RequireMfaGate />
+                      <SupportWorkerRouteGuard />
                       <div className="dashboard-shell flex h-screen flex-col overflow-hidden md:flex-row">
                         <div className="dashboard-sidebar-wrap hidden md:flex">
                           <Sidebar />

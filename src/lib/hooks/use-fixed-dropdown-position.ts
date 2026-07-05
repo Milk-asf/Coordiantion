@@ -9,7 +9,8 @@ export function useFixedDropdownPosition(
   estimatedHeight: number,
   minWidth: number,
   align: FixedDropdownAlign = "match",
-  anchorElement?: HTMLElement | null
+  anchorElement?: HTMLElement | null,
+  scrollable = true
 ) {
   const [menuStyle, setMenuStyle] = useState<CSSProperties | null>(null)
 
@@ -28,7 +29,9 @@ export function useFixedDropdownPosition(
         return
       }
 
-      setMenuStyle(getFixedDropdownStyle(anchor.getBoundingClientRect(), estimatedHeight, minWidth, align))
+      setMenuStyle(
+        getFixedDropdownStyle(anchor.getBoundingClientRect(), estimatedHeight, minWidth, align, { scrollable })
+      )
     }
 
     updatePosition()
@@ -45,7 +48,7 @@ export function useFixedDropdownPosition(
       window.visualViewport?.removeEventListener("resize", updatePosition)
       window.visualViewport?.removeEventListener("scroll", updatePosition)
     }
-  }, [align, anchorElement, anchorRef, estimatedHeight, isOpen, minWidth])
+  }, [align, anchorElement, anchorRef, estimatedHeight, isOpen, minWidth, scrollable])
 
   return menuStyle
 }

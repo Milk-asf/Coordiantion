@@ -54,8 +54,8 @@ export function ConfirmDialog({
 
   const confirmColors =
     variant === "danger"
-      ? "bg-red-600 text-white hover:bg-red-700"
-      : "bg-amber-600 text-white hover:bg-amber-700"
+      ? "bg-red-600 hover:bg-red-700 focus-visible:ring-red-200"
+      : "bg-amber-600 hover:bg-amber-700 focus-visible:ring-amber-200"
 
   const iconColors =
     variant === "danger" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-600"
@@ -70,22 +70,24 @@ export function ConfirmDialog({
       aria-labelledby="confirm-title"
     >
       <div
-        className={`w-full max-w-[380px] min-w-[280px] rounded-folk-modal bg-folk-surface p-[24px] shadow-folk ${motion.scaleIn}`}
+        className={`w-full min-w-[280px] max-w-[400px] rounded-folk-modal bg-folk-surface p-[20px] shadow-folk ${motion.scaleIn}`}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex flex-col items-center gap-[12px] text-center">
-          <div className={`flex h-[44px] w-[44px] items-center justify-center rounded-full ${iconColors}`}>
-            <AlertTriangle className="h-[20px] w-[20px]" strokeWidth={1.5} />
+        <div className="flex items-start gap-[12px]">
+          <div className={`flex h-[32px] w-[32px] shrink-0 items-center justify-center rounded-full ${iconColors}`}>
+            <AlertTriangle className="h-[15px] w-[15px]" strokeWidth={1.75} />
           </div>
-          <h3 id="confirm-title" className="text-[15px] font-semibold text-folk-text">
-            {title}
-          </h3>
-          <p className="text-[13px] leading-[1.5] text-folk-secondary">{description}</p>
+          <div className="min-w-0 flex-1">
+            <h3 id="confirm-title" className="text-[14px] font-semibold leading-[1.3] text-folk-text">
+              {title}
+            </h3>
+            <p className="mt-[4px] text-[13px] leading-[1.5] text-folk-secondary">{description}</p>
+          </div>
         </div>
-        <div className="mt-[20px] flex items-center gap-[10px]">
+        <div className="mt-[18px] flex items-center justify-end gap-[8px]">
           <button
             onClick={onCancel}
-            className={`flex-1 rounded-none border border-folk-border bg-folk-surface px-[14px] py-[9px] text-[13px] font-medium text-folk-secondary ${motion.interactive} hover:bg-folk-hover`}
+            className={`outline-btn folk-pill-btn px-[14px] py-[6px] text-[13px] font-medium ${motion.interactive}`}
             tabIndex={0}
           >
             {cancelLabel}
@@ -93,7 +95,7 @@ export function ConfirmDialog({
           <button
             ref={confirmRef}
             onClick={onConfirm}
-            className={`flex-1 rounded-none px-[14px] py-[9px] text-[13px] font-medium ${motion.interactive} ${confirmColors}`}
+            className={`folk-pill-btn px-[14px] py-[6px] text-[13px] font-medium text-white outline-none transition-colors focus-visible:ring-2 ${confirmColors} ${motion.interactive}`}
             tabIndex={0}
           >
             {confirmLabel}

@@ -219,7 +219,7 @@ export function BudgetSidebarForm({
         <button
           type="button"
           onClick={onClose}
-          className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+          className="flex h-[24px] w-[24px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
           tabIndex={0}
           aria-label="Close budget form"
         >
@@ -230,17 +230,17 @@ export function BudgetSidebarForm({
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="space-y-[14px] px-[24px] py-[14px]">
           <div>
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Budget name *</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Budget name *</label>
             <input
               type="text"
               value={budgetName}
               onChange={(e) => onSetBudgetName(e.target.value)}
-              className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none hover:border-[#bababa] focus:border-[#a3c4f3]"
+              className="h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium text-folk-text outline-none hover:border-[#bababa] focus:border-[#a3c4f3]"
             />
           </div>
 
           <div>
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Funding component *</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Funding component *</label>
             <div className="relative">
               <button
                 ref={componentDropdownRef}
@@ -249,7 +249,7 @@ export function BudgetSidebarForm({
                   onSetIsComponentDropdownOpen(!isComponentDropdownOpen)
                   onSetIsCadenceDropdownOpen(false)
                 }}
-                className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
+                className="flex h-[36px] w-full items-center rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
                 tabIndex={0}
               >
                 <span className="min-w-0 flex-1 truncate text-left">
@@ -293,7 +293,7 @@ export function BudgetSidebarForm({
           </div>
 
           <div>
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Plan allocation *</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Plan allocation *</label>
             <div className="relative">
               <span className="pointer-events-none absolute left-[12px] top-1/2 -translate-y-1/2 text-[13px] font-medium text-folk-secondary">$</span>
               <input
@@ -301,13 +301,13 @@ export function BudgetSidebarForm({
                 inputMode="decimal"
                 value={allocatedAmount}
                 onChange={(e) => onSetAllocatedAmount(formatNumberInput(e.target.value))}
-                className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page pl-[24px] pr-[12px] text-[13px] font-medium text-folk-text outline-none hover:border-[#bababa] focus:border-[#a3c4f3]"
+                className="h-[38px] w-full rounded-[6px] border border-folk-border bg-white pl-[24px] pr-[12px] text-[13px] font-medium text-folk-text outline-none hover:border-[#bababa] focus:border-[#a3c4f3]"
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Funding release schedule *</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Funding release schedule *</label>
             <div className="relative">
               <button
                 ref={cadenceDropdownRef}
@@ -316,7 +316,7 @@ export function BudgetSidebarForm({
                   onSetIsCadenceDropdownOpen(!isCadenceDropdownOpen)
                   onSetIsComponentDropdownOpen(false)
                 }}
-                className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
+                className="flex h-[36px] w-full items-center rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
                 tabIndex={0}
               >
                 <span className="min-w-0 flex-1 truncate text-left">
@@ -355,7 +355,7 @@ export function BudgetSidebarForm({
 
           {dateSourceOptions.length > 1 && (
             <div>
-              <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Date range</label>
+              <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Date range</label>
               <div className="relative">
                 <button
                   ref={dateSourceDropdownRef}
@@ -365,7 +365,7 @@ export function BudgetSidebarForm({
                     onSetIsComponentDropdownOpen(false)
                     onSetIsCadenceDropdownOpen(false)
                   }}
-                  className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
+                  className="flex h-[36px] w-full items-center rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
                   tabIndex={0}
                 >
                   <span className="min-w-0 flex-1 truncate text-left">{activeDateSourceLabel}</span>
@@ -404,7 +404,7 @@ export function BudgetSidebarForm({
           )}
 
           <div>
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Start date *</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Start date *</label>
             <div className="relative">
               <button
                 ref={startDateRef}
@@ -413,7 +413,7 @@ export function BudgetSidebarForm({
                   onSetBudgetStartPickerOpen(!budgetStartPickerOpen)
                   onSetBudgetEndPickerOpen(false)
                 }}
-                className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
+                className="flex h-[36px] w-full items-center rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
                 tabIndex={0}
               >
                 {budgetStartDate ? (
@@ -433,7 +433,7 @@ export function BudgetSidebarForm({
           </div>
 
           <div>
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">End date *</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">End date *</label>
             <div className="relative">
               <button
                 ref={endDateRef}
@@ -442,7 +442,7 @@ export function BudgetSidebarForm({
                   onSetBudgetEndPickerOpen(!budgetEndPickerOpen)
                   onSetBudgetStartPickerOpen(false)
                 }}
-                className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
+                className="flex h-[36px] w-full items-center rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
                 tabIndex={0}
               >
                 {budgetEndDate ? (
@@ -475,7 +475,7 @@ export function BudgetSidebarForm({
                   Reset schedule
                 </button>
               </div>
-              <div className="overflow-hidden rounded-none border border-[#d9d9d9]">
+              <div className="overflow-hidden rounded-[6px] border border-[#d9d9d9]">
                 {releasePeriods.map((period) => (
                   <div
                     key={period.id}
@@ -494,7 +494,7 @@ export function BudgetSidebarForm({
                         inputMode="decimal"
                         value={period.allocatedAmount > 0 ? formatNumberDisplay(period.allocatedAmount) : ""}
                         onChange={(e) => handlePeriodAmountChange(period.id, formatNumberInput(e.target.value))}
-                        className="h-[30px] w-full rounded-none border border-folk-border bg-folk-surface pl-[18px] pr-[8px] text-[12px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
+                        className="h-[30px] w-full rounded-[6px] border border-folk-border bg-folk-surface pl-[18px] pr-[8px] text-[12px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
                         aria-label={`Period ${period.periodNumber} amount`}
                       />
                     </div>
@@ -510,7 +510,7 @@ export function BudgetSidebarForm({
                 )}
               </div>
               {scheduleWarning && (
-                <p className="mt-[6px] rounded-none bg-amber-50 px-[10px] py-[6px] text-[11px] font-medium text-amber-700">
+                <p className="mt-[6px] rounded-[6px] bg-amber-50 px-[10px] py-[6px] text-[11px] font-medium text-amber-700">
                   {scheduleWarning}
                 </p>
               )}
@@ -535,7 +535,7 @@ export function BudgetSidebarForm({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-none border border-folk-border bg-folk-surface px-[12px] py-[6px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+          className="rounded-[6px] border border-folk-border bg-folk-surface px-[12px] py-[6px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
           tabIndex={0}
         >
           Cancel
@@ -544,7 +544,7 @@ export function BudgetSidebarForm({
           type="button"
           onClick={onSave}
           disabled={!canSave}
-          className="primary-btn px-[12px] py-[6px] text-[12px] font-medium transition-colors disabled:opacity-50"
+          className="primary-btn folk-pill-btn h-[32px] px-[14px] text-[13px] font-medium transition-colors disabled:opacity-50"
           tabIndex={0}
         >
           {isEditing ? "Save changes" : "Create budget"}

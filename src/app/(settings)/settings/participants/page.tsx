@@ -213,7 +213,7 @@ export default function ParticipantsSettingsPage() {
         <>
           <div className="fixed inset-0 z-40 bg-black/20" onClick={() => setIsAddOpen(false)} />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-[16px]">
-            <div className="w-full max-w-[420px] rounded-none border border-folk-border-subtle bg-folk-surface p-[24px] shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+            <div className="w-full max-w-[420px] rounded-[6px] border border-folk-border-subtle bg-folk-surface p-[24px] shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
               <div className="mb-[16px] flex items-center justify-between">
                 <h2 className="text-[16px] font-bold text-folk-text">Add a participant</h2>
                 <button onClick={() => setIsAddOpen(false)} className="icon-btn flex h-[28px] w-[28px] items-center justify-center text-folk-secondary" tabIndex={0} aria-label="Close">
@@ -230,7 +230,7 @@ export default function ParticipantsSettingsPage() {
                     onChange={(e) => setFirstName(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") handleAdd() }}
                     placeholder="Jane"
-                    className="mb-[12px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] py-[9px] text-[14px] text-folk-text outline-none transition-colors focus:border-[#bbb]"
+                    className="mb-[12px] w-full rounded-[6px] border border-folk-border bg-folk-page px-[12px] py-[9px] text-[14px] text-folk-text outline-none transition-colors focus:border-[#bbb]"
                   />
                 </div>
                 <div className="flex-1">
@@ -241,7 +241,7 @@ export default function ParticipantsSettingsPage() {
                     onChange={(e) => setLastName(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") handleAdd() }}
                     placeholder="Doe"
-                    className="mb-[12px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] py-[9px] text-[14px] text-folk-text outline-none transition-colors focus:border-[#bbb]"
+                    className="mb-[12px] w-full rounded-[6px] border border-folk-border bg-folk-page px-[12px] py-[9px] text-[14px] text-folk-text outline-none transition-colors focus:border-[#bbb]"
                   />
                 </div>
               </div>
@@ -252,7 +252,7 @@ export default function ParticipantsSettingsPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleAdd() }}
                 placeholder="jane@example.com"
-                className="mb-[16px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] py-[9px] text-[14px] text-folk-text outline-none transition-colors focus:border-[#bbb]"
+                className="mb-[16px] w-full rounded-[6px] border border-folk-border bg-folk-page px-[12px] py-[9px] text-[14px] text-folk-text outline-none transition-colors focus:border-[#bbb]"
               />
               {addError && <p className="mb-[12px] text-[13px] text-red-500">{addError}</p>}
               <div className="flex justify-end gap-[8px]">

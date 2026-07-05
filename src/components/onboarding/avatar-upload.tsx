@@ -74,7 +74,7 @@ export function AvatarUpload({ userId, value, onChange }: AvatarUploadProps) {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className="flex items-center gap-[6px] rounded-none bg-[var(--folk-border-subtle)] px-[12px] py-[6px] text-[12px] font-medium text-folk-text transition-colors hover:bg-[#e8e8e8] disabled:opacity-50"
+            className="flex items-center gap-[6px] rounded-[6px] bg-[var(--folk-border-subtle)] px-[12px] py-[6px] text-[12px] font-medium text-folk-text transition-colors hover:bg-[#e8e8e8] disabled:opacity-50"
             tabIndex={0}
           >
             <Upload className="h-[12px] w-[12px]" strokeWidth={1.75} />

@@ -70,15 +70,12 @@ export function tabButtonClass(isActive: boolean, className?: string) {
   )
 }
 
-/** Bordered pill for sidebar / segmented tabs (Details, Activity, saved views, etc.) */
+/**
+ * @deprecated The bordered-pill tab style was retired in favour of the single
+ * universal underline style. This now renders the same as tabButtonClass.
+ */
 export function viewTabButtonClass(isActive: boolean, className?: string) {
-  return cn(
-    "inline-flex shrink-0 items-center gap-[5px] text-[12px] font-normal leading-none transition-colors",
-    isActive
-      ? "outline-btn folk-pill-btn h-[28px] min-h-[28px] px-[10px] !text-[12px] !font-normal hover:bg-folk-hover"
-      : "rounded-full border border-transparent bg-transparent px-[8px] py-[2px] text-[var(--folk-nav-muted)] hover:text-folk-text",
-    className
-  )
+  return tabButtonClass(isActive, className)
 }
 
 /** List-page view tab row (Clients, Staff, etc.) — underline tabs. */

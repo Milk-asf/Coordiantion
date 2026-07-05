@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { generateInvoicePDF } from "@/lib/pdf/invoice-pdf"
 import { generatePdfSchema } from "@/lib/validations"
-import { rateLimit, getRateLimitHeaders } from "@/lib/rate-limit"
+import { checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit"
 import type { Invoice } from "@/lib/types"
 
 export async function POST(request: Request) {
@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const rl = rateLimit(`generate-pdf:${user.id}`, { maxRequests: 20, windowMs: 60_000 })
+  const rl = await checkRateLimit(`generate-pdf:${user.id}`, { maxRequests: 20, windowMs: 60_000 })
   if (!rl.success) {
     return NextResponse.json(
       { error: "Too many requests. Please wait before generating another PDF." },

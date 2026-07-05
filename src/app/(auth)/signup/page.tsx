@@ -152,13 +152,13 @@ export default function SignUpPage() {
                 placeholder="Enter code"
                 required
                 autoFocus
-                className="h-[48px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-center text-[20px] font-semibold tracking-[0.4em] text-folk-text placeholder-[#ccc] outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
+                className="h-[48px] w-full rounded-[6px] border border-folk-border bg-folk-page px-[12px] text-center text-[20px] font-semibold tracking-[0.4em] text-folk-text placeholder-[#ccc] outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
                 tabIndex={0}
               />
             </div>
 
             {error && (
-              <p className="rounded-none bg-red-50 px-[12px] py-[8px] text-[13px] font-medium text-red-600">
+              <p className="rounded-[6px] bg-red-50 px-[12px] py-[8px] text-[13px] font-medium text-red-600">
                 {error}
               </p>
             )}
@@ -166,7 +166,7 @@ export default function SignUpPage() {
             <button
               type="submit"
               disabled={isLoading || code.length < 6}
-              className="h-[40px] w-full rounded-none bg-[#1a1a1a] text-[13px] font-medium text-white transition-colors hover:bg-[#3d3d3d] disabled:opacity-50"
+              className="h-[40px] w-full rounded-[6px] bg-[#1a1a1a] text-[13px] font-medium text-white transition-colors hover:bg-[#3d3d3d] disabled:opacity-50"
               tabIndex={0}
             >
               {isLoading ? "Verifying..." : "Verify & continue"}
@@ -217,13 +217,13 @@ export default function SignUpPage() {
               placeholder="you@company.com"
               required
               autoFocus
-              className="h-[40px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
+              className="h-[40px] w-full rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
               tabIndex={0}
             />
           </div>
 
           {error && (
-            <p className="rounded-none bg-red-50 px-[12px] py-[8px] text-[13px] font-medium text-red-600">
+            <p className="rounded-[6px] bg-red-50 px-[12px] py-[8px] text-[13px] font-medium text-red-600">
               {error}
             </p>
           )}
@@ -231,7 +231,7 @@ export default function SignUpPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="h-[40px] w-full rounded-none bg-[#1a1a1a] text-[13px] font-medium text-white transition-colors hover:bg-[#3d3d3d] disabled:opacity-50"
+            className="h-[40px] w-full rounded-[6px] bg-[#1a1a1a] text-[13px] font-medium text-white transition-colors hover:bg-[#3d3d3d] disabled:opacity-50"
             tabIndex={0}
           >
             {isLoading ? "Sending code..." : "Continue"}

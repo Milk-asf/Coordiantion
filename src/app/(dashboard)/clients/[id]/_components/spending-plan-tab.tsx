@@ -102,7 +102,7 @@ export function SpendingPlanTab({
 
       {hasShiftProjection && (
         <div className="shrink-0 border-b border-folk-border bg-white px-[16px] py-[14px]">
-          <div className="rounded-none border border-[#d9d9d9] bg-folk-surface p-[14px] sm:max-w-[320px]">
+          <div className="rounded-[6px] border border-[#d9d9d9] bg-folk-surface p-[14px] sm:max-w-[320px]">
             <div className="flex items-center justify-between">
               <span className="text-[12px] font-medium text-folk-secondary">Scheduled shifts</span>
               <CalendarDays className="h-[14px] w-[14px] text-folk-placeholder" strokeWidth={1.5} />
@@ -144,7 +144,7 @@ export function SpendingPlanTab({
                         onEditPlan(plan)
                       }
                     }}
-                    className="group flex cursor-pointer flex-col rounded-none border border-[#d9d9d9] bg-folk-surface p-[20px] text-left transition-all hover:border-folk-border hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+                    className="group flex cursor-pointer flex-col rounded-[6px] border border-[#d9d9d9] bg-folk-surface p-[20px] text-left transition-all hover:border-folk-border hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
                     tabIndex={0}
                   >
                     <CalendarClock className="h-[20px] w-[20px] shrink-0 text-folk-secondary" strokeWidth={1.5} />

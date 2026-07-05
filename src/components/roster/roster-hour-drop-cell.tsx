@@ -1,11 +1,11 @@
 "use client"
 
+import { Plus } from "lucide-react"
 import { useDroppable } from "@dnd-kit/core"
 import { buildHourDropId } from "@/lib/roster/dnd-utils"
 import {
-  RosterShiftSelector,
   SHIFT_SELECTOR_ACTIVE_CLASSES,
-  SHIFT_SELECTOR_GROUP_HOVER_CLASSES,
+  SHIFT_SELECTOR_HOVER_CLASSES,
 } from "@/components/roster/roster-shift-selector"
 import { cn } from "@/lib/utils"
 
@@ -29,16 +29,20 @@ export function RosterHourDropCell({
     <div
       ref={setNodeRef}
       data-hour-cell={hour}
-      className="group/cell relative flex h-full items-center justify-center bg-folk-surface"
+      className={cn(
+        "group/cell relative h-full bg-folk-surface",
+        "border border-dashed border-transparent transition-colors",
+        !isOver && SHIFT_SELECTOR_HOVER_CLASSES,
+        isOver && SHIFT_SELECTOR_ACTIVE_CLASSES,
+      )}
     >
-      <RosterShiftSelector
-        fullWidth={false}
+      <Plus
         className={cn(
-          "pointer-events-none z-[1] h-[36px] w-[36px] opacity-0 transition-opacity group-hover/cell:opacity-100",
-          SHIFT_SELECTOR_GROUP_HOVER_CLASSES,
+          "pointer-events-none absolute left-1/2 top-1/2 h-[18px] w-[18px] -translate-x-1/2 -translate-y-1/2 text-folk-text opacity-0 transition-opacity group-hover/cell:opacity-100",
           isOver && "opacity-100",
-          isOver && SHIFT_SELECTOR_ACTIVE_CLASSES,
         )}
+        strokeWidth={1.5}
+        aria-hidden
       />
     </div>
   )

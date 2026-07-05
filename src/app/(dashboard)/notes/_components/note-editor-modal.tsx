@@ -169,14 +169,14 @@ export function NoteEditorModal({
   }
 
   const formatBtnClass = (key: string) =>
-    `flex h-[30px] w-[30px] items-center justify-center rounded-none transition-colors ${activeFormats[key] ? "bg-[#eef4fd] text-[#2563EB]" : "text-[#555] hover:bg-[var(--folk-border-subtle)]"}`
+    `flex h-[30px] w-[30px] items-center justify-center rounded-[6px] transition-colors ${activeFormats[key] ? "bg-[#eef4fd] text-[#2563EB]" : "text-[#555] hover:bg-[var(--folk-border-subtle)]"}`
 
   return (
     <div className="flex h-full flex-col">
       <div className="pointer-events-none absolute inset-0 opacity-40" />
 
       <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/10">
-        <div className="relative flex h-[85vh] w-[640px] flex-col rounded-none border border-[#d9d9d9] bg-folk-surface shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+        <div className="relative flex h-[85vh] w-[640px] flex-col rounded-[6px] border border-[#d9d9d9] bg-folk-surface shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
           <div className="flex items-center justify-between border-b border-folk-border-subtle px-[16px] py-[10px]">
             <div className="flex items-center gap-[8px]">
               <EntityIcon text={recordIcon.iconText} size="xsm" />
@@ -202,7 +202,7 @@ export function NoteEditorModal({
               <div className="mx-[2px] h-[20px] w-[1px] bg-[#e8e8e8]" />
               <button
                 onClick={onClose}
-                className="flex h-[30px] w-[30px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-[var(--folk-border-subtle)] hover:text-[#555]"
+                className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-[var(--folk-border-subtle)] hover:text-[#555]"
                 tabIndex={0}
                 aria-label="Close"
               >
@@ -248,7 +248,7 @@ export function NoteEditorModal({
                 {editAttachments.map((attachment) => (
                   <div
                     key={attachment.id}
-                    className="group flex items-center gap-[10px] rounded-none border border-[#eee] bg-folk-page px-[12px] py-[8px]"
+                    className="group flex items-center gap-[10px] rounded-[6px] border border-[#eee] bg-folk-page px-[12px] py-[8px]"
                   >
                     <FileText className="h-[16px] w-[16px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
                     <div className="flex min-w-0 flex-1 flex-col">
@@ -260,7 +260,7 @@ export function NoteEditorModal({
                         href={attachment.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex h-[26px] w-[26px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-[var(--folk-border-subtle)] hover:text-[#555]"
+                        className="flex h-[26px] w-[26px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-[var(--folk-border-subtle)] hover:text-[#555]"
                         tabIndex={0}
                         aria-label={`Download ${attachment.name}`}
                       >
@@ -269,7 +269,7 @@ export function NoteEditorModal({
                     )}
                     <button
                       onClick={() => handleRemoveAttachment(attachment)}
-                      className="flex h-[26px] w-[26px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-red-50 hover:text-red-500"
+                      className="flex h-[26px] w-[26px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-red-50 hover:text-red-500"
                       tabIndex={0}
                       aria-label={`Remove ${attachment.name}`}
                     >
@@ -322,7 +322,7 @@ export function NoteEditorModal({
             </div>
 
             {isFormatMenuOpen && (
-              <div className="absolute bottom-[52px] left-[40px] z-50 flex items-center gap-[2px] rounded-none border border-[#d9d9d9] bg-folk-surface px-[6px] py-[6px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
+              <div className="absolute bottom-[52px] left-[40px] z-50 flex items-center gap-[2px] rounded-[6px] border border-[#d9d9d9] bg-folk-surface px-[6px] py-[6px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
                 <button onMouseDown={(e) => { e.preventDefault(); applyFormat("bold") }} className={formatBtnClass("bold")} tabIndex={0} aria-label="Bold" aria-pressed={!!activeFormats.bold}>
                   <Bold className="h-[14px] w-[14px]" strokeWidth={2} />
                 </button>

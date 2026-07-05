@@ -22,7 +22,7 @@ export function PageError({ message = "Something went wrong", onRetry }: { messa
         {onRetry && (
           <button
             onClick={onRetry}
-            className={`rounded-none border border-folk-border bg-folk-surface px-[14px] py-[6px] text-[13px] font-medium text-folk-text hover:bg-folk-hover ${motion.interactive}`}
+            className={`rounded-[6px] border border-folk-border bg-folk-surface px-[14px] py-[6px] text-[13px] font-medium text-folk-text hover:bg-folk-hover ${motion.interactive}`}
             tabIndex={0}
           >
             Try again

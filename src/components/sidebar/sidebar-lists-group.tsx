@@ -1,14 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutList, Pin, Plus } from "lucide-react"
+import { ChevronRight, Pin, Plus } from "lucide-react"
 import { DeleteActionsMenu } from "@/components/delete-actions-menu"
 import { cn } from "@/lib/utils"
 import { useLists } from "@/lib/lists/context"
 import { sortLists, type CustomList } from "@/lib/lists/definitions"
-import { NewListModal, type NewListConfig } from "@/app/(dashboard)/lists/_components/new-list-modal"
+import { NewListFlow } from "@/app/(dashboard)/lists/_components/new-list-flow"
+import type { NewListConfig } from "@/app/(dashboard)/lists/_components/new-list-modal"
 import { useToast } from "@/components/toast"
 
 interface SidebarListsGroupProps {
@@ -26,14 +27,32 @@ function listNavLinkClass(isActive: boolean, isCollapsed: boolean) {
   )
 }
 
+const LISTS_EXPANDED_STORAGE_KEY = "sidebar-lists-expanded"
+
 export function SidebarListsGroup({ isCollapsed }: SidebarListsGroupProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { toast } = useToast()
   const { lists, createCustomList, togglePin, deleteList } = useLists()
   const [isCreating, setIsCreating] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(true)
   const orderedLists = sortLists(lists)
-  const isListsIndexActive = pathname === "/lists"
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(LISTS_EXPANDED_STORAGE_KEY)
+      if (stored !== null) setIsExpanded(stored === "true")
+    } catch { /* private browsing */ }
+  }, [])
+
+  const toggleExpanded = () => {
+    setIsExpanded((prev) => {
+      try {
+        localStorage.setItem(LISTS_EXPANDED_STORAGE_KEY, String(!prev))
+      } catch { /* private browsing */ }
+      return !prev
+    })
+  }
 
   const handleCreate = async (params: NewListConfig) => {
     setIsCreating(false)
@@ -69,34 +88,36 @@ export function SidebarListsGroup({ isCollapsed }: SidebarListsGroupProps) {
         </>
       ) : (
         <div className="mb-[6px] mt-[16px] flex items-center justify-between px-[10px]">
-          <p className="text-[11px] font-normal tracking-wide text-[#999999]">Lists</p>
           <button
             type="button"
-            onClick={() => setIsCreating(true)}
-            className="flex h-[20px] w-[20px] items-center justify-center rounded-[4px] text-[#999999] transition-colors hover:bg-sidebar-hover hover:text-[#616161]"
-            aria-label="New list"
+            onClick={toggleExpanded}
+            className="-my-[4px] flex items-center gap-[4px] py-[4px] text-[11px] font-normal tracking-wide text-[#999999] transition-colors hover:text-[#616161]"
+            aria-expanded={isExpanded}
+            aria-label={isExpanded ? "Collapse lists" : "Expand lists"}
             tabIndex={0}
           >
-            <Plus className="h-[14px] w-[14px]" strokeWidth={1.75} />
+            Lists
+            <ChevronRight
+              className={cn("h-[10px] w-[10px] transition-transform", isExpanded && "rotate-90")}
+              strokeWidth={1.75}
+            />
           </button>
+          <div className="flex items-center">
+            <button
+              type="button"
+              onClick={() => setIsCreating(true)}
+              className="flex h-[20px] w-[20px] items-center justify-center rounded-[4px] text-[#999999] transition-colors hover:bg-sidebar-hover hover:text-[#616161]"
+              aria-label="New list"
+              tabIndex={0}
+            >
+              <Plus className="h-[14px] w-[14px]" strokeWidth={1.75} />
+            </button>
+          </div>
         </div>
       )}
 
+      {(isCollapsed || isExpanded) && (
       <ul className="list-none space-y-px">
-        {!isCollapsed && (
-          <li>
-            <Link
-              href="/lists"
-              className={listNavLinkClass(isListsIndexActive, isCollapsed)}
-              aria-current={isListsIndexActive ? "page" : undefined}
-              tabIndex={0}
-            >
-              <LayoutList className="h-[14px] w-[14px] shrink-0" strokeWidth={1.75} />
-              <span className="truncate">All lists</span>
-            </Link>
-          </li>
-        )}
-
         {orderedLists.map((list) => {
           const isActive = pathname === `/lists/${list.id}`
           return (
@@ -146,8 +167,9 @@ export function SidebarListsGroup({ isCollapsed }: SidebarListsGroupProps) {
           )
         })}
       </ul>
+      )}
 
-      {isCreating && <NewListModal onClose={() => setIsCreating(false)} onCreate={handleCreate} />}
+      {isCreating && <NewListFlow onClose={() => setIsCreating(false)} onCreate={handleCreate} />}
     </div>
   )
 }

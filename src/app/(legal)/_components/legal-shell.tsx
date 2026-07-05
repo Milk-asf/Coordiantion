@@ -18,7 +18,7 @@ export function LegalShell({ title, updatedAt, children }: LegalShellProps) {
         </Link>
         <Link
           href="/login"
-          className="rounded-none border border-folk-border bg-folk-surface px-[14px] py-[7px] text-[13px] font-medium text-folk-text transition-colors hover:bg-[#f3f3f3]"
+          className="rounded-[6px] border border-folk-border bg-folk-surface px-[14px] py-[7px] text-[13px] font-medium text-folk-text transition-colors hover:bg-[#f3f3f3]"
           tabIndex={0}
         >
           Sign in

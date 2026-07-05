@@ -10,12 +10,12 @@ interface ProfileViewToggleProps {
 
 export function ProfileViewToggle({ viewMode, onViewModeChange }: ProfileViewToggleProps) {
   const buttonClass = (isActive: boolean) =>
-    `flex h-[28px] w-[28px] items-center justify-center rounded-none transition-colors ${
+    `flex h-[28px] w-[28px] items-center justify-center rounded-[6px] transition-colors ${
       isActive ? "bg-[var(--folk-border-subtle)] text-folk-text" : "text-folk-secondary hover:text-folk-text"
     }`
 
   return (
-    <div className="flex items-center rounded-none border border-folk-border p-[2px]">
+    <div className="flex items-center rounded-[6px] border border-folk-border p-[2px]">
       <button
         type="button"
         onClick={() => onViewModeChange("table")}

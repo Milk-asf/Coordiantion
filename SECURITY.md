@@ -28,8 +28,14 @@ of certified developer partners.
 
 ## Access control
 
-- Application access is role-based: `super-admin`, `admin`, and `coordinator` roles are
-  enforced both in the UI and in the database.
+- Application access is role-based: `super-admin`, `admin`, `coordinator`, and
+  `support-worker` roles are enforced both in the UI and in the database.
+- **Two-factor authentication (TOTP)** is available to all users
+  (Settings → Security). Users with an enrolled factor must complete the
+  challenge at sign-in before the session reaches AAL2; workspaces can require
+  MFA for all members (`workspace_settings.require_mfa`).
+- SAML SSO is supported through Supabase Auth (Pro plan) — see
+  `docs/ENTERPRISE.md`.
 - Postgres **row-level security (RLS)** scopes every table to the user's workspace; helper
   functions (`is_workspace_member`, `is_workspace_admin`, `is_workspace_super_admin`) gate
   reads and writes (see migrations `001`, `002`, and `007`).
@@ -49,11 +55,30 @@ of certified developer partners.
 - HTTP Strict Transport Security and related hardening headers are configured in
   `next.config.ts` (`Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options`,
   `Referrer-Policy`, `Permissions-Policy`).
+- A **Content-Security-Policy** restricts scripts, connections, and framing to
+  the app and its Supabase project. Set `CSP_REPORT_ONLY=true` to trial policy
+  changes without enforcement.
+
+## Audit logging
+
+- Every insert, update, and delete on workspace data is recorded to an
+  immutable, workspace-scoped audit trail by database triggers
+  (`supabase/migrations/057_audit_log.sql`), including the actor, timestamp,
+  and changed fields. Secret-bearing columns are redacted before logging.
+- Workspace admins can review the trail under Settings → Audit log; retention
+  is managed with `purge_audit_log()`.
 
 ## Software development practices
 
 - API routes authenticate the caller, verify workspace membership/role, validate input with
   Zod, and apply rate limiting (`src/lib/rate-limit.ts`).
+- Environment configuration is validated when the server boots
+  (`src/instrumentation.ts`); production refuses to start with missing or
+  malformed core credentials.
+- Continuous integration runs typecheck, lint, tests, and a production build on
+  every change (`.github/workflows/ci.yml`).
+- `GET /api/health` provides an unauthenticated liveness probe for uptime
+  monitoring; it reports reachability only, never data.
 - We follow security best practices for our stack and remain mindful of common web
   vulnerabilities (e.g. the OWASP Top 10).
 

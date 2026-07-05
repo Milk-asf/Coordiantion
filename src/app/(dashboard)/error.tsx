@@ -32,7 +32,7 @@ export default function DashboardError({
       <div className="mt-[8px] flex items-center gap-[10px]">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-[6px] rounded-none border border-folk-border bg-folk-surface px-[14px] py-[9px] text-[13px] font-medium text-[#555] transition-colors hover:bg-folk-hover"
+          className="flex items-center gap-[6px] rounded-[6px] border border-folk-border bg-folk-surface px-[14px] py-[9px] text-[13px] font-medium text-[#555] transition-colors hover:bg-folk-hover"
           tabIndex={0}
         >
           <ArrowLeft className="h-[14px] w-[14px]" strokeWidth={1.5} />

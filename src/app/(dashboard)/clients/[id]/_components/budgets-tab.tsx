@@ -108,7 +108,7 @@ export function BudgetsTab({ budgets, onAddNew, onEditBudget, getBudgetMetrics }
                         onEditBudget(budget)
                       }
                     }}
-                    className="group flex cursor-pointer flex-col rounded-none border border-[#d9d9d9] bg-folk-surface p-[20px] text-left transition-all hover:border-folk-border hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+                    className="group flex cursor-pointer flex-col rounded-[6px] border border-[#d9d9d9] bg-folk-surface p-[20px] text-left transition-all hover:border-folk-border hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
                     tabIndex={0}
                   >
                     <DollarSign className="h-[20px] w-[20px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
@@ -193,7 +193,7 @@ export function BudgetsTab({ budgets, onAddNew, onEditBudget, getBudgetMetrics }
                         <div className={TABLE_CELL_INNER}>
                           <span>{budget.name}</span>
                           {metrics.status && (
-                            <span className={`ml-[8px] inline-flex h-[20px] items-center rounded-none px-[6px] text-[10px] font-medium ${metrics.status.color}`}>
+                            <span className={`ml-[8px] inline-flex h-[20px] items-center rounded-[6px] px-[6px] text-[10px] font-medium ${metrics.status.color}`}>
                               {metrics.status.label}
                             </span>
                           )}

@@ -141,7 +141,7 @@ export function ClientProfilePanel({
                     {isAssignOpen && (
                       <>
                         <div className="fixed inset-0 z-40" onClick={() => setIsAssignOpen(false)} />
-                        <div className="absolute left-0 top-full z-50 mt-[4px] max-h-[200px] min-w-[220px] overflow-y-auto rounded-none border border-folk-border bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                        <div className="absolute left-0 top-full z-50 mt-[4px] max-h-[200px] min-w-[220px] overflow-y-auto rounded-[6px] border border-folk-border bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
                           <button
                             type="button"
                             onClick={() => { onAssign(""); setIsAssignOpen(false) }}

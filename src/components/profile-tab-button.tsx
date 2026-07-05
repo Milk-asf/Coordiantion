@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import type { ComponentType, MouseEventHandler, ReactNode } from "react"
-import { tabButtonClass, viewTabButtonClass } from "@/components/tab-active-indicator"
+import { tabButtonClass } from "@/components/tab-active-indicator"
 import { cn } from "@/lib/utils"
 
 interface ProfileTabButtonProps {
@@ -38,12 +38,7 @@ export function ProfileTabButton({
   const showIcon = (showIconProp ?? variant === "toolbar") && Icon
   const profileBadgeClassName =
     "folk-tab-badge inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full border px-[5px] text-[11px] font-normal leading-none tabular-nums"
-  const badgeClassName = variant === "toolbar"
-    ? cn(
-        "rounded-full bg-folk-hover px-[6px] py-[0.5px] text-[10px] font-normal tabular-nums",
-        isActive ? "text-folk-text" : "text-[var(--folk-nav-muted)]"
-      )
-    : profileBadgeClassName
+  const badgeClassName = profileBadgeClassName
   const content = (
     <>
       {showIcon && (
@@ -83,9 +78,9 @@ export function ProfileTabButton({
     </>
   )
 
-  const classes = variant === "toolbar"
-    ? viewTabButtonClass(isActive, className)
-    : tabButtonClass(isActive, className)
+  // One universal tab style: underline (folk-tab). The variant only affects
+  // icon sizing/visibility now.
+  const classes = tabButtonClass(isActive, className)
 
   if (!href && !onClick) {
     return (

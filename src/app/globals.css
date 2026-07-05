@@ -41,8 +41,9 @@
     --motion-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
     --motion-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
-    --folk-button-radius: 4px;
-    --folk-input-radius: 4px;
+    /* Unified control radius — matches the forms feature (rounded-[6px]). */
+    --folk-button-radius: 6px;
+    --folk-input-radius: 6px;
     --folk-modal-radius: 8px;
   }
 

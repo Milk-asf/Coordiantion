@@ -418,7 +418,7 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
           <h2 className="text-[13px] font-semibold text-folk-text">{editingItemId ? "Edit item" : "Add item"}</h2>
           <button
             onClick={() => onResetItemForm()}
-            className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+            className="flex h-[24px] w-[24px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
             tabIndex={0}
             aria-label="Close item form"
           >
@@ -428,13 +428,13 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
 
         <div className="min-h-0 flex-1 space-y-[14px] overflow-y-auto px-[24px] py-[14px]">
           <div>
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Charge item *</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Charge item *</label>
             <div className="relative">
               <button
                 ref={itemChargeDropdownRef}
                 type="button"
                 onClick={() => onSetIsItemChargeDropdownOpen(!isItemChargeDropdownOpen)}
-                className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
+                className="flex h-[36px] w-full items-center rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
               >
                 <span className="min-w-0 flex-1 truncate text-left">
                   {(() => { const c = enabledCharges.find((ch) => ch.itemNumber === itemChargeItemNumber); return c ? `${c.shortName} – $${c.price.toFixed(2)}/${c.unit}` : "Select charge item" })()}
@@ -481,29 +481,29 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
           </div>
 
           <div>
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Service name</label>
-            <input type="text" value={itemServiceName} readOnly className="h-[36px] w-full rounded-none border border-folk-border bg-folk-hover px-[12px] text-[13px] font-medium text-folk-secondary outline-none" />
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Service name</label>
+            <input type="text" value={itemServiceName} readOnly className="h-[38px] w-full rounded-[6px] border border-folk-border bg-folk-hover px-[12px] text-[13px] font-medium text-folk-secondary outline-none" />
           </div>
 
           <div className="flex gap-[10px]">
             <div className="flex-1">
-              <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Quantity *</label>
-              <input type="text" inputMode="decimal" value={itemQuantity} onChange={(e) => onSetItemQuantity(formatNumberInput(e.target.value))} className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none hover:border-[#bababa] focus:border-[#a3c4f3]" />
+              <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Quantity *</label>
+              <input type="text" inputMode="decimal" value={itemQuantity} onChange={(e) => onSetItemQuantity(formatNumberInput(e.target.value))} className="h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium text-folk-text outline-none hover:border-[#bababa] focus:border-[#a3c4f3]" />
             </div>
             <div className="flex-1">
-              <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Unit</label>
-              <input type="text" value={itemUnit} readOnly className="h-[36px] w-full rounded-none border border-folk-border bg-folk-hover px-[12px] text-[13px] font-medium text-folk-secondary outline-none" />
+              <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Unit</label>
+              <input type="text" value={itemUnit} readOnly className="h-[38px] w-full rounded-[6px] border border-folk-border bg-folk-hover px-[12px] text-[13px] font-medium text-folk-secondary outline-none" />
             </div>
           </div>
 
           <div>
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Period *</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Period *</label>
             <div className="relative">
               <button
                 ref={itemPeriodDropdownRef}
                 type="button"
                 onClick={() => onSetIsItemPeriodDropdownOpen(!isItemPeriodDropdownOpen)}
-                className="flex h-[36px] w-full items-center rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
+                className="flex h-[36px] w-full items-center rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium text-folk-text transition-colors hover:border-[#bababa]"
               >
                 <span className="min-w-0 flex-1 text-left">{periodLabels[itemPeriod]}</span>
                 <ChevronDown className={`ml-[8px] h-[14px] w-[14px] shrink-0 text-folk-secondary transition-transform ${isItemPeriodDropdownOpen ? "rotate-180" : ""}`} strokeWidth={1.5} />
@@ -537,8 +537,8 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
           </div>
 
           <div>
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Description</label>
-            <input type="text" value={itemDescription} onChange={(e) => onSetItemDescription(e.target.value)} placeholder="Optional description" className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]" />
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Description</label>
+            <input type="text" value={itemDescription} onChange={(e) => onSetItemDescription(e.target.value)} placeholder="Optional description" className="h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]" />
           </div>
 
           {(() => {
@@ -546,7 +546,7 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
             const rate = charge?.price || 0
             const qty = parseFormattedNumber(itemQuantity)
             return (
-              <div className="flex items-center justify-between rounded-none bg-folk-page px-[12px] py-[8px]">
+              <div className="flex items-center justify-between rounded-[6px] bg-folk-page px-[12px] py-[8px]">
                 <span className="text-[12px] text-folk-secondary">Rate: ${rate.toFixed(2)}/{itemUnit}</span>
                 <span className="text-[13px] font-semibold text-folk-text">${(qty * rate).toLocaleString("en-AU", { minimumFractionDigits: 2 })}</span>
               </div>
@@ -557,7 +557,7 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
         <div className="flex items-center justify-end gap-[8px] border-t border-folk-border-subtle px-[24px] py-[12px]">
           <button
             onClick={() => onResetItemForm()}
-            className="rounded-none border border-folk-border bg-folk-surface px-[12px] py-[6px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+            className="rounded-[6px] border border-folk-border bg-folk-surface px-[12px] py-[6px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
             tabIndex={0}
           >
             Cancel
@@ -565,7 +565,7 @@ export function ProfileSidebar(props: ProfileSidebarProps) {
           <button
             onClick={onSaveItem}
             disabled={!itemChargeItemNumber || !(parseFormattedNumber(itemQuantity) > 0)}
-            className="primary-btn px-[12px] py-[6px] text-[12px] font-medium transition-colors disabled:opacity-50"
+            className="primary-btn folk-pill-btn h-[32px] px-[14px] text-[13px] font-medium transition-colors disabled:opacity-50"
             tabIndex={0}
           >
             {editingItemId ? "Save changes" : "Add item"}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react"
 import {
   DndContext,
   DragOverlay,
@@ -13,9 +13,12 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core"
 import { CSS } from "@dnd-kit/utilities"
-import { Plus } from "lucide-react"
+import { MoreHorizontal, Plus, Trash2, CalendarDays } from "lucide-react"
+import { ConfirmDialog } from "@/components/confirm-dialog"
+import { FixedSelectDropdown } from "@/components/fixed-select-dropdown"
 import { listViewKanbanScrollClass } from "@/components/tab-active-indicator"
 import { getFolkStatusClass } from "@/lib/folk-ui"
+import { folkStatusColors } from "@/lib/ui-tokens"
 import { cn } from "@/lib/utils"
 import {
   getListSource,
@@ -30,14 +33,184 @@ import {
   type KanbanGroup,
 } from "@/lib/lists/kanban-utils"
 import { formatFieldValue } from "./list-cell"
+import { ListRemoveRecordButton } from "./list-remove-record-button"
+import { TABLE_CHIP } from "@/lib/table-styles"
 
 interface ListKanbanViewProps {
   list: CustomList
   records: unknown[]
   onUpdateStages: (stages: string[]) => void
+  onRenameStage?: (stageKey: string, label: string) => void
+  onSetStageColor?: (stageKey: string, color: string | null) => void
+  onDeleteStage?: (stageKey: string) => void
   onMoveRecord: (record: unknown, stageKey: string) => Promise<boolean>
   onOpenRecord: (record: unknown, index: number) => void
+  onRemoveRecord?: (recordId: string) => void
+  /** Renders the hover "+" control in a stage header for adding records to that stage. */
+  renderAddToStage?: (stageKey: string) => ReactNode
   className?: string
+}
+
+/** Chip palette for stage colours — swatches preview the actual chip (pastel fill, dark ink). */
+const STAGE_COLOR_OPTIONS = Object.keys(folkStatusColors) as Array<keyof typeof folkStatusColors>
+
+const STAGE_COLOR_SWATCHES: Record<keyof typeof folkStatusColors, { fill: string; ink: string }> = {
+  green: { fill: "#ecfdf5", ink: "#065f46" },
+  yellow: { fill: "#fef3c7", ink: "#92400e" },
+  red: { fill: "#fee2e2", ink: "#991b1b" },
+  orange: { fill: "#fff3e0", ink: "#e65100" },
+  purple: { fill: "#f5f3ff", ink: "#5b21b6" },
+  blue: { fill: "#eff6ff", ink: "#1d4ed8" },
+  gray: { fill: "#f3f4f6", ink: "#374151" },
+}
+
+function stageChipClass(label: string, colorKey: string | undefined) {
+  if (colorKey && colorKey in folkStatusColors) {
+    return folkStatusColors[colorKey as keyof typeof folkStatusColors]
+  }
+  return getFolkStatusClass(label)
+}
+
+/** Stage header menu — rename, colour, and delete. */
+function StageHeaderMenu({
+  stageKey,
+  stageLabel,
+  colorKey,
+  onRename,
+  onSetColor,
+  onDelete,
+}: {
+  stageKey: string
+  stageLabel: string
+  colorKey: string | undefined
+  onRename?: (label: string) => void
+  onSetColor?: (color: string | null) => void
+  onDelete?: () => void
+}) {
+  const menuRef = useRef<HTMLButtonElement>(null)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false)
+  const [draft, setDraft] = useState(stageLabel)
+
+  useEffect(() => {
+    if (isMenuOpen) setDraft(stageLabel)
+  }, [isMenuOpen, stageLabel])
+
+  const handleCloseMenu = () => {
+    const trimmed = draft.trim()
+    if (trimmed && trimmed !== stageKey) onRename?.(trimmed)
+    setIsMenuOpen(false)
+  }
+
+  const handleDeleteConfirm = () => {
+    setIsConfirmDeleteOpen(false)
+    onDelete?.()
+  }
+
+  return (
+    <>
+      <button
+        ref={menuRef}
+        type="button"
+        onClick={() => setIsMenuOpen((open) => !open)}
+        className="flex h-[22px] w-[22px] items-center justify-center rounded-[4px] text-folk-placeholder transition-colors hover:bg-folk-hover hover:text-folk-secondary"
+        aria-label={`Stage options for ${stageLabel}`}
+        aria-expanded={isMenuOpen}
+        aria-haspopup="menu"
+        tabIndex={0}
+      >
+        <MoreHorizontal className="h-[14px] w-[14px]" strokeWidth={1.75} />
+      </button>
+
+      <FixedSelectDropdown
+        isOpen={isMenuOpen}
+        anchorRef={menuRef}
+        onClose={handleCloseMenu}
+        minWidth={220}
+        estimatedHeight={onDelete ? 200 : 168}
+        align="right"
+        menuClassName="rounded-[6px] border-folk-border-subtle py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
+      >
+        <div className="px-[10px] py-[8px]">
+          <label className="mb-[4px] block text-[11px] font-medium text-folk-secondary">Stage name</label>
+          <input
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") handleCloseMenu()
+            }}
+            className="w-full rounded-[6px] border border-folk-border bg-folk-page px-[8px] py-[5px] text-[13px] text-folk-text outline-none placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
+            autoFocus
+            aria-label="Stage name"
+          />
+          <p className="mb-[4px] mt-[10px] text-[11px] font-medium text-folk-secondary">Colour</p>
+          <div className="flex items-center gap-[6px]">
+            {STAGE_COLOR_OPTIONS.map((option) => {
+              const swatch = STAGE_COLOR_SWATCHES[option]
+              const isSelected = colorKey === option
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => onSetColor?.(option)}
+                  className="h-[18px] w-[18px] rounded-full transition-transform hover:scale-110"
+                  style={{
+                    backgroundColor: swatch.fill,
+                    boxShadow: isSelected
+                      ? `inset 0 0 0 2px ${swatch.ink}`
+                      : "inset 0 0 0 1px rgba(0,0,0,0.12)",
+                  }}
+                  aria-label={`Colour ${option}`}
+                  aria-pressed={isSelected}
+                  tabIndex={0}
+                />
+              )
+            })}
+            <button
+              type="button"
+              onClick={() => onSetColor?.(null)}
+              className={cn(
+                "ml-[2px] rounded-[4px] px-[6px] py-[2px] text-[11px] font-medium transition-colors",
+                !colorKey ? "bg-folk-hover text-folk-text" : "text-folk-secondary hover:text-folk-text",
+              )}
+              tabIndex={0}
+            >
+              Auto
+            </button>
+          </div>
+        </div>
+        {onDelete ? (
+          <>
+            <div className="mx-[10px] border-t border-folk-border-subtle" />
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setIsMenuOpen(false)
+                setIsConfirmDeleteOpen(true)
+              }}
+              className="flex w-full items-center gap-[8px] px-[14px] py-[8px] text-left text-[13px] text-red-500 transition-colors hover:bg-red-50"
+              tabIndex={0}
+            >
+              <Trash2 className="h-[13px] w-[13px]" strokeWidth={1.75} />
+              Delete stage
+            </button>
+          </>
+        ) : null}
+      </FixedSelectDropdown>
+
+      {onDelete ? (
+        <ConfirmDialog
+          isOpen={isConfirmDeleteOpen}
+          title="Delete stage?"
+          description={`Records in "${stageLabel}" will move to Unassigned. This cannot be undone.`}
+          confirmLabel="Delete"
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setIsConfirmDeleteOpen(false)}
+        />
+      ) : null}
+    </>
+  )
 }
 
 function resolveDropStage(overId: string, groups: KanbanGroup[]): string | null {
@@ -69,6 +242,7 @@ function KanbanCard({
   isOverlay = false,
   isDragging = false,
   onOpenRecord,
+  onRemoveRecord,
 }: {
   list: CustomList
   record: unknown
@@ -78,6 +252,7 @@ function KanbanCard({
   isOverlay?: boolean
   isDragging?: boolean
   onOpenRecord: (record: unknown, index: number) => void
+  onRemoveRecord?: (recordId: string) => void
 }) {
   const recordId = getRecordId(record, index)
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null)
@@ -111,7 +286,7 @@ function KanbanCard({
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       className={cn(
-        "touch-none cursor-pointer rounded-none border border-[#bababa] bg-white p-[12px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-[0_2px_6px_rgba(0,0,0,0.08)]",
+        "group/card touch-none cursor-pointer rounded-[6px] border border-[#bababa] bg-white p-[12px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-[0_2px_6px_rgba(0,0,0,0.08)]",
         (isDragging || isActiveDragging) && !isOverlay && "opacity-40",
         isOverlay && "shadow-[0_8px_24px_rgba(0,0,0,0.12)]",
       )}
@@ -130,13 +305,25 @@ function KanbanCard({
         <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-folk-text">
           {String(source.primary.get(record) ?? "—")}
         </span>
+        {onRemoveRecord && !isOverlay ? (
+          <div className="shrink-0 opacity-0 transition-opacity group-hover/card:opacity-100 group-focus-within/card:opacity-100">
+            <ListRemoveRecordButton onClick={() => onRemoveRecord(recordId)} />
+          </div>
+        ) : null}
       </div>
       {displayColumns.length > 0 && (
         <div className="mt-[8px] flex flex-col gap-[5px]">
           {displayColumns.map((field) => (
             <div key={field.key} className="flex items-center justify-between gap-[8px]">
               <span className="shrink-0 text-[11px] text-folk-tertiary">{field.label}</span>
-              <span className="min-w-0 truncate text-[12px] text-folk-text">{formatFieldValue(field, record)}</span>
+              {field.kind === "date" ? (
+                <span className={cn(TABLE_CHIP, "max-w-[65%] gap-[4px] truncate")}>
+                  <CalendarDays className="h-[11px] w-[11px] shrink-0" strokeWidth={1.75} />
+                  {formatFieldValue(field, record)}
+                </span>
+              ) : (
+                <span className="min-w-0 truncate text-[12px] text-folk-text">{formatFieldValue(field, record)}</span>
+              )}
             </div>
           ))}
         </div>
@@ -151,32 +338,61 @@ function KanbanColumn({
   source,
   displayColumns,
   onOpenRecord,
+  onRemoveRecord,
+  onRenameStage,
+  onSetStageColor,
+  onDeleteStage,
+  addToStageSlot,
 }: {
   group: KanbanGroup
   list: CustomList
   source: NonNullable<ReturnType<typeof getListSource>>
   displayColumns: ListField[]
   onOpenRecord: (record: unknown, index: number) => void
+  onRemoveRecord?: (recordId: string) => void
+  onRenameStage?: (stageKey: string, label: string) => void
+  onSetStageColor?: (stageKey: string, color: string | null) => void
+  onDeleteStage?: (stageKey: string) => void
+  addToStageSlot?: ReactNode
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: group.key })
 
+  const isUnassigned = group.key === UNASSIGNED_KANBAN_STAGE
+  const colorKey = list.kanbanStageColors?.[group.key]
+  const isEditable = !isUnassigned && (onRenameStage || onSetStageColor || onDeleteStage)
+
   return (
-    <div className="flex w-[280px] shrink-0 flex-col">
-      <div className="mb-[8px] flex items-center gap-[8px]">
+    <div className="group/stage flex w-[280px] shrink-0 flex-col">
+      <div className="mb-[8px] flex w-full items-center gap-[8px]">
         <span
           className={cn(
-            "folk-chip inline-flex h-[20px] items-center px-[8px] text-[11px] font-medium capitalize",
-            group.key === UNASSIGNED_KANBAN_STAGE ? "bg-folk-hover text-folk-secondary" : getFolkStatusClass(group.label),
+            "folk-chip inline-flex h-[20px] shrink-0 items-center px-[8px] text-[11px] font-medium capitalize",
+            isUnassigned ? "bg-folk-hover text-folk-secondary" : stageChipClass(group.label, colorKey),
           )}
         >
           {group.label.replace(/-/g, " ")}
         </span>
-        <span className="text-[12px] text-folk-tertiary">{group.records.length}</span>
+        <span className="shrink-0 text-[12px] text-folk-tertiary">{group.records.length}</span>
+        {(addToStageSlot || isEditable) && (
+          <div className="ml-auto flex shrink-0 items-center gap-[2px] opacity-0 transition-opacity group-hover/stage:opacity-100 group-focus-within/stage:opacity-100">
+            {addToStageSlot}
+            {isEditable ? (
+              <StageHeaderMenu
+                stageKey={group.key}
+                stageLabel={group.label}
+                colorKey={colorKey}
+                onRename={onRenameStage ? (label) => onRenameStage(group.key, label) : undefined}
+                onSetColor={onSetStageColor ? (color) => onSetStageColor(group.key, color) : undefined}
+                onDelete={onDeleteStage ? () => onDeleteStage(group.key) : undefined}
+              />
+            ) : null}
+          </div>
+        )}
       </div>
       <div
         ref={setNodeRef}
         className={cn(
-          "flex min-h-[120px] flex-col gap-[8px] rounded-none p-[2px] transition-colors",
+          "flex min-h-[120px] flex-col gap-[8px] rounded-[6px] p-[2px] transition-colors",
           isOver && "bg-[#eff6ff]/60",
         )}
       >
@@ -189,6 +405,7 @@ function KanbanColumn({
             source={source}
             displayColumns={displayColumns}
             onOpenRecord={onOpenRecord}
+            onRemoveRecord={onRemoveRecord}
           />
         ))}
       </div>
@@ -233,7 +450,7 @@ function AddStageColumn({ onAdd }: { onAdd: (label: string) => void }) {
   }
 
   return (
-    <div className="flex w-[280px] shrink-0 flex-col gap-[8px] rounded-none bg-white p-[12px]">
+    <div className="flex w-[280px] shrink-0 flex-col gap-[8px] rounded-[6px] bg-white p-[12px]">
       <label className="text-[12px] font-medium text-folk-secondary" htmlFor="new-kanban-stage">
         Stage name
       </label>
@@ -251,7 +468,7 @@ function AddStageColumn({ onAdd }: { onAdd: (label: string) => void }) {
         }}
         onBlur={handleSubmit}
         placeholder="e.g. In review"
-        className="w-full rounded-none border border-folk-border bg-folk-page px-[10px] py-[7px] text-[13px] text-folk-text outline-none placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
+        className="w-full rounded-[6px] border border-folk-border bg-folk-page px-[10px] py-[7px] text-[13px] text-folk-text outline-none placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
       />
     </div>
   )
@@ -261,8 +478,13 @@ export function ListKanbanView({
   list,
   records,
   onUpdateStages,
+  onRenameStage,
+  onSetStageColor,
+  onDeleteStage,
+  renderAddToStage,
   onMoveRecord,
   onOpenRecord,
+  onRemoveRecord,
   className,
 }: ListKanbanViewProps) {
   const [activeRecord, setActiveRecord] = useState<{ record: unknown; index: number } | null>(null)
@@ -328,6 +550,11 @@ export function ListKanbanView({
                 source={source}
                 displayColumns={displayColumns}
                 onOpenRecord={onOpenRecord}
+                onRemoveRecord={onRemoveRecord}
+                onRenameStage={onRenameStage}
+                onSetStageColor={onSetStageColor}
+                onDeleteStage={onDeleteStage}
+                addToStageSlot={renderAddToStage?.(group.key)}
               />
             ))}
             <AddStageColumn onAdd={handleAddStage} />

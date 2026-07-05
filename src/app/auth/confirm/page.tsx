@@ -22,16 +22,29 @@ function AuthConfirmContent() {
     }
 
     const next = searchParams.get("next")
-    const destination =
-      next && next.startsWith("/") && !next.startsWith("//") ? next : "/onboarding"
+    const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : null
 
     let cancelled = false
 
-    const finish = () => {
-      if (!cancelled) {
-        router.replace(destination)
-        router.refresh()
+    const finish = async () => {
+      if (cancelled) return
+      // Claim any pending workspace invitations before routing: invited
+      // members go to create-password, never the create-a-workspace
+      // onboarding flow.
+      let activated = 0
+      try {
+        const response = await fetch("/api/invite/accept", { method: "POST" })
+        if (response.ok) {
+          const data = (await response.json()) as { activated?: number }
+          activated = data.activated ?? 0
+        }
+      } catch {
+        // Fall through to the default destination; create-password retries
+        // the claim as a safety net.
       }
+      if (cancelled) return
+      router.replace(safeNext ?? (activated > 0 ? "/create-password" : "/onboarding"))
+      router.refresh()
     }
 
     const fail = (reason: string) => {

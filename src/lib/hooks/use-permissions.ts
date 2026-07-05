@@ -22,12 +22,16 @@ export interface Permissions {
   canManageStaff: boolean
   /** Only admins can create, edit, cancel or delete roster shifts. */
   canManageRoster: boolean
+  /** Only admins can edit another worker's timesheet (e.g. during approval review). */
+  canManageTimesheets: boolean
   canViewStaff: boolean
   canManageClients: boolean
   canCreateTasks: boolean
   canManageDocuments: boolean
   canViewIncidents: boolean
   canManageIncidents: boolean
+  /** Reporting an incident is allowed for admins and support workers (who lodge reports from the field). */
+  canReportIncidents: boolean
   canAssignClients: boolean
   canAssignTasks: boolean
 
@@ -56,12 +60,14 @@ const noPermissions: Permissions = {
   canManageMembers: false,
   canManageStaff: false,
   canManageRoster: false,
+  canManageTimesheets: false,
   canViewStaff: false,
   canManageClients: false,
   canCreateTasks: false,
   canManageDocuments: false,
   canViewIncidents: false,
   canManageIncidents: false,
+  canReportIncidents: false,
   canAssignClients: false,
   canAssignTasks: false,
   canViewRoster: false,
@@ -94,12 +100,14 @@ function derivePermissions(role: Role, userId: string | null = null, userEmail: 
       canManageMembers: false,
       canManageStaff: false,
       canManageRoster: false,
+      canManageTimesheets: false,
       canViewStaff: false,
       canManageClients: false,
       canCreateTasks: false,
       canManageDocuments: false,
       canViewIncidents: true,
       canManageIncidents: false,
+      canReportIncidents: true,
       canAssignClients: false,
       canAssignTasks: false,
       canViewRoster: true,
@@ -126,12 +134,14 @@ function derivePermissions(role: Role, userId: string | null = null, userEmail: 
     canManageMembers: isAdmin,
     canManageStaff: isAdmin,
     canManageRoster: isAdmin,
+    canManageTimesheets: isAdmin,
     canViewStaff: isAdmin,
     canManageClients: true,
     canCreateTasks: true,
     canManageDocuments: true,
     canViewIncidents: isAdmin,
     canManageIncidents: isAdmin,
+    canReportIncidents: isAdmin,
     canAssignClients: isAdmin,
     canAssignTasks: isAdmin,
     canViewRoster: true,

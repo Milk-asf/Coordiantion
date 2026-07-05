@@ -90,7 +90,7 @@ export function CareplanTab({ carePlan, document, onAddNew, onEdit }: CareplanTa
                     onEdit()
                   }
                 }}
-                className="group flex cursor-pointer flex-col rounded-none border border-[#d9d9d9] bg-folk-surface p-[20px] text-left transition-all hover:border-folk-border hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+                className="group flex cursor-pointer flex-col rounded-[6px] border border-[#d9d9d9] bg-folk-surface p-[20px] text-left transition-all hover:border-folk-border hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
                 tabIndex={0}
               >
                 <DocIcon className="h-[20px] w-[20px] shrink-0 text-folk-secondary" strokeWidth={1.5} />

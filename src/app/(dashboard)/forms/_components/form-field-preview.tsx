@@ -9,7 +9,7 @@ interface FormFieldPreviewProps {
 }
 
 const fauxInputClass =
-  "mt-[6px] flex h-[36px] w-full items-center rounded-[6px] border border-folk-border bg-folk-page px-[12px] text-[13px] text-folk-placeholder"
+  "mt-[6px] flex h-[36px] w-full items-center rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] text-folk-placeholder"
 
 export function FormFieldPreview({ field }: FormFieldPreviewProps) {
   if (field.type === "heading") {

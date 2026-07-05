@@ -172,7 +172,7 @@ export function ClientAccountDetails({
             <div className="relative min-w-0 flex-1">
               <button
                 onClick={() => { onSetIsCoordinatorOpen(!isCoordinatorOpen); setTimeout(() => coordinatorInputRef.current?.focus(), 50) }}
-                className="flex min-w-0 items-center gap-[6px] rounded-none px-[6px] py-[3px] text-[13px] transition-colors hover:bg-folk-hover"
+                className="flex min-w-0 items-center gap-[6px] rounded-[6px] px-[6px] py-[3px] text-[13px] transition-colors hover:bg-folk-hover"
                 tabIndex={0}
               >
                 {client.owner ? (
@@ -188,7 +188,7 @@ export function ClientAccountDetails({
               {isCoordinatorOpen && (
                 <>
                   <div className="fixed inset-0 z-[49]" onClick={() => { onSetIsCoordinatorOpen(false); onSetCoordinatorSearch("") }} />
-                  <div className="absolute left-0 top-full z-[50] mt-[4px] w-[240px] overflow-hidden rounded-none border border-folk-border bg-folk-surface shadow-folk">
+                  <div className="absolute left-0 top-full z-[50] mt-[4px] w-[240px] overflow-hidden rounded-[6px] border border-folk-border bg-folk-surface shadow-folk">
                     <div className="border-b border-folk-border-subtle px-[12px] py-[8px]">
                       <input
                         ref={coordinatorInputRef}
@@ -311,7 +311,7 @@ export function ClientAccountDetails({
               </div>
               <span className="group/info relative flex shrink-0">
                 <Info className="h-[13px] w-[13px] cursor-help text-folk-placeholder transition-colors hover:text-folk-secondary" strokeWidth={1.5} />
-                <span className="pointer-events-none absolute bottom-[calc(100%+6px)] right-0 z-20 w-[170px] rounded-none bg-[#1a1a1a] px-[8px] py-[5px] text-[11px] leading-[1.4] text-white opacity-0 transition-opacity duration-75 group-hover/info:opacity-100">
+                <span className="pointer-events-none absolute bottom-[calc(100%+6px)] right-0 z-20 w-[170px] rounded-[6px] bg-[#1a1a1a] px-[8px] py-[5px] text-[11px] leading-[1.4] text-white opacity-0 transition-opacity duration-75 group-hover/info:opacity-100">
                   Invoices are sent to this email address.
                 </span>
               </span>

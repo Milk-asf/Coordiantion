@@ -64,7 +64,7 @@ export function FileUploadControl({
     return (
       <div
         className={cn(
-          "flex h-[36px] w-full items-center justify-between gap-[8px] rounded-none border border-dashed border-folk-border-strong bg-folk-hover px-[10px] text-[13px] font-medium text-folk-text",
+          "flex h-[36px] w-full items-center justify-between gap-[8px] rounded-[6px] border border-dashed border-folk-border-strong bg-folk-hover px-[10px] text-[13px] font-medium text-folk-text",
           className,
         )}
         aria-live="polite"
@@ -94,7 +94,7 @@ export function FileUploadControl({
         onClick={() => fileInputRef.current?.click()}
         disabled={disabled}
         className={cn(
-          "flex h-[36px] w-full items-center justify-center gap-[6px] rounded-none border border-dashed border-folk-border-strong bg-folk-surface text-[13px] font-medium text-folk-secondary transition-colors hover:border-folk-border hover:bg-folk-hover hover:text-folk-text disabled:opacity-50",
+          "flex h-[36px] w-full items-center justify-center gap-[6px] rounded-[6px] border border-dashed border-folk-border-strong bg-folk-surface text-[13px] font-medium text-folk-secondary transition-colors hover:border-folk-border hover:bg-folk-hover hover:text-folk-text disabled:opacity-50",
           className,
         )}
         tabIndex={0}

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { authorizeWorkspaceAdmin } from "@/lib/xero/route-helpers"
 import { pushInvoiceToXero } from "@/lib/xero/client"
-import { rateLimit, getRateLimitHeaders } from "@/lib/rate-limit"
+import { checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit"
 import { pushInvoiceSchema } from "@/lib/validations"
 
 export const runtime = "nodejs"
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   const auth = await authorizeWorkspaceAdmin(workspaceId)
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
 
-  const rl = rateLimit(`xero-push:${auth.ctx.userId}`, { maxRequests: 20, windowMs: 60_000 })
+  const rl = await checkRateLimit(`xero-push:${auth.ctx.userId}`, { maxRequests: 20, windowMs: 60_000 })
   if (!rl.success) {
     return NextResponse.json(
       { error: "Too many requests. Please wait before pushing another invoice." },

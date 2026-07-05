@@ -1,11 +1,10 @@
 "use client"
 
-import { useMemo, useRef, useState } from "react"
+import { useMemo, useState } from "react"
 import {
   AlignLeft,
   CalendarDays,
   Check,
-  ChevronDown,
   CircleDot,
   ClipboardCheck,
   Clock,
@@ -14,17 +13,17 @@ import {
   Hash,
   ListTodo,
   MapPin,
+  Save,
   Tag,
   Table2,
   User as UserIcon,
   Users,
 } from "lucide-react"
 import { EmptyState } from "@/components/empty-state"
-import { PageTitleBar, PageToolbarBar } from "@/components/page-title-bar"
+import { PageTitleBar } from "@/components/page-title-bar"
 import { EntityIcon } from "@/components/entity-icon"
 import { PageError, PageLoader } from "@/components/page-state"
 import { ExpandableTableSearch } from "@/components/expandable-table-search"
-import { FixedSelectDropdown, FixedSelectOption } from "@/components/fixed-select-dropdown"
 import { ProfileTabButton } from "@/components/profile-tab-button"
 import { ApprovalDetailPanel } from "./_components/approval-detail-panel"
 import { TableMultiFilter, type TableFilterDefinition } from "@/components/table-multi-filter"
@@ -73,6 +72,17 @@ const FILTER_DEFINITIONS: TableFilterDefinition[] = [
   { key: "participant", label: "Participant", icon: Users },
 ]
 
+type StagedStatus = "approved" | "returned"
+type ApprovalStatus = "pending" | StagedStatus
+
+const STATUS_CYCLE: ApprovalStatus[] = ["pending", "approved", "returned"]
+
+const STATUS_META: Record<ApprovalStatus, { label: string; chip: string; dot: string }> = {
+  pending: { label: "Pending", chip: "bg-[#fef3c7] text-[#b45309]", dot: "bg-[#d97706]" },
+  approved: { label: "Approved", chip: "bg-[#e7f5ec] text-[#1a7f43]", dot: "bg-[#16a34a]" },
+  returned: { label: "Returned", chip: "bg-[#fee2e2] text-[#b91c1c]", dot: "bg-[#dc2626]" },
+}
+
 function formatDate(dateStr: string): string {
   if (!dateStr) return "—"
   const date = new Date(`${dateStr}T00:00:00`)
@@ -98,6 +108,19 @@ export default function ApprovalsPage() {
   const [isBulkBusy, setIsBulkBusy] = useState(false)
   const [listFilters, setListFilters] = useState<Record<string, string[]>>({ user: [], participant: [] })
   const [activeItem, setActiveItem] = useState<ApprovalItem | null>(null)
+  const [stagedStatuses, setStagedStatuses] = useState<Record<string, StagedStatus>>({})
+  const [isSavingStatuses, setIsSavingStatuses] = useState(false)
+
+  // Ignore staged entries whose item has since left the queue (e.g. approved
+  // from the detail panel) so the Save count stays honest.
+  const stagedEntries = useMemo(
+    () =>
+      Object.entries(stagedStatuses).filter(([id]) => items.some((item) => item.id === id)) as Array<
+        [string, StagedStatus]
+      >,
+    [stagedStatuses, items]
+  )
+  const stagedCount = stagedEntries.length
 
   const filterOptions = useMemo<Record<string, string[]>>(() => {
     const users = new Set<string>()
@@ -125,6 +148,43 @@ export default function ApprovalsPage() {
 
   const handleFilterChange = (key: string, values: string[]) =>
     setListFilters((prev) => ({ ...prev, [key]: values }))
+
+  const cycleStatus = (item: ApprovalItem) => {
+    setStagedStatuses((prev) => {
+      const current: ApprovalStatus = prev[item.id] ?? "pending"
+      const next = STATUS_CYCLE[(STATUS_CYCLE.indexOf(current) + 1) % STATUS_CYCLE.length]
+      const draft = { ...prev }
+      if (next === "pending") delete draft[item.id]
+      else draft[item.id] = next
+      return draft
+    })
+  }
+
+  const handleSaveStatuses = async () => {
+    if (stagedCount === 0 || isSavingStatuses) return
+    setIsSavingStatuses(true)
+    let applied = 0
+    const failures: Record<string, StagedStatus> = {}
+    for (const [id, status] of stagedEntries) {
+      const item = items.find((entry) => entry.id === id)
+      if (!item) continue
+      try {
+        if (status === "approved") await approve(item)
+        else await reject(item)
+        applied += 1
+      } catch {
+        failures[id] = status
+      }
+    }
+    setStagedStatuses(failures)
+    setIsSavingStatuses(false)
+    const failedCount = Object.keys(failures).length
+    if (failedCount > 0) {
+      toast(`Applied ${applied} of ${applied + failedCount} — ${failedCount} failed`, "error")
+    } else {
+      toast(`${applied} ${applied === 1 ? "status" : "statuses"} applied`, "success")
+    }
+  }
 
   const handleApprove = async (item: ApprovalItem) => {
     setBusyId(item.id)
@@ -222,12 +282,24 @@ export default function ApprovalsPage() {
           </button>
           <button
             onClick={handleApproveAll}
-            disabled={filtered.length === 0 || isBulkBusy}
-            className="primary-btn folk-pill-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors disabled:opacity-50"
+            disabled={filtered.length === 0 || isBulkBusy || isSavingStatuses}
+            className="outline-btn folk-pill-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors disabled:opacity-50"
             tabIndex={0}
           >
             <Check className="h-[13px] w-[13px]" strokeWidth={1.75} />
             <span className="hidden sm:inline">{isBulkBusy ? "Approving…" : "Approve all"}</span>
+          </button>
+          <button
+            onClick={handleSaveStatuses}
+            disabled={stagedCount === 0 || isSavingStatuses || isBulkBusy}
+            className="primary-btn folk-pill-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors disabled:opacity-50"
+            aria-label={stagedCount > 0 ? `Save ${stagedCount} staged status ${stagedCount === 1 ? "change" : "changes"}` : "Save status changes"}
+            tabIndex={0}
+          >
+            <Save className="h-[13px] w-[13px]" strokeWidth={1.75} />
+            <span className="hidden sm:inline">
+              {isSavingStatuses ? "Saving…" : stagedCount > 0 ? `Save (${stagedCount})` : "Save"}
+            </span>
           </button>
         </div>
 
@@ -339,10 +411,10 @@ export default function ApprovalsPage() {
                       </td>
                       <td className={cn(TABLE_CELL_LAST, TABLE_ROW_HOVER)}>
                         <div className={TABLE_CELL_INNER} onClick={(event) => event.stopPropagation()}>
-                          <ApprovalStatusSelect
-                            disabled={isBusy}
-                            onApprove={() => handleApprove(item)}
-                            onReturn={() => handleReject(item)}
+                          <ApprovalStatusCycle
+                            status={stagedStatuses[item.id] ?? "pending"}
+                            disabled={isBusy || isSavingStatuses || isBulkBusy}
+                            onCycle={() => cycleStatus(item)}
                           />
                         </div>
                       </td>
@@ -384,58 +456,31 @@ function ApprovalHeaderCell({ icon: Icon, label }: ApprovalHeaderCellProps) {
   )
 }
 
-interface ApprovalStatusSelectProps {
+interface ApprovalStatusCycleProps {
+  status: ApprovalStatus
   disabled?: boolean
-  onApprove: () => void
-  onReturn: () => void
+  onCycle: () => void
 }
 
-function ApprovalStatusSelect({ disabled, onApprove, onReturn }: ApprovalStatusSelectProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const anchorRef = useRef<HTMLButtonElement>(null)
+function ApprovalStatusCycle({ status, disabled, onCycle }: ApprovalStatusCycleProps) {
+  const meta = STATUS_META[status]
+  const next = STATUS_CYCLE[(STATUS_CYCLE.indexOf(status) + 1) % STATUS_CYCLE.length]
 
   return (
-    <>
-      <button
-        ref={anchorRef}
-        type="button"
-        disabled={disabled}
-        onClick={() => setIsOpen((open) => !open)}
-        className="inline-flex h-[22px] items-center gap-[6px] rounded-full bg-[#fef3c7] pl-[8px] pr-[6px] text-[11px] font-medium text-[#b45309] transition-opacity hover:opacity-90 disabled:opacity-50"
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-        tabIndex={0}
-      >
-        Pending
-        <ChevronDown className="h-[12px] w-[12px] shrink-0" strokeWidth={1.75} />
-      </button>
-      <FixedSelectDropdown
-        isOpen={isOpen}
-        anchorRef={anchorRef}
-        onClose={() => setIsOpen(false)}
-        estimatedHeight={72}
-        minWidth={150}
-        align="right"
-      >
-        <FixedSelectOption
-          onClick={() => {
-            setIsOpen(false)
-            onApprove()
-          }}
-        >
-          <span className="h-[6px] w-[6px] rounded-full bg-[#16a34a]" />
-          Approve
-        </FixedSelectOption>
-        <FixedSelectOption
-          onClick={() => {
-            setIsOpen(false)
-            onReturn()
-          }}
-        >
-          <span className="h-[6px] w-[6px] rounded-full bg-[#dc2626]" />
-          Return
-        </FixedSelectOption>
-      </FixedSelectDropdown>
-    </>
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onCycle}
+      title={`Click to mark as ${STATUS_META[next].label.toLowerCase()}, then Save to apply`}
+      aria-label={`Status: ${meta.label}. Click to change to ${STATUS_META[next].label.toLowerCase()}`}
+      className={cn(
+        "inline-flex h-[22px] items-center gap-[6px] rounded-full px-[10px] text-[11px] font-medium transition-[opacity,box-shadow] hover:opacity-90 hover:shadow-[inset_0_0_0_1px_rgba(0,0,0,0.12)] disabled:opacity-50",
+        meta.chip
+      )}
+      tabIndex={0}
+    >
+      <span className={cn("h-[6px] w-[6px] shrink-0 rounded-full", meta.dot)} />
+      {meta.label}
+    </button>
   )
 }

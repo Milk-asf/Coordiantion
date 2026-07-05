@@ -6,6 +6,8 @@ import { useWorkspace } from "@/lib/workspace-context"
 import {
   buildSpaceFromTemplate,
   createEmptySpace,
+  normalizeWidget,
+  spaceToInsertRow,
   type AnalyticsSpace,
   type AnalyticsWidget,
   type SpaceTemplate,
@@ -35,7 +37,8 @@ function loadLocal(workspaceId: string | undefined): AnalyticsSpace[] {
     const raw = localStorage.getItem(storageKey(workspaceId))
     if (!raw) return []
     const parsed = JSON.parse(raw) as AnalyticsSpace[]
-    return Array.isArray(parsed) ? parsed : []
+    if (!Array.isArray(parsed)) return []
+    return parsed.map((space) => ({ ...space, widgets: (space.widgets ?? []).map(normalizeWidget) }))
   } catch {
     return []
   }
@@ -54,25 +57,11 @@ function dbToSpace(row: SpaceRow): AnalyticsSpace {
     description: row.description || "",
     icon: row.icon || "📊",
     iconColor: row.icon_color || "#3b82f6",
-    widgets: Array.isArray(row.widgets) ? row.widgets : [],
+    widgets: Array.isArray(row.widgets) ? row.widgets.map(normalizeWidget) : [],
     createdBy: row.created_by ?? "",
     createdByName: row.created_by_name || "",
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-  }
-}
-
-function spaceToRow(space: AnalyticsSpace) {
-  return {
-    workspace_id: space.workspaceId,
-    name: space.name,
-    description: space.description,
-    icon: space.icon,
-    icon_color: space.iconColor,
-    widgets: space.widgets,
-    created_by_name: space.createdByName,
-    created_at: space.createdAt,
-    updated_at: space.updatedAt,
   }
 }
 
@@ -157,7 +146,7 @@ export function AnalyticsProvider({ children }: { children: ReactNode }) {
         persist((prev) => [space, ...prev])
         return space
       }
-      const { data, error } = await supabase.from("analytics_spaces").insert(spaceToRow(space)).select("*").single()
+      const { data, error } = await supabase.from("analytics_spaces").insert(spaceToInsertRow(space)).select("*").single()
       if (error || !data) {
         persist((prev) => [space, ...prev])
         return space
@@ -203,7 +192,7 @@ export function AnalyticsProvider({ children }: { children: ReactNode }) {
       )
       if (!nextSpace) return
       const supabase = isSupabaseConfigured() ? createClient() : null
-      if (supabase) await supabase.from("analytics_spaces").update(spaceToRow(nextSpace)).eq("id", id)
+      if (supabase) await supabase.from("analytics_spaces").update(spaceToInsertRow(nextSpace)).eq("id", id)
     },
     [activeWorkspace, persist],
   )

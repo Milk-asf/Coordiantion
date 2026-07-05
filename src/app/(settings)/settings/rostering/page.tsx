@@ -16,7 +16,7 @@ import { RosterComplianceSettingsSection } from "./_components/roster-compliance
 
 const labelClass = "text-[14px] font-medium text-folk-text"
 const descriptionClass = "mt-[2px] text-[13px] text-folk-secondary"
-const sectionClass = "rounded-none border border-folk-border-subtle bg-folk-surface"
+const sectionClass = "rounded-[6px] border border-folk-border-subtle bg-folk-surface"
 const rowClass = "flex items-start justify-between gap-[16px] border-b border-[#f5f5f5] px-[20px] py-[16px] last:border-b-0"
 
 function SegmentedControl<T extends string>({
@@ -244,7 +244,7 @@ export default function RosteringSettingsPage() {
                       if (event.key === "Enter") handleRenameSessionType(item.id)
                       if (event.key === "Escape") handleCancelRename()
                     }}
-                    className="mt-[2px] h-[28px] min-w-0 flex-1 rounded-none border border-folk-border bg-folk-page px-[10px] text-[13px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
+                    className="mt-[2px] h-[28px] min-w-0 flex-1 rounded-[6px] border border-folk-border bg-white px-[10px] text-[13px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
                     aria-label={`Rename ${item.label}`}
                   />
                 ) : (
@@ -288,7 +288,7 @@ export default function RosteringSettingsPage() {
                     if (event.key === "Enter") handleAddSessionType()
                   }}
                   placeholder="e.g. Respite, Transport"
-                  className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
+                  className="h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium text-folk-text outline-none placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
                 />
               </div>
               <button
@@ -321,7 +321,7 @@ export default function RosteringSettingsPage() {
             <select
               value={settings.defaultShiftDurationHours}
               onChange={(event) => updateSettings({ defaultShiftDurationHours: Number(event.target.value) })}
-              className="h-[36px] rounded-none border border-folk-border bg-folk-page px-[10px] text-[13px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
+              className="h-[36px] rounded-[6px] border border-folk-border bg-white px-[10px] text-[13px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
               aria-label="Default shift duration"
             >
               {[1, 2, 3, 4].map((hours) => (

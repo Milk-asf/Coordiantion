@@ -2,6 +2,7 @@
 
 import { useMemo } from "react"
 import { useAnalyticsSourceData } from "@/lib/analytics/use-source-data"
+import { resolveEntityRecords } from "@/lib/analytics/definitions"
 import { useDocuments } from "@/lib/documents-context"
 import { useForms } from "@/lib/hooks/use-forms"
 import { useClients } from "@/lib/hooks/use-clients"
@@ -116,10 +117,15 @@ export function useListSourceData(): ListSourceData {
     [data.timesheets],
   )
 
+  // Timesheet list fields come from the analytics entity, which now joins each
+  // timesheet to its rostered shift — resolve through it so shapes match.
+  const timesheetRecords = useMemo(() => resolveEntityRecords("timesheets", data), [data])
+
   return useMemo<ListSourceData>(
     () => ({
       records: {
         ...data,
+        timesheets: timesheetRecords,
         documents,
         forms,
         budgets,
@@ -128,6 +134,6 @@ export function useListSourceData(): ListSourceData {
       },
       isLoading,
     }),
-    [data, documents, forms, budgets, spendingPlans, travelClaims, isLoading],
+    [data, timesheetRecords, documents, forms, budgets, spendingPlans, travelClaims, isLoading],
   )
 }

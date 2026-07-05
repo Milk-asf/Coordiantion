@@ -25,7 +25,7 @@ function getPanelToggleIcon(side: "left" | "right", isOpen: boolean) {
 /** Shared chrome for sidebar / account-details panel collapse controls. */
 export function panelToggleButtonClass(className?: string) {
   return cn(
-    "flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-[6px] border border-folk-border-strong bg-white text-folk-secondary transition-colors hover:border-folk-text hover:text-folk-text",
+    "flex h-[29px] w-[29px] shrink-0 items-center justify-center rounded-[6px] border border-folk-border-strong bg-white text-folk-secondary transition-colors hover:border-folk-text hover:text-folk-text",
     className,
   )
 }

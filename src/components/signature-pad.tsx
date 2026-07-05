@@ -110,7 +110,7 @@ export function SignaturePad({ value, onChange, disabled = false, height = 140, 
     <div className={className}>
       <div
         className={cn(
-          "relative rounded-none border border-dashed border-folk-border bg-folk-page",
+          "relative rounded-[6px] border border-dashed border-folk-border bg-folk-page",
           disabled && "opacity-70",
         )}
         style={{ height }}

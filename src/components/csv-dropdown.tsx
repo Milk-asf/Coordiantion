@@ -171,7 +171,7 @@ export function CsvDropdown({ entityType, columns, exportColumns, data, onImport
         <>
           <div className="fixed inset-0 z-[55]" onClick={() => setIsOpen(false)} aria-hidden="true" />
           <div
-            className="fixed z-[60] w-[200px] rounded-none border border-folk-border bg-white py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+            className="fixed z-[60] w-[200px] rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk-sm"
             style={menuStyle}
             role="menu"
           >

@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Clock,
   MapPin,
+  Pencil,
   Route,
   Undo2,
   User as UserIcon,
@@ -15,6 +16,8 @@ import {
 import { FormModal } from "@/components/form-modal"
 import { IconButton } from "@/components/icon-button"
 import { EntityIcon } from "@/components/entity-icon"
+import { TimesheetFormPanel } from "@/app/(dashboard)/timesheets/_components/timesheet-form-panel"
+import { usePermissions } from "@/lib/hooks/use-permissions"
 import { useClients } from "@/lib/hooks/use-clients"
 import { useTasks } from "@/lib/tasks-context"
 import { useTimesheets } from "@/lib/timesheets-context"
@@ -74,11 +77,13 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 
 export function ApprovalDetailPanel({ item, isBusy, onClose, onApprove, onReturn }: ApprovalDetailPanelProps) {
   const { clients } = useClients()
+  const { canManageTimesheets } = usePermissions()
   const { tasks } = useTasks()
   const { getTimesheet } = useTimesheets()
   const { shifts } = useRosterContext()
   const [isReturning, setIsReturning] = useState(false)
   const [returnNote, setReturnNote] = useState("")
+  const [isEditingTimesheet, setIsEditingTimesheet] = useState(false)
 
   const meta = KIND_META[item.kind]
   const clientName = (id: string) => clients.find((client) => client.id === id)?.displayName ?? "Unknown"
@@ -119,6 +124,18 @@ export function ApprovalDetailPanel({ item, isBusy, onClose, onApprove, onReturn
   const handleReturn = async () => {
     await onReturn(returnNote.trim())
     onClose()
+  }
+
+  if (isEditingTimesheet && timesheet && canManageTimesheets) {
+    return (
+      <TimesheetFormPanel
+        isOpen
+        timesheet={timesheet}
+        variant="review"
+        onClose={() => setIsEditingTimesheet(false)}
+        onSaved={() => setIsEditingTimesheet(false)}
+      />
+    )
   }
 
   return (
@@ -344,7 +361,7 @@ export function ApprovalDetailPanel({ item, isBusy, onClose, onApprove, onReturn
               value={returnNote}
               onChange={(event) => setReturnNote(event.target.value)}
               placeholder="Reason for returning (optional)"
-              className="min-h-[64px] w-full resize-y rounded-[8px] border border-folk-border bg-folk-page px-[12px] py-[8px] text-[13px] font-medium leading-[1.5] text-folk-text outline-none placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
+              className="min-h-[64px] w-full resize-y rounded-[6px] border border-folk-border bg-white px-[12px] py-[8px] text-[13px] font-medium leading-[1.5] text-folk-text outline-none placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
               autoFocus
             />
             <div className="flex items-center justify-end gap-[8px]">
@@ -370,6 +387,18 @@ export function ApprovalDetailPanel({ item, isBusy, onClose, onApprove, onReturn
           </div>
         ) : (
           <div className="flex items-center justify-end gap-[8px]">
+            {item.kind === "timesheet" && timesheet && timesheet.status !== "approved" && canManageTimesheets && (
+              <button
+                type="button"
+                onClick={() => setIsEditingTimesheet(true)}
+                disabled={isBusy}
+                className="folk-pill-btn mr-auto flex items-center gap-[5px] rounded-full border border-folk-border px-[12px] py-[6px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover disabled:opacity-50"
+                tabIndex={0}
+              >
+                <Pencil className="h-[13px] w-[13px]" strokeWidth={1.75} />
+                Edit
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {

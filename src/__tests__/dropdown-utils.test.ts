@@ -62,3 +62,37 @@ describe("getFixedDropdownStyle", () => {
     expect(style.left as number).toBeLessThanOrEqual(400 - 260 - 8)
   })
 })
+
+describe("getFixedDropdownStyle with scrollable: false", () => {
+  it("caps height at the viewport space, not the estimate", () => {
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 800 })
+
+    const rect = mockRect({ top: 120, bottom: 156, left: 100, width: 260 })
+    const style = getFixedDropdownStyle(rect, 220, 260, "match", { scrollable: false })
+
+    // 800 viewport − 156 anchor bottom − 8 padding − 4 gap
+    expect(style.maxHeight).toBe(632)
+    expect(style.overflowY).toBe("auto")
+  })
+
+  it("stays attached to the anchor when opening downward", () => {
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 800 })
+
+    const rect = mockRect({ top: 120, bottom: 156, left: 100, width: 260 })
+    const style = getFixedDropdownStyle(rect, 220, 260, "match", { scrollable: false })
+
+    expect(style.top).toBe(160)
+    expect(style.bottom).toBeUndefined()
+  })
+
+  it("falls back to scrolling on short viewports", () => {
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 300 })
+
+    const rect = mockRect({ top: 40, bottom: 76, left: 100, width: 260 })
+    const style = getFixedDropdownStyle(rect, 600, 260, "match", { scrollable: false })
+
+    expect(typeof style.maxHeight).toBe("number")
+    expect(style.maxHeight as number).toBeLessThanOrEqual(300 - 76 - 8 - 4)
+    expect(style.overflowY).toBe("auto")
+  })
+})

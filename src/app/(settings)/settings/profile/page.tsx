@@ -1,10 +1,18 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import { Mail, Globe, Clock, Lock } from "lucide-react"
+import { useToast } from "@/components/toast"
+import {
+  SETTINGS_INPUT_CLASS,
+  SETTINGS_LABEL_CLASS,
+  SETTINGS_OUTLINE_BTN_CLASS,
+  SETTINGS_PRIMARY_BTN_CLASS,
+  SettingsSelect,
+} from "@/components/settings-ui"
 
 const languageOptions = [
   "English (US)",
@@ -32,64 +40,9 @@ const timezoneOptions = [
   "(UTC-10) Hawaii-Aleutian Standard Time",
 ]
 
-const inputClass = "h-[44px] w-full rounded-none border border-folk-border-subtle bg-folk-page px-[14px] text-[14px] text-folk-text outline-none transition-colors placeholder:text-[#c0c0c0] focus:border-[#bababa] focus:ring-2 focus:ring-[#e8e8e8]"
-const labelClass = "mb-[8px] block text-[13px] font-semibold text-folk-text"
-const changeBtnClass = "outline-btn h-[44px] shrink-0 px-[16px] text-[13px] font-semibold"
-
-function ProfileSelect({ label, value, options, onChange, icon }: { label: string; value: string; options: readonly string[]; onChange: (v: string) => void; icon?: React.ReactNode }) {
-  const [isOpen, setIsOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!isOpen) return
-    const handleClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setIsOpen(false)
-    }
-    document.addEventListener("mousedown", handleClick)
-    return () => document.removeEventListener("mousedown", handleClick)
-  }, [isOpen])
-
-  return (
-    <div>
-      <label className={labelClass}>{label}</label>
-      <div className="relative" ref={ref}>
-        <button
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          className={cn(inputClass, "flex items-center gap-[8px] text-left")}
-          tabIndex={0}
-        >
-          {icon}
-          <span className="truncate">{value}</span>
-        </button>
-        {isOpen && (
-          <>
-            <div className="fixed inset-0 z-[59]" onClick={() => setIsOpen(false)} />
-            <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[220px] w-full overflow-y-auto rounded-none border border-folk-border-subtle bg-folk-surface py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
-              {options.map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => { onChange(opt); setIsOpen(false) }}
-                  className={cn(
-                    "flex w-full items-center px-[14px] py-[10px] text-left text-[13px] transition-colors hover:bg-folk-hover",
-                    opt === value ? "bg-[var(--folk-border-subtle)] font-medium text-folk-text" : "text-[#555]"
-                  )}
-                  tabIndex={0}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  )
-}
-
 export default function ProfileSettingsPage() {
   const router = useRouter()
+  const { toast } = useToast()
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
@@ -97,13 +50,10 @@ export default function ProfileSettingsPage() {
   const [timezone, setTimezone] = useState("(UTC+10) Australian Eastern Standard Time")
   const [isSaving, setIsSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
-  const [saveMessage, setSaveMessage] = useState("")
 
   const [isEmailEditing, setIsEmailEditing] = useState(false)
   const [newEmail, setNewEmail] = useState("")
   const [isChangingEmail, setIsChangingEmail] = useState(false)
-  const [emailError, setEmailError] = useState("")
-  const [emailSuccess, setEmailSuccess] = useState("")
 
   useEffect(() => {
     if (!isSupabaseConfigured()) return
@@ -125,7 +75,6 @@ export default function ProfileSettingsPage() {
     (value: T) => {
       setter(value)
       setHasChanges(true)
-      setSaveMessage("")
     }
 
   const handleUpdateProfile = async () => {
@@ -134,7 +83,6 @@ export default function ProfileSettingsPage() {
     if (!supabase) return
 
     setIsSaving(true)
-    setSaveMessage("")
     const { error } = await supabase.auth.updateUser({
       data: {
         full_name: `${firstName} ${lastName}`.trim(),
@@ -144,32 +92,26 @@ export default function ProfileSettingsPage() {
     })
     setIsSaving(false)
     if (error) {
-      setSaveMessage(error.message)
+      toast(error.message, "error")
     } else {
       setHasChanges(false)
-      setSaveMessage("Profile updated")
-      setTimeout(() => setSaveMessage(""), 3000)
+      toast("Profile updated", "success")
     }
   }
 
   const resetEmailEditing = () => {
     setIsEmailEditing(false)
     setNewEmail("")
-    setEmailError("")
-    setEmailSuccess("")
   }
 
   const handleChangeEmail = async () => {
-    setEmailError("")
-    setEmailSuccess("")
-
     if (!newEmail || !newEmail.includes("@")) {
-      setEmailError("Please enter a valid email address")
+      toast("Please enter a valid email address", "error")
       return
     }
 
     if (!isSupabaseConfigured()) {
-      setEmailError("Supabase is not configured")
+      toast("Supabase is not configured", "error")
       return
     }
     const supabase = createClient()
@@ -180,10 +122,10 @@ export default function ProfileSettingsPage() {
     setIsChangingEmail(false)
 
     if (error) {
-      setEmailError(error.message)
+      toast(error.message, "error")
     } else {
-      setEmailSuccess("Confirmation email sent to your new address")
-      setNewEmail("")
+      toast("Confirmation email sent to your new address", "success")
+      resetEmailEditing()
     }
   }
 
@@ -202,39 +144,39 @@ export default function ProfileSettingsPage() {
       <div>
         <div className="grid gap-[16px] sm:grid-cols-2">
           <div>
-            <label className={labelClass}>First name</label>
+            <label className={SETTINGS_LABEL_CLASS}>First name</label>
             <input
               type="text"
               value={firstName}
               onChange={(e) => handleFieldChange(setFirstName)(e.target.value)}
               placeholder="First name"
-              className={inputClass}
+              className={SETTINGS_INPUT_CLASS}
             />
           </div>
           <div>
-            <label className={labelClass}>Last name</label>
+            <label className={SETTINGS_LABEL_CLASS}>Last name</label>
             <input
               type="text"
               value={lastName}
               onChange={(e) => handleFieldChange(setLastName)(e.target.value)}
               placeholder="Last name"
-              className={inputClass}
+              className={SETTINGS_INPUT_CLASS}
             />
           </div>
         </div>
 
         <div className="mt-[16px]">
-          <label className={labelClass}>Email</label>
+          <label className={SETTINGS_LABEL_CLASS}>Email</label>
           {!isEmailEditing ? (
             <div className="flex items-center gap-[12px]">
-              <div className={cn(inputClass, "flex flex-1 items-center gap-[8px]")}>
+              <div className={cn(SETTINGS_INPUT_CLASS, "flex flex-1 items-center gap-[8px]")}>
                 <Mail className="h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
                 <span className="truncate text-folk-secondary">{email}</span>
               </div>
               <button
                 type="button"
-                onClick={() => { setIsEmailEditing(true); setNewEmail(""); setEmailError(""); setEmailSuccess("") }}
-                className={changeBtnClass}
+                onClick={() => { setIsEmailEditing(true); setNewEmail("") }}
+                className={cn(SETTINGS_OUTLINE_BTN_CLASS, "shrink-0")}
                 tabIndex={0}
               >
                 Change
@@ -245,35 +187,24 @@ export default function ProfileSettingsPage() {
               <input
                 type="email"
                 value={newEmail}
-                onChange={(e) => { setNewEmail(e.target.value); setEmailError(""); setEmailSuccess("") }}
-                className={inputClass}
+                onChange={(e) => setNewEmail(e.target.value)}
+                className={SETTINGS_INPUT_CLASS}
                 placeholder="new@email.com"
                 autoFocus
               />
-              {emailError && (
-                <p className="rounded-none bg-red-50 px-[14px] py-[10px] text-[13px] font-medium text-red-600">{emailError}</p>
-              )}
-              {emailSuccess && (
-                <p className="rounded-none bg-green-50 px-[14px] py-[10px] text-[13px] font-medium text-green-600">{emailSuccess}</p>
-              )}
-              <div className="flex items-center gap-[10px]">
+              <div className="flex items-center gap-[8px]">
                 <button
                   type="button"
                   onClick={handleChangeEmail}
                   disabled={!isEmailFormValid || isChangingEmail}
-                  className={cn(
-                    "h-[38px] px-[20px] text-[13px] font-semibold transition-colors",
-                    isEmailFormValid
-                      ? "primary-btn"
-                      : "bg-[#e8e8e8] text-[#c0c0c0] cursor-not-allowed"
-                  )}
+                  className={SETTINGS_PRIMARY_BTN_CLASS}
                 >
-                  {isChangingEmail ? "Sending..." : "Update email"}
+                  {isChangingEmail ? "Sending…" : "Update email"}
                 </button>
                 <button
                   type="button"
                   onClick={resetEmailEditing}
-                  className="outline-btn h-[38px] px-[20px] text-[13px] font-semibold"
+                  className={SETTINGS_OUTLINE_BTN_CLASS}
                 >
                   Cancel
                 </button>
@@ -283,16 +214,16 @@ export default function ProfileSettingsPage() {
         </div>
 
         <div className="mt-[16px]">
-          <label className={labelClass}>Password</label>
+          <label className={SETTINGS_LABEL_CLASS}>Password</label>
           <div className="flex items-center gap-[12px]">
-            <div className={cn(inputClass, "flex flex-1 items-center gap-[8px]")}>
+            <div className={cn(SETTINGS_INPUT_CLASS, "flex flex-1 items-center gap-[8px]")}>
               <Lock className="h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
               <span className="tracking-[0.25em] text-folk-secondary">••••••••••</span>
             </div>
             <button
               type="button"
               onClick={() => router.push("/update-password")}
-              className={changeBtnClass}
+              className={cn(SETTINGS_OUTLINE_BTN_CLASS, "shrink-0")}
               tabIndex={0}
             >
               Change
@@ -301,26 +232,30 @@ export default function ProfileSettingsPage() {
         </div>
 
         <div className="mt-[16px] grid gap-[16px] sm:grid-cols-2">
-          <ProfileSelect label="Language" value={language} options={languageOptions} onChange={handleFieldChange(setLanguage)} icon={<Globe className="h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.5} />} />
-          <ProfileSelect label="Timezone" value={timezone} options={timezoneOptions} onChange={handleFieldChange(setTimezone)} icon={<Clock className="h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.5} />} />
+          <SettingsSelect
+            label="Language"
+            value={language}
+            options={languageOptions}
+            onChange={handleFieldChange(setLanguage)}
+            icon={<Globe className="h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.5} />}
+          />
+          <SettingsSelect
+            label="Timezone"
+            value={timezone}
+            options={timezoneOptions}
+            onChange={handleFieldChange(setTimezone)}
+            icon={<Clock className="h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.5} />}
+          />
         </div>
 
-        <div className="mt-[20px] flex items-center gap-[12px]">
+        <div className="mt-[20px]">
           <button
             onClick={handleUpdateProfile}
             disabled={!hasChanges || isSaving}
-            className={cn(
-              "h-[38px] px-[20px] text-[13px] font-semibold transition-colors",
-              hasChanges
-                ? "primary-btn"
-                : "bg-[#e8e8e8] text-[#c0c0c0] cursor-not-allowed"
-            )}
+            className={SETTINGS_PRIMARY_BTN_CLASS}
           >
-            {isSaving ? "Updating..." : "Update profile"}
+            {isSaving ? "Updating…" : "Update profile"}
           </button>
-          {saveMessage && (
-            <span className="text-[13px] font-medium text-green-600">{saveMessage}</span>
-          )}
         </div>
       </div>
     </>

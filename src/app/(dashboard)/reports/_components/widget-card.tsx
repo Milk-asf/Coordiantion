@@ -4,6 +4,7 @@ import { useDraggable, useDroppable } from "@dnd-kit/core"
 import { Copy, GripVertical, Pencil, Trash2 } from "lucide-react"
 import { computeWidget } from "@/lib/analytics/compute"
 import { getDataSource, type AnalyticsWidget } from "@/lib/analytics/definitions"
+import { DATE_WINDOW_LABELS } from "@/lib/analytics/scope"
 import { cn } from "@/lib/utils"
 import { WidgetChart } from "./widget-chart"
 
@@ -56,7 +57,11 @@ export function WidgetCard({ widget, records, onEdit, onDuplicate, onDelete }: W
         <div className="flex min-h-0 flex-1 flex-col">
           <WidgetChart widget={widget} computation={computation} />
         </div>
-        <span className="mt-[10px] text-[11px] font-medium text-folk-tertiary">{source.label}</span>
+        <span className="mt-[10px] text-[11px] font-medium text-folk-tertiary">
+          {source.label}
+          {widget.dateWindow && widget.dateWindow !== "all" ? ` · ${DATE_WINDOW_LABELS[widget.dateWindow]}` : ""}
+          {(widget.filters?.length ?? 0) > 0 ? ` · ${widget.filters.length} ${widget.filters.length === 1 ? "filter" : "filters"}` : ""}
+        </span>
       </div>
     </div>
   )

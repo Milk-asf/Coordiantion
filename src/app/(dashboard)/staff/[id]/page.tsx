@@ -34,6 +34,7 @@ import { ProfileShiftNotesTab } from "@/components/profile-shift-notes-tab"
 import { useTimesheets } from "@/lib/timesheets-context"
 import { useRoster } from "@/lib/hooks/use-roster"
 import { formatRelativeTime } from "@/lib/hooks/use-recently-visited"
+import { useListReturnBack } from "@/lib/lists/list-return"
 import { mergeDiagnoses } from "@/app/(dashboard)/clients/[id]/_components/client-profile-helpers"
 import { EmptyState } from "@/components/empty-state"
 import { SectionToolbar } from "@/components/section-toolbar"
@@ -205,6 +206,10 @@ export default function StaffProfilePage() {
   const params = useParams()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { onBack: handleProfileBack, backLabel: profileBackLabel } = useListReturnBack({
+    path: "/staff",
+    label: "Back to staff",
+  })
   const initialTab = searchParams.get("tab") || "overview"
   const [activeTab, setActiveTab] = useState(initialTab)
   const [isSidebarVisible, setIsSidebarVisible] = useState(true)
@@ -701,8 +706,8 @@ export default function StaffProfilePage() {
       <div ref={headerRef} className="flex shrink-0 flex-col bg-white">
         <ProfileRecordHeader
           name={member.name}
-          onBack={() => router.push("/staff")}
-          backLabel="Back to staff"
+          onBack={handleProfileBack}
+          backLabel={profileBackLabel}
           actions={
             <ProfileNavTextAction onClick={openQuickAddTask}>
               Add task
@@ -765,9 +770,9 @@ export default function StaffProfilePage() {
         {isQuickAdding && (
           <>
             <div className="fixed inset-0 z-[48]" onClick={resetQuickAdd} />
-            <div className="relative z-[50] mx-[16px] mt-[4px] rounded-none border border-folk-border bg-folk-surface shadow-[0_4px_24px_rgba(0,0,0,0.08)]">
+            <div className="relative z-[50] mx-[16px] mt-[4px] rounded-[6px] border border-folk-border bg-folk-surface shadow-[0_4px_24px_rgba(0,0,0,0.08)]">
               <div className="flex items-center gap-[8px] px-[12px] pt-[10px]">
-                <span className="flex h-[22px] items-center rounded-none bg-[var(--folk-border-subtle)] px-[6px] text-[11px] font-medium text-[#555]">{member.name}</span>
+                <span className="flex h-[22px] items-center rounded-[6px] bg-[var(--folk-border-subtle)] px-[6px] text-[11px] font-medium text-[#555]">{member.name}</span>
               </div>
               <div className="px-[12px] pt-[6px] pb-[6px]">
                 <input
@@ -802,7 +807,7 @@ export default function StaffProfilePage() {
                     }
                     return (
                       <>
-                        <div className={`flex items-center gap-[5px] rounded-none border px-[8px] py-[3px] transition-colors ${quickActiveField === "client" ? "border-blue-400" : "border-folk-border"}`}>
+                        <div className={`flex items-center gap-[5px] rounded-[6px] border px-[8px] py-[3px] transition-colors ${quickActiveField === "client" ? "border-blue-400" : "border-folk-border"}`}>
                           <Building2 className={`h-[12px] w-[12px] shrink-0 ${quickClient ? "text-folk-secondary" : "text-[#ccc]"}`} strokeWidth={1.5} />
                           <input
                             ref={quickClientInputRef}
@@ -845,7 +850,7 @@ export default function StaffProfilePage() {
                         {isQuickClientOpen && (
                           <>
                             <div className="fixed inset-0 z-[59]" onClick={() => { setIsQuickClientOpen(false); setQuickClientIdx(-1); setQuickClientSearch("") }} />
-                            <div ref={quickClientListRef} className="absolute left-0 top-full z-[60] mt-[4px] max-h-[180px] min-w-[200px] overflow-y-auto rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-lg">
+                            <div ref={quickClientListRef} className="absolute left-0 top-full z-[60] mt-[4px] max-h-[180px] min-w-[200px] overflow-y-auto rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-lg">
                               {filteredClients.map((name, i) => (
                                 <div
                                   key={name}
@@ -883,7 +888,7 @@ export default function StaffProfilePage() {
                     }
                     return (
                       <>
-                        <div className={`flex items-center gap-[5px] rounded-none border px-[8px] py-[3px] transition-colors ${quickActiveField === "charge" ? "border-blue-400" : "border-folk-border"}`}>
+                        <div className={`flex items-center gap-[5px] rounded-[6px] border px-[8px] py-[3px] transition-colors ${quickActiveField === "charge" ? "border-blue-400" : "border-folk-border"}`}>
                           <Tag className={`h-[12px] w-[12px] shrink-0 ${quickCharge ? "text-folk-secondary" : "text-[#ccc]"}`} strokeWidth={1.5} />
                           <input
                             ref={quickChargeInputRef}
@@ -920,7 +925,7 @@ export default function StaffProfilePage() {
                         {isQuickChargeOpen && (
                           <>
                             <div className="fixed inset-0 z-[59]" onClick={() => { setIsQuickChargeOpen(false); setQuickChargeIdx(-1); setQuickChargeSearch("") }} />
-                            <div ref={quickChargeListRef} className="absolute left-0 top-full z-[60] mt-[4px] max-h-[180px] min-w-[200px] overflow-y-auto rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-lg">
+                            <div ref={quickChargeListRef} className="absolute left-0 top-full z-[60] mt-[4px] max-h-[180px] min-w-[200px] overflow-y-auto rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-lg">
                               {filteredCharges.map((c, i) => (
                                 <div
                                   key={c.value || "__none"}
@@ -941,7 +946,7 @@ export default function StaffProfilePage() {
                 </div>
 
                 {/* Time input */}
-                <div className={`flex items-center gap-[5px] rounded-none border px-[8px] py-[3px] transition-colors ${quickActiveField === "time" ? "border-blue-400" : "border-folk-border"}`}>
+                <div className={`flex items-center gap-[5px] rounded-[6px] border px-[8px] py-[3px] transition-colors ${quickActiveField === "time" ? "border-blue-400" : "border-folk-border"}`}>
                   <Clock className={`h-[12px] w-[12px] shrink-0 ${quickTime ? "text-folk-secondary" : "text-[#ccc]"}`} strokeWidth={1.5} />
                   <input
                     ref={quickTimeRef}
@@ -958,7 +963,7 @@ export default function StaffProfilePage() {
                 </div>
 
                 <div className="ml-auto flex items-center gap-[6px]">
-                  <button type="button" onClick={resetQuickAdd} className="rounded-none px-[8px] py-[4px] text-[12px] font-medium text-folk-secondary transition-colors hover:bg-[var(--folk-border-subtle)]" tabIndex={0}>Cancel</button>
+                  <button type="button" onClick={resetQuickAdd} className="rounded-[6px] px-[8px] py-[4px] text-[12px] font-medium text-folk-secondary transition-colors hover:bg-[var(--folk-border-subtle)]" tabIndex={0}>Cancel</button>
                   <button type="button" onClick={handleQuickFinish} disabled={!quickTitle.trim()} className="primary-btn px-[12px] py-[4px] text-[12px] font-medium transition-colors disabled:opacity-40" tabIndex={0}>Create</button>
                 </div>
               </div>
@@ -994,7 +999,7 @@ export default function StaffProfilePage() {
                       <>
                         <div className="fixed inset-0 z-[49]" onClick={() => { setIsAssignClientOpen(false); setAssignClientSearch("") }} />
                         <div
-                          className="absolute right-0 top-full z-[50] mt-[4px] w-[280px] overflow-hidden rounded-none border border-folk-border bg-folk-surface shadow-folk"
+                          className="absolute right-0 top-full z-[50] mt-[4px] w-[280px] overflow-hidden rounded-[6px] border border-folk-border bg-folk-surface shadow-folk"
                         >
                           <div className="border-b border-folk-border-subtle px-[12px] py-[8px]">
                             <input

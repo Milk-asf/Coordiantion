@@ -81,13 +81,13 @@ function IntegrationsContent() {
       <Header />
 
       {connectedFlag === "xero" && (
-        <div className="mb-[20px] flex items-center gap-[8px] rounded-none border border-green-200 bg-green-50 px-[14px] py-[10px] text-[13px] text-green-700">
+        <div className="mb-[20px] flex items-center gap-[8px] rounded-[6px] border border-green-200 bg-green-50 px-[14px] py-[10px] text-[13px] text-green-700">
           <Check className="h-[15px] w-[15px]" strokeWidth={2} />
           Xero connected successfully.
         </div>
       )}
       {errorFlag && (
-        <div className="mb-[20px] flex items-center gap-[8px] rounded-none border border-red-200 bg-red-50 px-[14px] py-[10px] text-[13px] text-red-700">
+        <div className="mb-[20px] flex items-center gap-[8px] rounded-[6px] border border-red-200 bg-red-50 px-[14px] py-[10px] text-[13px] text-red-700">
           <AlertCircle className="h-[15px] w-[15px]" strokeWidth={2} />
           {errorMessages[errorFlag] || "Something went wrong."}
         </div>
@@ -100,7 +100,7 @@ function IntegrationsContent() {
             <img
               src="/xero/xero-logo-square.png"
               alt="Xero"
-              className="h-[40px] w-[40px] shrink-0 rounded-none"
+              className="h-[40px] w-[40px] shrink-0 rounded-[6px]"
             />
             <div>
               <h2 className="text-[15px] font-semibold text-folk-text">Xero</h2>
@@ -145,7 +145,7 @@ function IntegrationsContent() {
                   type="text"
                   value={accountCode}
                   onChange={(e) => setAccountCode(e.target.value)}
-                  className="w-full rounded-none border border-folk-border px-[12px] py-[8px] text-[13px] text-folk-text outline-none focus:border-[#1a1a1a]"
+                  className="w-full rounded-[6px] border border-folk-border px-[12px] py-[8px] text-[13px] text-folk-text outline-none focus:border-[#1a1a1a]"
                   placeholder="200"
                 />
                 <p className="mt-[4px] text-[11px] text-[#aaa]">The Xero Chart of Accounts code applied to invoice lines.</p>
@@ -158,7 +158,7 @@ function IntegrationsContent() {
                   id="tax-type"
                   value={taxType}
                   onChange={(e) => setTaxType(e.target.value)}
-                  className="w-full rounded-none border border-folk-border px-[12px] py-[8px] text-[13px] text-folk-text outline-none focus:border-[#1a1a1a]"
+                  className="w-full rounded-[6px] border border-folk-border px-[12px] py-[8px] text-[13px] text-folk-text outline-none focus:border-[#1a1a1a]"
                 >
                   {taxTypeOptions.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>

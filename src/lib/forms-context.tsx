@@ -223,7 +223,9 @@ interface FormsContextValue {
   getFormProcessKey: (formId: string) => FormProcessKey | null
   getSubmissionsForForm: (formId: string) => FormSubmission[]
   getSubmissionCount: (formId: string) => number
+  getAllSubmissions: () => FormSubmission[]
   ensureSubmissionsLoaded: (formId: string) => Promise<void>
+  ensureAllSubmissionsLoaded: () => Promise<void>
   createForm: (params?: { name?: string }) => Promise<Form | null>
   createFormFromTemplate: (template: FormTemplate) => Promise<Form | null>
   updateForm: (id: string, updates: Partial<Form>) => Promise<void>
@@ -252,6 +254,7 @@ export function FormsProvider({ children }: { children: ReactNode }) {
   const [fetchError, setFetchError] = useState<string | null>(null)
   // Tracks which forms have had their full submissions loaded, so we don't refetch.
   const loadedFormsRef = useRef<Set<string>>(new Set())
+  const allSubmissionsLoadedRef = useRef(false)
 
   const persistForms = useCallback(
     (updater: Form[] | ((prev: Form[]) => Form[])) => {
@@ -286,6 +289,7 @@ export function FormsProvider({ children }: { children: ReactNode }) {
 
   const fetchForms = useCallback(async () => {
     loadedFormsRef.current = new Set()
+    allSubmissionsLoadedRef.current = false
     if (!activeWorkspace) {
       setForms([])
       setSubmissionsByForm({})
@@ -300,6 +304,7 @@ export function FormsProvider({ children }: { children: ReactNode }) {
       const { byForm, counts } = groupSubmissions(loadLocalSubmissions(activeWorkspace.id))
       // Local submissions are fully in memory, so mark every form as loaded.
       loadedFormsRef.current = new Set(Object.keys(byForm))
+      allSubmissionsLoadedRef.current = true
       setForms(loadLocalForms(activeWorkspace.id))
       setSubmissionsByForm(byForm)
       setSubmissionCounts(counts)
@@ -592,6 +597,40 @@ export function FormsProvider({ children }: { children: ReactNode }) {
     [activeWorkspace],
   )
 
+  const ensureAllSubmissionsLoaded = useCallback(async () => {
+    if (!activeWorkspace || allSubmissionsLoadedRef.current) return
+
+    const supabase = isSupabaseConfigured() ? createClient() : null
+    if (!supabase) {
+      const { byForm, counts } = groupSubmissions(loadLocalSubmissions(activeWorkspace.id))
+      loadedFormsRef.current = new Set(Object.keys(byForm))
+      setSubmissionsByForm(byForm)
+      setSubmissionCounts(counts)
+      allSubmissionsLoadedRef.current = true
+      return
+    }
+
+    const { data, error } = await supabase
+      .from("form_submissions")
+      .select("*")
+      .eq("workspace_id", activeWorkspace.id)
+      .order("created_at", { ascending: false })
+
+    if (!error && data) {
+      const list = (data as SubmissionRow[]).map(dbToSubmission)
+      const { byForm, counts } = groupSubmissions(list)
+      loadedFormsRef.current = new Set(Object.keys(byForm))
+      setSubmissionsByForm(byForm)
+      setSubmissionCounts(counts)
+      allSubmissionsLoadedRef.current = true
+    }
+  }, [activeWorkspace])
+
+  const getAllSubmissions = useCallback(
+    () => Object.values(submissionsByForm).flat(),
+    [submissionsByForm],
+  )
+
   const addSubmission = useCallback(
     async (
       formId: string,
@@ -677,7 +716,9 @@ export function FormsProvider({ children }: { children: ReactNode }) {
         getFormProcessKey,
         getSubmissionsForForm,
         getSubmissionCount,
+        getAllSubmissions,
         ensureSubmissionsLoaded,
+        ensureAllSubmissionsLoaded,
         createForm,
         createFormFromTemplate,
         updateForm,

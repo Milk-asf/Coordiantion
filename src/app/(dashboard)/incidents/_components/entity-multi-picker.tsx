@@ -52,16 +52,16 @@ export function EntityMultiPicker({
 
   return (
     <div>
-      <label className="mb-[6px] block text-[12px] font-medium text-folk-secondary">
+      <label className="mb-[6px] block text-[13px] font-medium text-folk-text">
         {label}
-        {required && <span className="text-[#dc2626]"> *</span>}
+        {required && <span className="ml-[2px] text-red-500">*</span>}
       </label>
-      <div className="min-h-[36px] rounded-none border border-folk-border bg-folk-surface px-[8px] py-[6px]">
+      <div className="min-h-[38px] rounded-[6px] border border-folk-border bg-white px-[8px] py-[6px]">
         <div className="flex flex-wrap items-center gap-[6px]">
           {selectedOptions.map((option) => (
             <span
               key={option.id}
-              className="inline-flex max-w-full items-center gap-[6px] rounded-none border border-folk-border bg-folk-surface py-[2px] pl-[6px] pr-[4px]"
+              className="inline-flex max-w-full items-center gap-[6px] rounded-[4px] border border-folk-border bg-folk-hover py-[2px] pl-[6px] pr-[4px]"
             >
               <EntityNameRow
                 name={option.label}
@@ -84,7 +84,7 @@ export function EntityMultiPicker({
             type="button"
             onClick={() => setIsOpen(true)}
             disabled={availableOptions.length === 0}
-            className="inline-flex items-center gap-[4px] rounded-none border border-dashed border-folk-border px-[8px] py-[4px] text-[12px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text disabled:cursor-not-allowed disabled:opacity-45"
+            className="inline-flex items-center gap-[4px] rounded-[4px] border border-dashed border-folk-border px-[8px] py-[4px] text-[12px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text disabled:cursor-not-allowed disabled:opacity-45"
             tabIndex={0}
           >
             <Plus className="h-[11px] w-[11px]" strokeWidth={2} />

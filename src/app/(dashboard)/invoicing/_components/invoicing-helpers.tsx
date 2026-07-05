@@ -23,14 +23,14 @@ export function FilterPill({
   buttonRef: (element: HTMLButtonElement | null) => void
 }) {
   return (
-    <div className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text">
+    <div className="flex items-center gap-[6px] rounded-[6px] border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text">
       <Icon className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} />
       <button ref={buttonRef} onClick={onOpen} className="hover:underline" tabIndex={0}>
         {label}
       </button>
       <span className="text-folk-secondary">is</span>
       <span>{count} {count === 1 ? "value" : "values"}</span>
-      <button onClick={onClear} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label={`Clear ${label.toLowerCase()} filter`}>
+      <button onClick={onClear} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label={`Clear ${label.toLowerCase()} filter`}>
         <X className="h-[12px] w-[12px]" strokeWidth={1.5} />
       </button>
     </div>
@@ -120,7 +120,7 @@ export function MultiSelectDropdown({
       })}
       {items.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-folk-secondary">{emptyLabel}</p>}
       <div className="border-t border-folk-border-subtle px-[8px] py-[4px]">
-        <button onClick={onClear} className="w-full rounded-none px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>
+        <button onClick={onClear} className="w-full rounded-[6px] px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>
           Clear
         </button>
       </div>

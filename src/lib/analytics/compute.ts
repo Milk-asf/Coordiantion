@@ -5,11 +5,13 @@ import {
   getMeasure,
   getVisualization,
   type AnalyticsWidget,
+  type DataEntity,
   type DateGrain,
   type DimensionDef,
   type MeasureDef,
   type MeasureFormat,
 } from "./definitions"
+import { isDateInRange, resolveDateWindow } from "./scope"
 
 export interface ComputedSeries {
   name: string
@@ -27,6 +29,8 @@ export interface WidgetComputation {
   series: ComputedSeries[]
   /** Sum across series per category — used by pie / donut / funnel. */
   categoryTotals: number[]
+  /** Records after the widget's date window and filters — drives record lists. */
+  records: unknown[]
 }
 
 const NONE_KEY = "__none__"
@@ -101,6 +105,65 @@ function groupValues(dim: DimensionDef, record: unknown, grain: DateGrain): { ke
   return [{ key: text || NONE_KEY, label: text || "None" }]
 }
 
+/** Every value a record produces for a dimension (multi-value dims yield several). */
+function dimensionKeys(dimension: DimensionDef, record: unknown): string[] {
+  return groupValues(dimension, record, "month").map((group) => group.key)
+}
+
+/**
+ * Applies the widget's relative date window and field filters. Shared by the
+ * compute pipeline and record lists so every visualisation sees the same rows.
+ */
+export function scopeWidgetRecords(
+  widget: AnalyticsWidget,
+  source: DataEntity,
+  records: unknown[],
+  now: Date = new Date(),
+): unknown[] {
+  let scoped = records
+
+  const range = resolveDateWindow(widget.dateWindow, now)
+  if (range) {
+    const dateDims = source.dimensions.filter((dimension) => dimension.kind === "date")
+    const dateDim = (widget.dateField ? dateDims.find((dimension) => dimension.key === widget.dateField) : null) ?? dateDims[0] ?? null
+    if (dateDim) {
+      scoped = scoped.filter((record) => {
+        const raw = dateDim.get(record)
+        return typeof raw === "string" && isDateInRange(raw, range)
+      })
+    }
+  }
+
+  for (const filter of widget.filters ?? []) {
+    if (!filter.values?.length) continue
+    const dimension = getDimension(source, filter.dimension)
+    if (!dimension || dimension.kind === "date") continue
+    const allowed = new Set(filter.values)
+    scoped = scoped.filter((record) => dimensionKeys(dimension, record).some((key) => allowed.has(key)))
+  }
+
+  return scoped
+}
+
+export interface FilterValueOption {
+  key: string
+  label: string
+  count: number
+}
+
+/** Distinct values a dimension takes across records — feeds the filter picker. */
+export function collectFilterValues(dimension: DimensionDef, records: unknown[]): FilterValueOption[] {
+  const options = new Map<string, FilterValueOption>()
+  for (const record of records) {
+    for (const group of groupValues(dimension, record, "month")) {
+      const existing = options.get(group.key)
+      if (existing) existing.count += 1
+      else options.set(group.key, { key: group.key, label: group.label, count: 1 })
+    }
+  }
+  return [...options.values()].sort((a, b) => a.label.localeCompare(b.label))
+}
+
 function aggregateRecords(records: unknown[], widget: AnalyticsWidget, measure: MeasureDef | null): number {
   if (widget.aggregation === "count" || !measure) return records.length
   const values = records.map((record) => measure.get(record))
@@ -126,17 +189,19 @@ interface CategoryBucket {
   segments: Map<string, { label: string; records: unknown[] }>
 }
 
-export function computeWidget(widget: AnalyticsWidget, records: unknown[]): WidgetComputation {
+export function computeWidget(widget: AnalyticsWidget, rawRecords: unknown[]): WidgetComputation {
   const source = getDataSource(widget.source)
   const measure = getMeasure(source, widget.measureField)
   const viz = getVisualization(widget.visualization)
   const measureLabel = widget.aggregation === "count" || !measure ? "Records" : measure.label
   const format: MeasureFormat = widget.aggregation === "count" || !measure ? "number" : measure.format
 
+  const records = scopeWidgetRecords(widget, source, rawRecords)
+
   const total = aggregateRecords(records, widget, measure)
   const totalFormatted = formatMeasure(total, format)
 
-  // Metric ignores grouping entirely.
+  // Metric and record lists ignore grouping entirely.
   if (!viz.needsGroup || !widget.groupBy) {
     return {
       isEmpty: records.length === 0,
@@ -147,12 +212,13 @@ export function computeWidget(widget: AnalyticsWidget, records: unknown[]): Widg
       categories: [],
       series: [],
       categoryTotals: [],
+      records,
     }
   }
 
   const groupDim = getDimension(source, widget.groupBy)
   if (!groupDim) {
-    return { isEmpty: true, total, totalFormatted, measureLabel, format, categories: [], series: [], categoryTotals: [] }
+    return { isEmpty: true, total, totalFormatted, measureLabel, format, categories: [], series: [], categoryTotals: [], records }
   }
 
   const segmentDim = viz.singleSeries ? null : getDimension(source, widget.segmentBy)
@@ -230,5 +296,5 @@ export function computeWidget(widget: AnalyticsWidget, records: unknown[]): Widg
   const categoryTotals = ordered.map((_, index) => series.reduce((sum, s) => sum + (s.values[index] ?? 0), 0))
   const isEmpty = categories.length === 0 || categoryTotals.every((value) => value === 0)
 
-  return { isEmpty, total, totalFormatted, measureLabel, format, categories, series, categoryTotals }
+  return { isEmpty, total, totalFormatted, measureLabel, format, categories, series, categoryTotals, records }
 }

@@ -463,7 +463,7 @@ export default function InvoicesPage() {
           if (column.key === "amount") {
             return (
               <td key={column.key} className={baseTd}>
-                <span className="inline-flex h-[24px] items-center whitespace-nowrap rounded-none bg-green-50 px-[10px] text-[12px] font-medium text-green-700">{formatCurrency(invoice.total)}</span>
+                <span className="inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] bg-green-50 px-[10px] text-[12px] font-medium text-green-700">{formatCurrency(invoice.total)}</span>
               </td>
             )
           }
@@ -525,14 +525,14 @@ export default function InvoicesPage() {
         actions={
           <div className="flex items-center gap-[6px]">
             {xeroStatus?.connected ? (
-              <span className="flex items-center gap-[5px] rounded-none border border-[#cfe8da] bg-[#e7f5ec] px-[8px] py-[4px] text-[12px] font-medium text-[#1a7f43]">
+              <span className="flex items-center gap-[5px] rounded-[6px] border border-[#cfe8da] bg-[#e7f5ec] px-[8px] py-[4px] text-[12px] font-medium text-[#1a7f43]">
                 <CircleDot className="h-[12px] w-[12px]" strokeWidth={2} />
                 Xero connected
               </span>
             ) : (
               <a
                 href={connectUrl}
-                className="flex items-center gap-[5px] rounded-none border border-folk-border px-[8px] py-[4px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+                className="flex items-center gap-[5px] rounded-[6px] border border-folk-border px-[8px] py-[4px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                 tabIndex={0}
               >
                 <Link2 className="h-[12px] w-[12px]" strokeWidth={1.75} />
@@ -543,7 +543,7 @@ export default function InvoicesPage() {
               type="button"
               onClick={() => exportAllToCsv(sortedInvoices)}
               disabled={sortedInvoices.length === 0}
-              className="flex items-center gap-[5px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex items-center gap-[5px] rounded-[6px] border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover disabled:cursor-not-allowed disabled:opacity-40"
               tabIndex={0}
               aria-label="Export invoices to CSV"
             >
@@ -555,7 +555,7 @@ export default function InvoicesPage() {
       />
 
       <div className={listViewFilterBarClass("flex-nowrap")}>
-        <div className="flex items-center gap-[2px] rounded-none border border-folk-border p-[2px]">
+        <div className="flex items-center gap-[2px] rounded-[6px] border border-folk-border p-[2px]">
           {([
             { key: "list" as const, label: "List", icon: Table2 },
             { key: "batches" as const, label: "Batches", icon: AlignLeft },
@@ -564,7 +564,7 @@ export default function InvoicesPage() {
               key={key}
               type="button"
               onClick={() => setInvoiceView(key)}
-              className={`flex items-center gap-[5px] rounded-none px-[8px] py-[3px] text-[12px] font-medium transition-colors ${
+              className={`flex items-center gap-[5px] rounded-[6px] px-[8px] py-[3px] text-[12px] font-medium transition-colors ${
                 invoiceView === key ? "bg-folk-hover text-folk-text" : "text-folk-secondary hover:text-folk-text"
               }`}
               tabIndex={0}
@@ -591,7 +591,7 @@ export default function InvoicesPage() {
           {isFilterMenuOpen && (
             <>
               <div className="fixed inset-0 z-[55]" onClick={() => setIsFilterMenuOpen(false)} />
-              <div className="absolute left-0 top-full z-[60] mt-[4px] w-[180px] rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk">
+              <div className="absolute left-0 top-full z-[60] mt-[4px] w-[180px] rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk">
                 <p className="px-[16px] py-[6px] text-[11px] font-medium text-folk-secondary">Filter by</p>
                 {[
                   { key: "date", label: "Date", icon: CalendarDays },
@@ -675,7 +675,7 @@ export default function InvoicesPage() {
           {isPageSizeOpen && (
             <>
               <div className="fixed inset-0 z-[55]" onClick={() => setIsPageSizeOpen(false)} />
-              <div className="absolute right-0 top-full z-[60] mt-[4px] w-[120px] rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk">
+              <div className="absolute right-0 top-full z-[60] mt-[4px] w-[120px] rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk">
                 {[10, 20, 50, 100].map((size) => (
                   <button
                     key={size}
@@ -929,7 +929,7 @@ export default function InvoicesPage() {
         <>
           <div className="fixed inset-0 z-[69]" onClick={() => setViewContextMenu(null)} />
           <div
-            className="fixed z-[70] min-w-[160px] rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-[0_6px_20px_rgba(0,0,0,0.12)]"
+            className="fixed z-[70] min-w-[160px] rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-[0_6px_20px_rgba(0,0,0,0.12)]"
             style={{ left: viewContextMenu.x, top: viewContextMenu.y }}
           >
             <button
@@ -959,7 +959,7 @@ export default function InvoicesPage() {
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-[16px]">
             <div className="absolute inset-0 bg-black/20" onClick={() => setSelectedInvoiceId(null)} />
-            <div className="relative z-10 flex h-[680px] max-h-[calc(100vh-32px)] w-[960px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[20px] border border-[#d9d9d9] bg-folk-surface shadow-[0_12px_40px_rgba(0,0,0,0.12)] max-md:h-full max-md:max-h-full max-md:w-full max-md:max-w-full max-md:rounded-none">
+            <div className="relative z-10 flex h-[680px] max-h-[calc(100vh-32px)] w-[960px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[20px] border border-[#d9d9d9] bg-folk-surface shadow-[0_12px_40px_rgba(0,0,0,0.12)] max-md:h-full max-md:max-h-full max-md:w-full max-md:max-w-full max-md:rounded-[6px]">
               <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[minmax(0,1fr)_320px]">
                 <div className="flex min-h-0 flex-col px-[28px] py-[22px]">
                   <div className="flex items-center gap-[6px] text-[11px] font-medium uppercase tracking-[0.03em] text-folk-placeholder">
@@ -967,17 +967,17 @@ export default function InvoicesPage() {
                     <span>Invoice</span>
                   </div>
 
-                  <div className="mt-[14px] rounded-none bg-folk-page px-[12px] py-[10px]">
+                  <div className="mt-[14px] rounded-[6px] bg-folk-page px-[12px] py-[10px]">
                     <div className="flex items-center gap-[10px]">
                       <span className="text-[18px] font-semibold text-folk-text">{invoice.invoiceNumber}</span>
-                      <span className={`inline-flex h-[24px] items-center whitespace-nowrap rounded-none px-[10px] text-[12px] font-medium ${getInvoiceStatusClasses(invoice)}`}>
+                      <span className={`inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] px-[10px] text-[12px] font-medium ${getInvoiceStatusClasses(invoice)}`}>
                         {getInvoiceStatusLabel(invoice)}
                       </span>
                     </div>
                   </div>
 
                   <div className="mt-[14px] flex-1 overflow-y-auto text-[14px] leading-[1.6] text-[#4b4b4b]">
-                    <div className="rounded-none border border-folk-border">
+                    <div className="rounded-[6px] border border-folk-border">
                       <div className="grid grid-cols-[1fr_80px_80px_90px] border-b border-folk-border px-[12px] py-[8px]">
                         <span className="text-[11px] font-medium uppercase tracking-wide text-folk-secondary">Item</span>
                         <span className="text-right text-[11px] font-medium uppercase tracking-wide text-folk-secondary">Qty</span>
@@ -1013,7 +1013,7 @@ export default function InvoicesPage() {
                     </div>
 
                     {invoice.notes && (
-                      <div className="mt-[16px] rounded-none bg-folk-page px-[12px] py-[10px]">
+                      <div className="mt-[16px] rounded-[6px] bg-folk-page px-[12px] py-[10px]">
                         <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-folk-placeholder">Notes</div>
                         <p className="mt-[4px] text-[13px] leading-[1.5] text-[#4b4b4b]">{invoice.notes}</p>
                       </div>
@@ -1024,7 +1024,7 @@ export default function InvoicesPage() {
                     <button
                       type="button"
                       onClick={() => exportInvoiceToCsv(invoice)}
-                      className="flex items-center gap-[5px] rounded-none border border-folk-border bg-folk-surface px-[10px] py-[5px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+                      className="flex items-center gap-[5px] rounded-[6px] border border-folk-border bg-folk-surface px-[10px] py-[5px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                       tabIndex={0}
                       aria-label="Export invoice to CSV"
                     >
@@ -1036,7 +1036,7 @@ export default function InvoicesPage() {
                         type="button"
                         onClick={() => handlePushToXero(invoice)}
                         disabled={pushingInvoiceId === invoice.id}
-                        className="flex items-center gap-[5px] rounded-none border border-folk-border bg-folk-surface px-[10px] py-[5px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover disabled:opacity-50"
+                        className="flex items-center gap-[5px] rounded-[6px] border border-folk-border bg-folk-surface px-[10px] py-[5px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover disabled:opacity-50"
                         tabIndex={0}
                         aria-label="Push invoice to Xero"
                       >
@@ -1052,7 +1052,7 @@ export default function InvoicesPage() {
                             const creditNote = await createCreditNote(invoice)
                             if (creditNote) setSelectedInvoiceId(creditNote.id)
                           }}
-                          className="flex items-center gap-[5px] rounded-none border border-folk-border bg-folk-surface px-[10px] py-[5px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+                          className="flex items-center gap-[5px] rounded-[6px] border border-folk-border bg-folk-surface px-[10px] py-[5px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                           tabIndex={0}
                           aria-label="Issue credit note"
                         >
@@ -1061,7 +1061,7 @@ export default function InvoicesPage() {
                         <button
                           type="button"
                           onClick={() => voidInvoice(invoice.id)}
-                          className="flex items-center gap-[5px] rounded-none border border-[#e7caca] bg-folk-surface px-[10px] py-[5px] text-[12px] font-medium text-[#cf5b5b] transition-colors hover:bg-[#faf5f5]"
+                          className="flex items-center gap-[5px] rounded-[6px] border border-[#e7caca] bg-folk-surface px-[10px] py-[5px] text-[12px] font-medium text-[#cf5b5b] transition-colors hover:bg-[#faf5f5]"
                           tabIndex={0}
                           aria-label="Void invoice"
                         >
@@ -1072,7 +1072,7 @@ export default function InvoicesPage() {
                     <button
                       type="button"
                       onClick={() => setSelectedInvoiceId(null)}
-                      className="ml-auto flex items-center gap-[5px] rounded-none border border-folk-border bg-folk-surface px-[10px] py-[5px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+                      className="ml-auto flex items-center gap-[5px] rounded-[6px] border border-folk-border bg-folk-surface px-[10px] py-[5px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                       tabIndex={0}
                     >
                       Done
@@ -1085,7 +1085,7 @@ export default function InvoicesPage() {
                     <button
                       type="button"
                       onClick={() => setSelectedInvoiceId(null)}
-                      className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+                      className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
                       tabIndex={0}
                       aria-label="Close"
                     >
@@ -1151,14 +1151,14 @@ function FilterPill({
   buttonRef: (element: HTMLButtonElement | null) => void
 }) {
   return (
-    <div className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text">
+    <div className="flex items-center gap-[6px] rounded-[6px] border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text">
       <Icon className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} />
       <button ref={buttonRef} onClick={onOpen} className="hover:underline" tabIndex={0}>
         {label}
       </button>
       <span className="text-folk-secondary">is</span>
       <span>{count} {count === 1 ? "value" : "values"}</span>
-      <button onClick={onClear} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label={`Clear ${label.toLowerCase()} filter`}>
+      <button onClick={onClear} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label={`Clear ${label.toLowerCase()} filter`}>
         <X className="h-[12px] w-[12px]" strokeWidth={1.5} />
       </button>
     </div>
@@ -1185,7 +1185,7 @@ function MultiSelectDropdown({
   style: CSSProperties
 }) {
   return (
-    <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk" style={style}>
+    <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk" style={style}>
       <button onClick={onBack} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0}>
         <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
         <span>Back</span>
@@ -1209,7 +1209,7 @@ function MultiSelectDropdown({
       })}
       {items.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-folk-secondary">{emptyLabel}</p>}
       <div className="border-t border-folk-border-subtle px-[8px] py-[4px]">
-        <button onClick={onClear} className="w-full rounded-none px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>
+        <button onClick={onClear} className="w-full rounded-[6px] px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>
           Clear
         </button>
       </div>

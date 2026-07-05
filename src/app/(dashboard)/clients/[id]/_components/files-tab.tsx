@@ -145,7 +145,7 @@ export function FilesTab({
             {isAddNewOpen && (
               <>
                 <div className="fixed inset-0 z-[29]" onClick={() => setIsAddNewOpen(false)} />
-                <div className="absolute right-0 top-full z-[30] mt-[4px] w-[180px] rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk">
+                <div className="absolute right-0 top-full z-[30] mt-[4px] w-[180px] rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk">
                   <button
                     onClick={handleCreateDocument}
                     className="flex w-full items-center gap-[8px] px-[12px] py-[8px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
@@ -181,7 +181,7 @@ export function FilesTab({
               if (e.key === "Escape") { setNewFolderName(""); setIsNewFolderOpen(false) }
             }}
             placeholder="Folder name"
-            className="min-w-0 flex-1 rounded-none border border-[#a3c4f3] bg-folk-surface px-[8px] py-[4px] text-[13px] font-medium text-folk-text outline-none shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
+            className="min-w-0 flex-1 rounded-[6px] border border-[#a3c4f3] bg-folk-surface px-[8px] py-[4px] text-[13px] font-medium text-folk-text outline-none shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
           />
           <button
             onClick={handleCreateFolder}
@@ -192,7 +192,7 @@ export function FilesTab({
           </button>
           <button
             onClick={() => { setNewFolderName(""); setIsNewFolderOpen(false) }}
-            className="rounded-none p-[4px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+            className="rounded-[6px] p-[4px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
             tabIndex={0}
             aria-label="Cancel"
           >
@@ -226,7 +226,7 @@ export function FilesTab({
                         setCurrentPath(folder.path)
                       }
                     }}
-                    className="group flex cursor-pointer flex-col rounded-none border border-[#d9d9d9] bg-folk-surface p-[16px] text-left transition-all hover:border-folk-border hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+                    className="group flex cursor-pointer flex-col rounded-[6px] border border-[#d9d9d9] bg-folk-surface p-[16px] text-left transition-all hover:border-folk-border hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
                     tabIndex={0}
                   >
                     <div className="flex items-start justify-between">
@@ -236,7 +236,7 @@ export function FilesTab({
                         itemName={folder.name}
                         confirmTitle="Delete folder"
                         stopPropagation
-                        buttonClassName="rounded-none p-[4px] text-folk-secondary opacity-0 transition-all hover:bg-[#ebebeb] hover:text-folk-secondary group-hover:opacity-100"
+                        buttonClassName="rounded-[6px] p-[4px] text-folk-secondary opacity-0 transition-all hover:bg-[#ebebeb] hover:text-folk-secondary group-hover:opacity-100"
                         ariaLabel={`Actions for ${folder.name}`}
                       />
                     </div>
@@ -250,7 +250,7 @@ export function FilesTab({
                 return (
                   <div
                     key={doc.id}
-                    className="group flex flex-col rounded-none border border-[#d9d9d9] bg-folk-surface p-[16px] transition-all hover:border-folk-border hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+                    className="group flex flex-col rounded-[6px] border border-[#d9d9d9] bg-folk-surface p-[16px] transition-all hover:border-folk-border hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
                   >
                     <div className="flex items-start justify-between">
                       <DocIcon className="h-[20px] w-[20px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
@@ -259,7 +259,7 @@ export function FilesTab({
                           <button
                             type="button"
                             onClick={() => onPreviewDoc(doc)}
-                            className="rounded-none p-[4px] text-folk-secondary transition-colors hover:bg-[#eee] hover:text-folk-text"
+                            className="rounded-[6px] p-[4px] text-folk-secondary transition-colors hover:bg-[#eee] hover:text-folk-text"
                             tabIndex={0}
                             aria-label={`Preview ${doc.name}`}
                           >
@@ -269,7 +269,7 @@ export function FilesTab({
                         <button
                           type="button"
                           onClick={() => onDownloadDoc(doc)}
-                          className="rounded-none p-[4px] text-folk-secondary transition-colors hover:bg-[#eee] hover:text-folk-text"
+                          className="rounded-[6px] p-[4px] text-folk-secondary transition-colors hover:bg-[#eee] hover:text-folk-text"
                           tabIndex={0}
                           aria-label={`Download ${doc.name}`}
                         >
@@ -279,7 +279,7 @@ export function FilesTab({
                           onDelete={() => onDeleteDocument(doc)}
                           itemName={doc.name}
                           confirmTitle="Delete document"
-                          buttonClassName="rounded-none p-[4px] text-folk-secondary transition-colors hover:bg-[#ebebeb] hover:text-folk-secondary"
+                          buttonClassName="rounded-[6px] p-[4px] text-folk-secondary transition-colors hover:bg-[#ebebeb] hover:text-folk-secondary"
                           ariaLabel={`Actions for ${doc.name}`}
                         />
                       </div>
@@ -345,7 +345,7 @@ export function FilesTab({
                             onDelete={() => onDeleteFile(folder.path)}
                             itemName={folder.name}
                             confirmTitle="Delete folder"
-                            buttonClassName="rounded-none p-[4px] text-folk-secondary transition-colors hover:bg-[#ebebeb] hover:text-folk-secondary"
+                            buttonClassName="rounded-[6px] p-[4px] text-folk-secondary transition-colors hover:bg-[#ebebeb] hover:text-folk-secondary"
                             ariaLabel={`Actions for ${folder.name}`}
                           />
                         </div>
@@ -377,7 +377,7 @@ export function FilesTab({
                           {onPreviewDoc && (
                             <button
                               onClick={() => onPreviewDoc(doc)}
-                              className="rounded-none p-[4px] text-folk-secondary transition-colors hover:bg-[#eee] hover:text-folk-text"
+                              className="rounded-[6px] p-[4px] text-folk-secondary transition-colors hover:bg-[#eee] hover:text-folk-text"
                               tabIndex={0}
                               aria-label={`Preview ${doc.name}`}
                             >
@@ -386,7 +386,7 @@ export function FilesTab({
                           )}
                           <button
                             onClick={() => onDownloadDoc(doc)}
-                            className="rounded-none p-[4px] text-folk-secondary transition-colors hover:bg-[#eee] hover:text-folk-text"
+                            className="rounded-[6px] p-[4px] text-folk-secondary transition-colors hover:bg-[#eee] hover:text-folk-text"
                             tabIndex={0}
                             aria-label={`Download ${doc.name}`}
                           >
@@ -396,7 +396,7 @@ export function FilesTab({
                             onDelete={() => onDeleteDocument(doc)}
                             itemName={doc.name}
                             confirmTitle="Delete document"
-                            buttonClassName="rounded-none p-[4px] text-folk-secondary transition-colors hover:bg-[#ebebeb] hover:text-folk-secondary"
+                            buttonClassName="rounded-[6px] p-[4px] text-folk-secondary transition-colors hover:bg-[#ebebeb] hover:text-folk-secondary"
                             ariaLabel={`Actions for ${doc.name}`}
                           />
                         </div>

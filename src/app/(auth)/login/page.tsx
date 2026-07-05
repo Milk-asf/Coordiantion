@@ -42,7 +42,7 @@ function LoginForm() {
               autoComplete="email"
               placeholder="you@company.com"
               required
-              className="h-[40px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
+              className="h-[40px] w-full rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
             />
           </div>
 
@@ -55,7 +55,7 @@ function LoginForm() {
                 autoComplete="current-password"
                 placeholder="••••••••"
                 required
-                className="h-[40px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] pr-[40px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
+                className="h-[40px] w-full rounded-[6px] border border-folk-border bg-folk-page px-[12px] pr-[40px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
               />
               <button
                 type="button"
@@ -70,7 +70,7 @@ function LoginForm() {
           </div>
 
           {error && (
-            <p className="rounded-none bg-red-50 px-[12px] py-[8px] text-[13px] font-medium text-red-600">
+            <p className="rounded-[6px] bg-red-50 px-[12px] py-[8px] text-[13px] font-medium text-red-600">
               {error}
             </p>
           )}
@@ -78,15 +78,18 @@ function LoginForm() {
           <button
             type="submit"
             disabled={isPending}
-            className="h-[40px] w-full rounded-none bg-[#1a1a1a] text-[13px] font-medium text-white transition-colors hover:bg-[#3d3d3d] disabled:opacity-50"
+            className="h-[40px] w-full rounded-[6px] bg-[#1a1a1a] text-[13px] font-medium text-white transition-colors hover:bg-[#3d3d3d] disabled:opacity-50"
           >
             {isPending ? "Signing in..." : "Sign in"}
           </button>
         </form>
 
-        <div className="mt-[16px] text-center">
+        <div className="mt-[16px] flex items-center justify-center gap-[16px] text-center">
           <Link href="/reset-password" className="text-[13px] font-medium text-folk-secondary underline underline-offset-2 transition-colors hover:text-folk-text">
             Forgot your password?
+          </Link>
+          <Link href="/login/sso" className="text-[13px] font-medium text-folk-secondary underline underline-offset-2 transition-colors hover:text-folk-text">
+            Use single sign-on
           </Link>
         </div>
 

@@ -70,7 +70,7 @@ export function DocumentSidebarForm({
         <button
           type="button"
           onClick={onClose}
-          className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+          className="flex h-[24px] w-[24px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
           tabIndex={0}
           aria-label="Close document form"
         >
@@ -95,18 +95,18 @@ export function DocumentSidebarForm({
           />
 
           <div className="mb-[14px]">
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Name</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => onSetName(e.target.value)}
               placeholder="Document name (optional)"
-              className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none transition-colors placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
+              className="h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium text-folk-text outline-none transition-colors placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
             />
           </div>
 
           <div className="mb-[14px]">
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Valid from</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Valid from</label>
             <div className="relative">
               <button
                 ref={validFromTriggerRef}
@@ -115,7 +115,7 @@ export function DocumentSidebarForm({
                   onSetValidFromPickerOpen(!validFromPickerOpen)
                   onSetValidToPickerOpen(false)
                 }}
-                className="flex h-[36px] w-full items-center gap-[8px] rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium transition-colors hover:border-[#bababa] focus:border-[#a3c4f3]"
+                className="flex h-[36px] w-full items-center gap-[8px] rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium transition-colors hover:border-[#bababa] focus:border-[#a3c4f3]"
                 tabIndex={0}
               >
                 <CalendarDays className="h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
@@ -129,7 +129,7 @@ export function DocumentSidebarForm({
                 <button
                   type="button"
                   onClick={() => onSetValidFrom("")}
-                  className="absolute right-[10px] top-1/2 -translate-y-1/2 rounded-none p-[2px] text-folk-placeholder transition-colors hover:bg-[#eee] hover:text-folk-secondary"
+                  className="absolute right-[10px] top-1/2 -translate-y-1/2 rounded-[6px] p-[2px] text-folk-placeholder transition-colors hover:bg-[#eee] hover:text-folk-secondary"
                   tabIndex={0}
                   aria-label="Clear valid from date"
                 >
@@ -152,7 +152,7 @@ export function DocumentSidebarForm({
           </div>
 
           <div className="mb-[14px]">
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Valid to</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Valid to</label>
             <div className="relative">
               <button
                 ref={validToTriggerRef}
@@ -161,7 +161,7 @@ export function DocumentSidebarForm({
                   onSetValidToPickerOpen(!validToPickerOpen)
                   onSetValidFromPickerOpen(false)
                 }}
-                className="flex h-[36px] w-full items-center gap-[8px] rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium transition-colors hover:border-[#bababa] focus:border-[#a3c4f3]"
+                className="flex h-[36px] w-full items-center gap-[8px] rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium transition-colors hover:border-[#bababa] focus:border-[#a3c4f3]"
                 tabIndex={0}
               >
                 <CalendarDays className="h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
@@ -175,7 +175,7 @@ export function DocumentSidebarForm({
                 <button
                   type="button"
                   onClick={() => onSetValidTo("")}
-                  className="absolute right-[10px] top-1/2 -translate-y-1/2 rounded-none p-[2px] text-folk-placeholder transition-colors hover:bg-[#eee] hover:text-folk-secondary"
+                  className="absolute right-[10px] top-1/2 -translate-y-1/2 rounded-[6px] p-[2px] text-folk-placeholder transition-colors hover:bg-[#eee] hover:text-folk-secondary"
                   tabIndex={0}
                   aria-label="Clear valid to date"
                 >
@@ -201,17 +201,17 @@ export function DocumentSidebarForm({
           </div>
 
           <div>
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">
               Attachment{isEditing ? "" : " *"}
             </label>
             {file ? (
-              <div className="flex items-center gap-[8px] rounded-none border border-folk-border bg-folk-page px-[12px] py-[8px]">
+              <div className="flex items-center gap-[8px] rounded-[6px] border border-folk-border bg-folk-page px-[12px] py-[8px]">
                 <FileText className="h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
                 <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-folk-text">{file.name}</span>
                 <button
                   type="button"
                   onClick={() => onSetFile(null)}
-                  className="shrink-0 rounded-none p-[2px] text-folk-secondary transition-colors hover:bg-[#eee] hover:text-folk-text"
+                  className="shrink-0 rounded-[6px] p-[2px] text-folk-secondary transition-colors hover:bg-[#eee] hover:text-folk-text"
                   tabIndex={0}
                   aria-label="Remove attachment"
                 >
@@ -219,14 +219,14 @@ export function DocumentSidebarForm({
                 </button>
               </div>
             ) : isEditing && existingDocumentName ? (
-              <div className="flex items-center gap-[8px] rounded-none border border-folk-border bg-folk-page px-[12px] py-[8px]">
+              <div className="flex items-center gap-[8px] rounded-[6px] border border-folk-border bg-folk-page px-[12px] py-[8px]">
                 <FileText className="h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
                 <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-folk-text">{existingDocumentName}</span>
                 {onPreview && (
                   <button
                     type="button"
                     onClick={onPreview}
-                    className="flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-[#eee] hover:text-folk-text"
+                    className="flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-[#eee] hover:text-folk-text"
                     tabIndex={0}
                     aria-label="Preview document"
                   >
@@ -238,7 +238,7 @@ export function DocumentSidebarForm({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex w-full items-center justify-center gap-[6px] rounded-none border border-dashed border-folk-border bg-folk-page px-[12px] py-[10px] text-[12px] font-medium text-folk-secondary transition-colors hover:border-[#bbb] hover:bg-[var(--folk-border-subtle)]"
+                className="flex w-full items-center justify-center gap-[6px] rounded-[6px] border border-dashed border-folk-border bg-folk-page px-[12px] py-[10px] text-[12px] font-medium text-folk-secondary transition-colors hover:border-[#bbb] hover:bg-[var(--folk-border-subtle)]"
                 tabIndex={0}
               >
                 <Upload className="h-[14px] w-[14px]" strokeWidth={1.5} />
@@ -269,7 +269,7 @@ export function DocumentSidebarForm({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-none border border-folk-border bg-folk-surface px-[12px] py-[6px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+          className="rounded-[6px] border border-folk-border bg-folk-surface px-[12px] py-[6px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
           tabIndex={0}
         >
           Cancel
@@ -278,7 +278,7 @@ export function DocumentSidebarForm({
           type="button"
           onClick={onSave}
           disabled={!canSave || isSaving}
-          className="primary-btn px-[12px] py-[6px] text-[12px] font-medium transition-colors disabled:opacity-50"
+          className="primary-btn folk-pill-btn h-[32px] px-[14px] text-[13px] font-medium transition-colors disabled:opacity-50"
           tabIndex={0}
         >
           {isSaving ? "Saving…" : "Save and close"}

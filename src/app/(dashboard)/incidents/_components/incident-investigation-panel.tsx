@@ -66,7 +66,7 @@ export function IncidentInvestigationPanel({
 
 export function investigationPanelButtonClass(isActive: boolean) {
   return cn(
-    "rounded-none border px-[10px] py-[6px] text-[13px] font-medium transition-colors",
+    "rounded-[6px] border px-[10px] py-[6px] text-[13px] font-medium transition-colors",
     isActive
       ? "border-folk-border bg-folk-hover text-folk-text"
       : "border-folk-border bg-folk-surface text-folk-text hover:bg-folk-hover"

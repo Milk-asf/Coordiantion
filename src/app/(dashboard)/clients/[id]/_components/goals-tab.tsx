@@ -94,7 +94,7 @@ export function GoalsTab({ goals, onAddNew, onEditGoal }: GoalsTabProps) {
                       <span className={getGoalTypeChipClasses(goal.goalType)}>{type.label}</span>
                     </td>
                     <td className={TABLE_PANEL_CELL}>
-                      <span className={`inline-flex h-[24px] items-center whitespace-nowrap rounded-none px-[12px] text-[12px] font-medium ${status.chip}`}>{status.label}</span>
+                      <span className={`inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] px-[12px] text-[12px] font-medium ${status.chip}`}>{status.label}</span>
                     </td>
                     <td className={`${TABLE_PANEL_CELL_LAST} ${TABLE_PANEL_TEXT}`}>{linkedLabel}</td>
                   </tr>

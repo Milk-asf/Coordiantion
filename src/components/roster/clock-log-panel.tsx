@@ -8,7 +8,9 @@ import { IconButton } from "@/components/icon-button"
 import { mapsUrlForCoordinates } from "@/lib/geolocation"
 import { useStaff } from "@/lib/staff-context"
 import { useTimesheets } from "@/lib/timesheets-context"
-import { CLOCK_EVENT_LABELS, type ClockEvent } from "@/lib/timesheets/types"
+import { usePermissions } from "@/lib/hooks/use-permissions"
+import { CLOCK_EVENT_LABELS, type ClockEvent, type ClockEventType } from "@/lib/timesheets/types"
+import { getToneChipClasses } from "@/lib/chip-colors"
 import {
   TABLE_CELL_BASE,
   TABLE_CELL_INNER,
@@ -40,10 +42,13 @@ function resolveStaffName(event: ClockEvent, staffNameById: Map<string, string>)
   return event.submittedByName.trim() || "Unknown"
 }
 
-function eventChipClass(eventType: ClockEvent["eventType"]): string {
-  return eventType === "clock_on"
-    ? "border-[#bbf7d0] bg-[#f0fdf4] text-[#15803d]"
-    : "border-[#fecaca] bg-[#fef2f2] text-[#b91c1c]"
+function ClockEventChip({ eventType }: { eventType: ClockEventType }) {
+  const tone = eventType === "clock_on" ? "green" : "rose"
+  return (
+    <span className={getToneChipClasses(tone, "md")}>
+      {CLOCK_EVENT_LABELS[eventType]}
+    </span>
+  )
 }
 
 interface ClockLogPanelProps {
@@ -54,8 +59,9 @@ interface ClockLogPanelProps {
 }
 
 export function ClockLogPanel({ isOpen, onClose, periodStart, periodEnd }: ClockLogPanelProps) {
-  const { clockEvents, isLoading } = useTimesheets()
+  const { clockEvents, isLoading, currentStaffId } = useTimesheets()
   const { staff } = useStaff()
+  const { isSupportWorker } = usePermissions()
 
   const staffNameById = useMemo(
     () => new Map(staff.map((member) => [member.id, member.name])),
@@ -63,7 +69,10 @@ export function ClockLogPanel({ isOpen, onClose, periodStart, periodEnd }: Clock
   )
 
   const filteredEvents = useMemo(() => {
-    let events = clockEvents
+    // Support workers only ever see their own clock records.
+    let events = isSupportWorker
+      ? clockEvents.filter((event) => Boolean(currentStaffId) && event.staffId === currentStaffId)
+      : clockEvents
     if (periodStart) {
       events = events.filter((event) => event.recordedAt.slice(0, 10) >= periodStart)
     }
@@ -71,7 +80,7 @@ export function ClockLogPanel({ isOpen, onClose, periodStart, periodEnd }: Clock
       events = events.filter((event) => event.recordedAt.slice(0, 10) <= periodEnd)
     }
     return events
-  }, [clockEvents, periodEnd, periodStart])
+  }, [clockEvents, currentStaffId, isSupportWorker, periodEnd, periodStart])
 
   if (!isOpen) return null
 
@@ -105,7 +114,7 @@ export function ClockLogPanel({ isOpen, onClose, periodStart, periodEnd }: Clock
             <thead className="sticky top-0 z-[1]">
               <tr>
                 <th className={TABLE_HEADER_CELL}>Staff</th>
-                <th className={TABLE_HEADER_CELL}>Event</th>
+                <th className={cn(TABLE_HEADER_CELL, "min-w-[92px]")}>Event</th>
                 <th className={TABLE_HEADER_CELL}>Time</th>
                 <th className={TABLE_HEADER_CELL_LAST}>Location</th>
               </tr>
@@ -118,16 +127,9 @@ export function ClockLogPanel({ isOpen, onClose, periodStart, periodEnd }: Clock
                       <span className={TABLE_TEXT_CELL}>{resolveStaffName(event, staffNameById)}</span>
                     </div>
                   </td>
-                  <td className={TABLE_CELL_BASE}>
+                  <td className={cn(TABLE_CELL_BASE, "min-w-[92px]")}>
                     <div className={TABLE_CELL_INNER}>
-                      <span
-                        className={cn(
-                          "inline-flex h-[20px] items-center rounded-none border px-[8px] text-[11px] font-medium",
-                          eventChipClass(event.eventType),
-                        )}
-                      >
-                        {CLOCK_EVENT_LABELS[event.eventType]}
-                      </span>
+                      <ClockEventChip eventType={event.eventType} />
                     </div>
                   </td>
                   <td className={TABLE_CELL_BASE}>

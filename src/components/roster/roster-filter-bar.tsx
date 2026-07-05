@@ -3,6 +3,7 @@
 import { useRef } from "react"
 import {
   Building2,
+  Calendar,
   CalendarDays,
   CalendarRange,
   ChevronLeft,
@@ -23,17 +24,18 @@ import { cn } from "@/lib/utils"
 
 const dropdownBackdropClass = "fixed inset-0 z-[199]"
 const dropdownPanelClass =
-  "fixed z-[200] rounded-none border border-folk-border bg-folk-surface shadow-folk"
+  "fixed z-[200] rounded-[6px] border border-folk-border bg-folk-surface shadow-folk"
 
 const VIEW_MODE_OPTIONS = [
   { key: "week" as const, label: "Week", Icon: CalendarRange },
   { key: "day" as const, label: "Day", Icon: CalendarDays },
   { key: "table" as const, label: "Table", Icon: Table2 },
+  { key: "year" as const, label: "Year", Icon: Calendar },
 ]
 
 const viewModeCardClass = (isActive: boolean) =>
   cn(
-    "flex flex-1 flex-col items-center justify-center gap-[6px] rounded-none border py-[14px] transition-colors",
+    "flex flex-1 flex-col items-center justify-center gap-[6px] rounded-[6px] border py-[14px] transition-colors",
     isActive
       ? "border-[#bababa] bg-folk-surface text-folk-text shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
       : "border-transparent bg-folk-page text-folk-secondary hover:bg-[var(--folk-border-subtle)]"
@@ -61,12 +63,27 @@ export function RosterPageHeader({
   onCreateShift,
 }: RosterPageHeaderProps) {
   const isDayView = viewMode === "day"
-  const previousLabel = isDayView ? "Previous day" : "Previous week"
-  const nextLabel = isDayView ? "Next day" : "Next week"
+  const previousLabel =
+    viewMode === "year" ? "Previous year" : isDayView ? "Previous day" : "Previous week"
+  const nextLabel = viewMode === "year" ? "Next year" : isDayView ? "Next day" : "Next week"
 
   return (
     <>
-      <PageTitleBar title="Roster" />
+      <PageTitleBar
+        title="Roster"
+        trailing={
+          <button
+            type="button"
+            onClick={onCreateShift}
+            className={folkPrimaryAddBtnClass()}
+            tabIndex={0}
+            aria-label="Add shift"
+          >
+            <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+            <span className="hidden sm:inline">Add shift</span>
+          </button>
+        }
+      />
       {/* Toolbar */}
       <div className="relative z-50 flex h-[44px] shrink-0 items-center justify-end gap-[8px] border-b border-folk-border-subtle bg-white px-[16px]">
         <div className="relative z-[2] flex shrink-0 items-center gap-[8px]">
@@ -113,16 +130,6 @@ export function RosterPageHeader({
         >
           Today
         </button>
-        <button
-          type="button"
-          onClick={onCreateShift}
-          className={folkPrimaryAddBtnClass()}
-          tabIndex={0}
-          aria-label="Add shift"
-        >
-          <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-          <span className="hidden sm:inline">Add shift</span>
-        </button>
         </div>
       </div>
     </>
@@ -142,7 +149,7 @@ function RosterAssigneeSwitch({
   onChange: (view: RosterAssigneeView) => void
 }) {
   return (
-    <div className="flex shrink-0 items-center gap-[2px]" role="group" aria-label="Roster view">
+    <div className="folk-tab-bar flex shrink-0 items-stretch self-stretch" role="group" aria-label="Roster view">
       {ASSIGNEE_VIEW_OPTIONS.map(({ key, label, Icon }) => (
         <ProfileTabButton
           key={key}

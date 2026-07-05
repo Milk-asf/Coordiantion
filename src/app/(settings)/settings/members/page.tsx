@@ -14,18 +14,22 @@ import { usePermissions } from "@/lib/hooks/use-permissions"
 import { useStaff } from "@/lib/hooks/use-staff"
 import { useWorkspace } from "@/lib/workspace-context"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
+import { SETTINGS_INPUT_CLASS, SETTINGS_LABEL_CLASS, SETTINGS_SECTION_CLASS, SettingsSelect } from "@/components/settings-ui"
 import type { WorkspaceMember } from "@/lib/types"
 
 type Role = WorkspaceMember["role"]
 
 const SUPER_ADMIN_EMAIL = "izakjosef@gmail.com"
 
+// Folk chip palette tones (see chip-colors.ts) so role chips match the app.
 const roleConfig: Record<Role, { label: string; description: string; color: string }> = {
-  "super-admin": { label: "Super Admin", description: "Full access. Can manage billing, members, and account settings.", color: "bg-purple-50 text-purple-600 border-purple-100" },
-  admin: { label: "Team Leader", description: "Can manage members, settings, and all data.", color: "bg-blue-50 text-blue-600 border-blue-100" },
-  coordinator: { label: "Coordinator", description: "Can view and edit assigned clients, own tasks, and contacts.", color: "bg-green-50 text-green-600 border-green-100" },
-  "support-worker": { label: "Support Worker", description: "Limited access to their roster, incidents, and assigned clients only.", color: "bg-amber-50 text-amber-600 border-amber-100" },
+  "super-admin": { label: "Super Admin", description: "Full access. Can manage billing, members, and account settings.", color: "bg-[#f3e5f5] text-[#7b1fa2] border-[#e1bee7]" },
+  admin: { label: "Team Leader", description: "Can manage members, settings, and all data.", color: "bg-[#e3f2fd] text-[#1565c0] border-[#bbdefb]" },
+  coordinator: { label: "Coordinator", description: "Can view and edit assigned clients, own tasks, and contacts.", color: "bg-[#e8f5e9] text-[#2e7d32] border-[#c8e6c9]" },
+  "support-worker": { label: "Support Worker", description: "Limited access to their roster, incidents, and assigned clients only.", color: "bg-[#fff8e1] text-[#f57f17] border-[#ffe082]" },
 }
+
+const roleChipFallback = "bg-[#eef2f6] text-[#334155] border-[#cfd8dc]"
 
 const allRoles: Role[] = ["super-admin", "admin", "coordinator", "support-worker"]
 
@@ -195,14 +199,14 @@ export default function MembersSettingsPage() {
         <>
           <div className="fixed inset-0 z-40 bg-black/20" onClick={() => setIsInviteOpen(false)} />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-[16px]">
-            <div className="w-full max-w-[420px] rounded-none border border-folk-border-subtle bg-folk-surface p-[24px] shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+            <div className="w-full max-w-[420px] rounded-[6px] border border-folk-border bg-folk-surface p-[24px] shadow-folk">
               <div className="mb-[16px] flex items-center justify-between">
                 <h2 className="text-[16px] font-bold text-folk-text">Invite a member</h2>
                 <button onClick={() => setIsInviteOpen(false)} className="icon-btn flex h-[28px] w-[28px] items-center justify-center text-folk-secondary" tabIndex={0} aria-label="Close">
                   <X className="h-[16px] w-[16px]" strokeWidth={1.75} />
                 </button>
               </div>
-              <label className="mb-[4px] block text-[13px] font-medium text-[#555]">Email address</label>
+              <label className={SETTINGS_LABEL_CLASS}>Email address</label>
               <input
                 ref={inviteInputRef}
                 type="email"
@@ -210,18 +214,18 @@ export default function MembersSettingsPage() {
                 onChange={(e) => setInviteEmail(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleInvite() }}
                 placeholder="colleague@example.com"
-                className="mb-[12px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] py-[9px] text-[14px] text-folk-text outline-none transition-colors focus:border-[#bbb]"
+                className={cn(SETTINGS_INPUT_CLASS, "mb-[12px]")}
               />
-              <label className="mb-[4px] block text-[13px] font-medium text-[#555]">Role</label>
-              <select
-                value={inviteRole}
-                onChange={(e) => setInviteRole(e.target.value as Role)}
-                className="mb-[16px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] py-[9px] text-[14px] text-folk-text outline-none transition-colors focus:border-[#bbb]"
-              >
-                {(isSuperAdmin ? allRoles : allRoles.filter((r) => r !== "super-admin")).map((r) => (
-                  <option key={r} value={r}>{roleConfig[r].label}</option>
-                ))}
-              </select>
+              <div className="mb-[16px]">
+                <SettingsSelect
+                  label="Role"
+                  value={roleConfig[inviteRole].label}
+                  options={(isSuperAdmin ? allRoles : allRoles.filter((r) => r !== "super-admin")).map((r) => roleConfig[r].label)}
+                  onChange={(label) =>
+                    setInviteRole(allRoles.find((r) => roleConfig[r].label === label) ?? "coordinator")
+                  }
+                />
+              </div>
               {inviteError && <p className="mb-[12px] text-[13px] text-red-500">{inviteError}</p>}
               <div className="flex justify-end gap-[8px]">
                 <Button variant="secondary" onClick={() => setIsInviteOpen(false)} className="px-[14px] py-[6px]">
@@ -241,7 +245,7 @@ export default function MembersSettingsPage() {
       )}
 
       {inviteWarning && (
-        <div className="mb-[12px] flex items-start justify-between gap-[12px] rounded-none border border-amber-100 bg-amber-50 px-[14px] py-[10px]">
+        <div className="mb-[12px] flex items-start justify-between gap-[12px] rounded-[6px] border border-amber-100 bg-amber-50 px-[14px] py-[10px]">
           <p className="text-[13px] text-amber-700">{inviteWarning}</p>
           <button
             onClick={() => setInviteWarning(null)}
@@ -268,8 +272,8 @@ export default function MembersSettingsPage() {
       </div>
 
       {/* Active members */}
-      <div className="overflow-hidden">
-        <div className="grid grid-cols-[1fr_120px_80px_48px] items-center border-b border-[#d9d9d9] px-[20px] py-[10px]">
+      <div className={cn(SETTINGS_SECTION_CLASS, "overflow-hidden")}>
+        <div className="grid grid-cols-[1fr_120px_80px_48px] items-center border-b border-folk-border-subtle px-[20px] py-[10px]">
           <span className="text-[12px] font-medium text-folk-secondary">Name</span>
           <span className="text-[12px] font-medium text-folk-secondary">Role</span>
           <span className="text-[12px] font-medium text-folk-secondary">Active</span>
@@ -313,8 +317,8 @@ export default function MembersSettingsPage() {
       {/* Deactivated members */}
       {deactivatedMembers.length > 0 && (
         <div className="mt-[28px]">
-          <h2 className="mb-[10px] text-[13px] font-semibold uppercase tracking-wide text-folk-secondary">Deactivated</h2>
-          <div className="overflow-hidden">
+          <h2 className="mb-[10px] text-[13px] font-semibold text-folk-text">Deactivated</h2>
+          <div className={cn(SETTINGS_SECTION_CLASS, "overflow-hidden")}>
             {deactivatedMembers.map((member) => (
               <MemberRow
                 key={member.id}
@@ -376,7 +380,7 @@ function MemberRow({
 
   return (
     <div className={cn(
-      "grid grid-cols-[1fr_120px_80px_48px] items-center border-b border-[#d9d9d9] px-[20px] py-[10px] transition-colors last:border-b-0",
+      "grid grid-cols-[1fr_120px_80px_48px] items-center border-b border-[#f5f5f5] px-[20px] py-[10px] transition-colors last:border-b-0",
       isDisabledRow ? "opacity-60" : "hover:bg-folk-hover"
     )}>
       <div className="flex items-center gap-[12px]">
@@ -387,7 +391,7 @@ function MemberRow({
         />
         <div className="min-w-0">
           <div className="flex items-center gap-[8px]">
-            <span className="truncate text-[14px] font-medium text-folk-text">
+            <span className="truncate text-[13px] font-medium text-folk-text">
               {displayName}
             </span>
             {(member.status === "pending" || member.status === "invited") && (
@@ -406,7 +410,7 @@ function MemberRow({
             onClick={onRoleToggle}
             className={cn(
               "flex items-center gap-[4px] rounded-full border px-[10px] py-[3px] text-[11px] font-medium transition-colors hover:opacity-80",
-              roleConfig[member.role as Role]?.color ?? "bg-gray-50 text-gray-600 border-gray-100"
+              roleConfig[member.role as Role]?.color ?? roleChipFallback
             )}
             tabIndex={0}
           >
@@ -415,8 +419,8 @@ function MemberRow({
           </button>
         ) : (
           <span className={cn(
-            "inline-flex rounded-none border px-[10px] py-[3px] text-[11px] font-medium",
-            isDisabledRow ? "bg-gray-50 text-[#ccc] border-gray-100" : (roleConfig[member.role as Role]?.color ?? "bg-gray-50 text-gray-600 border-gray-100")
+            "inline-flex rounded-full border px-[10px] py-[3px] text-[11px] font-medium",
+            isDisabledRow ? "border-folk-border-subtle bg-folk-hover text-folk-placeholder" : (roleConfig[member.role as Role]?.color ?? roleChipFallback)
           )}>
             {roleConfig[member.role as Role]?.label ?? member.role}
           </span>
@@ -425,7 +429,7 @@ function MemberRow({
         {isRoleOpen && canEditRole && (
           <>
             <div className="fixed inset-0 z-[9]" onClick={onRoleToggle} />
-            <div className="absolute left-0 top-full z-10 mt-[4px] w-[260px] rounded-none border border-folk-border-subtle bg-folk-surface py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+            <div className="absolute left-0 top-full z-10 mt-[4px] w-[260px] rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk-sm">
               {availableRoles.map((role) => (
                 <button
                   key={role}
@@ -438,7 +442,7 @@ function MemberRow({
                 >
                   <div className="flex items-center gap-[6px]">
                     <span className="text-[13px] font-medium text-folk-text">{roleConfig[role].label}</span>
-                    {member.role === role && <span className="text-[11px] text-blue-500">✓</span>}
+                    {member.role === role && <span className="text-[11px] text-folk-text">✓</span>}
                   </div>
                   <span className="text-[11px] text-folk-secondary">{roleConfig[role].description}</span>
                 </button>
@@ -472,7 +476,7 @@ function MemberRow({
             {isMenuOpen && (
               <>
                 <div className="fixed inset-0 z-[9]" onClick={onMenuToggle} />
-                <div className="absolute right-0 top-full z-10 mt-[4px] w-[160px] rounded-none border border-folk-border-subtle bg-folk-surface py-[4px] shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+                <div className="absolute right-0 top-full z-10 mt-[4px] w-[160px] rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk-sm">
                   {(member.status === "pending" || member.status === "invited") && (
                     <button
                       onClick={async () => {

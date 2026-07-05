@@ -48,7 +48,7 @@ import {
 } from "@/lib/table-styles"
 import { useToast } from "@/components/toast"
 import { ProfileTabButton } from "@/components/profile-tab-button"
-import { TableAddFooter, TableAddNewButton } from "@/components/table-add-row"
+import { TableAddFooterRow, TableAddNewButton } from "@/components/table-add-row"
 import { DisplayFieldList, TableDisplayPopover } from "@/components/display-popover"
 
 const allColumns = [
@@ -346,7 +346,19 @@ export default function ContactsPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <PageTitleBar title="Contacts" />
+      <PageTitleBar
+        title="Contacts"
+        trailing={
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="primary-btn folk-pill-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
+            tabIndex={0}
+          >
+            <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+            <span className="hidden sm:inline">Add new</span>
+          </button>
+        }
+      />
       {/* View tabs */}
       <div className="flex h-[44px] shrink-0 items-stretch justify-between gap-[8px] border-b border-folk-border bg-white px-[16px]">
         <div className={pageNavTabsScrollClass()}>
@@ -392,14 +404,6 @@ export default function ContactsPage() {
             data={exportCsvData}
             onImport={handleCsvImport}
           />
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="primary-btn folk-pill-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
-            tabIndex={0}
-          >
-            <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-            <span className="hidden sm:inline">Add new</span>
-          </button>
         </div>
       </div>
 
@@ -521,10 +525,10 @@ export default function ContactsPage() {
               )
             })}
           </tbody>
+          <TableAddFooterRow colSpan={visibleColumns.length} stickyFirst={false}>
+            <TableAddNewButton onClick={() => setIsModalOpen(true)} />
+          </TableAddFooterRow>
         </table>
-        <TableAddFooter>
-          <TableAddNewButton onClick={() => setIsModalOpen(true)} />
-        </TableAddFooter>
         {hasMore && (
           <div className="flex justify-center py-[16px]">
             <button
@@ -551,7 +555,7 @@ export default function ContactsPage() {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/20" onClick={() => { setIsModalOpen(false); setIsRelationshipOpen(false); setIsClientOpen(false) }} />
-          <div className="relative z-10 w-[440px] rounded-none bg-folk-surface shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+          <div className="relative z-10 w-[440px] rounded-[6px] bg-folk-surface shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
             <div className="flex items-center justify-between px-[24px] pt-[20px]">
               <div className="flex items-center gap-[8px]">
                 <UserPlus className="h-[16px] w-[16px] text-[#555]" strokeWidth={1.5} />
@@ -559,7 +563,7 @@ export default function ContactsPage() {
               </div>
               <button
                 onClick={() => { setIsModalOpen(false); setIsRelationshipOpen(false); setIsClientOpen(false) }}
-                className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+                className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
                 tabIndex={0}
                 aria-label="Close"
               >
@@ -575,7 +579,7 @@ export default function ContactsPage() {
                   placeholder="Full name"
                   value={newContact.name}
                   onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
-                  className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[10px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3]"
+                  className="h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[10px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3]"
                 />
               </div>
 
@@ -585,7 +589,7 @@ export default function ContactsPage() {
                   ref={clientRef}
                   type="button"
                   onClick={() => { setIsClientOpen(!isClientOpen); setIsRelationshipOpen(false) }}
-                  className="flex h-[36px] w-full items-center justify-between rounded-none border border-folk-border bg-folk-page px-[10px] text-[13px] font-medium outline-none transition-colors focus:border-[#a3c4f3]"
+                  className="flex h-[38px] w-full items-center justify-between rounded-[6px] border border-folk-border bg-white px-[10px] text-[13px] font-medium outline-none transition-colors focus:border-[#a3c4f3]"
                   tabIndex={0}
                 >
                   {newContact.clientName ? (
@@ -603,7 +607,7 @@ export default function ContactsPage() {
                   ref={relationshipRef}
                   type="button"
                   onClick={() => { setIsRelationshipOpen(!isRelationshipOpen); setIsClientOpen(false) }}
-                  className="flex h-[36px] w-full items-center justify-between rounded-none border border-folk-border bg-folk-page px-[10px] text-[13px] font-medium outline-none transition-colors focus:border-[#a3c4f3]"
+                  className="flex h-[38px] w-full items-center justify-between rounded-[6px] border border-folk-border bg-white px-[10px] text-[13px] font-medium outline-none transition-colors focus:border-[#a3c4f3]"
                   tabIndex={0}
                 >
                   {newContact.relationship ? (
@@ -625,7 +629,7 @@ export default function ContactsPage() {
                   placeholder="name@company.com"
                   value={newContact.email}
                   onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
-                  className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[10px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3]"
+                  className="h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[10px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3]"
                 />
               </div>
 
@@ -636,7 +640,7 @@ export default function ContactsPage() {
                   placeholder="Phone number"
                   value={newContact.phone}
                   onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
-                  className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[10px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3]"
+                  className="h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[10px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3]"
                 />
               </div>
 
@@ -707,12 +711,12 @@ export default function ContactsPage() {
       {isCreateViewOpen && (
         <>
           <div className="fixed inset-0 z-50 bg-black/20" onClick={() => { setIsCreateViewOpen(false); setNewViewName("") }} />
-          <div className="fixed left-1/2 top-1/2 z-50 w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-none bg-folk-surface p-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+          <div className="fixed left-1/2 top-1/2 z-50 w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-[6px] bg-folk-surface p-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
             <div className="flex items-center justify-between">
               <h3 className="text-[15px] font-semibold text-folk-text">Create a view for contacts</h3>
               <button
                 onClick={() => { setIsCreateViewOpen(false); setNewViewName("") }}
-                className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+                className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
                 tabIndex={0}
                 aria-label="Close"
               >
@@ -727,7 +731,7 @@ export default function ContactsPage() {
                 onChange={(e) => setNewViewName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleCreateView() }}
                 placeholder="Enter name here"
-                className="mt-[8px] w-full rounded-none border border-folk-border bg-folk-surface px-[12px] py-[10px] text-[13px] font-medium text-folk-text outline-none transition-colors placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
+                className="mt-[8px] w-full rounded-[6px] border border-folk-border bg-folk-surface px-[12px] py-[10px] text-[13px] font-medium text-folk-text outline-none transition-colors placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
               />
             </div>
             <div className="mt-[20px] flex items-center justify-end gap-[12px]">
@@ -756,7 +760,7 @@ export default function ContactsPage() {
         <>
           <div className="fixed inset-0 z-50" onClick={() => setViewContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setViewContextMenu(null) }} />
           <div
-            className="fixed z-50 w-[160px] overflow-hidden rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk"
+            className="fixed z-50 w-[160px] overflow-hidden rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk"
             style={{ top: viewContextMenu.y, left: viewContextMenu.x }}
           >
             <button
@@ -779,7 +783,7 @@ export default function ContactsPage() {
       {deleteViewConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/20" onClick={() => setDeleteViewConfirm(null)} />
-          <div className="relative z-10 w-[400px] rounded-none bg-folk-surface p-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+          <div className="relative z-10 w-[400px] rounded-[6px] bg-folk-surface p-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
             <h3 className="text-[15px] font-semibold text-folk-text">Delete view</h3>
             <p className="mt-[8px] text-[13px] font-medium text-folk-secondary">
               Are you sure you want to delete <span className="text-folk-text">&ldquo;{deleteViewConfirm.name}&rdquo;</span>? This action cannot be undone.
@@ -794,7 +798,7 @@ export default function ContactsPage() {
               </button>
               <button
                 onClick={() => handleDeleteView(deleteViewConfirm.id)}
-                className="rounded-none bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
+                className="rounded-[6px] bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
                 tabIndex={0}
               >
                 Delete

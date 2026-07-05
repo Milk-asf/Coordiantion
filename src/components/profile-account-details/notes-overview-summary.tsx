@@ -51,7 +51,7 @@ export function NotesOverviewSummary({
                     onOpenNote(note.id)
                   }
                 } : undefined}
-                className={onOpenNote ? "flex cursor-pointer items-start gap-[10px] rounded-none transition-colors hover:opacity-80" : "flex items-start gap-[10px]"}
+                className={onOpenNote ? "flex cursor-pointer items-start gap-[10px] rounded-[6px] transition-colors hover:opacity-80" : "flex items-start gap-[10px]"}
               >
                 <span className="mt-[1px] flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-[var(--folk-border-subtle)] text-folk-secondary">
                   <SquarePen className="h-[12px] w-[12px]" strokeWidth={1.5} />

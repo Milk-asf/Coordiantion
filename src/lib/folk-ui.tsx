@@ -111,3 +111,33 @@ export function FolkStatusPill({ label, className }: { label: string; className?
     </span>
   )
 }
+
+/**
+ * Canonical popup/panel form language — matches the app-wide forms style
+ * (38px controls, 6px radius, white fill, blue focus) and folk pill footers.
+ * Every modal and side-panel form should use these instead of local variants.
+ */
+export const FORM_LABEL_CLASS = "mb-[6px] block text-[13px] font-medium text-folk-text"
+
+export const FORM_INPUT_CLASS =
+  "h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] text-folk-text outline-none transition-colors placeholder:text-folk-placeholder hover:border-folk-border-strong focus:border-[#a3c4f3]"
+
+export const FORM_TEXTAREA_CLASS =
+  "min-h-[72px] w-full resize-y rounded-[6px] border border-folk-border bg-white px-[12px] py-[10px] text-[13px] leading-[1.5] text-folk-text outline-none transition-colors placeholder:text-folk-placeholder hover:border-folk-border-strong focus:border-[#a3c4f3]"
+
+/** Trigger button styled like an input (date pickers, selects). */
+export const FORM_FIELD_BUTTON_CLASS =
+  "flex h-[38px] w-full items-center justify-between gap-[8px] rounded-[6px] border border-folk-border bg-white px-[12px] text-left text-[13px] text-folk-text outline-none transition-colors hover:border-folk-border-strong focus:border-[#a3c4f3]"
+
+/** Wrapper for inputs with a leading icon; the inner input stays transparent. */
+export const FORM_INPUT_WRAPPER_CLASS =
+  "flex h-[38px] items-center gap-[7px] rounded-[6px] border border-folk-border bg-white px-[12px] transition-colors hover:border-folk-border-strong focus-within:border-[#a3c4f3]"
+
+export const FORM_FOOTER_CLASS =
+  "flex shrink-0 items-center justify-end gap-[8px] border-t border-folk-border-subtle px-[24px] py-[12px]"
+
+export const FORM_FOOTER_PRIMARY_BTN_CLASS =
+  "primary-btn folk-pill-btn h-[32px] px-[14px] text-[13px] font-medium transition-colors disabled:opacity-50"
+
+export const FORM_FOOTER_OUTLINE_BTN_CLASS =
+  "outline-btn folk-pill-btn h-[32px] px-[12px] text-[13px] font-medium transition-colors disabled:opacity-50"

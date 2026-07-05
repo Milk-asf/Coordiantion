@@ -8,6 +8,7 @@ import { PageTitleBar } from "@/components/page-title-bar"
 import { ExpandableTableSearch } from "@/components/expandable-table-search"
 import { PageError, PageLoader } from "@/components/page-state"
 import { DeleteActionsMenu } from "@/components/delete-actions-menu"
+import { ProfileTabButton } from "@/components/profile-tab-button"
 import { useToast } from "@/components/toast"
 import { folkPrimaryAddBtnClass } from "@/lib/folk-ui"
 import {
@@ -19,7 +20,6 @@ import {
 } from "@/components/workspace-card"
 import { useForms } from "@/lib/hooks/use-forms"
 import { FORM_STATUS_LABELS, getFormProcess, type Form, type FormProcessKey, type FormTemplate } from "@/lib/form-definitions"
-import { cn } from "@/lib/utils"
 import { TemplateCenter } from "./_components/template-center"
 
 export default function FormsPage() {
@@ -72,19 +72,21 @@ export default function FormsPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <PageTitleBar title="Forms" />
-      <div className="flex h-[44px] shrink-0 items-center justify-end gap-[8px] border-b border-folk-border-subtle bg-white px-[16px]">
-        <button
-          type="button"
-          onClick={() => setIsTemplateOpen(true)}
-          className={folkPrimaryAddBtnClass()}
-          tabIndex={0}
-          aria-label="Add new"
-        >
-          <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-          <span>Add new</span>
-        </button>
-      </div>
+      <PageTitleBar
+        title="Forms"
+        trailing={
+          <button
+            type="button"
+            onClick={() => setIsTemplateOpen(true)}
+            className={folkPrimaryAddBtnClass()}
+            tabIndex={0}
+            aria-label="Add new"
+          >
+            <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+            <span>Add new</span>
+          </button>
+        }
+      />
 
       {forms.length === 0 ? (
         <div className="flex-1 overflow-y-auto bg-folk-surface">
@@ -106,9 +108,9 @@ export default function FormsPage() {
               ariaLabel="Search forms"
             />
 
-            <div className="flex items-center gap-[2px] rounded-[7px] bg-folk-hover p-[2px]">
-              <ViewToggle label="Active" count={activeForms.length} isActive={view === "active"} onClick={() => setView("active")} />
-              <ViewToggle label="Archived" count={archivedForms.length} isActive={view === "archived"} onClick={() => setView("archived")} />
+            <div className="folk-tab-bar flex shrink-0 items-stretch self-stretch" role="group" aria-label="Form status">
+              <ProfileTabButton label="Active" badge={activeForms.length} isActive={view === "active"} onClick={() => setView("active")} />
+              <ProfileTabButton label="Archived" badge={archivedForms.length} isActive={view === "archived"} onClick={() => setView("archived")} />
             </div>
 
             <span className="ml-auto text-[12px] text-folk-secondary">{filteredForms.length} {filteredForms.length === 1 ? "form" : "forms"}</span>
@@ -164,31 +166,6 @@ export default function FormsPage() {
         />
       )}
     </div>
-  )
-}
-
-interface ViewToggleProps {
-  label: string
-  count: number
-  isActive: boolean
-  onClick: () => void
-}
-
-function ViewToggle({ label, count, isActive, onClick }: ViewToggleProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "flex h-[26px] items-center gap-[6px] rounded-[5px] px-[10px] text-[12px] font-medium transition-colors",
-        isActive ? "bg-white text-folk-text shadow-[0_1px_2px_rgba(0,0,0,0.06)]" : "text-folk-secondary hover:text-folk-text",
-      )}
-      tabIndex={0}
-      aria-pressed={isActive}
-    >
-      {label}
-      <span className={cn("text-[11px]", isActive ? "text-folk-secondary" : "text-folk-tertiary")}>{count}</span>
-    </button>
   )
 }
 

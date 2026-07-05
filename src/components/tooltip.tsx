@@ -62,7 +62,7 @@ export function Tooltip({ label, children, side = "top", className }: TooltipPro
         <span
           role="tooltip"
           className={cn(
-            "pointer-events-none fixed z-[220] whitespace-nowrap rounded-none bg-[#1a1a1a] px-[8px] py-[4px] text-[11px] font-medium leading-none text-white shadow-[0_2px_8px_rgba(0,0,0,0.15)]",
+            "pointer-events-none fixed z-[220] whitespace-nowrap rounded-[6px] bg-[#1a1a1a] px-[8px] py-[4px] text-[11px] font-medium leading-none text-white shadow-[0_2px_8px_rgba(0,0,0,0.15)]",
             motion.fadeIn,
             tooltipOffsetClass
           )}

@@ -101,7 +101,7 @@ function ReimbursementCard({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "overflow-hidden rounded-none border border-[#d9d9d9] bg-white",
+        "overflow-hidden rounded-[6px] border border-[#d9d9d9] bg-white",
         canManage ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
         (isDragging || isActiveDragging) && !isOverlay && "opacity-35",
         isOverlay && "shadow-[0_8px_24px_rgba(0,0,0,0.12)]",
@@ -171,7 +171,7 @@ function KanbanColumn({
         ref={setNodeRef}
         className={cn(
           "flex min-h-[200px] flex-col gap-[8px] transition-colors",
-          isOver && canManage && "rounded-none bg-[#f3f4f6]/60",
+          isOver && canManage && "rounded-[6px] bg-[#f3f4f6]/60",
         )}
       >
         {items.map((item) => (
@@ -282,7 +282,7 @@ export function ReimbursementKanban({ reimbursements, canManage, onSetStatus, on
               value={returnNote}
               onChange={(event) => setReturnNote(event.target.value)}
               placeholder="Reason for returning (optional)"
-              className="mt-[12px] min-h-[80px] w-full resize-y rounded-none border border-folk-border bg-folk-page px-[12px] py-[8px] text-[13px] font-medium leading-[1.5] text-folk-text outline-none placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
+              className="mt-[12px] min-h-[80px] w-full resize-y rounded-[6px] border border-folk-border bg-white px-[12px] py-[8px] text-[13px] font-medium leading-[1.5] text-folk-text outline-none placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
               autoFocus
             />
             <div className="mt-[14px] flex items-center justify-end gap-[8px]">
@@ -292,7 +292,7 @@ export function ReimbursementKanban({ reimbursements, canManage, onSetStatus, on
                   setPendingReturnId(null)
                   setReturnNote("")
                 }}
-                className="outline-btn px-[12px] py-[6px] text-[12px] font-medium"
+                className="outline-btn folk-pill-btn h-[32px] px-[12px] text-[13px] font-medium"
                 tabIndex={0}
               >
                 Cancel
@@ -300,7 +300,7 @@ export function ReimbursementKanban({ reimbursements, canManage, onSetStatus, on
               <button
                 type="button"
                 onClick={confirmReturn}
-                className="rounded-none border border-[#fdba74] bg-[#fff7ed] px-[12px] py-[6px] text-[12px] font-medium text-[#c2410c] transition-colors hover:bg-[#ffedd5]"
+                className="rounded-[6px] border border-[#fdba74] bg-[#fff7ed] px-[12px] py-[6px] text-[12px] font-medium text-[#c2410c] transition-colors hover:bg-[#ffedd5]"
                 tabIndex={0}
               >
                 Return reimbursement

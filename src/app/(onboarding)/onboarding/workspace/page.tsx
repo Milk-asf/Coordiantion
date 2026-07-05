@@ -12,6 +12,11 @@ import {
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useOnboarding } from "@/lib/hooks/use-onboarding"
 import { getStep } from "@/lib/onboarding/onboarding-steps"
+import {
+  NDIS_COMPLIANCE_TEMPLATE,
+  buildSpaceFromTemplate,
+  spaceToInsertRow,
+} from "@/lib/analytics/definitions"
 
 const referralOptions = [
   "Search engine",
@@ -96,6 +101,21 @@ export default function OnboardingWorkspacePage() {
             },
             { onConflict: "workspace_id,user_id" }
           )
+
+          // Every new workspace ships with the NDIS compliance report space
+          // so audit visibility works from day one. Non-fatal if it fails —
+          // the same template is available from Reports → Add new.
+          try {
+            const complianceSpace = buildSpaceFromTemplate(NDIS_COMPLIANCE_TEMPLATE, {
+              workspaceId: wsId,
+              createdBy: user.id,
+              createdByName:
+                (user.user_metadata?.full_name as string) || user.email || "",
+            })
+            await supabase.from("analytics_spaces").insert(spaceToInsertRow(complianceSpace))
+          } catch {
+            // Ignore — provisioning the template must never block onboarding.
+          }
         }
       }
 
@@ -239,7 +259,7 @@ export default function OnboardingWorkspacePage() {
         </div>
 
         {error && (
-          <p className="rounded-none bg-red-50 px-[12px] py-[8px] text-[12px] font-medium text-red-600">
+          <p className="rounded-[6px] bg-red-50 px-[12px] py-[8px] text-[12px] font-medium text-red-600">
             {error}
           </p>
         )}

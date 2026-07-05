@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import {
   DndContext,
   DragOverlay,
@@ -33,6 +34,7 @@ import {
   getShiftHourGridStyle,
   getWeekDays,
   isSameDay,
+  parseDateStr,
   startOfWeek,
   toDateStr,
 } from "@/lib/roster/week-utils"
@@ -42,13 +44,14 @@ import {
   loadVacantRowOpen,
   saveVacantRowOpen,
 } from "@/lib/roster/vacant-shift-utils"
-import { RosterAddShiftButton } from "@/components/roster/roster-add-shift-button"
+import { RosterCellAddZone } from "@/components/roster/roster-cell-add-zone"
 import { RosterCellShiftItem } from "@/components/roster/roster-cell-shift-item"
 import { RosterDayHourRow } from "@/components/roster/roster-day-hour-row"
 import { RosterDropCell } from "@/components/roster/roster-drop-cell"
 import { RosterFilterBar, RosterPageHeader } from "@/components/roster/roster-filter-bar"
 import { RosterShiftBlock } from "@/components/roster/roster-shift-block"
 import { RosterTableView } from "@/components/roster/roster-table-view"
+import { RosterYearView } from "@/components/roster/roster-year-view"
 import { RosterVacantShiftsRow } from "@/components/roster/roster-vacant-shifts-row"
 import {
   rosterStickyColClass,
@@ -176,6 +179,23 @@ export function RosterCalendar({ onCreateShift, onEditShift, pendingShiftPreview
   const [activeShift, setActiveShift] = useState<RosterShift | null>(null)
   const suppressClickRef = useRef(false)
   const bodyScrollRef = useRef<HTMLDivElement>(null)
+  const searchParams = useSearchParams()
+  const handledDateParamRef = useRef(false)
+
+  // Deep link: /roster?date=YYYY-MM-DD focuses that day (used by report lists).
+  useEffect(() => {
+    if (handledDateParamRef.current) return
+    const raw = searchParams.get("date")
+    // createShift links carry their own date handling in the roster shell.
+    if (!raw || searchParams.get("createShift") === "1") return
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return
+    const parsed = parseDateStr(raw)
+    if (Number.isNaN(parsed.getTime())) return
+    handledDateParamRef.current = true
+    setFocusDate(parsed)
+    setWeekStart(startOfWeek(parsed, rosterSettings.weekStartsOn))
+    setViewMode("day")
+  }, [searchParams, rosterSettings.weekStartsOn])
 
   useEffect(() => {
     setIsVacantRowOpen(loadVacantRowOpen(activeWorkspace?.id))
@@ -209,6 +229,16 @@ export function RosterCalendar({ onCreateShift, onEditShift, pendingShiftPreview
   const vacantShifts = useMemo(() => getUnassignedShifts(weekShifts), [weekShifts])
   const visibleDayDates = useMemo(() => visibleDays.map((day) => toDateStr(day)), [visibleDays])
 
+  const focusYear = focusDate.getFullYear()
+  const yearShifts = useMemo(() => {
+    const yearStartStr = `${focusYear}-01-01`
+    const yearEndStr = `${focusYear}-12-31`
+    return shifts.filter(
+      (shift) =>
+        shift.date >= yearStartStr && shift.date <= yearEndStr && shift.status !== "cancelled"
+    )
+  }, [shifts, focusYear])
+
   const employeeRows = useMemo<RosterRow[]>(
     () =>
       activeStaff.map((member) => ({
@@ -236,6 +266,13 @@ export function RosterCalendar({ onCreateShift, onEditShift, pendingShiftPreview
   const filteredRows = normalizedQuery
     ? rows.filter((row) => row.name.toLowerCase().includes(normalizedQuery))
     : rows
+  const filteredYearShifts = normalizedQuery
+    ? yearShifts.filter((shift) =>
+        (assigneeView === "employees" ? shift.staffName : shift.clientName)
+          .toLowerCase()
+          .includes(normalizedQuery)
+      )
+    : yearShifts
 
   const isDayView = viewMode === "day"
   const gridTemplateColumns = getGridTemplateColumns(isDayView, visibleDays.length)
@@ -250,11 +287,15 @@ export function RosterCalendar({ onCreateShift, onEditShift, pendingShiftPreview
 
   const toolbarLabel = viewMode === "day"
     ? focusDate.toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
-    : formatWeekRange(weekStart)
+    : viewMode === "year"
+      ? String(focusYear)
+      : formatWeekRange(weekStart)
 
   const isTodayActive = viewMode === "day"
     ? isSameDay(focusDate, today)
-    : isSameDay(weekStart, startOfWeek(today, rosterSettings.weekStartsOn))
+    : viewMode === "year"
+      ? focusYear === today.getFullYear()
+      : isSameDay(weekStart, startOfWeek(today, rosterSettings.weekStartsOn))
 
   const handleViewModeChange = (mode: RosterViewMode) => {
     setViewMode(mode)
@@ -416,12 +457,20 @@ export function RosterCalendar({ onCreateShift, onEditShift, pendingShiftPreview
     setWeekStart(startOfWeek(now, rosterSettings.weekStartsOn))
   }
 
+  const stepFocusDate = (apply: (date: Date) => void) => {
+    const next = new Date(focusDate)
+    apply(next)
+    setFocusDate(next)
+    setWeekStart(startOfWeek(next, rosterSettings.weekStartsOn))
+  }
+
   const handlePrevious = () => {
     if (viewMode === "day") {
-      const next = new Date(focusDate)
-      next.setDate(next.getDate() - 1)
-      setFocusDate(next)
-      setWeekStart(startOfWeek(next, rosterSettings.weekStartsOn))
+      stepFocusDate((date) => date.setDate(date.getDate() - 1))
+      return
+    }
+    if (viewMode === "year") {
+      stepFocusDate((date) => date.setFullYear(date.getFullYear() - 1))
       return
     }
     setWeekStart((current) => addWeeks(current, -1))
@@ -429,13 +478,21 @@ export function RosterCalendar({ onCreateShift, onEditShift, pendingShiftPreview
 
   const handleNext = () => {
     if (viewMode === "day") {
-      const next = new Date(focusDate)
-      next.setDate(next.getDate() + 1)
-      setFocusDate(next)
-      setWeekStart(startOfWeek(next, rosterSettings.weekStartsOn))
+      stepFocusDate((date) => date.setDate(date.getDate() + 1))
+      return
+    }
+    if (viewMode === "year") {
+      stepFocusDate((date) => date.setFullYear(date.getFullYear() + 1))
       return
     }
     setWeekStart((current) => addWeeks(current, 1))
+  }
+
+  const handleSelectYearDate = (dateStr: string) => {
+    const date = parseDateStr(dateStr)
+    setFocusDate(date)
+    setWeekStart(startOfWeek(date, rosterSettings.weekStartsOn))
+    setViewMode("day")
   }
 
   const rosterChrome = (
@@ -496,6 +553,25 @@ export function RosterCalendar({ onCreateShift, onEditShift, pendingShiftPreview
         )}
         <div className="shrink-0">{rosterChrome}</div>
         <RosterTableView shifts={weekShifts} searchQuery={searchQuery} onEditShift={onEditShift} />
+      </div>
+    )
+  }
+
+  if (viewMode === "year") {
+    return (
+      <div className="flex h-full flex-col bg-white">
+        {fetchError && (
+          <div className="shrink-0 border-b border-amber-200 bg-amber-50 px-[16px] py-[8px] text-[12px] text-amber-800">
+            Unable to sync roster from server. Showing local data.
+          </div>
+        )}
+        <div className="shrink-0">{rosterChrome}</div>
+        <RosterYearView
+          year={focusYear}
+          shifts={filteredYearShifts}
+          weekStartsOn={rosterSettings.weekStartsOn}
+          onSelectDate={handleSelectYearDate}
+        />
       </div>
     )
   }
@@ -651,20 +727,21 @@ export function RosterCalendar({ onCreateShift, onEditShift, pendingShiftPreview
                         key={`${row.id}-${dateStr}`}
                         rowId={row.id}
                         dateStr={dateStr}
-                        onAddShift={handleAddToCell}
                         className={cn(
-                          "flex flex-col gap-[6px] p-[8px]",
+                          "h-full min-h-[96px]",
+                          cellShifts.length === 0
+                            ? "relative"
+                            : "flex min-h-0 flex-col gap-[6px] p-[8px]",
                           GRID_CELL,
                           ROW_HEIGHT
                         )}
                       >
                         {cellShifts.length === 0 ? (
-                          <div className="flex min-h-[80px] w-full flex-1 items-stretch">
-                            <RosterAddShiftButton
-                              label="Add shift"
-                              onClick={handleAddToCell}
-                            />
-                          </div>
+                          <RosterCellAddZone
+                            fillCell
+                            label="Add shift"
+                            onAdd={handleAddToCell}
+                          />
                         ) : (
                           <>
                             {groupShiftsForCell(cellShifts, weekShifts).map((item) => (
@@ -680,13 +757,11 @@ export function RosterCalendar({ onCreateShift, onEditShift, pendingShiftPreview
                                 onClick={handleShiftClick}
                               />
                             ))}
-                            <div className="sticky bottom-0 z-[1] mt-auto bg-folk-surface pt-[4px]">
-                              <RosterAddShiftButton
-                                compact
-                                label="Add another shift"
-                                onClick={handleAddToCell}
-                              />
-                            </div>
+                            <RosterCellAddZone
+                              compact
+                              label="Add another shift"
+                              onAdd={handleAddToCell}
+                            />
                           </>
                         )}
                       </RosterDropCell>

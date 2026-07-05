@@ -22,6 +22,7 @@ interface FixedDropdownMenuProps {
   backdropClassName?: string
   showBackdrop?: boolean
   anchorElement?: HTMLElement | null
+  scrollable?: boolean
 }
 
 export function FixedDropdownMenu({
@@ -36,8 +37,17 @@ export function FixedDropdownMenu({
   backdropClassName,
   showBackdrop = true,
   anchorElement,
+  scrollable = true,
 }: FixedDropdownMenuProps) {
-  const menuStyle = useFixedDropdownPosition(isOpen, anchorRef, estimatedHeight, minWidth, align, anchorElement)
+  const menuStyle = useFixedDropdownPosition(
+    isOpen,
+    anchorRef,
+    estimatedHeight,
+    minWidth,
+    align,
+    anchorElement,
+    scrollable
+  )
 
   if (!isOpen || !menuStyle) return null
 
@@ -45,7 +55,7 @@ export function FixedDropdownMenu({
     <>
       {showBackdrop && (
         <div
-          className={cn("fixed inset-0 z-[55]", backdropClassName ?? FIXED_DROPDOWN_BACKDROP_Z_CLASS)}
+          className={cn("fixed inset-0", FIXED_DROPDOWN_BACKDROP_Z_CLASS, backdropClassName)}
           data-floating-overlay
           onClick={onClose}
           aria-hidden="true"
@@ -53,7 +63,7 @@ export function FixedDropdownMenu({
       )}
       <div
         className={cn(
-          "fixed z-[60] rounded-none border border-folk-border bg-folk-surface shadow-folk",
+          "fixed rounded-[6px] border border-folk-border bg-folk-surface shadow-folk-sm",
           FIXED_DROPDOWN_MENU_Z_CLASS,
           className
         )}

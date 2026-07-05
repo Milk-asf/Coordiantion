@@ -1,13 +1,15 @@
 "use client"
 
 import { useRef, useState } from "react"
-import { Paperclip, Plus } from "lucide-react"
+import { CalendarDays, Paperclip, Plus } from "lucide-react"
 import { EntityIcon } from "@/components/entity-icon"
 import { FolkMemberPill } from "@/components/folk-sidebar/folk-member-pill"
 import { FixedSelectDropdown, FixedSelectOption } from "@/components/fixed-select-dropdown"
 import { getFolkStatusClass } from "@/lib/folk-ui"
 import type { ListCustomFieldDef } from "@/lib/lists/definitions"
+import { TABLE_CHIP } from "@/lib/table-styles"
 import { cn } from "@/lib/utils"
+import { formatListDate } from "./list-cell"
 
 interface ListCustomCellProps {
   def: ListCustomFieldDef
@@ -27,6 +29,54 @@ function attachmentNames(value: unknown): string[] {
       .filter(Boolean)
   }
   return []
+}
+
+function ListCustomDateCell({
+  def,
+  value,
+  onChange,
+}: {
+  def: ListCustomFieldDef
+  value: unknown
+  onChange: (value: unknown) => void
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const dateValue = typeof value === "string" ? value : ""
+
+  const handleOpenPicker = () => {
+    const input = inputRef.current
+    if (!input) return
+    if (typeof input.showPicker === "function") input.showPicker()
+    else input.click()
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={handleOpenPicker}
+        className={cn(
+          TABLE_CHIP,
+          "gap-[4px] transition-colors hover:bg-folk-border-subtle",
+          !dateValue && "text-folk-placeholder",
+        )}
+        tabIndex={0}
+        aria-label={dateValue ? `Edit ${def.label}` : `Add ${def.label}`}
+      >
+        <CalendarDays className="h-[11px] w-[11px] shrink-0" strokeWidth={1.75} />
+        {dateValue ? formatListDate(dateValue) : "Add date…"}
+      </button>
+      <input
+        ref={inputRef}
+        type="date"
+        value={dateValue}
+        onChange={(event) => onChange(event.target.value)}
+        className="sr-only"
+        aria-hidden
+        tabIndex={-1}
+      />
+    </>
+  )
 }
 
 export function ListCustomCell({ def, value, onChange }: ListCustomCellProps) {
@@ -64,15 +114,7 @@ export function ListCustomCell({ def, value, onChange }: ListCustomCellProps) {
       )
 
     case "date":
-      return (
-        <input
-          type="date"
-          value={typeof value === "string" ? value : ""}
-          onChange={(event) => onChange(event.target.value)}
-          className={cn(inputClass, "text-[12px]")}
-          aria-label={def.label}
-        />
-      )
+      return <ListCustomDateCell def={def} value={value} onChange={onChange} />
 
     case "boolean": {
       const isYes = value === true || value === "yes" || value === "Yes"

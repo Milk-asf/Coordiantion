@@ -62,7 +62,7 @@ export function CarePlanSidebarForm({
         <button
           type="button"
           onClick={onClose}
-          className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+          className="flex h-[24px] w-[24px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
           tabIndex={0}
           aria-label="Close care plan form"
         >
@@ -84,7 +84,7 @@ export function CarePlanSidebarForm({
           />
 
           <div className="mb-[14px]">
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Created date *</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Created date *</label>
             <div className="relative">
               <button
                 ref={createdDateRef}
@@ -93,7 +93,7 @@ export function CarePlanSidebarForm({
                   onSetCreatedPickerOpen(!createdPickerOpen)
                   onSetRenewalPickerOpen(false)
                 }}
-                className="flex h-[36px] w-full items-center gap-[8px] rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium transition-colors hover:border-[#bababa] focus:border-[#a3c4f3]"
+                className="flex h-[36px] w-full items-center gap-[8px] rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium transition-colors hover:border-[#bababa] focus:border-[#a3c4f3]"
                 tabIndex={0}
               >
                 <CalendarDays className="h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
@@ -117,7 +117,7 @@ export function CarePlanSidebarForm({
           </div>
 
           <div className="mb-[14px]">
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Renewal date *</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Renewal date *</label>
             <div className="relative">
               <button
                 ref={renewalDateRef}
@@ -126,7 +126,7 @@ export function CarePlanSidebarForm({
                   onSetRenewalPickerOpen(!renewalPickerOpen)
                   onSetCreatedPickerOpen(false)
                 }}
-                className="flex h-[36px] w-full items-center gap-[8px] rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium transition-colors hover:border-[#bababa] focus:border-[#a3c4f3]"
+                className="flex h-[36px] w-full items-center gap-[8px] rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium transition-colors hover:border-[#bababa] focus:border-[#a3c4f3]"
                 tabIndex={0}
               >
                 <CalendarDays className="h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
@@ -150,17 +150,17 @@ export function CarePlanSidebarForm({
           </div>
 
           <div>
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">
               Care plan document{isEditing ? "" : " *"}
             </label>
             {file ? (
-              <div className="flex items-center gap-[8px] rounded-none border border-folk-border bg-folk-page px-[12px] py-[8px]">
+              <div className="flex items-center gap-[8px] rounded-[6px] border border-folk-border bg-folk-page px-[12px] py-[8px]">
                 <FileText className="h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
                 <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-folk-text">{file.name}</span>
                 <button
                   type="button"
                   onClick={() => onSetFile(null)}
-                  className="shrink-0 rounded-none p-[2px] text-folk-secondary transition-colors hover:bg-[#eee] hover:text-folk-text"
+                  className="shrink-0 rounded-[6px] p-[2px] text-folk-secondary transition-colors hover:bg-[#eee] hover:text-folk-text"
                   tabIndex={0}
                   aria-label="Remove file"
                 >
@@ -171,7 +171,7 @@ export function CarePlanSidebarForm({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex w-full items-center justify-center gap-[6px] rounded-none border border-dashed border-folk-border bg-folk-page px-[12px] py-[10px] text-[12px] font-medium text-folk-secondary transition-colors hover:border-[#bbb] hover:bg-[var(--folk-border-subtle)]"
+                className="flex w-full items-center justify-center gap-[6px] rounded-[6px] border border-dashed border-folk-border bg-folk-page px-[12px] py-[10px] text-[12px] font-medium text-folk-secondary transition-colors hover:border-[#bbb] hover:bg-[var(--folk-border-subtle)]"
                 tabIndex={0}
               >
                 <Upload className="h-[14px] w-[14px]" strokeWidth={1.5} />
@@ -189,7 +189,7 @@ export function CarePlanSidebarForm({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-none border border-folk-border bg-folk-surface px-[12px] py-[6px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+          className="rounded-[6px] border border-folk-border bg-folk-surface px-[12px] py-[6px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
           tabIndex={0}
         >
           Cancel
@@ -198,7 +198,7 @@ export function CarePlanSidebarForm({
           type="button"
           onClick={onSave}
           disabled={!canSave || isSaving}
-          className="primary-btn px-[12px] py-[6px] text-[12px] font-medium transition-colors disabled:opacity-50"
+          className="primary-btn folk-pill-btn h-[32px] px-[14px] text-[13px] font-medium transition-colors disabled:opacity-50"
           tabIndex={0}
         >
           {isSaving ? "Saving…" : isEditing ? "Save changes" : "Save care plan"}

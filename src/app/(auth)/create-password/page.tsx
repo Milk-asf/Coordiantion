@@ -37,6 +37,14 @@ export default function CreatePasswordPage() {
         return
       }
 
+      // Safety net: claim any pending workspace invitations for this account,
+      // whichever auth path landed the user here. Idempotent server-side.
+      try {
+        await fetch("/api/invite/accept", { method: "POST" })
+      } catch {
+        // Non-fatal — the membership can still be activated on next sign-in.
+      }
+
       // Already set a password before — no need to do it again.
       if (user.user_metadata?.has_password) {
         router.replace("/tasks")
@@ -119,10 +127,10 @@ export default function CreatePasswordPage() {
             <img
               src={branding.logoUrl}
               alt={`${workspaceLabel} logo`}
-              className="mx-auto mb-[16px] h-[48px] w-[48px] rounded-none object-cover"
+              className="mx-auto mb-[16px] h-[48px] w-[48px] rounded-[6px] object-cover"
             />
           ) : (
-            <div className="mx-auto mb-[16px] flex h-[48px] w-[48px] items-center justify-center rounded-none bg-[#1a1a1a] text-[18px] font-semibold text-white">
+            <div className="mx-auto mb-[16px] flex h-[48px] w-[48px] items-center justify-center rounded-[6px] bg-[#1a1a1a] text-[18px] font-semibold text-white">
               {initial}
             </div>
           )}
@@ -152,7 +160,7 @@ export default function CreatePasswordPage() {
                   required
                   minLength={12}
                   autoComplete="new-password"
-                  className="h-[40px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] pr-[40px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
+                  className="h-[40px] w-full rounded-[6px] border border-folk-border bg-folk-page px-[12px] pr-[40px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
                 />
                 <button
                   type="button"
@@ -180,7 +188,7 @@ export default function CreatePasswordPage() {
                   required
                   minLength={12}
                   autoComplete="new-password"
-                  className="h-[40px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] pr-[40px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
+                  className="h-[40px] w-full rounded-[6px] border border-folk-border bg-folk-page px-[12px] pr-[40px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3] focus:shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
                 />
                 <button
                   type="button"
@@ -195,7 +203,7 @@ export default function CreatePasswordPage() {
             </div>
 
             {error && (
-              <p className="rounded-none bg-red-50 px-[12px] py-[8px] text-[13px] font-medium text-red-600">
+              <p className="rounded-[6px] bg-red-50 px-[12px] py-[8px] text-[13px] font-medium text-red-600">
                 {error}
               </p>
             )}
@@ -203,7 +211,7 @@ export default function CreatePasswordPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="h-[40px] w-full rounded-none bg-[#1a1a1a] text-[13px] font-medium text-white transition-colors hover:bg-[#3d3d3d] disabled:opacity-50"
+              className="h-[40px] w-full rounded-[6px] bg-[#1a1a1a] text-[13px] font-medium text-white transition-colors hover:bg-[#3d3d3d] disabled:opacity-50"
             >
               {isLoading ? "Creating..." : "Create password & continue"}
             </button>

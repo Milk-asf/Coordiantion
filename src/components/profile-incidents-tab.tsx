@@ -60,7 +60,7 @@ export function ProfileIncidentsTab({
                 </td>
                 <td className={TABLE_PANEL_CELL}>
                   <span className={cn(
-                    "inline-flex h-[22px] items-center rounded-none px-[8px] text-[11px] font-medium",
+                    "inline-flex h-[22px] items-center rounded-[6px] px-[8px] text-[11px] font-medium",
                     incident.isReportable ? "bg-[#fef2f2] text-[#b91c1c]" : "bg-folk-hover text-folk-secondary"
                   )}>
                     {incident.isReportable ? "Yes" : "No"}

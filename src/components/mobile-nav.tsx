@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { PageClockButton } from "@/components/page-clock-button"
 import {
+  Sun,
   Menu,
   X,
   SquareCheck,
@@ -31,6 +33,7 @@ import {
 } from "@/lib/business-nav"
 
 const navItems = [
+  { label: "My Day", href: "/my-day", icon: Sun },
   { label: "Roster", href: "/roster", icon: CalendarRange },
   { label: "Tasks", href: "/tasks", icon: SquareCheck },
   { label: "Notes", href: "/notes", icon: StickyNote },
@@ -69,6 +72,7 @@ export function MobileNav() {
   const BusinessIcon = BUSINESS_NAV_GROUP.icon
 
   const navVisibilityByLabel: Record<string, boolean> = {
+    "My Day": isSupportWorker,
     Roster: canViewRoster,
     Tasks: canViewTasks,
     Notes: canViewNotes,
@@ -78,11 +82,12 @@ export function MobileNav() {
     Clients: canViewClients,
     Contacts: canViewContacts,
     Staff: canViewStaff,
+    Lists: !isSupportWorker,
     Timesheets: true,
     Settings: !isSupportWorker,
   }
 
-  const TOP_NAV_LABELS = new Set(["Roster", "Tasks", "Notes", "Documents", "Forms", "Incidents"])
+  const TOP_NAV_LABELS = new Set(["My Day", "Roster", "Tasks", "Notes", "Documents", "Forms", "Incidents"])
   const workspaceNavItems = navItems.filter((item) => {
     if (permissionsLoading) return true
     return navVisibilityByLabel[item.label] !== false
@@ -101,14 +106,17 @@ export function MobileNav() {
         <span className="truncate text-[14px] font-semibold text-folk-text">
           {activeWorkspace?.name || "Coordination"}
         </span>
-        <button
-          onClick={() => setIsOpen(true)}
-          className="flex h-[36px] w-[36px] items-center justify-center rounded-none text-[#555] transition-colors hover:bg-folk-hover"
-          aria-label="Open navigation"
-          tabIndex={0}
-        >
-          <Menu className="h-[20px] w-[20px]" strokeWidth={1.5} />
-        </button>
+        <div className="flex items-center gap-[8px]">
+          <PageClockButton variant="icon" />
+          <button
+            onClick={() => setIsOpen(true)}
+            className="flex h-[36px] w-[36px] items-center justify-center rounded-[6px] text-[#555] transition-colors hover:bg-folk-hover"
+            aria-label="Open navigation"
+            tabIndex={0}
+          >
+            <Menu className="h-[20px] w-[20px]" strokeWidth={1.5} />
+          </button>
+        </div>
       </header>
 
       {isOpen && (
@@ -121,7 +129,7 @@ export function MobileNav() {
               </span>
               <button
                 onClick={() => setIsOpen(false)}
-                className="flex h-[29px] w-[29px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover"
+                className="flex h-[29px] w-[29px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover"
                 aria-label="Close navigation"
                 tabIndex={0}
               >
@@ -139,7 +147,7 @@ export function MobileNav() {
                       href={item.href}
                       onClick={() => setIsOpen(false)}
                       className={cn(
-                        "flex items-center gap-[10px] rounded-none px-[12px] py-[10px] text-[14px] font-medium transition-colors",
+                        "flex items-center gap-[10px] rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium transition-colors",
                         isActive
                           ? "bg-[var(--folk-border-subtle)] text-folk-text"
                           : "text-[#555] hover:bg-[#f8f8f8] hover:text-folk-text"
@@ -167,7 +175,7 @@ export function MobileNav() {
                   type="button"
                   onClick={() => setIsBusinessOpen((prev) => !prev)}
                   className={cn(
-                    "flex w-full items-center gap-[10px] rounded-none px-[12px] py-[10px] text-[14px] font-medium transition-colors",
+                    "flex w-full items-center gap-[10px] rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium transition-colors",
                     isBusinessActive
                       ? "bg-[var(--folk-border-subtle)] text-folk-text"
                       : "text-[#555] hover:bg-[#f8f8f8] hover:text-folk-text"
@@ -201,7 +209,7 @@ export function MobileNav() {
                                   href={item.href}
                                   onClick={() => setIsOpen(false)}
                                   className={cn(
-                                    "flex items-center gap-[10px] rounded-none px-[12px] py-[8px] text-[13px] font-medium transition-colors",
+                                    "flex items-center gap-[10px] rounded-[6px] px-[12px] py-[8px] text-[13px] font-medium transition-colors",
                                     isActive
                                       ? "bg-[var(--folk-border-subtle)] text-folk-text"
                                       : "text-[#555] hover:bg-[#f8f8f8] hover:text-folk-text"
@@ -231,7 +239,7 @@ export function MobileNav() {
                       href={item.href}
                       onClick={() => setIsOpen(false)}
                       className={cn(
-                        "flex items-center gap-[10px] rounded-none px-[12px] py-[10px] text-[14px] font-medium transition-colors",
+                        "flex items-center gap-[10px] rounded-[6px] px-[12px] py-[10px] text-[14px] font-medium transition-colors",
                         isActive
                           ? "bg-[var(--folk-border-subtle)] text-folk-text"
                           : "text-[#555] hover:bg-[#f8f8f8] hover:text-folk-text"

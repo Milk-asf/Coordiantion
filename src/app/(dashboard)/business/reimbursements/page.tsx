@@ -311,25 +311,29 @@ export default function ReimbursementsPage() {
     <div className="flex h-full flex-col">
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col">
-          <PageTitleBar title="Reimbursements" />
-          <div className="flex h-[44px] shrink-0 items-center justify-end gap-[8px] border-b border-folk-border-subtle bg-white px-[16px]">
-            {isAdmin && toPay.length > 0 && (
-              <button
-                type="button"
-                onClick={handleExportToPay}
-                disabled={isPaying}
-                className="outline-btn folk-pill-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors disabled:opacity-50"
-                tabIndex={0}
-              >
-                <Banknote className="h-[13px] w-[13px]" strokeWidth={1.75} />
-                <span>{isPaying ? "Exporting…" : `Export to pay (${toPay.length})`}</span>
-              </button>
-            )}
-            <Button onClick={openAddSidebar} variant="primary" className="folk-pill-btn h-[29px] px-[12px]">
-              <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-              <span>Add new</span>
-            </Button>
-          </div>
+          <PageTitleBar
+            title="Reimbursements"
+            trailing={
+              <>
+                {isAdmin && toPay.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleExportToPay}
+                    disabled={isPaying}
+                    className="outline-btn folk-pill-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors disabled:opacity-50"
+                    tabIndex={0}
+                  >
+                    <Banknote className="h-[13px] w-[13px]" strokeWidth={1.75} />
+                    <span>{isPaying ? "Exporting…" : `Export to pay (${toPay.length})`}</span>
+                  </button>
+                )}
+                <Button onClick={openAddSidebar} variant="primary" className="folk-pill-btn h-[29px] px-[12px]">
+                  <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+                  <span>Add new</span>
+                </Button>
+              </>
+            }
+          />
 
           <div className="flex h-[44px] shrink-0 items-stretch border-b border-folk-border bg-white px-[16px]">
             <div className="folk-tab-bar flex h-full items-stretch [&_.folk-tab:last-child]:mr-0">
@@ -481,12 +485,12 @@ export default function ReimbursementsPage() {
                           <td className={TABLE_PROFILE_CELL}>
                             <div className={TABLE_CELL_INNER}>
                               {item.paidAt ? (
-                                <span className="inline-flex h-[22px] items-center gap-[4px] rounded-none bg-[#e7f5ec] px-[8px] text-[11px] font-medium text-[#1a7f43]">
+                                <span className="inline-flex h-[22px] items-center gap-[4px] rounded-[6px] bg-[#e7f5ec] px-[8px] text-[11px] font-medium text-[#1a7f43]">
                                   <Banknote className="h-[11px] w-[11px]" strokeWidth={2} />
                                   Paid
                                 </span>
                               ) : (
-                                <span className={cn("inline-flex h-[22px] items-center rounded-none px-[8px] text-[11px] font-medium", getReimbursementStatusClasses(item.status))}>
+                                <span className={cn("inline-flex h-[22px] items-center rounded-[6px] px-[8px] text-[11px] font-medium", getReimbursementStatusClasses(item.status))}>
                                   {getReimbursementStatusLabel(item.status)}
                                 </span>
                               )}

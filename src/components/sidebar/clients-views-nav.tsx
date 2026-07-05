@@ -59,7 +59,7 @@ export function ClientsViewsNav({ isCollapsed }: { isCollapsed: boolean }) {
             type="button"
             onClick={() => handleSelectView(null)}
             className={cn(
-              "flex w-full items-center gap-[8px] rounded-none px-[10px] py-[7px] text-[13px] font-normal transition-colors",
+              "flex w-full items-center gap-[8px] rounded-[6px] px-[10px] py-[7px] text-[13px] font-normal transition-colors",
               !activeViewId ? "bg-[#f5f5f5] font-medium text-[#111111]" : "text-[#111111] hover:bg-[#f5f5f5]"
             )}
             tabIndex={0}
@@ -74,7 +74,7 @@ export function ClientsViewsNav({ isCollapsed }: { isCollapsed: boolean }) {
               type="button"
               onClick={() => handleSelectView(view.id)}
               className={cn(
-                "flex w-full items-center gap-[8px] rounded-none px-[10px] py-[7px] text-[13px] font-normal transition-colors",
+                "flex w-full items-center gap-[8px] rounded-[6px] px-[10px] py-[7px] text-[13px] font-normal transition-colors",
                 activeViewId === view.id ? "bg-[#f5f5f5] font-medium text-[#111111]" : "text-[#111111] hover:bg-[#f5f5f5]"
               )}
               tabIndex={0}

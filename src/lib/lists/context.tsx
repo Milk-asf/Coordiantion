@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { useWorkspace } from "@/lib/workspace-context"
-import { createList, type CustomList, type ListColumn, type ListViewMode } from "./definitions"
+import { createList, listIdsMatch, resolveListDbId, type CustomList, type ListColumn, type ListViewMode } from "./definitions"
 
 interface ListRow {
   id: string
@@ -17,6 +17,7 @@ interface ListRow {
   kanban_field: string | null
   kanban_stages: string[] | null
   kanban_record_stages: Record<string, string> | null
+  kanban_stage_colors?: Record<string, string> | null
   record_ids: string[] | null
   custom_values: Record<string, Record<string, unknown>> | null
   pinned: boolean | null
@@ -36,7 +37,11 @@ function loadLocal(workspaceId: string | undefined): CustomList[] {
     const raw = localStorage.getItem(storageKey(workspaceId))
     if (!raw) return []
     const parsed = JSON.parse(raw) as CustomList[]
-    return Array.isArray(parsed) ? parsed : []
+    if (!Array.isArray(parsed)) return []
+    return parsed.map((list) => ({
+      ...list,
+      id: resolveListDbId(list.id) ?? list.id,
+    }))
   } catch {
     return []
   }
@@ -63,6 +68,10 @@ function dbToList(row: ListRow): CustomList {
       row.kanban_record_stages && typeof row.kanban_record_stages === "object"
         ? row.kanban_record_stages
         : null,
+    kanbanStageColors:
+      row.kanban_stage_colors && typeof row.kanban_stage_colors === "object"
+        ? row.kanban_stage_colors
+        : null,
     recordIds: Array.isArray(row.record_ids) ? row.record_ids : [],
     customValues:
       row.custom_values && typeof row.custom_values === "object" ? row.custom_values : {},
@@ -76,6 +85,7 @@ function dbToList(row: ListRow): CustomList {
 
 function listToRow(list: CustomList) {
   return {
+    id: resolveListDbId(list.id) ?? list.id,
     workspace_id: list.workspaceId,
     name: list.name,
     icon: list.icon,
@@ -86,6 +96,9 @@ function listToRow(list: CustomList) {
     kanban_field: list.kanbanField,
     kanban_stages: list.kanbanStages,
     kanban_record_stages: list.kanbanRecordStages,
+    // Only sent once a colour is set, so lists keep saving before the
+    // kanban_stage_colors migration (061) is applied.
+    ...(list.kanbanStageColors ? { kanban_stage_colors: list.kanbanStageColors } : {}),
     record_ids: list.recordIds,
     custom_values: list.customValues ?? {},
     pinned: list.pinned,
@@ -223,14 +236,17 @@ export function ListsProvider({ children }: { children: ReactNode }) {
       let nextList: CustomList | null = null
       persist((prev) =>
         prev.map((list) => {
-          if (list.id !== id) return list
+          if (!listIdsMatch(list.id, id)) return list
           nextList = { ...list, ...updates, updatedAt }
           return nextList
         }),
       )
       if (!nextList) return
       const supabase = isSupabaseConfigured() ? createClient() : null
-      if (supabase) await supabase.from("custom_lists").update(listToRow(nextList)).eq("id", id)
+      const dbId = resolveListDbId(id)
+      if (supabase && dbId) {
+        await supabase.from("custom_lists").update(listToRow(nextList)).eq("id", dbId).eq("workspace_id", activeWorkspace.id)
+      }
     },
     [activeWorkspace, persist],
   )
@@ -246,18 +262,39 @@ export function ListsProvider({ children }: { children: ReactNode }) {
 
   const deleteList = useCallback(
     async (id: string) => {
+      const target = lists.find((list) => listIdsMatch(list.id, id))
+      const workspaceId = target?.workspaceId ?? activeWorkspace?.id
+
+      persist((prev) => prev.filter((list) => !listIdsMatch(list.id, id)))
+
       const supabase = isSupabaseConfigured() ? createClient() : null
-      if (supabase) {
-        const { error } = await supabase.from("custom_lists").delete().eq("id", id)
-        if (error) throw new Error(error.message)
+      if (!supabase || !workspaceId) return
+
+      const dbIds = new Set<string>()
+      const resolvedId = resolveListDbId(id)
+      if (resolvedId) dbIds.add(resolvedId)
+      if (target) {
+        const targetResolvedId = resolveListDbId(target.id)
+        if (targetResolvedId) dbIds.add(targetResolvedId)
       }
-      persist((prev) => prev.filter((list) => list.id !== id))
+
+      for (const dbId of dbIds) {
+        const { error } = await supabase
+          .from("custom_lists")
+          .delete()
+          .eq("id", dbId)
+          .eq("workspace_id", workspaceId)
+
+        if (error && error.code !== "22P02") {
+          console.warn("[lists] custom_lists delete failed:", error.message, { dbId, workspaceId })
+        }
+      }
     },
-    [persist],
+    [activeWorkspace?.id, lists, persist],
   )
 
   const getList = useCallback((id: string) => {
-    const list = lists.find((item) => item.id === id)
+    const list = lists.find((item) => listIdsMatch(item.id, id))
     if (!list) return undefined
     return { ...list, recordIds: list.recordIds ?? [], customValues: list.customValues ?? {} }
   }, [lists])

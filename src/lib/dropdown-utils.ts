@@ -20,12 +20,18 @@ function getViewportSize() {
   }
 }
 
+interface FixedDropdownStyleOptions {
+  scrollable?: boolean
+}
+
 export function getFixedDropdownStyle(
   rect: DOMRect,
   estimatedHeight: number,
   minWidth: number,
-  align: FixedDropdownAlign = "match"
+  align: FixedDropdownAlign = "match",
+  options: FixedDropdownStyleOptions = {}
 ): CSSProperties {
+  const scrollable = options.scrollable !== false
   const padding = 8
   const gap = 4
   const { width: viewportWidth, height: viewportHeight } = getViewportSize()
@@ -52,7 +58,12 @@ export function getFixedDropdownStyle(
   }
 
   const available = Math.max(0, (openUp ? spaceAbove : spaceBelow) - gap)
-  const maxHeight = Math.min(estimatedHeight, available || estimatedHeight)
+  // scrollable (default): cap at the estimated height so long option lists
+  // scroll. scrollable: false: size to content, but never past the viewport —
+  // overflow-y only kicks in when the screen genuinely can't fit the menu.
+  const maxHeight = scrollable
+    ? Math.min(estimatedHeight, available || estimatedHeight)
+    : available || estimatedHeight
 
   let left = rect.left
   if (align === "right") left = rect.right - menuWidth

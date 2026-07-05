@@ -33,8 +33,9 @@ export default function ListDetailPage() {
   const { records: sourceRecords } = useListSourceData()
 
   const list = getList(params.id)
-  const { openRecord } = useListRecordActions(list?.source ?? "")
+  const { openRecord } = useListRecordActions(list?.source ?? "", list?.id)
   const [name, setName] = useState("")
+  const [autoEditColumnId, setAutoEditColumnId] = useState<string | null>(null)
   const {
     state: queryState,
     setSearch,
@@ -122,7 +123,19 @@ export default function ListDetailPage() {
   }
 
   const handleAddCustomField = (kind: CustomFieldKind) => {
-    updateList(list.id, { columns: [...list.columns, createCustomListColumn(kind)] })
+    const column = createCustomListColumn(kind)
+    updateList(list.id, { columns: [...list.columns, column] })
+    // Open the new column's title for editing straight away.
+    setAutoEditColumnId(column.id)
+  }
+
+  const handleRenameColumn = (columnId: string, label: string) => {
+    const nextColumns = list.columns.map((column) =>
+      column.id === columnId && column.custom
+        ? { ...column, custom: { ...column.custom, label } }
+        : column,
+    )
+    updateList(list.id, { columns: nextColumns })
   }
 
   const handleRemoveColumn = (columnId: string) => {
@@ -155,6 +168,19 @@ export default function ListDetailPage() {
     updateList(list.id, { recordIds: [...ids, recordId] })
   }
 
+  const handleRemoveRecord = (recordId: string) => {
+    const nextIds = (list.recordIds ?? []).filter((id) => id !== recordId)
+    const nextAssignments = { ...(list.kanbanRecordStages ?? {}) }
+    delete nextAssignments[recordId]
+    const nextCustomValues = { ...(list.customValues ?? {}) }
+    delete nextCustomValues[recordId]
+    updateList(list.id, {
+      recordIds: nextIds,
+      kanbanRecordStages: nextAssignments,
+      customValues: nextCustomValues,
+    })
+  }
+
   const handleAddAllRecords = () => {
     const memberSet = new Set(list.recordIds ?? [])
     const nextIds = [...(list.recordIds ?? [])]
@@ -165,6 +191,86 @@ export default function ListDetailPage() {
       nextIds.push(id)
     })
     updateList(list.id, { recordIds: nextIds })
+  }
+
+  const handleMoveColumn = (columnId: string, direction: "left" | "right") => {
+    const index = list.columns.findIndex((column) => column.id === columnId)
+    const target = direction === "left" ? index - 1 : index + 1
+    if (index < 0 || target < 0 || target >= list.columns.length) return
+    const nextColumns = [...list.columns]
+    ;[nextColumns[index], nextColumns[target]] = [nextColumns[target], nextColumns[index]]
+    updateList(list.id, { columns: nextColumns })
+  }
+
+  const handleRenameStage = (stageKey: string, label: string) => {
+    const trimmed = label.trim()
+    const stages = list.kanbanStages ?? []
+    if (!trimmed || trimmed === stageKey || stages.includes(trimmed)) return
+    const nextStages = stages.map((stage) => (stage === stageKey ? trimmed : stage))
+    const nextAssignments = Object.fromEntries(
+      Object.entries(list.kanbanRecordStages ?? {}).map(([recordId, stage]) => [
+        recordId,
+        stage === stageKey ? trimmed : stage,
+      ]),
+    )
+    const nextColors = { ...(list.kanbanStageColors ?? {}) }
+    if (nextColors[stageKey]) {
+      nextColors[trimmed] = nextColors[stageKey]
+      delete nextColors[stageKey]
+    }
+    updateList(list.id, {
+      kanbanStages: nextStages,
+      kanbanRecordStages: nextAssignments,
+      ...(Object.keys(nextColors).length > 0 ? { kanbanStageColors: nextColors } : {}),
+    })
+  }
+
+  const handleSetStageColor = (stageKey: string, color: string | null) => {
+    const nextColors = { ...(list.kanbanStageColors ?? {}) }
+    if (color) nextColors[stageKey] = color
+    else delete nextColors[stageKey]
+    updateList(list.id, { kanbanStageColors: nextColors })
+  }
+
+  const handleDeleteStage = (stageKey: string) => {
+    const nextStages = (list.kanbanStages ?? []).filter((stage) => stage !== stageKey)
+    const nextAssignments = Object.fromEntries(
+      Object.entries(list.kanbanRecordStages ?? {}).filter(([, stage]) => stage !== stageKey),
+    )
+    const nextColors = { ...(list.kanbanStageColors ?? {}) }
+    delete nextColors[stageKey]
+    updateList(list.id, {
+      kanbanStages: nextStages,
+      kanbanRecordStages: nextAssignments,
+      kanbanStageColors: Object.keys(nextColors).length > 0 ? nextColors : null,
+    })
+  }
+
+  const handleAddRecordToStage = (recordId: string, stageKey: string) => {
+    const ids = list.recordIds ?? []
+    const nextIds = ids.includes(recordId) ? ids : [...ids, recordId]
+    if (stageKey === UNASSIGNED_KANBAN_STAGE) {
+      updateList(list.id, { recordIds: nextIds })
+      return
+    }
+    updateList(list.id, {
+      recordIds: nextIds,
+      kanbanRecordStages: { ...(list.kanbanRecordStages ?? {}), [recordId]: stageKey },
+    })
+  }
+
+  const handleAddAllToStage = (stageKey: string) => {
+    const memberSet = new Set(list.recordIds ?? [])
+    const nextIds = [...(list.recordIds ?? [])]
+    const assignments = { ...(list.kanbanRecordStages ?? {}) }
+    allSourceRecords.forEach((record, index) => {
+      const id = getRecordId(record, index)
+      if (memberSet.has(id)) return
+      memberSet.add(id)
+      nextIds.push(id)
+      if (stageKey !== UNASSIGNED_KANBAN_STAGE) assignments[id] = stageKey
+    })
+    updateList(list.id, { recordIds: nextIds, kanbanRecordStages: assignments })
   }
 
   const handleDelete = async () => {
@@ -260,9 +366,14 @@ export default function ListDetailPage() {
             recordCountLabel={formatListRecordCount(listRecords.length, list.source)}
             onAddSourceField={handleAddSourceField}
             onAddCustomField={handleAddCustomField}
+            autoEditColumnId={autoEditColumnId}
+            onAutoEditHandled={() => setAutoEditColumnId(null)}
             onRemoveColumn={handleRemoveColumn}
+            onRenameColumn={handleRenameColumn}
+            onMoveColumn={handleMoveColumn}
             onCustomValueChange={handleCustomValueChange}
             onOpenRecord={(record, index) => openRecord(record, index)}
+            onRemoveRecord={handleRemoveRecord}
             addRecordsSlot={
               <ListAddRecordsDropdown
                 sourceKey={list.source}
@@ -281,6 +392,19 @@ export default function ListDetailPage() {
           list={list}
           records={processedRecords}
           onUpdateStages={(stages) => updateList(list.id, { kanbanStages: stages })}
+          onRenameStage={handleRenameStage}
+          onSetStageColor={handleSetStageColor}
+          onDeleteStage={handleDeleteStage}
+          renderAddToStage={(stageKey) => (
+            <ListAddRecordsDropdown
+              sourceKey={list.source}
+              allRecords={allSourceRecords}
+              memberIds={list.recordIds ?? []}
+              onAdd={(recordId) => handleAddRecordToStage(recordId, stageKey)}
+              onAddAll={() => handleAddAllToStage(stageKey)}
+              variant="icon"
+            />
+          )}
           onMoveRecord={async (record, stageKey) => {
             const recordId = getRecordId(record, 0)
             const assignments = { ...(list.kanbanRecordStages ?? {}) }
@@ -290,6 +414,7 @@ export default function ListDetailPage() {
             return true
           }}
           onOpenRecord={(record, index) => openRecord(record, index)}
+          onRemoveRecord={handleRemoveRecord}
         />
       )}
     </div>

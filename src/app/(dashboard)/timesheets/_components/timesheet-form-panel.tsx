@@ -11,6 +11,7 @@ import { SignaturePad } from "@/components/signature-pad"
 import { EntityMultiPicker } from "@/app/(dashboard)/incidents/_components/entity-multi-picker"
 import { useToast } from "@/components/toast"
 import { useClients } from "@/lib/hooks/use-clients"
+import { usePermissions } from "@/lib/hooks/use-permissions"
 import { useRosterContext } from "@/lib/roster-context"
 import { useTimesheets } from "@/lib/timesheets-context"
 import { normalizeTimeInput } from "@/lib/roster/shift-utils"
@@ -27,18 +28,21 @@ import type { RosterShift } from "@/lib/roster/types"
 import { cn } from "@/lib/utils"
 
 const PANEL_WIDTH = 440
-const FORM_LABEL_CLASS = "mb-[6px] block text-[12px] font-medium text-folk-secondary"
+const FORM_LABEL_CLASS = "mb-[6px] block text-[13px] font-medium text-folk-text"
 const FORM_INPUT_CLASS =
-  "h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]"
+  "h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]"
 const FORM_TEXTAREA_CLASS =
-  "min-h-[72px] w-full resize-y rounded-none border border-folk-border bg-folk-page px-[12px] py-[8px] text-[13px] font-medium leading-[1.5] text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]"
+  "min-h-[72px] w-full resize-y rounded-[6px] border border-folk-border bg-white px-[12px] py-[8px] text-[13px] font-medium leading-[1.5] text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]"
 const FIELD_BUTTON_CLASS =
-  "flex h-[36px] w-full items-center justify-between gap-[8px] rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none transition-colors hover:border-[#bababa] focus:border-[#a3c4f3]"
+  "flex h-[38px] w-full items-center justify-between gap-[8px] rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium text-folk-text outline-none transition-colors hover:border-[#bababa] focus:border-[#a3c4f3]"
 
 interface TimesheetFormPanelProps {
   isOpen: boolean
   timesheet?: Timesheet | null
   onClose: () => void
+  /** Reviewer edits from Approvals — keeps the timesheet in the sent queue. */
+  variant?: "worker" | "review"
+  onSaved?: () => void
 }
 
 type ActiveDropdown = "startDate" | "startTime" | "endTime" | "shift" | null
@@ -80,14 +84,23 @@ function shiftMatchesWindow(shift: RosterShift, date: string, startTime: string,
   return start < normalizedShiftEnd && shiftStart < end
 }
 
-export function TimesheetFormPanel({ isOpen, timesheet, onClose }: TimesheetFormPanelProps) {
+export function TimesheetFormPanel({
+  isOpen,
+  timesheet,
+  onClose,
+  variant = "worker",
+  onSaved,
+}: TimesheetFormPanelProps) {
   const { toast } = useToast()
+  const { canManageTimesheets } = usePermissions()
   const { clients } = useClients()
   const { shifts } = useRosterContext()
-  const { currentStaffId, addTimesheet, updateTimesheet } = useTimesheets()
+  const { currentStaffId, addTimesheet, updateTimesheet, setStatus } = useTimesheets()
 
+  const isReviewEdit = variant === "review"
   const isEditing = Boolean(timesheet)
   const isReadOnly = timesheet ? timesheet.status === "approved" : false
+  const shiftStaffId = isReviewEdit && timesheet?.staffId ? timesheet.staffId : currentStaffId
 
   const [startDate, setStartDate] = useState("")
   const [startTime, setStartTime] = useState("09:00")
@@ -153,10 +166,10 @@ export function TimesheetFormPanel({ isOpen, timesheet, onClose }: TimesheetForm
     if (!startDate) return []
     return shifts.filter(
       (shift) =>
-        (!currentStaffId || shift.staffId === currentStaffId) &&
+        (!shiftStaffId || shift.staffId === shiftStaffId) &&
         shiftMatchesWindow(shift, startDate, normalizedStartTime, normalizedEndTime),
     )
-  }, [shifts, currentStaffId, startDate, normalizedStartTime, normalizedEndTime])
+  }, [shifts, shiftStaffId, startDate, normalizedStartTime, normalizedEndTime])
 
   // Auto-select the best matching shift unless the user picked one manually.
   useEffect(() => {
@@ -218,6 +231,11 @@ export function TimesheetFormPanel({ isOpen, timesheet, onClose }: TimesheetForm
   }
 
   const handleSave = async (status: TimesheetStatus) => {
+    if (isReviewEdit && !canManageTimesheets) {
+      toast("Only admins can edit timesheets", "error")
+      return
+    }
+
     if (!startDate) {
       toast("Add a start date first", "error")
       return
@@ -249,6 +267,9 @@ export function TimesheetFormPanel({ isOpen, timesheet, onClose }: TimesheetForm
     setIsSaving(true)
     if (isEditing && timesheet) {
       await updateTimesheet(timesheet.id, payload)
+      if (isReviewEdit) {
+        await setStatus(timesheet.id, "sent", "")
+      }
     } else {
       const created = await addTimesheet(payload)
       if (!created) {
@@ -258,8 +279,18 @@ export function TimesheetFormPanel({ isOpen, timesheet, onClose }: TimesheetForm
       }
     }
     setIsSaving(false)
-    toast(status === "sent" ? "Timesheet submitted" : "Timesheet saved", "success")
+    if (isReviewEdit) {
+      toast("Timesheet updated", "success")
+      onSaved?.()
+    } else {
+      toast(status === "sent" ? "Timesheet submitted" : "Timesheet saved", "success")
+    }
     onClose()
+  }
+
+  const handleSaveReview = async () => {
+    if (!timesheet) return
+    await handleSave("sent")
   }
 
   if (!isOpen) return null
@@ -269,7 +300,7 @@ export function TimesheetFormPanel({ isOpen, timesheet, onClose }: TimesheetForm
       <FormModal onClose={onClose} width={PANEL_WIDTH}>
         <div className="flex h-[44px] shrink-0 items-center justify-between gap-[12px] border-b border-folk-border bg-white px-[12px]">
           <h2 className="min-w-0 truncate text-[13px] font-semibold text-folk-text">
-            {isEditing ? "Timesheet" : "New timesheet"}
+            {isReviewEdit ? "Edit timesheet" : isEditing ? "Timesheet" : "New timesheet"}
           </h2>
           <IconButton
             type="button"
@@ -285,12 +316,12 @@ export function TimesheetFormPanel({ isOpen, timesheet, onClose }: TimesheetForm
         <div className="min-h-0 flex-1 overflow-y-auto">
           <div className="px-[24px] py-[16px]">
             {isReadOnly && (
-              <div className="mb-[14px] rounded-none border border-[#bbf7d0] bg-[#f0fdf4] px-[12px] py-[10px] text-[12px] font-medium text-[#166534]">
+              <div className="mb-[14px] rounded-[6px] border border-[#bbf7d0] bg-[#f0fdf4] px-[12px] py-[10px] text-[12px] font-medium text-[#166534]">
                 This timesheet has been approved and can no longer be edited.
               </div>
             )}
             {timesheet?.status === "returned" && timesheet.reviewNote && (
-              <div className="mb-[14px] rounded-none border border-amber-200 bg-amber-50 px-[12px] py-[10px]">
+              <div className="mb-[14px] rounded-[6px] border border-amber-200 bg-amber-50 px-[12px] py-[10px]">
                 <p className="text-[12px] font-semibold text-amber-900">Returned for changes</p>
                 <p className="mt-[4px] text-[12px] leading-snug text-amber-800">{timesheet.reviewNote}</p>
               </div>
@@ -323,7 +354,7 @@ export function TimesheetFormPanel({ isOpen, timesheet, onClose }: TimesheetForm
               <div className="grid grid-cols-2 gap-[12px]">
                 <div>
                   <span className={FORM_LABEL_CLASS}>Start time</span>
-                  <div className="flex h-[36px] items-center gap-[7px] rounded-none border border-folk-border bg-folk-page px-[12px] hover:border-[#bababa] focus-within:border-[#a3c4f3]">
+                  <div className="flex h-[38px] items-center gap-[7px] rounded-[6px] border border-folk-border bg-white px-[12px] hover:border-[#bababa] focus-within:border-[#a3c4f3]">
                     <Clock className="h-[13px] w-[13px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
                     <input
                       ref={startTimeRef}
@@ -348,7 +379,7 @@ export function TimesheetFormPanel({ isOpen, timesheet, onClose }: TimesheetForm
                 </div>
                 <div>
                   <span className={FORM_LABEL_CLASS}>End time</span>
-                  <div className="flex h-[36px] items-center gap-[7px] rounded-none border border-folk-border bg-folk-page px-[12px] hover:border-[#bababa] focus-within:border-[#a3c4f3]">
+                  <div className="flex h-[38px] items-center gap-[7px] rounded-[6px] border border-folk-border bg-white px-[12px] hover:border-[#bababa] focus-within:border-[#a3c4f3]">
                     <Clock className="h-[13px] w-[13px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
                     <input
                       ref={endTimeRef}
@@ -464,7 +495,7 @@ export function TimesheetFormPanel({ isOpen, timesheet, onClose }: TimesheetForm
               ) : (
                 <div className="space-y-[12px]">
                   {travelClaims.map((claim, index) => (
-                    <div key={claim.id} className="rounded-none border border-folk-border-subtle bg-folk-page p-[12px]">
+                    <div key={claim.id} className="rounded-[6px] border border-folk-border-subtle bg-folk-page p-[12px]">
                       <div className="mb-[10px] flex items-center justify-between">
                         <span className="text-[12px] font-semibold text-folk-text">Claim {index + 1}</span>
                         {!isReadOnly && (
@@ -481,7 +512,7 @@ export function TimesheetFormPanel({ isOpen, timesheet, onClose }: TimesheetForm
                       </div>
 
                       {claim.status === "returned" && claim.reviewNote && (
-                        <div className="mb-[10px] rounded-none border border-amber-200 bg-amber-50 px-[10px] py-[8px]">
+                        <div className="mb-[10px] rounded-[6px] border border-amber-200 bg-amber-50 px-[10px] py-[8px]">
                           <p className="text-[11px] font-semibold text-amber-900">Claim returned</p>
                           <p className="mt-[2px] text-[11px] leading-snug text-amber-800">{claim.reviewNote}</p>
                         </div>
@@ -499,7 +530,7 @@ export function TimesheetFormPanel({ isOpen, timesheet, onClose }: TimesheetForm
                         <div className="grid grid-cols-2 gap-[12px]">
                           <div>
                             <span className={FORM_LABEL_CLASS}>Start location</span>
-                            <div className="flex h-[36px] items-center gap-[7px] rounded-none border border-folk-border bg-folk-surface px-[12px] hover:border-[#bababa] focus-within:border-[#a3c4f3]">
+                            <div className="flex h-[38px] items-center gap-[7px] rounded-[6px] border border-folk-border bg-white px-[12px] hover:border-[#bababa] focus-within:border-[#a3c4f3]">
                               <MapPin className="h-[13px] w-[13px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
                               <input
                                 type="text"
@@ -513,7 +544,7 @@ export function TimesheetFormPanel({ isOpen, timesheet, onClose }: TimesheetForm
                           </div>
                           <div>
                             <span className={FORM_LABEL_CLASS}>End location</span>
-                            <div className="flex h-[36px] items-center gap-[7px] rounded-none border border-folk-border bg-folk-surface px-[12px] hover:border-[#bababa] focus-within:border-[#a3c4f3]">
+                            <div className="flex h-[38px] items-center gap-[7px] rounded-[6px] border border-folk-border bg-white px-[12px] hover:border-[#bababa] focus-within:border-[#a3c4f3]">
                               <MapPin className="h-[13px] w-[13px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
                               <input
                                 type="text"
@@ -543,7 +574,7 @@ export function TimesheetFormPanel({ isOpen, timesheet, onClose }: TimesheetForm
                                 updateTravelClaim(claim.id, { distanceKm: Math.max(0, Number(event.target.value) || 0) })
                               }
                               placeholder="0"
-                              className={cn(FORM_INPUT_CLASS, "bg-folk-surface")}
+                              className={FORM_INPUT_CLASS}
                             />
                           </div>
                           <div>
@@ -557,7 +588,7 @@ export function TimesheetFormPanel({ isOpen, timesheet, onClose }: TimesheetForm
                               value={claim.purpose}
                               onChange={(event) => updateTravelClaim(claim.id, { purpose: event.target.value })}
                               placeholder="e.g. Community access"
-                              className={cn(FORM_INPUT_CLASS, "bg-folk-surface")}
+                              className={FORM_INPUT_CLASS}
                             />
                           </div>
                         </div>
@@ -573,7 +604,7 @@ export function TimesheetFormPanel({ isOpen, timesheet, onClose }: TimesheetForm
                             value={claim.notes}
                             onChange={(event) => updateTravelClaim(claim.id, { notes: event.target.value })}
                             placeholder="Optional"
-                            className={cn(FORM_INPUT_CLASS, "bg-folk-surface")}
+                            className={FORM_INPUT_CLASS}
                           />
                         </div>
                       </div>
@@ -607,24 +638,49 @@ export function TimesheetFormPanel({ isOpen, timesheet, onClose }: TimesheetForm
 
         {!isReadOnly && (
           <div className="flex shrink-0 items-center justify-end gap-[8px] border-t border-folk-border-subtle px-[24px] py-[12px]">
-            <button
-              type="button"
-              onClick={() => handleSave("draft")}
-              disabled={isSaving}
-              className="outline-btn px-[12px] py-[6px] text-[12px] font-medium transition-colors disabled:opacity-50"
-              tabIndex={0}
-            >
-              {isSaving ? "Saving…" : "Save draft"}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSave("sent")}
-              disabled={isSaving}
-              className="primary-btn px-[12px] py-[6px] text-[12px] font-medium transition-colors disabled:opacity-50"
-              tabIndex={0}
-            >
-              {isSaving ? "Submitting…" : "Submit"}
-            </button>
+            {isReviewEdit ? (
+              <>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  disabled={isSaving}
+                  className="outline-btn folk-pill-btn h-[32px] px-[12px] text-[13px] font-medium transition-colors disabled:opacity-50"
+                  tabIndex={0}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveReview}
+                  disabled={isSaving}
+                  className="primary-btn folk-pill-btn h-[32px] px-[14px] text-[13px] font-medium transition-colors disabled:opacity-50"
+                  tabIndex={0}
+                >
+                  {isSaving ? "Saving…" : "Save changes"}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleSave("draft")}
+                  disabled={isSaving}
+                  className="outline-btn folk-pill-btn h-[32px] px-[12px] text-[13px] font-medium transition-colors disabled:opacity-50"
+                  tabIndex={0}
+                >
+                  {isSaving ? "Saving…" : "Save draft"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSave("sent")}
+                  disabled={isSaving}
+                  className="primary-btn folk-pill-btn h-[32px] px-[14px] text-[13px] font-medium transition-colors disabled:opacity-50"
+                  tabIndex={0}
+                >
+                  {isSaving ? "Submitting…" : "Submit"}
+                </button>
+              </>
+            )}
           </div>
         )}
       </FormModal>

@@ -72,7 +72,7 @@ export function DocumentPreview({ doc, getDownloadUrl, onClose }: DocumentPrevie
   return (
     <div className={`fixed inset-0 z-[100] flex items-center justify-center bg-black/50 ${motion.overlayIn}`}>
       <div
-        className={`relative flex h-[90vh] w-[90vw] max-w-[900px] flex-col overflow-hidden rounded-none border border-folk-border bg-folk-surface shadow-[0_8px_32px_rgba(0,0,0,0.12)] ${motion.scaleIn}`}
+        className={`relative flex h-[90vh] w-[90vw] max-w-[900px] flex-col overflow-hidden rounded-[6px] border border-folk-border bg-folk-surface shadow-[0_8px_32px_rgba(0,0,0,0.12)] ${motion.scaleIn}`}
       >
         <div className="flex h-[52px] shrink-0 items-center justify-between border-b border-folk-border-subtle bg-white px-[20px]">
           <div className="flex min-w-0 items-center gap-[10px]">
@@ -86,7 +86,7 @@ export function DocumentPreview({ doc, getDownloadUrl, onClose }: DocumentPrevie
             <button
               onClick={handleDownload}
               disabled={!url}
-              className="flex h-[29px] items-center gap-[6px] rounded-none border border-folk-border px-[10px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover disabled:opacity-40"
+              className="flex h-[29px] items-center gap-[6px] rounded-[6px] border border-folk-border px-[10px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover disabled:opacity-40"
               tabIndex={0}
               aria-label="Download file"
             >
@@ -95,7 +95,7 @@ export function DocumentPreview({ doc, getDownloadUrl, onClose }: DocumentPrevie
             </button>
             <button
               onClick={onClose}
-              className="flex h-[29px] w-[29px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+              className="flex h-[29px] w-[29px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
               tabIndex={0}
               aria-label="Close preview"
             >
@@ -126,7 +126,7 @@ export function DocumentPreview({ doc, getDownloadUrl, onClose }: DocumentPrevie
               </div>
               <button
                 onClick={handleDownload}
-                className="flex items-center gap-[6px] rounded-none border border-folk-border bg-folk-surface px-[14px] py-[8px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+                className="flex items-center gap-[6px] rounded-[6px] border border-folk-border bg-folk-surface px-[14px] py-[8px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                 tabIndex={0}
               >
                 <Download className="h-[14px] w-[14px]" strokeWidth={1.5} />

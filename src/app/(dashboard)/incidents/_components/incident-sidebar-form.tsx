@@ -32,11 +32,12 @@ import { EntityMultiPicker } from "./entity-multi-picker"
 import { IncidentCategoryChip } from "./incident-category-chip"
 import { IncidentParticipantChips, IncidentStaffChip } from "./incident-entity-chips"
 
+// Matches the forms feature's field styling (see forms/_components/form-preview.tsx).
 const PICKER_BUTTON_CLASS =
-  "flex h-[36px] w-full items-center gap-[8px] rounded-none border border-folk-border bg-folk-surface px-[10px] text-left text-[13px] font-medium transition-colors hover:bg-folk-hover"
+  "flex h-[38px] w-full items-center gap-[8px] rounded-[6px] border border-folk-border bg-white px-[12px] text-left text-[13px] text-folk-text transition-colors hover:border-folk-border-strong"
 
 const SELECT_BUTTON_CLASS =
-  "flex h-[36px] w-full items-center justify-between rounded-none border border-folk-border bg-folk-surface px-[10px] text-left text-[13px] font-medium transition-colors hover:bg-folk-hover"
+  "flex h-[38px] w-full items-center justify-between rounded-[6px] border border-folk-border bg-white px-[12px] text-left text-[13px] text-folk-text transition-colors hover:border-folk-border-strong"
 
 type FormSelectDropdown = "category" | "emergencyServices" | "organisationNotified" | "isReportable" | "familyNotified"
 
@@ -167,16 +168,16 @@ function FieldLabel({
   compact?: boolean
 }) {
   return (
-    <label className={cn("mb-[6px] block text-[12px] font-medium text-folk-secondary", compact && "mb-[4px]")}>
+    <label className={cn("mb-[6px] block text-[13px] font-medium text-folk-text", compact && "mb-[4px]")}>
       {children}
-      {required && <span className="text-[#dc2626]"> *</span>}
+      {required && <span className="ml-[2px] text-red-500">*</span>}
     </label>
   )
 }
 
 function ReadOnlyValue({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-[36px] rounded-none border border-folk-border bg-folk-hover px-[10px] py-[8px] text-[13px] text-folk-text">
+    <div className="min-h-[38px] rounded-[6px] border border-folk-border bg-folk-hover px-[12px] py-[8px] text-[13px] text-folk-text">
       {children || "—"}
     </div>
   )
@@ -498,10 +499,11 @@ export function IncidentForm({
   }
 
   const attachments = form.attachments ?? []
-  const fieldGap = isPageLayout ? "gap-[12px]" : "gap-[14px]"
+  const fieldGap = "gap-[18px]"
   const sectionGap = isPageLayout ? "mb-[18px]" : "mb-[24px]"
-  const pairGridClass = cn("grid grid-cols-1", fieldGap, isPageLayout ? "md:grid-cols-2" : "sm:grid-cols-2")
-  const spanFullClass = isPageLayout ? "md:col-span-2" : "sm:col-span-2"
+  // Forms render one question per row; keep every incident form the same.
+  const pairGridClass = cn("grid grid-cols-1", fieldGap)
+  const spanFullClass = ""
   const labelCompact = isPageLayout
 
   const renderStaffPicker = (
@@ -519,7 +521,7 @@ export function IncidentForm({
       return (
         <div>
           <FieldLabel required={required} compact={labelCompact}>{label}</FieldLabel>
-          <div className="min-h-[36px] rounded-none border border-folk-border bg-folk-hover px-[10px] py-[8px]">
+          <div className="min-h-[38px] rounded-[6px] border border-folk-border bg-folk-hover px-[12px] py-[8px]">
             <IncidentStaffChip staffId={form[field]} name={form[nameField]} staff={staff} />
           </div>
         </div>
@@ -537,7 +539,7 @@ export function IncidentForm({
             closeFormSelects()
             setActiveDropdown(activeDropdown === dropdownKey ? null : dropdownKey)
           }}
-          className="flex h-[36px] w-full items-center justify-between rounded-none border border-folk-border bg-folk-surface px-[10px] text-left text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+          className="flex h-[38px] w-full items-center justify-between rounded-[6px] border border-folk-border bg-white px-[12px] text-left text-[13px] text-folk-text transition-colors hover:border-folk-border-strong"
           tabIndex={0}
         >
           <span className="flex min-w-0 items-center gap-[10px]">
@@ -580,7 +582,7 @@ export function IncidentForm({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+            className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
             aria-label="Close"
             tabIndex={0}
           >
@@ -592,7 +594,7 @@ export function IncidentForm({
       <div className={cn(
         "flex-1 overflow-y-auto py-[18px]",
         isPageLayout ? "px-[24px]" : "px-[20px]",
-        layout === "page" && "mx-auto w-full max-w-[920px]",
+        layout === "page" && "mx-auto w-full max-w-[560px]",
         isProfileLayout && "px-[16px]"
       )}>
         <section className={sectionGap}>
@@ -600,7 +602,7 @@ export function IncidentForm({
             {isView ? (
               <div className={spanFullClass}>
                 <FieldLabel required compact={labelCompact}>Participant/s</FieldLabel>
-                <div className="min-h-[36px] rounded-none border border-folk-border bg-folk-hover px-[10px] py-[8px]">
+                <div className="min-h-[38px] rounded-[6px] border border-folk-border bg-folk-hover px-[12px] py-[8px]">
                   <IncidentParticipantChips clientIds={form.clientIds} clientNames={form.clientNames} clients={clients} />
                 </div>
               </div>
@@ -617,7 +619,7 @@ export function IncidentForm({
               </div>
             )}
 
-            <div className={cn(spanFullClass, "grid grid-cols-1", fieldGap, isPageLayout ? "md:grid-cols-2" : "sm:grid-cols-2")}>
+            <div className={cn(spanFullClass, "grid grid-cols-1", fieldGap)}>
               <div>
                 <FieldLabel required compact={labelCompact}>Date of incident</FieldLabel>
                 {isView ? (
@@ -693,7 +695,7 @@ export function IncidentForm({
             <div>
               <FieldLabel required compact={labelCompact}>Category</FieldLabel>
               {isView ? (
-                <div className="min-h-[36px] rounded-none border border-folk-border bg-folk-hover px-[10px] py-[8px]">
+                <div className="min-h-[38px] rounded-[6px] border border-folk-border bg-folk-hover px-[12px] py-[8px]">
                   <IncidentCategoryChip category={form.category} />
                 </div>
               ) : (
@@ -754,7 +756,7 @@ export function IncidentForm({
                   onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
                   rows={isPageLayout ? 4 : 5}
                   placeholder="What happened — include events before, during and after the incident"
-                  className="w-full rounded-none border border-folk-border bg-folk-surface px-[10px] py-[8px] text-[13px] text-folk-text outline-none"
+                  className="w-full rounded-[6px] border border-folk-border bg-white px-[12px] py-[10px] text-[13px] text-folk-text outline-none transition-colors placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
                 />
               )}
             </div>
@@ -769,7 +771,7 @@ export function IncidentForm({
                   onChange={(event) => setForm((current) => ({ ...current, userActivities: event.target.value }))}
                   rows={isPageLayout ? 3 : 4}
                   placeholder="What were participants doing at the time of the incident?"
-                  className="w-full rounded-none border border-folk-border bg-folk-surface px-[10px] py-[8px] text-[13px] text-folk-text outline-none"
+                  className="w-full rounded-[6px] border border-folk-border bg-white px-[12px] py-[10px] text-[13px] text-folk-text outline-none transition-colors placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
                 />
               )}
             </div>
@@ -784,7 +786,7 @@ export function IncidentForm({
                   onChange={(event) => setForm((current) => ({ ...current, actionsTaken: event.target.value }))}
                   rows={isPageLayout ? 3 : 4}
                   placeholder="Describe action taken to ensure health, safety and wellbeing of all persons involved"
-                  className="w-full rounded-none border border-folk-border bg-folk-surface px-[10px] py-[8px] text-[13px] text-folk-text outline-none"
+                  className="w-full rounded-[6px] border border-folk-border bg-white px-[12px] py-[10px] text-[13px] text-folk-text outline-none transition-colors placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
                 />
               )}
             </div>
@@ -792,7 +794,7 @@ export function IncidentForm({
         </section>
 
         <section className={sectionGap}>
-          <h3 className="mb-[4px] text-[12px] font-semibold uppercase tracking-[0.04em] text-folk-secondary">
+          <h3 className="mb-[4px] text-[16px] font-semibold text-folk-text">
             NDIS notification
           </h3>
           <p className="mb-[12px] text-[11px] text-folk-secondary">
@@ -818,7 +820,7 @@ export function IncidentForm({
             {form.isReportable && (
               <>
                 <div className={spanFullClass}>
-                  <div className="rounded-none border border-[#bfdbfe] bg-[#eef4fc] px-[12px] py-[10px]">
+                  <div className="rounded-[8px] border border-[#bfdbfe] bg-[#eef4fc] px-[12px] py-[10px]">
                     <p className="text-[12px] font-semibold text-[#1e40af]">NDIS reportable incident</p>
                     <p className="mt-[4px] text-[13px] text-folk-text">{ndisTypeLabel || "Select a category that maps to a reportable incident type"}</p>
                     {notificationDeadlineHint && (
@@ -837,7 +839,7 @@ export function IncidentForm({
                       value={form.referredToNotifier}
                       onChange={(event) => setForm((current) => ({ ...current, referredToNotifier: event.target.value }))}
                       placeholder="Name of internal authorised reportable incidents notifier"
-                      className="h-[36px] w-full rounded-none border border-folk-border bg-folk-surface px-[10px] text-[13px] text-folk-text outline-none"
+                      className="h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] text-folk-text outline-none transition-colors placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
                     />
                   )}
                 </div>
@@ -970,7 +972,7 @@ export function IncidentForm({
                       type="button"
                       onClick={() => setForm((current) => ({ ...current, incidentStatus: status }))}
                       className={cn(
-                        "min-w-0 flex-1 rounded-none border px-[10px] py-[8px] text-[12px] font-medium transition-colors",
+                        "min-w-0 flex-1 rounded-[6px] border px-[12px] py-[8px] text-[12px] font-medium transition-colors",
                         form.incidentStatus === status
                           ? "border-folk-border bg-folk-hover text-folk-text"
                           : "border-folk-border-subtle bg-folk-surface text-folk-secondary hover:bg-folk-hover"
@@ -999,7 +1001,7 @@ export function IncidentForm({
                   {attachments.map((attachment) => (
                     <div
                       key={attachment.id}
-                      className="flex items-center gap-[10px] rounded-none border border-folk-border bg-folk-surface px-[10px] py-[8px]"
+                      className="flex items-center gap-[10px] rounded-[6px] border border-folk-border bg-white px-[12px] py-[8px]"
                     >
                       <FileText className="h-[16px] w-[16px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
                       <div className="flex min-w-0 flex-1 flex-col">
@@ -1052,12 +1054,12 @@ export function IncidentForm({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-none px-[10px] py-[6px] text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+            className="rounded-[6px] px-[12px] py-[7px] text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
             tabIndex={0}
           >
             Cancel
           </button>
-          <Button onClick={handleSubmit} disabled={!canSubmit || isSaving || isUploadingAttachments} className="h-[34px] rounded-none px-[14px]">
+          <Button onClick={handleSubmit} disabled={!canSubmit || isSaving || isUploadingAttachments} className="h-[36px] rounded-[6px] px-[16px]">
             {isSaving ? (isEdit ? "Saving…" : "Submitting…") : isEdit ? "Save changes" : "Submit report"}
           </Button>
         </div>

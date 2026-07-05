@@ -38,7 +38,7 @@ export function FolkMetricCard({
   )
 
   const shellClassName = cn(
-    "flex w-full flex-col rounded-none border border-folk-border bg-folk-surface text-left",
+    "flex w-full flex-col rounded-[6px] border border-folk-border bg-folk-surface text-left",
     minHeightClassName,
     onClick && !disabled && "cursor-pointer transition-colors hover:bg-folk-hover",
     disabled && "cursor-default",

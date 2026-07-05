@@ -256,7 +256,7 @@ export function ClaimPeriodReview({
             type="button"
             onClick={handleSync}
             disabled={isSyncing}
-            className="flex items-center gap-[5px] rounded-none border border-folk-border px-[8px] py-[5px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover disabled:opacity-50"
+            className="flex items-center gap-[5px] rounded-[6px] border border-folk-border px-[8px] py-[5px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover disabled:opacity-50"
             tabIndex={0}
           >
             <RefreshCw className={cn("h-[12px] w-[12px]", isSyncing && "animate-spin")} strokeWidth={1.75} />
@@ -266,7 +266,7 @@ export function ClaimPeriodReview({
             <button
               type="button"
               onClick={handleAdvanceStatus}
-              className="rounded-none border border-folk-border px-[8px] py-[5px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+              className="rounded-[6px] border border-folk-border px-[8px] py-[5px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
               tabIndex={0}
             >
               Mark {CLAIM_PERIOD_STATUS_LABELS[NEXT_STATUS[period.status]]}
@@ -276,7 +276,7 @@ export function ClaimPeriodReview({
             <button
               type="button"
               onClick={handleAdvanceStatus}
-              className="rounded-none border border-folk-border px-[8px] py-[5px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+              className="rounded-[6px] border border-folk-border px-[8px] py-[5px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
               tabIndex={0}
             >
               Mark Reconciled
@@ -286,7 +286,7 @@ export function ClaimPeriodReview({
             variant="primary"
             onClick={handleExport}
             disabled={validLines.length === 0 || isExporting || providerErrors.length > 0}
-            className="rounded-none"
+            className="rounded-[6px]"
           >
             <Download className="h-[13px] w-[13px]" strokeWidth={1.5} />
             <span>
@@ -313,7 +313,7 @@ export function ClaimPeriodReview({
           </div>
           <Link
             href="/settings/general"
-            className="flex shrink-0 items-center gap-[5px] rounded-none border border-amber-300 bg-white px-[8px] py-[4px] text-[12px] font-medium text-amber-800 transition-colors hover:bg-amber-100"
+            className="flex shrink-0 items-center gap-[5px] rounded-[6px] border border-amber-300 bg-white px-[8px] py-[4px] text-[12px] font-medium text-amber-800 transition-colors hover:bg-amber-100"
           >
             <Settings2 className="h-[12px] w-[12px]" strokeWidth={1.75} />
             Finance settings
@@ -467,7 +467,7 @@ export function ClaimPeriodReview({
               This only removes the claim period. All billable entries stay intact and can be claimed again.
             </p>
             <div className="mt-[14px] flex items-center justify-end gap-[8px]">
-              <button type="button" onClick={() => setConfirmDelete(false)} className="outline-btn px-[12px] py-[6px] text-[12px] font-medium" tabIndex={0}>
+              <button type="button" onClick={() => setConfirmDelete(false)} className="outline-btn folk-pill-btn h-[32px] px-[12px] text-[13px] font-medium" tabIndex={0}>
                 Cancel
               </button>
               <button
@@ -477,7 +477,7 @@ export function ClaimPeriodReview({
                   setConfirmDelete(false)
                   onBack()
                 }}
-                className="rounded-none border border-red-200 bg-red-50 px-[12px] py-[6px] text-[12px] font-medium text-red-600 transition-colors hover:bg-red-100"
+                className="rounded-[6px] border border-red-200 bg-red-50 px-[12px] py-[6px] text-[12px] font-medium text-red-600 transition-colors hover:bg-red-100"
                 tabIndex={0}
               >
                 Delete claim

@@ -138,7 +138,7 @@ export function ProfileShiftNotesTab({ shifts, variant, onOpenShift, emptyDescri
                       <img
                         src={note.signature}
                         alt="Shift note signature"
-                        className="h-[80px] w-auto rounded-none border border-folk-border bg-white"
+                        className="h-[80px] w-auto rounded-[6px] border border-folk-border bg-white"
                       />
                     </div>
                   )}
@@ -156,7 +156,7 @@ export function ProfileShiftNotesTab({ shifts, variant, onOpenShift, emptyDescri
                       <button
                         type="button"
                         onClick={() => onOpenShift(shift)}
-                        className="flex shrink-0 items-center gap-[5px] rounded-none border border-folk-border px-[8px] py-[4px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+                        className="flex shrink-0 items-center gap-[5px] rounded-[6px] border border-folk-border px-[8px] py-[4px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                         tabIndex={0}
                       >
                         <ExternalLink className="h-[12px] w-[12px]" strokeWidth={1.5} />

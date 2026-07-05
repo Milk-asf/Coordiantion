@@ -305,7 +305,7 @@ export function PriceBookImportTab() {
             <select
               value={categoryFilter}
               onChange={(event) => setCategoryFilter(event.target.value)}
-              className="h-[36px] min-w-[220px] border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
+              className="h-[36px] min-w-[220px] border border-folk-border bg-white px-[12px] text-[13px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
               aria-label="Filter by support category"
             >
               <option value="">All categories</option>
@@ -410,7 +410,7 @@ export function PriceBookImportTab() {
             className={cn(
               "flex cursor-pointer flex-col items-center justify-center border-2 border-dashed px-[20px] py-[48px] transition-colors",
               isDragOver
-                ? "border-blue-400 bg-blue-50/50"
+                ? "border-[#8fa8e0] bg-[#f8faff]"
                 : "border-folk-border bg-folk-page hover:border-[#bababa] hover:bg-folk-hover",
             )}
             role="button"

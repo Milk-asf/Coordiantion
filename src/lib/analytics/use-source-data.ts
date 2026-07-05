@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useEffect, useMemo } from "react"
 import { useClients } from "@/lib/hooks/use-clients"
 import { useIncidents } from "@/lib/hooks/use-incidents"
 import { useTasks } from "@/lib/hooks/use-tasks"
@@ -9,6 +9,9 @@ import { useReimbursements } from "@/lib/hooks/use-reimbursements"
 import { useTimesheets } from "@/lib/timesheets-context"
 import { useRosterContext } from "@/lib/roster-context"
 import { useStaff } from "@/lib/hooks/use-staff"
+import { useDocuments } from "@/lib/hooks/use-documents"
+import { useForms } from "@/lib/hooks/use-forms"
+import { buildFormSubmissionRecords } from "./form-submissions"
 import type { AnalyticsDataSourceKey } from "./definitions"
 
 export type AnalyticsSourceData = Record<AnalyticsDataSourceKey, unknown[]>
@@ -26,11 +29,40 @@ export function useAnalyticsSourceData(): { data: AnalyticsSourceData; isLoading
   const { timesheets } = useTimesheets()
   const { shifts } = useRosterContext()
   const { staff } = useStaff()
+  const { documents } = useDocuments()
+  const {
+    forms,
+    getAllSubmissions,
+    getFormProcessKey,
+    ensureAllSubmissionsLoaded,
+    isLoading: formsLoading,
+  } = useForms()
 
-  const data = useMemo<AnalyticsSourceData>(
-    () => ({ shifts, incidents, tasks, timesheets, invoices, reimbursements, clients, staff }),
-    [shifts, incidents, tasks, timesheets, invoices, reimbursements, clients, staff],
+  useEffect(() => {
+    void ensureAllSubmissionsLoaded()
+  }, [ensureAllSubmissionsLoaded])
+
+  const formSubmissions = useMemo(
+    () => buildFormSubmissionRecords(forms, getAllSubmissions(), getFormProcessKey),
+    [forms, getAllSubmissions, getFormProcessKey],
   )
 
-  return { data, isLoading: invoicesLoading || reimbursementsLoading }
+  const data = useMemo<AnalyticsSourceData>(
+    () => ({
+      shifts,
+      incidents,
+      tasks,
+      timesheets,
+      invoices,
+      reimbursements,
+      clients,
+      staff,
+      documents,
+      forms,
+      formSubmissions,
+    }),
+    [shifts, incidents, tasks, timesheets, invoices, reimbursements, clients, staff, documents, forms, formSubmissions],
+  )
+
+  return { data, isLoading: invoicesLoading || reimbursementsLoading || formsLoading }
 }

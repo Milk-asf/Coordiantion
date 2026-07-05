@@ -4,14 +4,12 @@ import { useState, useCallback, useRef, useEffect, forwardRef } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 import {
+  Sun,
   Bell,
   SquareCheck,
   BookOpen,
   User,
   Package,
-  LogOut,
-  ChevronDown,
-  Settings,
   X,
   CheckCircle2,
   AlertTriangle,
@@ -25,12 +23,10 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { sidebarWorkspaceHeaderClass } from "@/components/tab-active-indicator"
-import { EntityIcon } from "@/components/entity-icon"
 import { PanelToggleButton } from "@/components/panel-toggle-button"
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
-import { useWorkspace } from "@/lib/workspace-context"
+import { PageClockButton } from "@/components/page-clock-button"
+import { SidebarAccountMenu } from "@/components/sidebar/sidebar-account-menu"
 import { usePermissions } from "@/lib/hooks/use-permissions"
-import { useWorkspaceSettings } from "@/lib/hooks/use-workspace-settings"
 import { useNotifications, type AppNotification } from "@/lib/hooks/use-notifications"
 import { useIncidents } from "@/lib/hooks/use-incidents"
 import { SidebarBusinessNavGroup } from "@/components/sidebar/sidebar-nav-group"
@@ -76,7 +72,25 @@ const navigation: NavSection[] = [
   },
 ]
 
-const COLLAPSED_WIDTH = 60
+// Support workers get a short, calm sidebar: My Day plus the four areas they
+// actually use in the field. Everything else stays hidden.
+const supportWorkerNavigation: NavSection[] = [
+  {
+    title: "My work",
+    items: [
+      { label: "My Day", href: "/my-day", icon: Sun },
+      { label: "Roster", href: "/roster", icon: CalendarRange },
+      { label: "Timesheets", href: "/timesheets", icon: Clock },
+      { label: "Incidents", href: "/incidents", icon: AlertTriangle },
+    ],
+  },
+  {
+    title: "People",
+    items: [{ label: "My participants", href: "/clients", icon: User }],
+  },
+]
+
+const COLLAPSED_WIDTH = 88
 const MIN_WIDTH = 148
 const DEFAULT_WIDTH = 210
 const MAX_WIDTH = 360
@@ -86,14 +100,10 @@ export function Sidebar() {
   const [width, setWidth] = useState(DEFAULT_WIDTH)
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [isNotifOpen, setIsNotifOpen] = useState(false)
   const [notifPos, setNotifPos] = useState({ top: 0, left: 0 })
-  const [userName, setUserName] = useState("")
-  const [userEmail, setUserEmail] = useState("")
   const [isFinancePanelOpen, setIsFinancePanelOpen] = useState(false)
   const sidebarRef = useRef<HTMLElement>(null)
-  const userMenuRef = useRef<HTMLDivElement>(null)
   const notifRef = useRef<HTMLDivElement>(null)
   const notifBtnRef = useRef<HTMLButtonElement>(null)
   const notifPanelRef = useRef<HTMLDivElement>(null)
@@ -106,7 +116,6 @@ export function Sidebar() {
   const [instantWidthChange, setInstantWidthChange] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
-  const { activeWorkspace } = useWorkspace()
   const {
     canViewStaff,
     canViewIncidents,
@@ -133,7 +142,6 @@ export function Sidebar() {
     Contacts: canViewContacts,
     Staff: canViewStaff,
   }
-  const { settings: orgSettings } = useWorkspaceSettings()
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications()
   const { unviewedCount: unviewedIncidentsCount } = useIncidents()
   const isFinanceGroupActive = isBusinessGroupActive(pathname)
@@ -203,28 +211,6 @@ export function Sidebar() {
   }, [])
 
   useEffect(() => {
-    if (!isSupabaseConfigured()) return
-    const supabase = createClient()
-    if (!supabase) return
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        setUserName(user.user_metadata?.full_name || "")
-        setUserEmail(user.email || "")
-      }
-    })
-  }, [])
-
-  useEffect(() => {
-    if (!isUserMenuOpen) return
-    const handleClickOutside = (e: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node))
-        setIsUserMenuOpen(false)
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [isUserMenuOpen])
-
-  useEffect(() => {
     if (!isNotifOpen) return
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as Node
@@ -239,13 +225,6 @@ export function Sidebar() {
   const handleMarkAllRead = () => {
     markAllAsRead()
     setIsNotifOpen(false)
-  }
-
-  const handleLogout = async () => {
-    const supabase = createClient()
-    if (supabase) await supabase.auth.signOut()
-    router.push("/login")
-    router.refresh()
   }
 
   const handleToggleCollapse = useCallback(() => {
@@ -353,33 +332,19 @@ export function Sidebar() {
       )}
     >
       {/* Company name + collapse — 52px row aligned with page title bar. */}
-      <div className={sidebarWorkspaceHeaderClass("justify-between")}>
-        {!isCollapsed && (
-          <div className="flex h-[24px] items-center gap-[6px] overflow-hidden rounded-[6px] border border-folk-border px-[8px]">
-            {orgSettings.logoUrl ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
-                src={orgSettings.logoUrl}
-                alt="Organisation logo"
-                className="h-[16px] w-[16px] shrink-0 rounded-[4px] object-contain"
-              />
-            ) : (
-              <div className="flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-[4px] bg-folk-hover text-[10px] font-medium text-[#9e9e9e]">
-                {(orgSettings.orgName || activeWorkspace?.name)?.[0]?.toUpperCase() || "W"}
-              </div>
-            )}
-            <span className="truncate text-[14px] font-medium text-[#202020]">
-              {orgSettings.orgName || activeWorkspace?.name || "Workspace"}
-            </span>
-            <ChevronDown className="h-[12px] w-[12px] shrink-0 text-[#616161]" strokeWidth={1.75} />
-          </div>
+      <div
+        className={cn(
+          sidebarWorkspaceHeaderClass("gap-[6px]"),
+          isCollapsed ? "justify-center px-2" : "justify-between gap-[8px]",
         )}
+      >
+        <SidebarAccountMenu isCollapsed={isCollapsed} />
+        {!isCollapsed ? <PageClockButton variant="icon" /> : null}
         <PanelToggleButton
           side="left"
           isOpen={!isCollapsed}
           onClick={handleToggleCollapse}
           ariaLabel={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className={cn(isCollapsed && "mx-auto")}
         />
       </div>
 
@@ -429,7 +394,7 @@ export function Sidebar() {
           </li>
         </ul>
 
-        {navigation.map((section) => {
+        {(isSupportWorker ? supportWorkerNavigation : navigation).map((section) => {
           const items = section.items.filter((item) => {
             if (permissionsLoading) return true
             return navVisibilityByLabel[item.label] !== false
@@ -466,73 +431,8 @@ export function Sidebar() {
           )
         })}
 
-        <SidebarListsGroup isCollapsed={isCollapsed} />
+        {!isSupportWorker && <SidebarListsGroup isCollapsed={isCollapsed} />}
       </nav>
-
-      {/* User menu at bottom */}
-      <div className="folk-sidebar-footer relative border-t border-sidebar-border px-2 pb-3 pt-2" ref={userMenuRef}>
-        <button
-          onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-          className={cn(
-            "folk-sidebar-nav-item flex w-full items-center gap-2 rounded-none px-2 py-[6px] text-[13px] font-medium text-sidebar-text transition-colors hover:bg-sidebar-hover",
-            isCollapsed && "justify-center px-0"
-          )}
-          aria-label="User menu"
-          tabIndex={0}
-        >
-          <EntityIcon
-            text={
-              userName
-                ? userName.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase()
-                : userEmail
-                  ? userEmail.charAt(0).toUpperCase()
-                  : "U"
-            }
-            size="xsm"
-          />
-          {!isCollapsed && (
-            <>
-              <span className="truncate text-[12px]">{userName || userEmail || "Account"}</span>
-              <ChevronDown className="ml-auto h-[12px] w-[12px] shrink-0 text-sidebar-muted" strokeWidth={1.75} />
-            </>
-          )}
-        </button>
-
-        {isUserMenuOpen && (
-          <div className="absolute bottom-full left-2 right-2 mb-1 rounded-none border border-folk-border bg-folk-surface py-1 shadow-folk">
-            <div className="border-b border-folk-border-subtle px-3 py-2">
-              <p className="truncate text-[12px] font-medium text-folk-text">{userName || "User"}</p>
-              <p className="truncate text-[11px] text-folk-secondary">{userEmail}</p>
-            </div>
-            <Link
-              href="/timesheets"
-              onClick={() => setIsUserMenuOpen(false)}
-              className="flex w-full items-center gap-2 px-3 py-[6px] text-[12px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
-              tabIndex={0}
-            >
-              <Clock className="h-[14px] w-[14px]" strokeWidth={1.75} />
-              My work
-            </Link>
-            <Link
-              href="/settings"
-              onClick={() => setIsUserMenuOpen(false)}
-              className="flex w-full items-center gap-2 px-3 py-[6px] text-[12px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
-              tabIndex={0}
-            >
-              <Settings className="h-[14px] w-[14px]" strokeWidth={1.75} />
-              Settings
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="flex w-full items-center gap-2 px-3 py-[6px] text-[12px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
-              tabIndex={0}
-            >
-              <LogOut className="h-[14px] w-[14px]" strokeWidth={1.75} />
-              Sign out
-            </button>
-          </div>
-        )}
-      </div>
 
       {/* Drag handle */}
       <div
@@ -632,14 +532,14 @@ const NotificationPanel = forwardRef<HTMLDivElement, {
   return (
     <div
       ref={ref}
-      className="fixed z-50 flex max-h-[420px] w-[320px] flex-col overflow-hidden rounded-none border border-folk-border bg-folk-surface shadow-folk"
+      className="fixed z-50 flex max-h-[420px] w-[320px] flex-col overflow-hidden rounded-[6px] border border-folk-border bg-folk-surface shadow-folk"
       style={{ top: position.top, left: position.left }}
     >
       <div className="flex items-center justify-between border-b border-folk-border-subtle px-4 py-3">
         <h2 className="text-[14px] font-semibold text-folk-text">Notifications</h2>
         <button
           onClick={onClose}
-          className="flex h-6 w-6 items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+          className="flex h-6 w-6 items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
           aria-label="Close notifications"
           tabIndex={0}
         >

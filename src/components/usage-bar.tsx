@@ -12,8 +12,8 @@ export function UsageBar({ percent, baseColor = "bg-[#2563EB]", tooltip }: Usage
 
   return (
     <div className="flex items-center gap-[10px]" title={tooltip}>
-      <div className="h-[8px] w-[80px] overflow-hidden rounded-none bg-folk-border-subtle">
-        <div className={`h-full rounded-none ${fillColor} transition-all`} style={{ width: `${pct}%` }} />
+      <div className="h-[8px] w-[80px] overflow-hidden rounded-[6px] bg-folk-border-subtle">
+        <div className={`h-full rounded-[6px] ${fillColor} transition-all`} style={{ width: `${pct}%` }} />
       </div>
       <span className="text-[12px] font-medium tabular-nums text-folk-secondary">{Math.round(percent)}%</span>
     </div>

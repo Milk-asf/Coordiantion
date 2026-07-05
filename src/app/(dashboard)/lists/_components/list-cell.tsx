@@ -1,11 +1,17 @@
+import { CalendarDays } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getFolkStatusClass } from "@/lib/folk-ui"
+import { TABLE_CHIP } from "@/lib/table-styles"
 import type { ListField } from "@/lib/lists/definitions"
 
-function formatDate(value: string): string {
-  const date = new Date(value)
+export function formatListDate(value: string): string {
+  const date = new Date(value.includes("T") ? value : `${value}T00:00:00`)
   if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
+  return date.toLocaleDateString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" })
+}
+
+function formatDate(value: string): string {
+  return formatListDate(value)
 }
 
 function formatNumber(value: number, format: ListField["format"]): string {
@@ -48,7 +54,14 @@ export function ListCell({ field, record }: ListCellProps) {
   }
 
   if (field.kind === "number") return <span className="text-[13px] tabular-nums text-folk-text">{display}</span>
-  if (field.kind === "date") return <span className="text-[13px] text-folk-text">{display}</span>
+  if (field.kind === "date") {
+    return (
+      <span className={cn(TABLE_CHIP, "gap-[4px]")}>
+        <CalendarDays className="h-[11px] w-[11px] shrink-0" strokeWidth={1.75} />
+        {display}
+      </span>
+    )
+  }
 
   return <span className="truncate text-[13px] text-folk-text">{display}</span>
 }

@@ -93,7 +93,7 @@ function ClaimCard({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "overflow-hidden rounded-none border border-[#d9d9d9] bg-white",
+        "overflow-hidden rounded-[6px] border border-[#d9d9d9] bg-white",
         canManage ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
         (isDragging || isActiveDragging) && !isOverlay && "opacity-35",
         isOverlay && "shadow-[0_8px_24px_rgba(0,0,0,0.12)]",
@@ -168,7 +168,7 @@ function KanbanColumn({
         ref={setNodeRef}
         className={cn(
           "flex min-h-[200px] flex-col gap-[8px] transition-colors",
-          isOver && canManage && "rounded-none bg-[#f3f4f6]/60",
+          isOver && canManage && "rounded-[6px] bg-[#f3f4f6]/60",
         )}
       >
         {periods.map((period) => (

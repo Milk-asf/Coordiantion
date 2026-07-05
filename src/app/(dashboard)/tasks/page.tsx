@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect, useMemo } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import {
   Table2,
   Plus,
@@ -39,6 +39,7 @@ import { Switch } from "@/components/switch"
 import { DisplayPopoverPanel, DisplayPopoverTrigger } from "@/components/display-popover"
 import { FixedDropdownMenu } from "@/components/fixed-dropdown-menu"
 import { TaskDetailModal } from "./_components/task-detail-modal"
+import { useListReturnBack } from "@/lib/lists/list-return"
 import {
   type TaskSavedView,
   taskColumnDefs,
@@ -52,11 +53,16 @@ import {
 
 
 export default function TasksPage() {
+  const router = useRouter()
   const { toast } = useToast()
   const { tasks: allTasks, isLoading, fetchError, hasMore, isLoadingMore, loadMore, addTask, updateTask: updateTaskDb, deleteTask: deleteTaskDb, refetch } = useTasks()
   const { invoices } = useInvoices()
   const { clients, clientNames, updateClient } = useClients()
   const searchParams = useSearchParams()
+  const { listReturnPath } = useListReturnBack({
+    path: "/tasks",
+    label: "Back to tasks",
+  })
   const { enabledCharges, allCharges } = useCharges()
   const { staffNames } = useStaff()
   const { canAssignTasks, role } = usePermissions()
@@ -428,6 +434,7 @@ export default function TasksPage() {
 
   const closeDetail = () => {
     setSelectedTaskId(null)
+    if (listReturnPath) router.push(listReturnPath)
   }
 
   const filtered = tasks.filter((t) => {
@@ -605,7 +612,255 @@ export default function TasksPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <PageTitleBar title={isInvoicingMode ? "Invoicing" : "Tasks"} />
+      <PageTitleBar
+        title={isInvoicingMode ? "Invoicing" : "Tasks"}
+        trailing={
+          !isInvoicingMode ? (
+            <div className="relative">
+              <button
+                ref={createBtnRef}
+                onClick={() => { if (isQuickAdding) { resetQuickAdd() } else { setIsQuickAdding(true); setQuickActiveField("title"); setTimeout(() => quickInputRef.current?.focus(), 0) } }}
+                className="primary-btn folk-pill-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
+                tabIndex={0}
+              >
+                <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+                <span className="hidden sm:inline">Add new</span>
+              </button>
+              {isQuickAdding && (
+                <>
+                  <div className="fixed inset-0 z-[48]" onClick={resetQuickAdd} />
+                  <div className="absolute right-0 top-full z-[49] mt-[6px] w-[520px] rounded-[6px] border border-folk-border bg-folk-surface shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+                    <div className="px-[16px] pt-[14px]">
+                      <input
+                        ref={quickInputRef}
+                        type="text"
+                        value={quickTitle}
+                        onChange={(e) => setQuickTitle(e.target.value)}
+                        onFocus={() => setQuickActiveField("title")}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && quickTitle.trim()) { e.preventDefault(); setQuickActiveField("participant"); quickClientInputRef.current?.focus() }
+                          if (e.key === "Escape") resetQuickAdd()
+                        }}
+                        placeholder="Task name..."
+                        className="w-full text-[15px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none"
+                        autoFocus
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-[6px] px-[16px] pb-[12px] pt-[12px]">
+                      <div className="relative">
+                        {(() => {
+                          const filteredClients = quickClientSearch
+                            ? clientNames.filter((n) => n.toLowerCase().includes(quickClientSearch.toLowerCase()))
+                            : clientNames
+                          const selectClient = (name: string) => {
+                            setQuickClient(name)
+                            setIsQuickClientOpen(false)
+                            setQuickClientIdx(-1)
+                            setQuickClientSearch("")
+                            const matched = clients.find((c) => c.name === name || c.displayName === name)
+                            if (matched?.owner && !quickAssignee) setQuickAssignee(matched.owner)
+                            setQuickActiveField("charge")
+                            setTimeout(() => quickChargeInputRef.current?.focus(), 50)
+                          }
+                          return (
+                            <>
+                              <div
+                                className={`flex items-center gap-[5px] rounded-[6px] border px-[8px] py-[3px] transition-colors ${quickActiveField === "participant" ? "border-blue-400" : "border-folk-border"}`}
+                              >
+                                <Building2 className={`h-[12px] w-[12px] shrink-0 ${quickClient ? "text-folk-secondary" : "text-[#ccc]"}`} strokeWidth={1.5} />
+                                <input
+                                  ref={quickClientInputRef}
+                                  type="text"
+                                  value={isQuickClientOpen ? quickClientSearch : quickClient}
+                                  onChange={(e) => { setQuickClientSearch(e.target.value); if (!isQuickClientOpen) setIsQuickClientOpen(true); setQuickClientIdx(0) }}
+                                  onFocus={() => { setQuickActiveField("participant"); setIsQuickClientOpen(true); setQuickClientSearch(""); setQuickClientIdx(0) }}
+                                  onKeyDown={(e) => {
+                                    if (isQuickClientOpen) {
+                                      const totalItems = filteredClients.length
+                                      if (e.key === "ArrowDown") { e.preventDefault(); setQuickClientIdx((p) => (p + 1) % Math.max(totalItems, 1)) }
+                                      else if (e.key === "ArrowUp") { e.preventDefault(); setQuickClientIdx((p) => (p - 1 + Math.max(totalItems, 1)) % Math.max(totalItems, 1)) }
+                                      else if (e.key === "Enter") {
+                                        e.preventDefault()
+                                        if (filteredClients.length > 0) {
+                                          const idx = quickClientIdx >= 0 && quickClientIdx < filteredClients.length ? quickClientIdx : 0
+                                          selectClient(filteredClients[idx])
+                                        } else {
+                                          selectClient("")
+                                        }
+                                      } else if (e.key === "Tab" && !e.shiftKey) {
+                                        e.preventDefault()
+                                        if (filteredClients.length > 0) {
+                                          const idx = quickClientIdx >= 0 && quickClientIdx < filteredClients.length ? quickClientIdx : 0
+                                          selectClient(filteredClients[idx])
+                                        } else {
+                                          setIsQuickClientOpen(false); setQuickClientSearch("")
+                                          setQuickActiveField("charge"); setTimeout(() => quickChargeInputRef.current?.focus(), 50)
+                                        }
+                                      }
+                                    } else {
+                                      if (e.key === "Tab" && !e.shiftKey) { e.preventDefault(); setQuickActiveField("charge"); quickChargeInputRef.current?.focus() }
+                                    }
+                                    if (e.key === "Escape") {
+                                      if (isQuickClientOpen) { e.stopPropagation(); setIsQuickClientOpen(false); setQuickClientSearch(""); setQuickClientIdx(-1) }
+                                      else resetQuickAdd()
+                                    }
+                                  }}
+                                  placeholder="Client"
+                                  className="w-[80px] bg-transparent text-[12px] font-medium text-folk-text placeholder-[#ccc] outline-none"
+                                />
+                              </div>
+                              {isQuickClientOpen && (
+                                <>
+                                  <div className="fixed inset-0 z-[59]" onClick={() => { setIsQuickClientOpen(false); setQuickClientIdx(-1); setQuickClientSearch("") }} />
+                                  <div ref={quickClientListRef} className="absolute left-0 top-full z-[60] mt-[4px] max-h-[200px] w-[220px] overflow-y-auto rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk">
+                                    {filteredClients.length === 0 ? (
+                                      <div className="px-[12px] py-[7px] text-[12px] font-medium text-folk-secondary">No matches</div>
+                                    ) : (
+                                      filteredClients.map((name, i) => {
+                                        const initials = name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+                                        const isHighlighted = quickClientIdx === i
+                                        return (
+                                          <div
+                                            key={name}
+                                            onClick={() => selectClient(name)}
+                                            className={`flex w-full cursor-pointer items-center gap-[8px] px-[12px] py-[7px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover ${isHighlighted ? "bg-blue-50" : ""}`}
+                                            role="option"
+                                            aria-selected={isHighlighted}
+                                          >
+                                            <EntityIcon text={initials} size="xsm" />
+                                            {name}
+                                          </div>
+                                        )
+                                      })
+                                    )}
+                                  </div>
+                                </>
+                              )}
+                            </>
+                          )
+                        })()}
+                      </div>
+
+                      <div className="relative">
+                        {(() => {
+                          const filteredCharges = quickChargeSearch
+                            ? chargeTypes.filter((ct) => ct.label.toLowerCase().includes(quickChargeSearch.toLowerCase()) || ct.value.toLowerCase().includes(quickChargeSearch.toLowerCase()))
+                            : chargeTypes
+                          const selectCharge = (value: string) => {
+                            setQuickCharge(value)
+                            setIsQuickChargeOpen(false)
+                            setQuickChargeIdx(-1)
+                            setQuickChargeSearch("")
+                            setQuickActiveField("time")
+                            setTimeout(() => quickTimeRef.current?.focus(), 50)
+                          }
+                          return (
+                            <>
+                              <div
+                                className={`flex items-center gap-[5px] rounded-[6px] border px-[8px] py-[3px] transition-colors ${quickActiveField === "charge" ? "border-blue-400" : "border-folk-border"}`}
+                              >
+                                <Tag className={`h-[12px] w-[12px] shrink-0 ${quickCharge ? "text-folk-secondary" : "text-[#ccc]"}`} strokeWidth={1.5} />
+                                <input
+                                  ref={quickChargeInputRef}
+                                  type="text"
+                                  value={isQuickChargeOpen ? quickChargeSearch : (quickCharge ? chargeLabel(quickCharge) : "")}
+                                  onChange={(e) => { setQuickChargeSearch(e.target.value); if (!isQuickChargeOpen) setIsQuickChargeOpen(true); setQuickChargeIdx(0) }}
+                                  onFocus={() => { setQuickActiveField("charge"); setIsQuickChargeOpen(true); setQuickChargeSearch(""); setQuickChargeIdx(0) }}
+                                  onKeyDown={(e) => {
+                                    if (isQuickChargeOpen) {
+                                      const total = filteredCharges.length
+                                      if (e.key === "ArrowDown") { e.preventDefault(); setQuickChargeIdx((p) => (p + 1) % Math.max(total, 1)) }
+                                      else if (e.key === "ArrowUp") { e.preventDefault(); setQuickChargeIdx((p) => (p - 1 + Math.max(total, 1)) % Math.max(total, 1)) }
+                                      else if (e.key === "Enter") {
+                                        e.preventDefault()
+                                        if (filteredCharges.length > 0) {
+                                          const idx = quickChargeIdx >= 0 && quickChargeIdx < filteredCharges.length ? quickChargeIdx : 0
+                                          selectCharge(filteredCharges[idx].value)
+                                        } else {
+                                          selectCharge("")
+                                        }
+                                      } else if (e.key === "Tab" && !e.shiftKey) {
+                                        e.preventDefault()
+                                        if (filteredCharges.length > 0) {
+                                          const idx = quickChargeIdx >= 0 && quickChargeIdx < filteredCharges.length ? quickChargeIdx : 0
+                                          selectCharge(filteredCharges[idx].value)
+                                        } else {
+                                          setIsQuickChargeOpen(false); setQuickChargeSearch("")
+                                          setQuickActiveField("time"); setTimeout(() => quickTimeRef.current?.focus(), 50)
+                                        }
+                                      }
+                                    } else {
+                                      if (e.key === "Tab" && !e.shiftKey) { e.preventDefault(); setQuickActiveField("time"); quickTimeRef.current?.focus() }
+                                    }
+                                    if (e.key === "Escape") {
+                                      if (isQuickChargeOpen) { e.stopPropagation(); setIsQuickChargeOpen(false); setQuickChargeSearch(""); setQuickChargeIdx(-1) }
+                                      else resetQuickAdd()
+                                    }
+                                  }}
+                                  placeholder="Charge"
+                                  className="w-[80px] bg-transparent text-[12px] font-medium text-folk-text placeholder-[#ccc] outline-none"
+                                />
+                              </div>
+                              {isQuickChargeOpen && (
+                                <>
+                                  <div className="fixed inset-0 z-[59]" onClick={() => { setIsQuickChargeOpen(false); setQuickChargeIdx(-1); setQuickChargeSearch("") }} />
+                                  <div ref={quickChargeListRef} className="absolute left-0 top-full z-[60] mt-[4px] max-h-[220px] w-[200px] overflow-y-auto rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk">
+                                    {filteredCharges.length === 0 ? (
+                                      <div className="px-[12px] py-[7px] text-[12px] font-medium text-folk-secondary">No matches</div>
+                                    ) : (
+                                      filteredCharges.map((ct, i) => (
+                                        <div
+                                          key={ct.value || "__none__"}
+                                          onClick={() => selectCharge(ct.value)}
+                                          className={`flex w-full cursor-pointer items-center px-[12px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${quickChargeIdx === i ? "bg-blue-50" : ""} ${ct.value ? "text-folk-text" : "text-folk-secondary"}`}
+                                          role="option"
+                                          aria-selected={quickChargeIdx === i}
+                                        >
+                                          {ct.label}
+                                        </div>
+                                      ))
+                                    )}
+                                  </div>
+                                </>
+                              )}
+                            </>
+                          )
+                        })()}
+                      </div>
+
+                      <div className="flex items-center gap-[5px] rounded-[6px] border border-folk-border px-[8px] py-[4px]">
+                        <Clock className={`h-[12px] w-[12px] ${quickTime ? "text-folk-secondary" : "text-[#ccc]"}`} strokeWidth={1.5} />
+                        <input
+                          ref={quickTimeRef}
+                          type="text"
+                          value={quickTime}
+                          onChange={(e) => setQuickTime(e.target.value)}
+                          onFocus={() => setQuickActiveField("time")}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || (e.key === "Tab" && !e.shiftKey)) { e.preventDefault(); handleQuickFinish() }
+                            if (e.key === "Escape") resetQuickAdd()
+                          }}
+                          placeholder="0m"
+                          className="w-[40px] bg-transparent text-[12px] font-medium text-folk-text placeholder-[#ccc] outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-folk-border-subtle px-[16px] py-[10px]">
+                      <span className="text-[11px] font-medium text-[#ccc]">Enter ↵ next · Esc close</span>
+                      <div className="flex items-center gap-[6px]">
+                        <button type="button" onClick={resetQuickAdd} className="rounded-[6px] px-[8px] py-[4px] text-[12px] font-medium text-folk-secondary transition-colors hover:bg-[var(--folk-border-subtle)]" tabIndex={0}>Cancel</button>
+                        <button type="button" onClick={handleQuickFinish} disabled={!quickTitle.trim()} className="primary-btn px-[12px] py-[4px] text-[12px] font-medium transition-colors disabled:opacity-40" tabIndex={0}>Create</button>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : null
+        }
+      />
       {/* View tabs */}
       <div className="flex h-[44px] shrink-0 items-stretch justify-between gap-[8px] border-b border-folk-border bg-white px-[16px]">
         <div className={pageNavTabsScrollClass()}>
@@ -648,7 +903,7 @@ export default function TasksPage() {
             <div className="flex items-center gap-[6px]">
               <button
                 onClick={() => setWeekOffset((p) => p - 1)}
-                className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+                className="flex h-[24px] w-[24px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
                 tabIndex={0}
                 aria-label="Previous week"
               >
@@ -657,7 +912,7 @@ export default function TasksPage() {
               <span className="min-w-[160px] text-center text-[13px] font-semibold text-folk-text">{formatWeekLabel()}</span>
               <button
                 onClick={() => setWeekOffset((p) => p + 1)}
-                className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+                className="flex h-[24px] w-[24px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
                 tabIndex={0}
                 aria-label="Next week"
               >
@@ -666,7 +921,7 @@ export default function TasksPage() {
               <button
                 onClick={() => setWeekOffset(0)}
                 disabled={weekOffset === 0}
-                className={`flex items-center gap-[5px] rounded-none border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${weekOffset === 0 ? "border-[#d9d9d9] bg-folk-surface text-[#ccc] cursor-default" : "border-folk-border bg-folk-surface text-folk-text hover:bg-folk-hover"}`}
+                className={`flex items-center gap-[5px] rounded-[6px] border px-[8px] py-[4px] text-[13px] font-medium transition-colors ${weekOffset === 0 ? "border-[#d9d9d9] bg-folk-surface text-[#ccc] cursor-default" : "border-folk-border bg-folk-surface text-folk-text hover:bg-folk-hover"}`}
                 tabIndex={0}
               >
                 This week
@@ -676,255 +931,12 @@ export default function TasksPage() {
           {!isInvoicingMode && (
             <div className="flex items-center gap-[8px]">
               <div
-                className="flex items-center gap-[5px] rounded-none border border-[#d9d9d9] bg-folk-page px-[10px] py-[4px]"
+                className="flex items-center gap-[5px] rounded-[6px] border border-[#d9d9d9] bg-folk-page px-[10px] py-[4px]"
                 title="Billable time on completed tasks"
               >
                 <Clock className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} aria-hidden="true" />
                 <span className="text-[13px] font-semibold text-folk-text">{formatTime(completedBillableMinutes)}</span>
                 <span className="text-[12px] font-medium text-folk-secondary">billable</span>
-              </div>
-              <div className="relative">
-              <button
-                ref={createBtnRef}
-                onClick={() => { if (isQuickAdding) { resetQuickAdd() } else { setIsQuickAdding(true); setQuickActiveField("title"); setTimeout(() => quickInputRef.current?.focus(), 0) } }}
-                className="primary-btn folk-pill-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
-                tabIndex={0}
-              >
-                <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-                <span className="hidden sm:inline">Add new</span>
-              </button>
-
-          {isQuickAdding && (
-            <>
-              <div className="fixed inset-0 z-[48]" onClick={resetQuickAdd} />
-              <div className="absolute right-0 top-full z-[49] mt-[6px] w-[520px] rounded-none border border-folk-border bg-folk-surface shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
-                <div className="px-[16px] pt-[14px]">
-                  <input
-                    ref={quickInputRef}
-                    type="text"
-                    value={quickTitle}
-                    onChange={(e) => setQuickTitle(e.target.value)}
-                    onFocus={() => setQuickActiveField("title")}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && quickTitle.trim()) { e.preventDefault(); setQuickActiveField("participant"); quickClientInputRef.current?.focus() }
-                      if (e.key === "Escape") resetQuickAdd()
-                    }}
-                    placeholder="Task name..."
-                    className="w-full text-[15px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none"
-                    autoFocus
-                  />
-                </div>
-
-                <div className="flex flex-wrap items-center gap-[6px] px-[16px] pb-[12px] pt-[12px]">
-                  <div className="relative">
-                    {(() => {
-                      const filteredClients = quickClientSearch
-                        ? clientNames.filter((n) => n.toLowerCase().includes(quickClientSearch.toLowerCase()))
-                        : clientNames
-                      const selectClient = (name: string) => {
-                        setQuickClient(name)
-                        setIsQuickClientOpen(false)
-                        setQuickClientIdx(-1)
-                        setQuickClientSearch("")
-                        const matched = clients.find((c) => c.name === name || c.displayName === name)
-                        if (matched?.owner && !quickAssignee) setQuickAssignee(matched.owner)
-                        setQuickActiveField("charge")
-                        setTimeout(() => quickChargeInputRef.current?.focus(), 50)
-                      }
-                      return (
-                        <>
-                          <div
-                            className={`flex items-center gap-[5px] rounded-none border px-[8px] py-[3px] transition-colors ${quickActiveField === "participant" ? "border-blue-400" : "border-folk-border"}`}
-                          >
-                            <Building2 className={`h-[12px] w-[12px] shrink-0 ${quickClient ? "text-folk-secondary" : "text-[#ccc]"}`} strokeWidth={1.5} />
-                            <input
-                              ref={quickClientInputRef}
-                              type="text"
-                              value={isQuickClientOpen ? quickClientSearch : quickClient}
-                              onChange={(e) => { setQuickClientSearch(e.target.value); if (!isQuickClientOpen) setIsQuickClientOpen(true); setQuickClientIdx(0) }}
-                              onFocus={() => { setQuickActiveField("participant"); setIsQuickClientOpen(true); setQuickClientSearch(""); setQuickClientIdx(0) }}
-                              onKeyDown={(e) => {
-                                if (isQuickClientOpen) {
-                                  const totalItems = filteredClients.length
-                                  if (e.key === "ArrowDown") { e.preventDefault(); setQuickClientIdx((p) => (p + 1) % Math.max(totalItems, 1)) }
-                                  else if (e.key === "ArrowUp") { e.preventDefault(); setQuickClientIdx((p) => (p - 1 + Math.max(totalItems, 1)) % Math.max(totalItems, 1)) }
-                                  else if (e.key === "Enter") {
-                                    e.preventDefault()
-                                    if (filteredClients.length > 0) {
-                                      const idx = quickClientIdx >= 0 && quickClientIdx < filteredClients.length ? quickClientIdx : 0
-                                      selectClient(filteredClients[idx])
-                                    } else {
-                                      selectClient("")
-                                    }
-                                  } else if (e.key === "Tab" && !e.shiftKey) {
-                                    e.preventDefault()
-                                    if (filteredClients.length > 0) {
-                                      const idx = quickClientIdx >= 0 && quickClientIdx < filteredClients.length ? quickClientIdx : 0
-                                      selectClient(filteredClients[idx])
-                                    } else {
-                                      setIsQuickClientOpen(false); setQuickClientSearch("")
-                                      setQuickActiveField("charge"); setTimeout(() => quickChargeInputRef.current?.focus(), 50)
-                                    }
-                                  }
-                                } else {
-                                  if (e.key === "Tab" && !e.shiftKey) { e.preventDefault(); setQuickActiveField("charge"); quickChargeInputRef.current?.focus() }
-                                }
-                                if (e.key === "Escape") {
-                                  if (isQuickClientOpen) { e.stopPropagation(); setIsQuickClientOpen(false); setQuickClientSearch(""); setQuickClientIdx(-1) }
-                                  else resetQuickAdd()
-                                }
-                              }}
-                              placeholder="Client"
-                              className="w-[80px] bg-transparent text-[12px] font-medium text-folk-text placeholder-[#ccc] outline-none"
-                            />
-                          </div>
-                          {isQuickClientOpen && (
-                            <>
-                              <div className="fixed inset-0 z-[59]" onClick={() => { setIsQuickClientOpen(false); setQuickClientIdx(-1); setQuickClientSearch("") }} />
-                              <div ref={quickClientListRef} className="absolute left-0 top-full z-[60] mt-[4px] max-h-[200px] w-[220px] overflow-y-auto rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk">
-                                {filteredClients.length === 0 ? (
-                                  <div className="px-[12px] py-[7px] text-[12px] font-medium text-folk-secondary">No matches</div>
-                                ) : (
-                                  filteredClients.map((name, i) => {
-                                    const initials = name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-                                    const isHighlighted = quickClientIdx === i
-                                    return (
-                                      <div
-                                        key={name}
-                                        onClick={() => selectClient(name)}
-                                        className={`flex w-full cursor-pointer items-center gap-[8px] px-[12px] py-[7px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover ${isHighlighted ? "bg-blue-50" : ""}`}
-                                        role="option"
-                                        aria-selected={isHighlighted}
-                                      >
-                                        <EntityIcon text={initials} size="xsm" />
-                                        {name}
-                                      </div>
-                                    )
-                                  })
-                                )}
-                              </div>
-                            </>
-                          )}
-                        </>
-                      )
-                    })()}
-                  </div>
-
-                  <div className="relative">
-                    {(() => {
-                      const filteredCharges = quickChargeSearch
-                        ? chargeTypes.filter((ct) => ct.label.toLowerCase().includes(quickChargeSearch.toLowerCase()) || ct.value.toLowerCase().includes(quickChargeSearch.toLowerCase()))
-                        : chargeTypes
-                      const selectCharge = (value: string) => {
-                        setQuickCharge(value)
-                        setIsQuickChargeOpen(false)
-                        setQuickChargeIdx(-1)
-                        setQuickChargeSearch("")
-                        setQuickActiveField("time")
-                        setTimeout(() => quickTimeRef.current?.focus(), 50)
-                      }
-                      return (
-                        <>
-                          <div
-                            className={`flex items-center gap-[5px] rounded-none border px-[8px] py-[3px] transition-colors ${quickActiveField === "charge" ? "border-blue-400" : "border-folk-border"}`}
-                          >
-                            <Tag className={`h-[12px] w-[12px] shrink-0 ${quickCharge ? "text-folk-secondary" : "text-[#ccc]"}`} strokeWidth={1.5} />
-                            <input
-                              ref={quickChargeInputRef}
-                              type="text"
-                              value={isQuickChargeOpen ? quickChargeSearch : (quickCharge ? chargeLabel(quickCharge) : "")}
-                              onChange={(e) => { setQuickChargeSearch(e.target.value); if (!isQuickChargeOpen) setIsQuickChargeOpen(true); setQuickChargeIdx(0) }}
-                              onFocus={() => { setQuickActiveField("charge"); setIsQuickChargeOpen(true); setQuickChargeSearch(""); setQuickChargeIdx(0) }}
-                              onKeyDown={(e) => {
-                                if (isQuickChargeOpen) {
-                                  const total = filteredCharges.length
-                                  if (e.key === "ArrowDown") { e.preventDefault(); setQuickChargeIdx((p) => (p + 1) % Math.max(total, 1)) }
-                                  else if (e.key === "ArrowUp") { e.preventDefault(); setQuickChargeIdx((p) => (p - 1 + Math.max(total, 1)) % Math.max(total, 1)) }
-                                  else if (e.key === "Enter") {
-                                    e.preventDefault()
-                                    if (filteredCharges.length > 0) {
-                                      const idx = quickChargeIdx >= 0 && quickChargeIdx < filteredCharges.length ? quickChargeIdx : 0
-                                      selectCharge(filteredCharges[idx].value)
-                                    } else {
-                                      selectCharge("")
-                                    }
-                                  } else if (e.key === "Tab" && !e.shiftKey) {
-                                    e.preventDefault()
-                                    if (filteredCharges.length > 0) {
-                                      const idx = quickChargeIdx >= 0 && quickChargeIdx < filteredCharges.length ? quickChargeIdx : 0
-                                      selectCharge(filteredCharges[idx].value)
-                                    } else {
-                                      setIsQuickChargeOpen(false); setQuickChargeSearch("")
-                                      setQuickActiveField("time"); setTimeout(() => quickTimeRef.current?.focus(), 50)
-                                    }
-                                  }
-                                } else {
-                                  if (e.key === "Tab" && !e.shiftKey) { e.preventDefault(); setQuickActiveField("time"); quickTimeRef.current?.focus() }
-                                }
-                                if (e.key === "Escape") {
-                                  if (isQuickChargeOpen) { e.stopPropagation(); setIsQuickChargeOpen(false); setQuickChargeSearch(""); setQuickChargeIdx(-1) }
-                                  else resetQuickAdd()
-                                }
-                              }}
-                              placeholder="Charge"
-                              className="w-[80px] bg-transparent text-[12px] font-medium text-folk-text placeholder-[#ccc] outline-none"
-                            />
-                          </div>
-                          {isQuickChargeOpen && (
-                            <>
-                              <div className="fixed inset-0 z-[59]" onClick={() => { setIsQuickChargeOpen(false); setQuickChargeIdx(-1); setQuickChargeSearch("") }} />
-                              <div ref={quickChargeListRef} className="absolute left-0 top-full z-[60] mt-[4px] max-h-[220px] w-[200px] overflow-y-auto rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk">
-                                {filteredCharges.length === 0 ? (
-                                  <div className="px-[12px] py-[7px] text-[12px] font-medium text-folk-secondary">No matches</div>
-                                ) : (
-                                  filteredCharges.map((ct, i) => (
-                                    <div
-                                      key={ct.value || "__none__"}
-                                      onClick={() => selectCharge(ct.value)}
-                                      className={`flex w-full cursor-pointer items-center px-[12px] py-[7px] text-[13px] font-medium transition-colors hover:bg-folk-hover ${quickChargeIdx === i ? "bg-blue-50" : ""} ${ct.value ? "text-folk-text" : "text-folk-secondary"}`}
-                                      role="option"
-                                      aria-selected={quickChargeIdx === i}
-                                    >
-                                      {ct.label}
-                                    </div>
-                                  ))
-                                )}
-                              </div>
-                            </>
-                          )}
-                        </>
-                      )
-                    })()}
-                  </div>
-
-                  <div className="flex items-center gap-[5px] rounded-none border border-folk-border px-[8px] py-[4px]">
-                    <Clock className={`h-[12px] w-[12px] ${quickTime ? "text-folk-secondary" : "text-[#ccc]"}`} strokeWidth={1.5} />
-                    <input
-                      ref={quickTimeRef}
-                      type="text"
-                      value={quickTime}
-                      onChange={(e) => setQuickTime(e.target.value)}
-                      onFocus={() => setQuickActiveField("time")}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || (e.key === "Tab" && !e.shiftKey)) { e.preventDefault(); handleQuickFinish() }
-                        if (e.key === "Escape") resetQuickAdd()
-                      }}
-                      placeholder="0m"
-                      className="w-[40px] bg-transparent text-[12px] font-medium text-folk-text placeholder-[#ccc] outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between border-t border-folk-border-subtle px-[16px] py-[10px]">
-                  <span className="text-[11px] font-medium text-[#ccc]">Enter ↵ next · Esc close</span>
-                  <div className="flex items-center gap-[6px]">
-                    <button type="button" onClick={resetQuickAdd} className="rounded-none px-[8px] py-[4px] text-[12px] font-medium text-folk-secondary transition-colors hover:bg-[var(--folk-border-subtle)]" tabIndex={0}>Cancel</button>
-                    <button type="button" onClick={handleQuickFinish} disabled={!quickTitle.trim()} className="primary-btn px-[12px] py-[4px] text-[12px] font-medium transition-colors disabled:opacity-40" tabIndex={0}>Create</button>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
               </div>
             </div>
           )}
@@ -978,55 +990,55 @@ export default function TasksPage() {
             </div>
             <button
               onClick={toggleSelectAll}
-              className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+              className="flex items-center gap-[6px] rounded-[6px] border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
               tabIndex={0}
             >
               <CheckSquare className="h-[13px] w-[13px]" strokeWidth={1.5} />
               <span>{(() => { const incomplete = filtered.filter((t) => t.status !== "done"); return incomplete.length > 0 && incomplete.every((t) => selectedTaskIds.has(t.id)) ? "Deselect all" : "Select all" })()}</span>
             </button>
             {statusFilter.length > 0 && (
-              <div className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text">
+              <div className="flex items-center gap-[6px] rounded-[6px] border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text">
                 <CheckSquare className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} />
                 <button ref={(el) => { filterPillRefs.current["status"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "status" ? null : "status")} className="hover:underline" tabIndex={0}>Status</button>
                 <span className="text-folk-secondary">is</span>
                 <span>{statusFilter.length} {statusFilter.length === 1 ? "value" : "values"}</span>
-                <button onClick={() => setStatusFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear status filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
+                <button onClick={() => setStatusFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear status filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
               </div>
             )}
             {dateFilter.length > 0 && (
-              <div className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text">
+              <div className="flex items-center gap-[6px] rounded-[6px] border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text">
                 <CalendarDays className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} />
                 <button ref={(el) => { filterPillRefs.current["date"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "date" ? null : "date")} className="hover:underline" tabIndex={0}>Date</button>
                 <span className="text-folk-secondary">is</span>
                 <span>{dateFilter.length} {dateFilter.length === 1 ? "value" : "values"}</span>
-                <button onClick={() => setDateFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear date filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
+                <button onClick={() => setDateFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear date filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
               </div>
             )}
             {participantFilter.length > 0 && (
-              <div className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text">
+              <div className="flex items-center gap-[6px] rounded-[6px] border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text">
                 <Building2 className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} />
                 <button ref={(el) => { filterPillRefs.current["participant"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "participant" ? null : "participant")} className="hover:underline" tabIndex={0}>Client</button>
                 <span className="text-folk-secondary">is</span>
                 <span>{participantFilter.length} {participantFilter.length === 1 ? "value" : "values"}</span>
-                <button onClick={() => setParticipantFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear client filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
+                <button onClick={() => setParticipantFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear client filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
               </div>
             )}
             {assigneeFilter.length > 0 && (
-              <div className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text">
+              <div className="flex items-center gap-[6px] rounded-[6px] border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text">
                 <User className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} />
                 <button ref={(el) => { filterPillRefs.current["assignee"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "assignee" ? null : "assignee")} className="hover:underline" tabIndex={0}>Assignee</button>
                 <span className="text-folk-secondary">is</span>
                 <span>{assigneeFilter.length} {assigneeFilter.length === 1 ? "value" : "values"}</span>
-                <button onClick={() => setAssigneeFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear assignee filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
+                <button onClick={() => setAssigneeFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear assignee filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
               </div>
             )}
             {chargeFilter.length > 0 && (
-              <div className="flex items-center gap-[6px] rounded-none border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text">
+              <div className="flex items-center gap-[6px] rounded-[6px] border border-folk-border px-[8px] py-[4px] text-[13px] font-medium text-folk-text">
                 <Tag className="h-[13px] w-[13px] text-folk-secondary" strokeWidth={1.5} />
                 <button ref={(el) => { filterPillRefs.current["charge"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "charge" ? null : "charge")} className="hover:underline" tabIndex={0}>Charge</button>
                 <span className="text-folk-secondary">is</span>
                 <span>{chargeFilter.length} {chargeFilter.length === 1 ? "value" : "values"}</span>
-                <button onClick={() => setChargeFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear charge filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
+                <button onClick={() => setChargeFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear charge filter"><X className="h-[12px] w-[12px]" strokeWidth={1.5} /></button>
               </div>
             )}
             <div className="relative ml-auto">
@@ -1086,7 +1098,7 @@ export default function TasksPage() {
                       <button
                         key={key}
                         onClick={() => { setViewMode(key); if (key === "list") setWeekOffset(0) }}
-                        className={`flex flex-1 flex-col items-center justify-center gap-[6px] rounded-none border py-[12px] transition-colors ${isActive ? "border-folk-border bg-[#f5f5f5] text-folk-text" : "border-transparent bg-white text-folk-secondary hover:bg-[#f5f5f5]"}`}
+                        className={`flex flex-1 flex-col items-center justify-center gap-[6px] rounded-[6px] border py-[12px] transition-colors ${isActive ? "border-folk-border bg-[#f5f5f5] text-folk-text" : "border-transparent bg-white text-folk-secondary hover:bg-[#f5f5f5]"}`}
                         tabIndex={0}
                       >
                         <Icon className="h-[18px] w-[18px]" strokeWidth={1.5} />
@@ -1164,7 +1176,7 @@ export default function TasksPage() {
                         )
                       })}
                       <div className="border-t border-folk-border-subtle px-[8px] py-[4px]">
-                        <button onClick={() => { setStatusFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded-none px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
+                        <button onClick={() => { setStatusFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded-[6px] px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
                       </div>
                     </FixedDropdownMenu>
                   )
@@ -1205,7 +1217,7 @@ export default function TasksPage() {
                         )
                       })}
                       <div className="border-t border-folk-border-subtle px-[8px] py-[4px]">
-                        <button onClick={() => { setDateFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded-none px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
+                        <button onClick={() => { setDateFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded-[6px] px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
                       </div>
                     </FixedDropdownMenu>
                   )
@@ -1239,7 +1251,7 @@ export default function TasksPage() {
                     })}
                     {uniqueParticipants.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-folk-secondary">No clients</p>}
                     <div className="border-t border-folk-border-subtle px-[8px] py-[4px]">
-                      <button onClick={() => { setParticipantFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded-none px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
+                      <button onClick={() => { setParticipantFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded-[6px] px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
                     </div>
                   </FixedDropdownMenu>
                 )
@@ -1272,7 +1284,7 @@ export default function TasksPage() {
                     })}
                     {uniqueAssignees.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-folk-secondary">No assignees</p>}
                     <div className="border-t border-folk-border-subtle px-[8px] py-[4px]">
-                      <button onClick={() => { setAssigneeFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded-none px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
+                      <button onClick={() => { setAssigneeFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded-[6px] px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
                     </div>
                   </FixedDropdownMenu>
                 )
@@ -1305,7 +1317,7 @@ export default function TasksPage() {
                     })}
                     {uniqueCharges.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-folk-secondary">No charges</p>}
                     <div className="border-t border-folk-border-subtle px-[8px] py-[4px]">
-                      <button onClick={() => { setChargeFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded-none px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
+                      <button onClick={() => { setChargeFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded-[6px] px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
                     </div>
                   </FixedDropdownMenu>
                 )
@@ -1564,14 +1576,14 @@ export default function TasksPage() {
       {isCreateTaskViewOpen && (
         <>
           <div className="fixed inset-0 z-50 bg-black/20" onClick={() => { setIsCreateTaskViewOpen(false); setNewTaskViewName("") }} />
-          <div className="fixed left-1/2 top-1/2 z-50 w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-none bg-folk-surface p-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+          <div className="fixed left-1/2 top-1/2 z-50 w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-[6px] bg-folk-surface p-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
             <div className="flex items-center justify-between">
               <h3 className="text-[15px] font-semibold text-folk-text">
                 {isInvoicingMode ? "Create a view for invoicing" : "Create a view for tasks"}
               </h3>
               <button
                 onClick={() => { setIsCreateTaskViewOpen(false); setNewTaskViewName("") }}
-                className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+                className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
                 tabIndex={0}
                 aria-label="Close"
               >
@@ -1586,7 +1598,7 @@ export default function TasksPage() {
                 onChange={(e) => setNewTaskViewName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleCreateTaskView() }}
                 placeholder="Enter name here"
-                className="mt-[8px] w-full rounded-none border border-folk-border bg-folk-surface px-[12px] py-[10px] text-[13px] font-medium text-folk-text outline-none transition-colors placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
+                className="mt-[8px] w-full rounded-[6px] border border-folk-border bg-folk-surface px-[12px] py-[10px] text-[13px] font-medium text-folk-text outline-none transition-colors placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
               />
             </div>
             <div className="mt-[20px] flex items-center justify-end gap-[12px]">
@@ -1614,7 +1626,7 @@ export default function TasksPage() {
         <>
           <div className="fixed inset-0 z-50" onClick={() => setTaskViewContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setTaskViewContextMenu(null) }} />
           <div
-            className="fixed z-50 w-[160px] overflow-hidden rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk"
+            className="fixed z-50 w-[160px] overflow-hidden rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk"
             style={{ top: taskViewContextMenu.y, left: taskViewContextMenu.x }}
           >
             <button
@@ -1636,7 +1648,7 @@ export default function TasksPage() {
       {deleteTaskViewConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/20" onClick={() => setDeleteTaskViewConfirm(null)} />
-          <div className="relative z-10 w-[400px] rounded-none bg-folk-surface p-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+          <div className="relative z-10 w-[400px] rounded-[6px] bg-folk-surface p-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
             <h3 className="text-[15px] font-semibold text-folk-text">Delete view</h3>
             <p className="mt-[8px] text-[13px] font-medium text-folk-secondary">
               Are you sure you want to delete <span className="text-folk-text">&ldquo;{deleteTaskViewConfirm.name}&rdquo;</span>? This action cannot be undone.
@@ -1651,7 +1663,7 @@ export default function TasksPage() {
               </button>
               <button
                 onClick={() => handleDeleteTaskView(deleteTaskViewConfirm.id)}
-                className="rounded-none bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
+                className="rounded-[6px] bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
                 tabIndex={0}
               >
                 Delete
@@ -1663,14 +1675,14 @@ export default function TasksPage() {
 
       {selectedTaskIds.size > 0 && (
         <div className="fixed bottom-[24px] left-1/2 z-50 -translate-x-1/2">
-          <div className="flex items-center gap-[12px] rounded-none border border-folk-border bg-folk-surface px-[20px] py-[8px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+          <div className="flex items-center gap-[12px] rounded-[6px] border border-folk-border bg-folk-surface px-[20px] py-[8px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
             <span className="text-[13px] font-semibold text-folk-text">
               {selectedTaskIds.size} selected
             </span>
             <div className="h-[16px] w-px bg-[var(--folk-border)]" />
             <button
               onClick={handleBulkMarkDone}
-              className="flex items-center gap-[6px] rounded-none px-[12px] py-[6px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+              className="flex items-center gap-[6px] rounded-[6px] px-[12px] py-[6px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
               tabIndex={0}
             >
               <CheckSquare className="h-[14px] w-[14px] text-[#2563EB]" strokeWidth={1.75} />
@@ -1678,7 +1690,7 @@ export default function TasksPage() {
             </button>
             <button
               onClick={() => setIsBulkDeleting(true)}
-              className="flex items-center gap-[6px] rounded-none px-[12px] py-[6px] text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50"
+              className="flex items-center gap-[6px] rounded-[6px] px-[12px] py-[6px] text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50"
               tabIndex={0}
             >
               <Trash2 className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -1687,7 +1699,7 @@ export default function TasksPage() {
             <div className="h-[16px] w-px bg-[var(--folk-border)]" />
             <button
               onClick={() => setSelectedTaskIds(new Set())}
-              className="flex items-center gap-[6px] rounded-none px-[12px] py-[6px] text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+              className="flex items-center gap-[6px] rounded-[6px] px-[12px] py-[6px] text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
               tabIndex={0}
             >
               <X className="h-[14px] w-[14px]" strokeWidth={1.75} />
@@ -1700,7 +1712,7 @@ export default function TasksPage() {
       {isBulkDeleting && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/20" onClick={() => setIsBulkDeleting(false)} />
-          <div className="relative z-10 w-[400px] rounded-none bg-folk-surface p-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+          <div className="relative z-10 w-[400px] rounded-[6px] bg-folk-surface p-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
             <h3 className="text-[15px] font-semibold text-folk-text">Delete tasks</h3>
             <p className="mt-[8px] text-[13px] font-medium text-folk-secondary">
               Are you sure you want to delete <span className="text-folk-text">{selectedTaskIds.size} {selectedTaskIds.size === 1 ? "task" : "tasks"}</span>? This action cannot be undone.
@@ -1715,7 +1727,7 @@ export default function TasksPage() {
               </button>
               <button
                 onClick={handleBulkDelete}
-                className="rounded-none bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
+                className="rounded-[6px] bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
                 tabIndex={0}
               >
                 Delete

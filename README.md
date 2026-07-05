@@ -98,8 +98,13 @@ src/
 - **Invoicing** — Generate, review, and send NDIS invoices via email or portal claim
 - **Notes** — Rich text notes linked to clients, contacts, or staff
 - **Documents** — File upload and folder management
-- **Team** — Invite members, assign roles (super-admin, admin, coordinator)
+- **Team** — Invite members, assign roles (super-admin, admin, coordinator, support worker)
 - **Contacts & Staff** — Manage participant contacts and your support team
+- **Security** — Two-factor authentication (TOTP) with optional workspace-wide enforcement
+- **Audit log** — Immutable, admin-visible trail of every change to workspace data
+
+Enterprise capabilities (SSO, audit logging, backups, health monitoring) are
+documented in [docs/ENTERPRISE.md](docs/ENTERPRISE.md).
 
 ## Tech Stack
 

@@ -19,9 +19,8 @@ import { useIncidents } from "@/lib/hooks/use-incidents"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import { useStaff } from "@/lib/hooks/use-staff"
 import type { Incident } from "@/lib/types"
-import {
-  getIncidentDisplayId,
-} from "@/lib/incident-definitions"
+import { useListReturnBack } from "@/lib/lists/list-return"
+import { getIncidentDisplayId } from "@/lib/incident-definitions"
 import { IncidentForm } from "../_components/incident-sidebar-form"
 import { IncidentInvestigationForm } from "../_components/incident-investigation-form"
 
@@ -51,6 +50,10 @@ export default function IncidentDetailPage() {
   const isResizing = useRef(false)
 
   const fromKanban = searchParams.get("from") === "kanban"
+  const { onBack: handleProfileBack, backLabel: profileBackLabel } = useListReturnBack({
+    path: fromKanban ? "/incidents?view=kanban" : "/incidents",
+    label: "Back to incidents",
+  })
 
   const incident = useMemo(
     () => incidents.find((item) => item.id === params.id) ?? null,
@@ -165,8 +168,8 @@ export default function IncidentDetailPage() {
             </span>
           </span>
         }
-        onBack={() => router.push(fromKanban ? "/incidents?view=kanban" : "/incidents")}
-        backLabel="Back to incidents"
+        onBack={handleProfileBack}
+        backLabel={profileBackLabel}
         actions={
           <>
             {canManageIncidents && !isSidebarVisible && (

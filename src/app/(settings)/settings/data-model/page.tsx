@@ -176,7 +176,7 @@ export default function DataModelSettingsPage() {
       {isCreateOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-[120px]">
           <div className="absolute inset-0 bg-black/20" onClick={() => { setIsCreateOpen(false); setIsTypeOpen(false) }} />
-          <div className="relative z-10 w-[480px] rounded-none border border-folk-border-subtle bg-folk-surface shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+          <div className="relative z-10 w-[480px] rounded-[6px] border border-folk-border-subtle bg-folk-surface shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
             <div className="flex items-center justify-between px-[24px] pt-[20px]">
               <div className="flex items-center gap-[8px]">
                 <Settings2 className="h-[16px] w-[16px] text-[#555]" strokeWidth={1.5} />
@@ -196,7 +196,7 @@ export default function DataModelSettingsPage() {
               <div className="flex flex-col gap-[2px]">
                 <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-[12px]">
                   <span className="text-[13px] font-medium text-[#8d8d8d]">Name</span>
-                  <div className="flex items-center gap-[7px] rounded-none px-[8px] py-[6px] transition-colors hover:bg-folk-page">
+                  <div className="flex items-center gap-[7px] rounded-[6px] px-[8px] py-[6px] transition-colors hover:bg-folk-page">
                     <FileText className={`h-[13px] w-[13px] shrink-0 ${newName ? "text-folk-secondary" : "text-[#ccc]"}`} strokeWidth={1.5} />
                     <input
                       type="text"
@@ -216,7 +216,7 @@ export default function DataModelSettingsPage() {
                     <button
                       type="button"
                       onClick={() => setIsTypeOpen(!isTypeOpen)}
-                      className="flex w-full items-center gap-[7px] rounded-none px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-text outline-none transition-colors hover:bg-folk-page"
+                      className="flex w-full items-center gap-[7px] rounded-[6px] px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-text outline-none transition-colors hover:bg-folk-page"
                       tabIndex={0}
                     >
                       <Layers className="h-[13px] w-[13px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
@@ -225,7 +225,7 @@ export default function DataModelSettingsPage() {
                     {isTypeOpen && (
                       <>
                         <div className="fixed inset-0 z-[59]" onClick={() => setIsTypeOpen(false)} />
-                        <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[200px] min-w-[180px] overflow-y-auto rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
+                        <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[200px] min-w-[180px] overflow-y-auto rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
                           {fieldTypes.map((ft) => (
                             <button
                               key={ft}
@@ -247,7 +247,7 @@ export default function DataModelSettingsPage() {
 
                 <div className="grid grid-cols-[100px_minmax(0,1fr)] items-start gap-[12px]">
                   <span className="pt-[6px] text-[13px] font-medium text-[#8d8d8d]">Description</span>
-                  <div className="flex items-start gap-[7px] rounded-none px-[8px] py-[6px] transition-colors hover:bg-folk-page">
+                  <div className="flex items-start gap-[7px] rounded-[6px] px-[8px] py-[6px] transition-colors hover:bg-folk-page">
                     <AlignLeft className={`mt-[2px] h-[13px] w-[13px] shrink-0 ${newDescription ? "text-folk-secondary" : "text-[#ccc]"}`} strokeWidth={1.5} />
                     <textarea
                       value={newDescription}
@@ -284,7 +284,7 @@ export default function DataModelSettingsPage() {
       {editingField && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-[120px]">
           <div className="absolute inset-0 bg-black/20" onClick={handleCloseEdit} />
-          <div className="relative z-10 w-[480px] rounded-none border border-folk-border-subtle bg-folk-surface shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+          <div className="relative z-10 w-[480px] rounded-[6px] border border-folk-border-subtle bg-folk-surface shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
             <div className="flex items-center justify-between px-[24px] pt-[20px]">
               <div className="flex items-center gap-[8px]">
                 <Settings2 className="h-[16px] w-[16px] text-[#555]" strokeWidth={1.5} />
@@ -312,7 +312,7 @@ export default function DataModelSettingsPage() {
                       <span className="text-[13px] font-medium text-folk-secondary">{editName}</span>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-[7px] rounded-none px-[8px] py-[6px] transition-colors hover:bg-folk-page">
+                    <div className="flex items-center gap-[7px] rounded-[6px] px-[8px] py-[6px] transition-colors hover:bg-folk-page">
                       <FileText className={`h-[13px] w-[13px] shrink-0 ${editName ? "text-folk-secondary" : "text-[#ccc]"}`} strokeWidth={1.5} />
                       <input
                         type="text"
@@ -339,7 +339,7 @@ export default function DataModelSettingsPage() {
                       <button
                         type="button"
                         onClick={() => setIsEditTypeOpen(!isEditTypeOpen)}
-                        className="flex w-full items-center gap-[7px] rounded-none px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-text outline-none transition-colors hover:bg-folk-page"
+                        className="flex w-full items-center gap-[7px] rounded-[6px] px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-text outline-none transition-colors hover:bg-folk-page"
                         tabIndex={0}
                       >
                         <Layers className="h-[13px] w-[13px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
@@ -348,7 +348,7 @@ export default function DataModelSettingsPage() {
                       {isEditTypeOpen && (
                         <>
                           <div className="fixed inset-0 z-[59]" onClick={() => setIsEditTypeOpen(false)} />
-                          <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[200px] min-w-[180px] overflow-y-auto rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
+                          <div className="absolute left-0 top-full z-[60] mt-[4px] max-h-[200px] min-w-[180px] overflow-y-auto rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
                             {fieldTypes.map((ft) => (
                               <button
                                 key={ft}
@@ -377,7 +377,7 @@ export default function DataModelSettingsPage() {
                       <span className="text-[13px] font-medium text-folk-secondary">{editDescription || <span className="text-[#ccc]">Empty</span>}</span>
                     </div>
                   ) : (
-                    <div className="flex items-start gap-[7px] rounded-none px-[8px] py-[6px] transition-colors hover:bg-folk-page">
+                    <div className="flex items-start gap-[7px] rounded-[6px] px-[8px] py-[6px] transition-colors hover:bg-folk-page">
                       <AlignLeft className={`mt-[2px] h-[13px] w-[13px] shrink-0 ${editDescription ? "text-folk-secondary" : "text-[#ccc]"}`} strokeWidth={1.5} />
                       <textarea
                         value={editDescription}

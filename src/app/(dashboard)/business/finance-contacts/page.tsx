@@ -53,7 +53,7 @@ function initials(name: string): string {
 }
 
 const inputClass =
-  "h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[10px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3]"
+  "h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[10px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3]"
 
 const labelClass = "mb-[4px] block text-[12px] font-medium text-folk-secondary"
 
@@ -153,13 +153,15 @@ export default function FinanceContactsPage() {
     <div className="flex h-full flex-col">
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col">
-          <PageTitleBar title="Finance contacts" />
-          <div className="flex h-[44px] shrink-0 items-center justify-end gap-[8px] border-b border-folk-border-subtle bg-white px-[16px]">
-            <button type="button" onClick={openAdd} className={folkPrimaryAddBtnClass()} tabIndex={0}>
-              <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-              <span>New contact</span>
-            </button>
-          </div>
+          <PageTitleBar
+            title="Finance contacts"
+            trailing={
+              <button type="button" onClick={openAdd} className={folkPrimaryAddBtnClass()} tabIndex={0}>
+                <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+                <span>New contact</span>
+              </button>
+            }
+          />
 
           <div className={listViewFilterBarClass("flex-nowrap")}>
             <ExpandableTableSearch
@@ -246,7 +248,7 @@ export default function FinanceContactsPage() {
                 </h2>
                 <button
                   onClick={closeSidebar}
-                  className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+                  className="flex h-[24px] w-[24px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
                   aria-label="Close"
                   tabIndex={0}
                 >
@@ -264,7 +266,7 @@ export default function FinanceContactsPage() {
                         type="button"
                         onClick={() => setDraft((prev) => ({ ...prev, type: option.value }))}
                         className={cn(
-                          "flex h-[36px] flex-1 items-center justify-center gap-[6px] rounded-none border text-[13px] font-medium transition-colors",
+                          "flex h-[36px] flex-1 items-center justify-center gap-[6px] rounded-[6px] border text-[13px] font-medium transition-colors",
                           draft.type === option.value
                             ? "border-[#a3c4f3] bg-[#eef4fd] text-[#2563EB]"
                             : "border-folk-border bg-folk-page text-folk-secondary hover:bg-folk-hover",
@@ -376,7 +378,7 @@ export default function FinanceContactsPage() {
                 <div className="flex items-center gap-[8px]">
                   <button
                     onClick={closeSidebar}
-                    className="rounded-none border border-folk-border bg-folk-surface px-[12px] py-[6px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+                    className="rounded-[6px] border border-folk-border bg-folk-surface px-[12px] py-[6px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                     tabIndex={0}
                   >
                     Cancel
@@ -384,7 +386,7 @@ export default function FinanceContactsPage() {
                   <button
                     onClick={handleSave}
                     disabled={isSaving}
-                    className="primary-btn px-[12px] py-[6px] text-[12px] font-medium transition-colors disabled:opacity-50"
+                    className="primary-btn folk-pill-btn h-[32px] px-[14px] text-[13px] font-medium transition-colors disabled:opacity-50"
                     tabIndex={0}
                   >
                     {sidebarMode === "edit" ? "Save changes" : "Create contact"}

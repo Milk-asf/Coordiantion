@@ -93,7 +93,7 @@ export function BillablesTab() {
     return (
       <span
         className={cn(
-          "inline-flex h-[22px] items-center rounded-none px-[8px] text-[11px] font-medium",
+          "inline-flex h-[22px] items-center rounded-[6px] px-[8px] text-[11px] font-medium",
           isActive ? "bg-green-50 text-green-700" : "bg-[var(--folk-border-subtle)] text-folk-secondary"
         )}
       >
@@ -143,7 +143,7 @@ export function BillablesTab() {
         </td>
         <td className={TABLE_PROFILE_CELL}>
           <div className={TABLE_CELL_INNER}>
-            <span className="inline-flex items-center rounded-none border border-folk-border bg-folk-page px-[8px] py-[3px] font-mono text-[12px] font-medium text-[#555]">
+            <span className="inline-flex items-center rounded-[6px] border border-folk-border bg-folk-page px-[8px] py-[3px] font-mono text-[12px] font-medium text-[#555]">
               {item.itemNumber}
             </span>
           </div>
@@ -202,15 +202,15 @@ export function BillablesTab() {
             title="No billables added"
             description="Add NDIS support catalogue items to use across tasks, shifts, and invoicing."
             action={{ label: "Add", onClick: openAddSidebar }}
-            className="flex-1 rounded-none border border-folk-border-subtle"
+            className="flex-1 rounded-[6px] border border-folk-border-subtle"
           />
         ) : filteredItems.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center rounded-none border border-folk-border-subtle py-[48px]">
+          <div className="flex flex-1 items-center justify-center rounded-[6px] border border-folk-border-subtle py-[48px]">
             <p className="text-[13px] text-folk-secondary">No billables match your search.</p>
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto rounded-none border border-folk-border">
+            <div className="overflow-x-auto rounded-[6px] border border-folk-border">
               <table className={`${TABLE_FULL} min-w-[980px]`}>
                 <thead>
                   <tr>

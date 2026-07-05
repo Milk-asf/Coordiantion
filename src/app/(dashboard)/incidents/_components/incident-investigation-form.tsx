@@ -7,7 +7,6 @@ import { Button } from "@/components/button"
 import { FileUploadControl } from "@/components/file-upload-control"
 import { FixedDatePickerDropdown } from "@/components/fixed-date-picker-dropdown"
 import { FixedSelectDropdown, FixedSelectOption } from "@/components/fixed-select-dropdown"
-import { FixedTimePickerDropdown } from "@/components/fixed-time-picker-dropdown"
 import { SearchableEntityDropdown } from "@/components/searchable-entity-dropdown"
 import {
   formatIncidentDate,
@@ -25,20 +24,21 @@ import {
   uploadInvestigationAttachments,
 } from "./incident-investigation-helpers"
 
+// Matches the forms feature's field styling (see forms/_components/form-preview.tsx).
 const SELECT_BUTTON_CLASS =
-  "flex h-[36px] w-full items-center justify-between rounded-none border border-folk-border bg-folk-surface px-[10px] text-left text-[13px] font-medium transition-colors hover:bg-folk-hover"
+  "flex h-[38px] w-full items-center justify-between rounded-[6px] border border-folk-border bg-white px-[12px] text-left text-[13px] text-folk-text transition-colors hover:border-folk-border-strong"
 
 const INPUT_CLASS =
-  "h-[36px] w-full rounded-none border border-folk-border bg-folk-surface px-[10px] text-[13px] text-folk-text outline-none read-only:bg-folk-hover"
+  "h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] text-folk-text outline-none transition-colors placeholder:text-folk-placeholder focus:border-[#a3c4f3] read-only:bg-folk-hover"
 
 const TEXTAREA_CLASS =
-  "min-h-[72px] w-full resize-y rounded-none border border-folk-border bg-folk-surface px-[10px] py-[8px] text-[13px] text-folk-text outline-none"
+  "min-h-[96px] w-full resize-y rounded-[6px] border border-folk-border bg-white px-[12px] py-[10px] text-[13px] text-folk-text outline-none transition-colors placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
 
 const READONLY_TEXTAREA_CLASS =
-  "min-h-[72px] w-full rounded-none border border-folk-border bg-folk-hover px-[10px] py-[8px] text-[13px] text-folk-text"
+  "min-h-[96px] w-full rounded-[6px] border border-folk-border bg-folk-hover px-[12px] py-[10px] text-[13px] text-folk-text"
 
 const PICKER_BUTTON_CLASS =
-  "flex h-[36px] w-full items-center gap-[8px] rounded-none border border-folk-border bg-folk-surface px-[10px] text-left text-[13px] font-medium transition-colors hover:bg-folk-hover read-only:pointer-events-none read-only:bg-folk-hover"
+  "flex h-[38px] w-full items-center gap-[8px] rounded-[6px] border border-folk-border bg-white px-[12px] text-left text-[13px] text-folk-text transition-colors hover:border-folk-border-strong read-only:pointer-events-none read-only:bg-folk-hover"
 
 const INVESTIGATION_STATUS_OPTIONS: { value: Exclude<IncidentInvestigationStatus, "closed" | "sent">; label: string }[] = [
   { value: "in_progress", label: "In progress" },
@@ -56,9 +56,9 @@ type FormSelect = "investigationRequired" | "staffPerformance" | "qualityChecked
 
 function FieldLabel({ children, required = false }: { children: React.ReactNode; required?: boolean }) {
   return (
-    <label className="mb-[6px] block text-[12px] font-medium text-folk-secondary">
+    <label className="mb-[6px] block text-[13px] font-medium text-folk-text">
       {children}
-      {required && <span className="text-[#dc2626]"> *</span>}
+      {required && <span className="ml-[2px] text-red-500">*</span>}
     </label>
   )
 }
@@ -176,11 +176,10 @@ export function IncidentInvestigationForm({
     [staff]
   )
 
-  const selectedInvestigator = staff.find((member) => member.id === form.investigatedByStaffId)
-  const selectedResolver = staff.find((member) => member.id === form.resolvedByStaffId)
   const attachments = form.investigationAttachments ?? []
   const textareaClass = isInvestigationReadOnly ? READONLY_TEXTAREA_CLASS : TEXTAREA_CLASS
-  const pairGridClass = cn("grid grid-cols-1 gap-[12px]", !isPanelLayout && "md:grid-cols-2")
+  // Forms render one question per row; keep the investigation form the same.
+  const pairGridClass = "grid grid-cols-1 gap-[18px]"
 
   const canSaveInvestigation =
     form.investigationFindings.trim().length > 0 &&
@@ -309,7 +308,7 @@ export function IncidentInvestigationForm({
       return (
         <div>
           <FieldLabel>{label}</FieldLabel>
-          <div className="flex h-[36px] items-center gap-[8px] rounded-none border border-folk-border bg-folk-hover px-[10px] text-[13px] text-folk-text">
+          <div className="flex h-[38px] items-center gap-[8px] rounded-[6px] border border-folk-border bg-folk-hover px-[12px] text-[13px] text-folk-text">
             {selectedMember ? (
               <>
                 <EntityIcon text={selectedMember.iconText} size="xs" />
@@ -355,9 +354,10 @@ export function IncidentInvestigationForm({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className={cn("flex-1 overflow-y-auto py-[18px]", isPanelLayout ? "px-[16px]" : "px-[24px]")}>
+      <div className={cn("flex-1 overflow-y-auto", isPanelLayout ? "px-[16px] py-[18px]" : "px-[24px] py-[28px]")}>
+        <div className={cn(!isPanelLayout && "mx-auto w-full max-w-[560px]")}>
         {isClosed && (
-          <div className="mb-[16px] rounded-none border border-[#bababa] bg-[#f9fafb] px-[12px] py-[10px]">
+          <div className="mb-[16px] rounded-[8px] border border-folk-border bg-folk-hover px-[12px] py-[10px]">
             <p className="text-[12px] font-semibold uppercase tracking-[0.04em] text-folk-secondary">Quality checked</p>
             <p className="mt-[6px] text-[13px] text-folk-text">
               Checked by {incident.closedByName || "—"}
@@ -369,10 +369,10 @@ export function IncidentInvestigationForm({
 
         <section>
           {!isPanelLayout && (
-            <h3 className="mb-[14px] text-[12px] font-semibold uppercase tracking-[0.04em] text-folk-secondary">Investigation</h3>
+            <h3 className="mb-[14px] text-[16px] font-semibold text-folk-text">Investigation</h3>
           )}
 
-          <div className={cn("grid grid-cols-1 gap-[12px]", !isPanelLayout && "max-w-[720px]")}>
+          <div className="grid grid-cols-1 gap-[18px]">
             {renderStaffPicker(
               "Investigator",
               form.investigatedByStaffId,
@@ -567,7 +567,7 @@ export function IncidentInvestigationForm({
               {attachments.length > 0 ? (
                 <div className={cn("flex flex-col gap-[6px]", !isInvestigationReadOnly && "mt-[8px]")}>
                   {attachments.map((attachment) => (
-                    <div key={attachment.id} className="flex items-center gap-[8px] rounded-none border border-folk-border bg-folk-surface px-[10px] py-[8px]">
+                    <div key={attachment.id} className="flex items-center gap-[8px] rounded-[6px] border border-folk-border bg-white px-[12px] py-[8px]">
                       <FileText className="h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[13px] font-medium text-folk-text">{attachment.name}</p>
@@ -630,8 +630,8 @@ export function IncidentInvestigationForm({
             <div className="border-t border-folk-border-subtle pt-[16px]">
               <FieldLabel required={!isInvestigationReadOnly}>Quality checked</FieldLabel>
               {isInvestigationReadOnly ? (
-                <div className="grid grid-cols-1 gap-[12px]">
-                  <div className="flex h-[36px] items-center rounded-none border border-folk-border bg-folk-hover px-[10px] text-[13px] text-folk-text">
+                <div className="grid grid-cols-1 gap-[18px]">
+                  <div className="flex h-[38px] items-center rounded-[6px] border border-folk-border bg-folk-hover px-[12px] text-[13px] text-folk-text">
                     Yes
                   </div>
                   {renderStaffPicker(
@@ -646,7 +646,7 @@ export function IncidentInvestigationForm({
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-[12px]">
+                <div className="grid grid-cols-1 gap-[18px]">
                   <YesNoSelect
                     value={qualityChecked}
                     onChange={(value) => {
@@ -672,13 +672,14 @@ export function IncidentInvestigationForm({
                     handleSelectQualityChecker,
                     "Select staff member",
                   )}
-                  {qualityCheckError && <p className="text-[12px] font-medium text-[#dc2626]">{qualityCheckError}</p>}
+                  {qualityCheckError && <p className="text-[12px] text-red-500">{qualityCheckError}</p>}
                 </div>
               )}
             </div>
             )}
           </div>
         </section>
+        </div>
       </div>
 
       <div className={cn(
@@ -688,12 +689,12 @@ export function IncidentInvestigationForm({
         {!isInvestigationReadOnly && (
           <div className="flex flex-col items-end gap-[6px]">
             {saveBlockedReason && (
-              <p className="text-[12px] font-medium text-[#dc2626]">{saveBlockedReason}</p>
+              <p className="text-[12px] text-red-500">{saveBlockedReason}</p>
             )}
             <Button
               onClick={handleSubmit}
               disabled={isSaving || isClosing || isUploadingAttachments || !canSaveInvestigation}
-              className="h-[34px] rounded-none px-[14px]"
+              className="h-[36px] rounded-[6px] px-[16px]"
             >
               {isSaving || isClosing
                 ? shouldArchive ? "Archiving…" : "Saving…"

@@ -36,7 +36,7 @@ interface FolkOutlineButtonProps extends React.ButtonHTMLAttributes<HTMLButtonEl
 
 export function FolkOutlineButton({ children, className, ...props }: FolkOutlineButtonProps) {
   return (
-    <button type="button" className={cn("outline-btn px-[12px] py-[6px]", className)} {...props}>
+    <button type="button" className={cn("outline-btn folk-pill-btn h-[32px] px-[12px] text-[13px] font-medium", className)} {...props}>
       {children}
     </button>
   )
@@ -58,7 +58,7 @@ export function FolkCheckbox({ checked, indeterminate, onChange, ariaLabel }: Fo
       aria-label={ariaLabel}
       onClick={(e) => { e.stopPropagation(); onChange() }}
       className={cn(
-        "flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-none border transition-colors",
+        "flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-[6px] border transition-colors",
         checked || indeterminate
           ? "border-folk-text bg-folk-text text-white"
           : "border-folk-border bg-white hover:border-folk-text"

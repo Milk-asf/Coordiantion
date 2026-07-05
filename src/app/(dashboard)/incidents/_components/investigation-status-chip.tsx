@@ -17,7 +17,7 @@ export function InvestigationStatusChip({ status, className }: InvestigationStat
   return (
     <span
       className={cn(
-        "inline-flex h-[22px] max-w-full items-center truncate rounded-none px-[8px] text-[11px] font-medium",
+        "inline-flex h-[22px] max-w-full items-center truncate rounded-[6px] px-[8px] text-[11px] font-medium",
         getInvestigationStatusChipClass(normalized),
         className,
       )}

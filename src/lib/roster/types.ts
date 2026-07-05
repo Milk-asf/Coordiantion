@@ -1,4 +1,4 @@
-export type RosterViewMode = "week" | "day" | "table"
+export type RosterViewMode = "week" | "day" | "table" | "year"
 export type RosterAssigneeView = "employees" | "clients"
 
 export const ASSIGNEE_VIEW_LABELS: Record<RosterAssigneeView, string> = {

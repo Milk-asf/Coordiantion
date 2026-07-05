@@ -50,7 +50,7 @@ export default function IncidentsPage() {
   const { toast } = useToast()
   const { clients } = useClients()
   const { staff } = useStaff()
-  const { canViewIncidents, canManageIncidents } = usePermissions()
+  const { canViewIncidents, canManageIncidents, canReportIncidents } = usePermissions()
   const { incidents, isLoading, fetchError, refetch, updateIncidentInvestigationStatus } = useIncidents()
 
   const [viewMode, setViewMode] = useState<"table" | "kanban">(
@@ -187,15 +187,18 @@ export default function IncidentsPage() {
 
   return (
     <div className="flex h-full flex-col bg-white">
-      <PageTitleBar title="Incidents" />
-      {canManageIncidents && (
-        <div className="flex h-[44px] shrink-0 items-center justify-end gap-[8px] border-b border-folk-border-subtle bg-white px-[16px]">
-          <button type="button" onClick={() => router.push("/incidents/new")} className={folkPrimaryAddBtnClass()} tabIndex={0}>
-            <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-            <span>Add new</span>
-          </button>
-        </div>
-      )}
+      <PageTitleBar
+        title="Incidents"
+        showClock={false}
+        trailing={
+          canReportIncidents ? (
+            <button type="button" onClick={() => router.push("/incidents/new")} className={folkPrimaryAddBtnClass()} tabIndex={0}>
+              <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+              <span>Add new</span>
+            </button>
+          ) : null
+        }
+      />
 
       <div className="flex h-[44px] shrink-0 items-stretch border-b border-folk-border bg-white px-[16px]">
         <div className="folk-tab-bar flex h-full items-stretch [&_.folk-tab:last-child]:mr-0">
@@ -245,7 +248,7 @@ export default function IncidentsPage() {
             <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
             <span>Filter</span>
             {activeFilterCount > 0 && (
-              <span className="rounded-none bg-[#eef4fc] px-[5px] py-[0.5px] text-[10px] font-semibold text-[#2563EB]">
+              <span className="rounded-[6px] bg-[#eef4fc] px-[5px] py-[0.5px] text-[10px] font-semibold text-[#2563EB]">
                 {activeFilterCount}
               </span>
             )}
@@ -333,7 +336,7 @@ export default function IncidentsPage() {
             <ArrowUpDown className="h-[13px] w-[13px]" strokeWidth={1.5} />
             <span>Sort</span>
             {sortKey !== DEFAULT_INCIDENT_SORT && (
-              <span className="rounded-none bg-[#eef4fc] px-[5px] py-[0.5px] text-[10px] font-semibold text-[#2563EB]">
+              <span className="rounded-[6px] bg-[#eef4fc] px-[5px] py-[0.5px] text-[10px] font-semibold text-[#2563EB]">
                 1
               </span>
             )}
@@ -460,7 +463,7 @@ export default function IncidentsPage() {
                 <td className={TABLE_PROFILE_CELL}>
                   <div className={TABLE_CELL_INNER}>
                     <span className={cn(
-                      "inline-flex h-[22px] items-center rounded-none px-[8px] text-[11px] font-medium",
+                      "inline-flex h-[22px] items-center rounded-[6px] px-[8px] text-[11px] font-medium",
                       incident.isReportable
                         ? "bg-[#fef2f2] text-[#b91c1c]"
                         : "bg-folk-hover text-folk-secondary"
@@ -483,7 +486,7 @@ export default function IncidentsPage() {
 }
 
 const FILTER_SELECT_BUTTON_CLASS =
-  "flex h-[32px] w-full items-center justify-between rounded-none border border-folk-border bg-folk-surface px-[8px] text-left text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+  "flex h-[32px] w-full items-center justify-between rounded-[6px] border border-folk-border bg-folk-surface px-[8px] text-left text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
 
 interface IncidentFilterSelectProps {
   value: string

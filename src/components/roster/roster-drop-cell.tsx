@@ -9,28 +9,21 @@ interface RosterDropCellProps {
   dateStr: string
   className?: string
   children: React.ReactNode
-  onAddShift?: () => void
 }
 
-export function RosterDropCell({ rowId, dateStr, className, children, onAddShift }: RosterDropCellProps) {
+export function RosterDropCell({ rowId, dateStr, className, children }: RosterDropCellProps) {
   const { isOver, setNodeRef } = useDroppable({
     id: buildCellDropId(rowId, dateStr),
     data: { rowId, dateStr },
   })
 
-  const handleCellClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!onAddShift) return
-    const target = event.target as HTMLElement
-    if (target.closest("[data-shift-block], [data-shift-string-group], [data-roster-add-shift], button, a")) return
-    onAddShift()
-  }
-
   return (
     <div
       ref={setNodeRef}
-      onClick={handleCellClick}
       className={cn(
-        "group/cell relative min-h-full group-hover/cell:cursor-pointer",
+        // group/cell lets add zones light up when hovering anywhere in the day
+        // cell, not just the zone strip itself.
+        "group/cell relative min-h-full",
         className,
         isOver &&
           "bg-[color-mix(in_srgb,var(--primary-color)_6%,white)] shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--primary-color)_18%,#e8e8e8)]",

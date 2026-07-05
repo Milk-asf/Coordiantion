@@ -106,7 +106,7 @@ export function SuitabilityTab({ view, entityId }: SuitabilityTabProps) {
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
           placeholder={`Search ${counterpartLabel.toLowerCase()}…`}
-          className="h-[32px] w-full max-w-[280px] rounded-none border border-folk-border bg-folk-surface px-[10px] text-[13px] text-folk-text outline-none transition-colors placeholder:text-folk-placeholder focus:border-[#bbb]"
+          className="h-[32px] w-full max-w-[280px] rounded-[6px] border border-folk-border bg-folk-surface px-[10px] text-[13px] text-folk-text outline-none transition-colors placeholder:text-folk-placeholder focus:border-[#bbb]"
         />
       </div>
 

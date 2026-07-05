@@ -71,7 +71,7 @@ import {
 } from "@/lib/table-styles"
 import { listViewBodyClass, listViewFilterBarClass, listViewTabBarClass } from "@/components/tab-active-indicator"
 import { ProfileTabButton } from "@/components/profile-tab-button"
-import { TableAddFooter, TableAddNewButton } from "@/components/table-add-row"
+import { TableAddFooterRow, TableAddNewButton } from "@/components/table-add-row"
 import { FolkStatusPill } from "@/lib/folk-ui"
 import { ClientProfilePanel } from "@/app/(dashboard)/clients/_components/client-profile-panel"
 import { useToast } from "@/components/toast"
@@ -527,7 +527,21 @@ export default function ClientsPage() {
   return (
     <div className="relative flex h-full min-h-0">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <PageTitleBar title="Clients" />
+        <PageTitleBar
+          title="Clients"
+          trailing={
+            canManageClients ? (
+              <button
+                onClick={() => setIsCreateClientOpen(true)}
+                className="primary-btn folk-pill-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
+                tabIndex={0}
+              >
+                <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+                <span className="hidden sm:inline">Add new</span>
+              </button>
+            ) : null
+          }
+        />
 
         {/* Saved views + actions */}
         <div className={listViewTabBarClass("h-[44px] justify-between gap-[8px]")}>
@@ -573,14 +587,6 @@ export default function ClientsPage() {
                 data={exportCsvData}
                 onImport={handleCsvImport}
               />
-              <button
-                onClick={() => setIsCreateClientOpen(true)}
-                className="primary-btn folk-pill-btn flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors"
-                tabIndex={0}
-              >
-                <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-                <span className="hidden sm:inline">Add new</span>
-              </button>
             </div>
           )}
         </div>
@@ -647,7 +653,7 @@ export default function ClientsPage() {
                             setColumnMenuPos({ top: rect.bottom + 4, left })
                             setColumnMenuKey(col.key)
                           }}
-                          className={`ml-auto flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-none transition-all ${isMenuOpen ? "bg-[#ebebeb] text-folk-text opacity-100" : "text-folk-secondary opacity-0 hover:bg-[#ebebeb] hover:text-folk-text group-hover/col:opacity-100"}`}
+                          className={`ml-auto flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[6px] transition-all ${isMenuOpen ? "bg-[#ebebeb] text-folk-text opacity-100" : "text-folk-secondary opacity-0 hover:bg-[#ebebeb] hover:text-folk-text group-hover/col:opacity-100"}`}
                           tabIndex={0}
                           aria-label={`Column options for ${col.label}`}
                         >
@@ -805,7 +811,7 @@ export default function ClientsPage() {
                       return (
                         <td key={key} className={cls} onClick={onCellClick}>
                           {wrapCell(
-                            <span className={`inline-flex h-[24px] shrink-0 items-center whitespace-nowrap rounded-none px-[12px] text-[12px] font-medium ${chipColor}`}>
+                            <span className={`inline-flex h-[24px] shrink-0 items-center whitespace-nowrap rounded-[6px] px-[12px] text-[12px] font-medium ${chipColor}`}>
                               {daysLabel}
                             </span>
                           )}
@@ -866,7 +872,7 @@ export default function ClientsPage() {
                         <span className={`truncate ${TABLE_NAME_CELL}`}>{client.displayName}</span>
                         <button
                           onClick={(e) => { e.stopPropagation(); router.push(`/clients/${client.id}`) }}
-                          className="ml-auto flex h-[22px] w-[22px] items-center justify-center rounded-none opacity-0 transition-opacity group-hover:opacity-100 text-folk-secondary hover:bg-[var(--folk-border-subtle)] hover:text-folk-text"
+                          className="ml-auto flex h-[22px] w-[22px] items-center justify-center rounded-[6px] opacity-0 transition-opacity group-hover:opacity-100 text-folk-secondary hover:bg-[var(--folk-border-subtle)] hover:text-folk-text"
                           aria-label={`Open ${client.displayName} full profile`}
                           tabIndex={0}
                         >
@@ -879,12 +885,12 @@ export default function ClientsPage() {
                 )
               })}
             </tbody>
+            {canManageClients && (
+              <TableAddFooterRow colSpan={visibleColumns.length}>
+                <TableAddNewButton onClick={() => setIsCreateClientOpen(true)} />
+              </TableAddFooterRow>
+            )}
           </table>
-          {canManageClients && (
-            <TableAddFooter>
-              <TableAddNewButton onClick={() => setIsCreateClientOpen(true)} />
-            </TableAddFooter>
-          )}
           {hasMore && (
             <div className="flex justify-center py-[16px]">
               <button
@@ -917,12 +923,12 @@ export default function ClientsPage() {
       {isCreateViewOpen && (
         <>
           <div className="fixed inset-0 z-50 bg-black/20" onClick={() => { setIsCreateViewOpen(false); setNewViewName("") }} />
-          <div className="fixed left-1/2 top-1/2 z-50 w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-none bg-folk-surface p-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+          <div className="fixed left-1/2 top-1/2 z-50 w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-[6px] bg-folk-surface p-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
             <div className="flex items-center justify-between">
               <h3 className="text-[15px] font-semibold text-folk-text">Create a view for account</h3>
               <button
                 onClick={() => { setIsCreateViewOpen(false); setNewViewName("") }}
-                className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+                className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
                 tabIndex={0}
                 aria-label="Close"
               >
@@ -937,7 +943,7 @@ export default function ClientsPage() {
                 onChange={(e) => setNewViewName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleCreateView() }}
                 placeholder="Enter name here"
-                className="mt-[8px] w-full rounded-none border border-folk-border bg-folk-surface px-[12px] py-[10px] text-[13px] font-medium text-folk-text outline-none transition-colors placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
+                className="mt-[8px] w-full rounded-[6px] border border-folk-border bg-folk-surface px-[12px] py-[10px] text-[13px] font-medium text-folk-text outline-none transition-colors placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
               />
             </div>
             <div className="mt-[20px] flex items-center justify-end gap-[12px]">
@@ -964,7 +970,7 @@ export default function ClientsPage() {
       {isCreateClientOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/20" onClick={() => { setIsCreateClientOpen(false); setNewClientName("") }} />
-          <div className="relative z-10 w-[440px] rounded-none bg-folk-surface shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+          <div className="relative z-10 w-[440px] rounded-[6px] bg-folk-surface shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
             <div className="flex items-center justify-between px-[24px] pt-[20px]">
               <div className="flex items-center gap-[8px]">
                 <FileText className="h-[16px] w-[16px] text-[#555]" strokeWidth={1.5} />
@@ -972,7 +978,7 @@ export default function ClientsPage() {
               </div>
               <button
                 onClick={() => { setIsCreateClientOpen(false); setNewClientName("") }}
-                className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+                className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
                 tabIndex={0}
                 aria-label="Close"
               >
@@ -1013,7 +1019,7 @@ export default function ClientsPage() {
         <>
           <div className="fixed inset-0 z-50" onClick={() => setViewContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setViewContextMenu(null) }} />
           <div
-            className="fixed z-50 w-[160px] overflow-hidden rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk"
+            className="fixed z-50 w-[160px] overflow-hidden rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk"
             style={{ top: viewContextMenu.y, left: viewContextMenu.x }}
           >
             <button
@@ -1035,7 +1041,7 @@ export default function ClientsPage() {
       {deleteViewConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/20" onClick={() => setDeleteViewConfirm(null)} />
-          <div className="relative z-10 w-[400px] rounded-none bg-folk-surface p-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+          <div className="relative z-10 w-[400px] rounded-[6px] bg-folk-surface p-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
             <h3 className="text-[15px] font-semibold text-folk-text">Delete view</h3>
             <p className="mt-[8px] text-[13px] font-medium text-folk-secondary">
               Are you sure you want to delete <span className="text-folk-text">&ldquo;{deleteViewConfirm.name}&rdquo;</span>? This action cannot be undone.
@@ -1050,7 +1056,7 @@ export default function ClientsPage() {
               </button>
               <button
                 onClick={() => handleDeleteView(deleteViewConfirm.id)}
-                className="rounded-none bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
+                className="rounded-[6px] bg-red-500 px-[16px] py-[6px] text-[13px] font-medium text-white transition-colors hover:bg-red-600"
                 tabIndex={0}
               >
                 Delete

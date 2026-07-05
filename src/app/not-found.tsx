@@ -12,7 +12,7 @@ export default function NotFound() {
       </p>
       <Link
         href="/tasks"
-        className="mt-[8px] rounded-none border border-folk-border bg-folk-surface px-[20px] py-[10px] text-[14px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+        className="mt-[8px] rounded-[6px] border border-folk-border bg-folk-surface px-[20px] py-[10px] text-[14px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
       >
         Go to dashboard
       </Link>

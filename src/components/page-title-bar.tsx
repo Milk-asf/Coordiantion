@@ -24,7 +24,7 @@ export function PageTitleBar({
   onBack,
   backLabel,
   showBack = true,
-  showClock = true,
+  showClock = false,
   trailing,
   className,
 }: PageTitleBarProps) {

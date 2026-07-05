@@ -86,11 +86,11 @@ import { FolkSidebarField, folkSidebarValueButtonClass } from "@/components/folk
 import { cn } from "@/lib/utils"
 
 const PANEL_WIDTH = 540
-const FORM_LABEL_CLASS = "mb-[4px] block text-[12px] font-medium text-folk-secondary"
+const FORM_LABEL_CLASS = "mb-[6px] block text-[13px] font-medium text-folk-text"
 const FORM_INPUT_CLASS =
-  "h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]"
+  "h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]"
 const FORM_TEXTAREA_CLASS =
-  "min-h-[76px] w-full resize-y rounded-none border border-folk-border bg-folk-page px-[12px] py-[8px] text-[13px] font-medium leading-[1.5] text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]"
+  "min-h-[76px] w-full resize-y rounded-[6px] border border-folk-border bg-white px-[12px] py-[8px] text-[13px] font-medium leading-[1.5] text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]"
 const VALUE_BUTTON_CLASS = folkSidebarValueButtonClass()
 const INLINE_INPUT_CLASS =
   "w-full bg-transparent text-[13px] font-medium text-folk-text placeholder-[#ccc] outline-none"
@@ -863,7 +863,7 @@ export function ShiftFormPanel({
         <div className="min-h-0 flex-1 overflow-y-auto">
           <div className="px-[24px] py-[14px]">
             {error && (
-              <div className="mb-[14px] rounded-none border border-red-200 bg-red-50 px-[12px] py-[10px] text-[12px] font-medium text-red-600">
+              <div className="mb-[14px] rounded-[6px] border border-red-200 bg-red-50 px-[12px] py-[10px] text-[12px] font-medium text-red-600">
                 {error}
               </div>
             )}
@@ -880,7 +880,7 @@ export function ShiftFormPanel({
             ) : (
               <>
             {issueDescriptions.length > 0 && !isCancelledShift && (
-              <div className="mb-[14px] rounded-none border border-amber-200 bg-amber-50 px-[12px] py-[10px]">
+              <div className="mb-[14px] rounded-[6px] border border-amber-200 bg-amber-50 px-[12px] py-[10px]">
                 <div className="flex items-start gap-[8px]">
                   <AlertTriangle className="mt-[1px] h-[14px] w-[14px] shrink-0 text-amber-600" strokeWidth={2} />
                   <div className="min-w-0">
@@ -901,7 +901,7 @@ export function ShiftFormPanel({
             )}
 
             {isCancelledShift && shift && (
-              <div className="mb-[14px] rounded-none border border-[#cbd5e1] bg-[repeating-linear-gradient(-45deg,#f8fafc_0px,#f8fafc_8px,#eef2f7_8px,#eef2f7_16px)] px-[12px] py-[10px]">
+              <div className="mb-[14px] rounded-[6px] border border-[#cbd5e1] bg-[repeating-linear-gradient(-45deg,#f8fafc_0px,#f8fafc_8px,#eef2f7_8px,#eef2f7_16px)] px-[12px] py-[10px]">
                 <p className="text-[12px] font-semibold text-[#64748b]">Cancelled shift</p>
                 {shift.cancelledBy && (
                   <p className="mt-[4px] text-[12px] font-medium text-folk-secondary">
@@ -948,7 +948,7 @@ export function ShiftFormPanel({
                   ref={sessionTypeBtnRef}
                   type="button"
                   onClick={() => setActiveDropdown(activeDropdown === "sessionType" ? null : "sessionType")}
-                  className="flex h-[36px] w-full items-center justify-between gap-[8px] rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium outline-none transition-colors hover:border-[#bababa] focus:border-[#a3c4f3]"
+                  className="flex h-[38px] w-full items-center justify-between gap-[8px] rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium outline-none transition-colors hover:border-[#bababa] focus:border-[#a3c4f3]"
                   tabIndex={0}
                   aria-expanded={activeDropdown === "sessionType"}
                 >
@@ -1129,7 +1129,7 @@ export function ShiftFormPanel({
                   {chargeTypes.map((itemNumber) => (
                     <span
                       key={itemNumber}
-                      className="inline-flex max-w-full items-center gap-[4px] rounded-none bg-[var(--folk-border-subtle)] py-[3px] pl-[8px] pr-[4px] text-[12px] font-semibold text-[#555]"
+                      className="inline-flex max-w-full items-center gap-[4px] rounded-[6px] bg-[var(--folk-border-subtle)] py-[3px] pl-[8px] pr-[4px] text-[12px] font-semibold text-[#555]"
                     >
                       <span className="truncate">{getChargeLabel(itemNumber)}</span>
                       <button
@@ -1150,7 +1150,7 @@ export function ShiftFormPanel({
                     onClick={() => setActiveDropdown(activeDropdown === "charge" ? null : "charge")}
                     disabled={availableCharges.length === 0}
                     className={cn(
-                      "inline-flex items-center gap-[4px] rounded-none border border-dashed border-[#bababa] px-[8px] py-[4px] text-[12px] font-medium text-folk-secondary transition-colors hover:border-[#bbb] hover:text-folk-secondary",
+                      "inline-flex items-center gap-[4px] rounded-[6px] border border-dashed border-[#bababa] px-[8px] py-[4px] text-[12px] font-medium text-folk-secondary transition-colors hover:border-[#bbb] hover:text-folk-secondary",
                       availableCharges.length === 0 && "cursor-not-allowed opacity-50 hover:border-[#bababa] hover:text-folk-secondary"
                     )}
                     tabIndex={0}
@@ -1256,7 +1256,7 @@ export function ShiftFormPanel({
                 </div>
 
                 {!shift?.shiftStringId && (
-                  <div className="rounded-none border border-folk-border-subtle bg-folk-page px-[12px] py-[10px]">
+                  <div className="rounded-[6px] border border-folk-border-subtle bg-folk-page px-[12px] py-[10px]">
                     <label className="flex cursor-pointer items-start gap-[10px]">
                       <input
                         type="checkbox"
@@ -1292,7 +1292,7 @@ export function ShiftFormPanel({
                     type="button"
                     onClick={handleAddNextStringPart}
                     disabled={isSaving}
-                    className="mt-[10px] flex w-full items-center justify-center gap-[6px] rounded-none border border-dashed border-folk-border bg-folk-page px-[12px] py-[10px] text-[12px] font-medium text-folk-secondary transition-colors hover:border-[#bbb] hover:bg-[var(--folk-border-subtle)] disabled:opacity-50"
+                    className="mt-[10px] flex w-full items-center justify-center gap-[6px] rounded-[6px] border border-dashed border-folk-border bg-folk-page px-[12px] py-[10px] text-[12px] font-medium text-folk-secondary transition-colors hover:border-[#bbb] hover:bg-[var(--folk-border-subtle)] disabled:opacity-50"
                     tabIndex={0}
                   >
                     <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -1499,7 +1499,7 @@ export function ShiftFormPanel({
                 setActiveDropdown(null)
               }}
             >
-              <span className="rounded-none bg-[var(--folk-border-subtle)] px-[6px] py-[2px] text-[11px] font-semibold text-[#555]">
+              <span className="rounded-[6px] bg-[var(--folk-border-subtle)] px-[6px] py-[2px] text-[11px] font-semibold text-[#555]">
                 {charge.shortName || charge.itemNumber}
               </span>
               <span className="truncate text-folk-secondary">{charge.itemNumber}</span>
@@ -1680,7 +1680,7 @@ function InlineField({
   children: ReactNode
 }) {
   return (
-    <div className="flex min-w-0 items-center gap-[7px] rounded-none px-[8px] py-[6px] transition-colors hover:bg-folk-page">
+    <div className="flex min-w-0 items-center gap-[7px] rounded-[6px] px-[8px] py-[6px] transition-colors hover:bg-folk-page">
       <Icon className={cn("h-[13px] w-[13px] shrink-0", hasValue ? "text-folk-secondary" : "text-[#ccc]")} strokeWidth={1.5} />
       {children}
     </div>

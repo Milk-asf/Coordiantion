@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { inviteMemberSchema } from "@/lib/validations"
-import { rateLimit, getRateLimitHeaders } from "@/lib/rate-limit"
+import { checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit"
 import { getAuthCallbackUrl } from "@/lib/get-site-url"
 
 export async function POST(request: Request) {
@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   const { data: { user: caller } } = await supabase.auth.getUser()
   if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const rl = rateLimit(`invite:${caller.id}`, { maxRequests: 5, windowMs: 60_000 })
+  const rl = await checkRateLimit(`invite:${caller.id}`, { maxRequests: 5, windowMs: 60_000 })
   if (!rl.success) {
     return NextResponse.json(
       { error: "Too many invite requests. Please wait a moment." },

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Plus } from "lucide-react"
 import { PageError, PageLoader } from "@/components/page-state"
-import { PageTitleBar, PageToolbarBar } from "@/components/page-title-bar"
+import { PageTitleBar } from "@/components/page-title-bar"
 import { formatClockElapsed } from "@/components/page-clock-button"
 import { ProfileTabButton } from "@/components/profile-tab-button"
 import { ProfileTimesheetsTab } from "@/components/profile-timesheets-tab"
@@ -89,19 +89,22 @@ export default function MyWorkPage() {
   return (
     <div className="flex h-full">
       <div className="flex h-full min-w-0 flex-1 flex-col">
-        <PageTitleBar title="My work" />
-        <PageToolbarBar>
-          <button
-            type="button"
-            onClick={handleAdd}
-            className={folkAddBtnClass("flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors")}
-            tabIndex={0}
-            aria-label="Add timesheet"
-          >
-            <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-            <span>Timesheet</span>
-          </button>
-        </PageToolbarBar>
+        <PageTitleBar
+          title="My work"
+          showClock={false}
+          trailing={
+            <button
+              type="button"
+              onClick={handleAdd}
+              className={folkAddBtnClass("flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors")}
+              tabIndex={0}
+              aria-label="Add timesheet"
+            >
+              <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+              <span>Timesheet</span>
+            </button>
+          }
+        />
 
         {activeClock && (
           <div className="flex shrink-0 items-center gap-[10px] border-b border-folk-border-subtle bg-[#f0fdf4] px-[16px] py-[10px]">

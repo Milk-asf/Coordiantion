@@ -47,14 +47,14 @@ export function RecordPickerModal({ records, onSelect, onClose }: RecordPickerMo
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/20" onClick={onClose} />
       <div
-        className="relative z-10 flex w-[560px] flex-col rounded-none bg-folk-surface shadow-[0_8px_30px_rgba(0,0,0,0.12)]"
+        className="relative z-10 flex w-[560px] flex-col rounded-[6px] bg-folk-surface shadow-[0_8px_30px_rgba(0,0,0,0.12)]"
         onKeyDown={handleKeyDown}
       >
         <div className="flex items-center justify-between px-[24px] pt-[20px] pb-[4px]">
           <h2 className="text-[15px] font-semibold text-folk-text">Choose record</h2>
           <button
             onClick={onClose}
-            className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+            className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
             tabIndex={0}
             aria-label="Close"
           >
@@ -69,7 +69,7 @@ export function RecordPickerModal({ records, onSelect, onClose }: RecordPickerMo
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setSelectedIndex(0) }}
             placeholder="Search records..."
-            className="h-[40px] w-full rounded-none border border-folk-border bg-folk-surface px-[14px] text-[14px] text-folk-text outline-none placeholder:text-folk-placeholder focus:border-[#93b4e8]"
+            className="h-[40px] w-full rounded-[6px] border border-folk-border bg-folk-surface px-[14px] text-[14px] text-folk-text outline-none placeholder:text-folk-placeholder focus:border-[#93b4e8]"
             autoFocus
           />
         </div>
@@ -83,14 +83,14 @@ export function RecordPickerModal({ records, onSelect, onClose }: RecordPickerMo
             <button
               key={`${record.type}-${record.id}`}
               onClick={() => onSelect(record)}
-              className={`flex w-full items-center gap-[12px] rounded-none px-[12px] py-[10px] transition-colors ${idx === selectedIndex ? "bg-[#f5f7fa]" : "hover:bg-[#f9f9f9]"}`}
+              className={`flex w-full items-center gap-[12px] rounded-[6px] px-[12px] py-[10px] transition-colors ${idx === selectedIndex ? "bg-[#f5f7fa]" : "hover:bg-[#f9f9f9]"}`}
               tabIndex={0}
             >
               <div className="flex items-center gap-[8px] flex-1 overflow-hidden">
                 <EntityIcon text={record.iconText} size="base" />
                 <span className="truncate text-[14px] font-medium text-folk-text">{record.name}</span>
               </div>
-              <span className={`flex shrink-0 items-center rounded-none px-[8px] py-[3px] text-[11px] font-medium ${
+              <span className={`flex shrink-0 items-center rounded-[6px] px-[8px] py-[3px] text-[11px] font-medium ${
                 record.type === "Client" ? "bg-[#F0FDF4] text-[#16a34a]" :
                 record.type === "Contact" ? "bg-[#FEF3C7] text-[#d97706]" :
                 "bg-[#F3E8FF] text-[#7c3aed]"

@@ -59,7 +59,8 @@ export function AnalyticsBuilder({ initialWidget, isNew, onSave, onCancel }: Ana
     }))
   }
 
-  const computation = useMemo(() => computeWidget(widget, resolveEntityRecords(widget.source, data)), [widget, data])
+  const records = useMemo(() => resolveEntityRecords(widget.source, data), [widget.source, data])
+  const computation = useMemo(() => computeWidget(widget, records), [widget, records])
 
   const handleDragStart = (event: DragStartEvent) => {
     const active = event.active.data.current
@@ -104,7 +105,7 @@ export function AnalyticsBuilder({ initialWidget, isNew, onSave, onCancel }: Ana
               type="button"
               disabled={!placed}
               onClick={() => onSave({ ...widget, title: widget.title.trim() || "Untitled report" })}
-              className="primary-btn px-[14px] py-[6px] text-[13px] font-medium disabled:cursor-not-allowed disabled:opacity-50"
+              className="primary-btn folk-pill-btn h-[32px] px-[14px] text-[13px] font-medium disabled:cursor-not-allowed disabled:opacity-50"
               tabIndex={0}
             >
               {isNew ? "Add report" : "Save changes"}
@@ -129,7 +130,7 @@ export function AnalyticsBuilder({ initialWidget, isNew, onSave, onCancel }: Ana
               <span className="text-[12px] font-semibold uppercase tracking-wide text-folk-tertiary">Configure</span>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">
-              <WidgetConfigPanel widget={widget} onChange={handleChange} />
+              <WidgetConfigPanel widget={widget} records={records} onChange={handleChange} />
             </div>
           </aside>
         </div>
@@ -198,7 +199,7 @@ function PreviewPane({
             </span>
           </div>
           <div className="min-h-[220px]">
-            <WidgetChart widget={widget} computation={computation} />
+            <WidgetChart widget={widget} computation={computation} interactive={false} />
           </div>
         </div>
         <p className="mt-[12px] text-center text-[12px] text-folk-tertiary">

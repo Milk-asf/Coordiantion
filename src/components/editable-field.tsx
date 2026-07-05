@@ -97,14 +97,14 @@ export function EditableField({
 
   const baseOffsetClassName = offsetClassName ?? (size === "compact" ? "" : "-ml-[9px]")
   const baseDisplayClassName = size === "compact"
-    ? "block cursor-default rounded-none px-[8px] py-[5px] transition-colors hover:bg-folk-hover"
-    : "block cursor-default rounded-none px-[10px] py-[7px] transition-colors hover:bg-folk-hover"
+    ? "block cursor-default rounded-[6px] px-[8px] py-[5px] transition-colors hover:bg-folk-hover"
+    : "block cursor-default rounded-[6px] px-[10px] py-[7px] transition-colors hover:bg-folk-hover"
   const baseInputClassName = size === "compact"
-    ? "w-full rounded-none border border-[#a3c4f3] bg-folk-page px-[8px] py-[5px] pr-[28px] text-[13px] font-medium text-folk-text shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
-    : "w-full rounded-none border border-[#a3c4f3] bg-folk-page px-[10px] py-[7px] pr-[32px] text-[13px] font-medium text-folk-text shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
+    ? "w-full rounded-[6px] border border-[#a3c4f3] bg-folk-page px-[8px] py-[5px] pr-[28px] text-[13px] font-medium text-folk-text shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
+    : "w-full rounded-[6px] border border-[#a3c4f3] bg-folk-page px-[10px] py-[7px] pr-[32px] text-[13px] font-medium text-folk-text shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
   const baseDropdownButtonClassName = size === "compact"
-    ? "flex w-full items-center justify-between rounded-none border border-[#a3c4f3] bg-folk-page px-[8px] py-[5px] text-left text-[13px] font-medium text-folk-text shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
-    : "flex w-full items-center justify-between rounded-none border border-[#a3c4f3] bg-folk-page px-[10px] py-[7px] text-left text-[13px] font-medium text-folk-text shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
+    ? "flex w-full items-center justify-between rounded-[6px] border border-[#a3c4f3] bg-folk-page px-[8px] py-[5px] text-left text-[13px] font-medium text-folk-text shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
+    : "flex w-full items-center justify-between rounded-[6px] border border-[#a3c4f3] bg-folk-page px-[10px] py-[7px] text-left text-[13px] font-medium text-folk-text shadow-[0_0_0_3px_rgba(163,196,243,0.25)] outline-none"
   const baseDropdownItemClassName = size === "compact"
     ? "flex w-full items-center px-[8px] py-[6px] text-left text-[13px] font-medium transition-colors hover:bg-folk-hover"
     : "flex w-full items-center px-[10px] py-[6px] text-left text-[13px] font-medium transition-colors hover:bg-folk-hover"
@@ -128,7 +128,7 @@ export function EditableField({
             <span className={draft ? "text-folk-text" : "text-folk-placeholder"}>{draft || emptyLabel}</span>
             <ChevronDown className="h-[12px] w-[12px] rotate-180 text-folk-secondary" strokeWidth={1.5} />
           </button>
-          <div className={`absolute left-0 z-[60] max-h-[200px] w-full min-w-[160px] overflow-y-auto rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.1)] ${dropUp ? "bottom-full mb-[4px]" : "top-full mt-[4px]"}`}>
+          <div className={`absolute left-0 z-[60] max-h-[200px] w-full min-w-[160px] overflow-y-auto rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.1)] ${dropUp ? "bottom-full mb-[4px]" : "top-full mt-[4px]"}`}>
             <button
               type="button"
               onClick={() => {

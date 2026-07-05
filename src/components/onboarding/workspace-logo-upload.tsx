@@ -55,7 +55,7 @@ export function WorkspaceLogoUpload({ workspaceId, value, onChange }: WorkspaceL
 
   return (
     <div className="flex items-center gap-[16px]">
-      <div className="flex h-[64px] w-[64px] items-center justify-center overflow-hidden rounded-none border border-folk-border-subtle bg-folk-page">
+      <div className="flex h-[64px] w-[64px] items-center justify-center overflow-hidden rounded-[6px] border border-folk-border-subtle bg-folk-page">
         {value ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img src={value} alt="Company logo" className="h-full w-full object-contain" />
@@ -70,7 +70,7 @@ export function WorkspaceLogoUpload({ workspaceId, value, onChange }: WorkspaceL
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading || !workspaceId}
-            className="flex items-center gap-[6px] rounded-none bg-[var(--folk-border-subtle)] px-[12px] py-[6px] text-[12px] font-medium text-folk-text transition-colors hover:bg-[#e8e8e8] disabled:opacity-50"
+            className="flex items-center gap-[6px] rounded-[6px] bg-[var(--folk-border-subtle)] px-[12px] py-[6px] text-[12px] font-medium text-folk-text transition-colors hover:bg-[#e8e8e8] disabled:opacity-50"
             tabIndex={0}
           >
             <Upload className="h-[12px] w-[12px]" strokeWidth={1.75} />

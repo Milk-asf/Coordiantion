@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from "react"
 import { AlertTriangle, FileCheck, LayoutGrid, Plus, Settings2, Table2 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/button"
-import { PageTitleBar, PageToolbarBar } from "@/components/page-title-bar"
+import { PageTitleBar } from "@/components/page-title-bar"
 import { folkPrimaryAddBtnClass } from "@/lib/folk-ui"
 import { EmptyState } from "@/components/empty-state"
 import { PageError, PageLoader } from "@/components/page-state"
@@ -193,13 +193,15 @@ export default function NdisClaimsPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <PageTitleBar title="NDIS claims" />
-      <PageToolbarBar>
-        <button type="button" onClick={openCreate} className={folkPrimaryAddBtnClass()} tabIndex={0}>
-          <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-          <span>New claim period</span>
-        </button>
-      </PageToolbarBar>
+      <PageTitleBar
+        title="NDIS claims"
+        trailing={
+          <button type="button" onClick={openCreate} className={folkPrimaryAddBtnClass()} tabIndex={0}>
+            <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+            <span>New claim period</span>
+          </button>
+        }
+      />
       <div className="flex h-[44px] shrink-0 items-stretch border-b border-folk-border bg-white px-[16px]">
         <div className="folk-tab-bar flex h-full items-stretch [&_.folk-tab:last-child]:mr-0">
           {([
@@ -235,7 +237,7 @@ export default function NdisClaimsPage() {
           </div>
           <Link
             href="/settings/general"
-            className="flex shrink-0 items-center gap-[5px] rounded-none border border-amber-300 bg-white px-[8px] py-[4px] text-[12px] font-medium text-amber-800 transition-colors hover:bg-amber-100"
+            className="flex shrink-0 items-center gap-[5px] rounded-[6px] border border-amber-300 bg-white px-[8px] py-[4px] text-[12px] font-medium text-amber-800 transition-colors hover:bg-amber-100"
           >
             <Settings2 className="h-[12px] w-[12px]" strokeWidth={1.75} />
             Finance settings
@@ -357,7 +359,7 @@ export default function NdisClaimsPage() {
                   value={draftName}
                   onChange={(event) => setDraftName(event.target.value)}
                   placeholder={defaultClaimPeriodName(draftStart, draftEnd)}
-                  className="rounded-none border border-folk-border bg-folk-page px-[10px] py-[7px] text-[13px] text-folk-text outline-none focus:border-[#a3c4f3]"
+                  className="rounded-[6px] border border-folk-border bg-folk-page px-[10px] py-[7px] text-[13px] text-folk-text outline-none focus:border-[#a3c4f3]"
                 />
               </label>
               <div className="flex gap-[10px]">
@@ -368,7 +370,7 @@ export default function NdisClaimsPage() {
                     value={draftStart}
                     max={draftEnd}
                     onChange={(event) => setDraftStart(event.target.value)}
-                    className="rounded-none border border-folk-border bg-folk-page px-[10px] py-[7px] text-[13px] text-folk-text outline-none focus:border-[#a3c4f3]"
+                    className="rounded-[6px] border border-folk-border bg-folk-page px-[10px] py-[7px] text-[13px] text-folk-text outline-none focus:border-[#a3c4f3]"
                   />
                 </label>
                 <label className="flex flex-1 flex-col gap-[4px]">
@@ -378,7 +380,7 @@ export default function NdisClaimsPage() {
                     value={draftEnd}
                     min={draftStart}
                     onChange={(event) => setDraftEnd(event.target.value)}
-                    className="rounded-none border border-folk-border bg-folk-page px-[10px] py-[7px] text-[13px] text-folk-text outline-none focus:border-[#a3c4f3]"
+                    className="rounded-[6px] border border-folk-border bg-folk-page px-[10px] py-[7px] text-[13px] text-folk-text outline-none focus:border-[#a3c4f3]"
                   />
                 </label>
               </div>
@@ -388,7 +390,7 @@ export default function NdisClaimsPage() {
               <button type="button" onClick={() => setIsCreateOpen(false)} className="outline-btn px-[12px] py-[7px] text-[13px] font-medium" tabIndex={0}>
                 Cancel
               </button>
-              <Button variant="primary" onClick={handleCreate} disabled={isCreating} className="rounded-none">
+              <Button variant="primary" onClick={handleCreate} disabled={isCreating} className="rounded-[6px]">
                 {isCreating ? "Creating…" : "Create claim period"}
               </Button>
             </div>

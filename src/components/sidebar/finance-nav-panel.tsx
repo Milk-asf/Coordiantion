@@ -52,7 +52,7 @@ export function FinanceNavPanel({ pathname, onClose }: FinanceNavPanelProps) {
                       <Link
                         href={item.href}
                         className={cn(
-                          "flex items-center gap-2 rounded-none px-[8px] py-[7px] text-[12px] font-medium transition-colors",
+                          "flex items-center gap-2 rounded-[6px] px-[8px] py-[7px] text-[12px] font-medium transition-colors",
                           isActive
                             ? "bg-sidebar-active text-sidebar-active-text"
                             : "text-[#616161] hover:bg-sidebar-hover"

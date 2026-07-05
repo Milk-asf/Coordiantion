@@ -16,6 +16,7 @@ import {
   getKanbanStageKey,
   parseKanbanStageValue,
 } from "@/lib/lists/kanban-utils"
+import { appendListReturnParam } from "@/lib/lists/list-return"
 import type { Incident, IncidentInvestigationStatus } from "@/lib/types"
 import type { IncidentInput } from "@/lib/incidents-context"
 import type { Timesheet, TravelClaimStatus } from "@/lib/timesheets/types"
@@ -71,7 +72,7 @@ function incidentToInput(incident: Incident): IncidentInput {
   }
 }
 
-export function useListRecordActions(sourceKey: string) {
+export function useListRecordActions(sourceKey: string, listId?: string) {
   const router = useRouter()
   const { updateTask } = useTasks()
   const { updateClient } = useClients()
@@ -90,56 +91,57 @@ export function useListRecordActions(sourceKey: string) {
   const openRecord = useCallback(
     (record: unknown, index = 0) => {
       const id = getRecordId(record, index)
+      const withReturn = (href: string) => (listId ? appendListReturnParam(href, listId) : href)
 
       switch (sourceKey) {
         case "clients":
-          router.push(`/clients/${id}`)
+          router.push(withReturn(`/clients/${id}`))
           return
         case "staff":
-          router.push(`/staff/${id}`)
+          router.push(withReturn(`/staff/${id}`))
           return
         case "tasks":
-          router.push(`/tasks?task=${encodeURIComponent(id)}`)
+          router.push(withReturn(`/tasks?task=${encodeURIComponent(id)}`))
           return
         case "incidents":
-          router.push(`/incidents/${id}`)
+          router.push(withReturn(`/incidents/${id}`))
           return
         case "shifts":
-          router.push("/roster")
+          router.push(withReturn("/roster"))
           return
         case "timesheets":
-          router.push("/business/timesheets")
+          router.push(withReturn("/business/timesheets"))
           return
         case "timesheets.travelClaims":
-          router.push("/business/travel-claims")
+          router.push(withReturn("/business/travel-claims"))
           return
         case "invoices":
-          router.push("/invoices")
+          router.push(withReturn("/invoices"))
           return
         case "reimbursements":
-          router.push("/business/reimbursements")
+          router.push(withReturn("/business/reimbursements"))
           return
         case "documents":
-          router.push("/documents")
+          router.push(withReturn("/documents"))
           return
         case "forms":
-          router.push(`/forms/${id}`)
+          router.push(withReturn(`/forms/${id}`))
           return
         case "budgets": {
           const clientId = (record as BudgetListRecord).clientId
-          if (clientId) router.push(`/clients/${clientId}`)
+          if (clientId) router.push(withReturn(`/clients/${clientId}`))
           return
         }
         case "spending-plans": {
           const clientId = (record as SpendingPlanListRecord).clientId
-          if (clientId) router.push(`/clients/${clientId}`)
+          if (clientId) router.push(withReturn(`/clients/${clientId}`))
           return
         }
         default:
           return
       }
     },
-    [router, sourceKey],
+    [router, sourceKey, listId],
   )
 
   const moveRecordToStage = useCallback(

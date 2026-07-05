@@ -21,7 +21,7 @@ interface InviteMemberModalProps {
 }
 
 const inputClass =
-  "h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[10px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3]"
+  "h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[10px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3]"
 
 export function InviteMemberModal({ isOpen, onClose, onSuccess }: InviteMemberModalProps) {
   const { activeWorkspace } = useWorkspace()
@@ -111,7 +111,7 @@ export function InviteMemberModal({ isOpen, onClose, onSuccess }: InviteMemberMo
         <button
           type="button"
           onClick={handleClose}
-          className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+          className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
           tabIndex={0}
           aria-label="Close"
         >
@@ -125,7 +125,7 @@ export function InviteMemberModal({ isOpen, onClose, onSuccess }: InviteMemberMo
         </p>
 
         <div className="mb-[14px]">
-          <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Full name *</label>
+          <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Full name *</label>
           <input
             ref={nameInputRef}
             type="text"
@@ -141,7 +141,7 @@ export function InviteMemberModal({ isOpen, onClose, onSuccess }: InviteMemberMo
         </div>
 
         <div className="mb-[14px]">
-          <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Email *</label>
+          <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Email *</label>
           <input
             type="email"
             value={email}
@@ -156,7 +156,7 @@ export function InviteMemberModal({ isOpen, onClose, onSuccess }: InviteMemberMo
         </div>
 
         <div className="mb-[16px]">
-          <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Role</label>
+          <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Role</label>
           <select
             value={role}
             onChange={(event) => setRole(event.target.value as InviteMemberRole)}

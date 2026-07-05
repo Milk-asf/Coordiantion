@@ -110,7 +110,7 @@ export function RosterShiftBlock({
       data-shift-id={shift.id}
       data-shift-string-id={shift.shiftStringId ?? undefined}
       className={cn(
-        "relative overflow-hidden rounded-none border transition-[filter] duration-150",
+        "relative overflow-hidden rounded-[6px] border transition-[filter] duration-150",
         isCancelled
           ? cancelledShiftSurfaceClasses
           : isUnassigned

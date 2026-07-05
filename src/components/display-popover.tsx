@@ -107,7 +107,7 @@ function DisplayPopoverPanelContent({
     <div
       ref={panelRef}
       className={cn(
-        "fixed flex shrink-0 flex-col overflow-hidden rounded-none border border-folk-border bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]",
+        "fixed flex shrink-0 flex-col overflow-hidden rounded-[6px] border border-folk-border bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]",
         FIXED_DROPDOWN_MENU_Z_CLASS,
         motion.slideUp,
         widthClassName,
@@ -244,7 +244,7 @@ export function DisplayFieldList({
                   onClick={() => !field.locked && onToggle(field.key)}
                   disabled={field.locked}
                   className={cn(
-                    "flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-none text-folk-secondary transition-colors hover:text-folk-text",
+                    "flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:text-folk-text",
                     field.locked && "cursor-default opacity-40"
                   )}
                   aria-label={isVisible ? `Hide ${field.label}` : `Show ${field.label}`}
@@ -358,7 +358,7 @@ export function DisplayFilterList({
               <button
                 type="button"
                 onClick={() => onToggle(field.key)}
-                className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-none text-folk-secondary transition-colors hover:text-folk-text"
+                className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:text-folk-text"
                 aria-label={isVisible ? `Hide ${field.label}` : `Show ${field.label}`}
                 tabIndex={0}
               >

@@ -103,8 +103,8 @@ export function ContactChip({
   return (
     <span
       className={size === "compact"
-        ? `group/chip inline-flex cursor-default items-center gap-[4px] rounded-none border border-folk-border ${chipBg} py-[2px] pl-[8px] pr-[4px] text-[12px] font-medium text-folk-text transition-colors ${chipHover}`
-        : `group/chip inline-flex cursor-default items-center gap-[6px] rounded-none border border-folk-border ${chipBg} py-[4px] pl-[10px] pr-[6px] text-[13px] font-medium text-folk-text transition-colors ${chipHover}`}
+        ? `group/chip inline-flex cursor-default items-center gap-[4px] rounded-[6px] border border-folk-border ${chipBg} py-[2px] pl-[8px] pr-[4px] text-[12px] font-medium text-folk-text transition-colors ${chipHover}`
+        : `group/chip inline-flex cursor-default items-center gap-[6px] rounded-[6px] border border-folk-border ${chipBg} py-[4px] pl-[10px] pr-[6px] text-[13px] font-medium text-folk-text transition-colors ${chipHover}`}
     >
       <span
         onClick={() => setIsEditing(true)}
@@ -122,8 +122,8 @@ export function ContactChip({
           type="button"
           onClick={handleCopy}
           className={size === "compact"
-            ? `shrink-0 rounded-none p-[2px] transition-all ${isCopied ? "text-[#2563EB]" : `text-folk-placeholder opacity-0 group-hover/chip:opacity-100 ${copyHoverBg} hover:text-folk-secondary`}`
-            : `shrink-0 rounded-none p-[3px] transition-all ${isCopied ? "text-[#2563EB]" : `text-folk-placeholder opacity-0 group-hover/chip:opacity-100 ${copyHoverBg} hover:text-folk-secondary`}`}
+            ? `shrink-0 rounded-[6px] p-[2px] transition-all ${isCopied ? "text-[#2563EB]" : `text-folk-placeholder opacity-0 group-hover/chip:opacity-100 ${copyHoverBg} hover:text-folk-secondary`}`
+            : `shrink-0 rounded-[6px] p-[3px] transition-all ${isCopied ? "text-[#2563EB]" : `text-folk-placeholder opacity-0 group-hover/chip:opacity-100 ${copyHoverBg} hover:text-folk-secondary`}`}
           tabIndex={0}
           aria-label={`Copy ${placeholder}`}
         >

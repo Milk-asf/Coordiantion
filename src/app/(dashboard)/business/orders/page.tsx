@@ -171,13 +171,15 @@ export default function OrdersPage() {
     <div className="flex h-full flex-col">
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col">
-          <PageTitleBar title="Orders" />
-          <div className="flex h-[44px] shrink-0 items-center justify-end gap-[8px] border-b border-folk-border-subtle bg-white px-[16px]">
-            <Button onClick={openAddSidebar} variant="primary" className="folk-pill-btn h-[29px] px-[12px]">
-              <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-              <span>Add new</span>
-            </Button>
-          </div>
+          <PageTitleBar
+            title="Orders"
+            trailing={
+              <Button onClick={openAddSidebar} variant="primary" className="folk-pill-btn h-[29px] px-[12px]">
+                <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+                <span>Add new</span>
+              </Button>
+            }
+          />
 
           <div className={listViewFilterBarClass("flex-nowrap")}>
             <ExpandableTableSearch
@@ -196,7 +198,7 @@ export default function OrdersPage() {
                 <ListFilter className="h-[13px] w-[13px]" strokeWidth={1.5} />
                 <span>Filter</span>
                 {activeFilterCount > 0 && (
-                  <span className="rounded-none bg-[#eef4fc] px-[5px] py-[0.5px] text-[10px] font-semibold text-[#2563EB]">
+                  <span className="rounded-[6px] bg-[#eef4fc] px-[5px] py-[0.5px] text-[10px] font-semibold text-[#2563EB]">
                     {activeFilterCount}
                   </span>
                 )}
@@ -205,13 +207,13 @@ export default function OrdersPage() {
               {isFilterOpen && (
                 <>
                   <div className="fixed inset-0 z-[55]" onClick={() => setIsFilterOpen(false)} />
-                  <div className="absolute left-0 top-full z-[60] mt-[4px] w-[240px] rounded-none border border-folk-border bg-folk-surface p-[12px] shadow-folk">
+                  <div className="absolute left-0 top-full z-[60] mt-[4px] w-[240px] rounded-[6px] border border-folk-border bg-folk-surface p-[12px] shadow-folk">
                     <div className="mb-[10px]">
                       <label className="mb-[4px] block text-[11px] font-medium text-folk-secondary">Status</label>
                       <select
                         value={statusFilter}
                         onChange={(event) => setStatusFilter(event.target.value as OrderStatus | "all")}
-                        className="h-[32px] w-full rounded-none border border-folk-border px-[8px] text-[13px] font-medium text-folk-text"
+                        className="h-[32px] w-full rounded-[6px] border border-folk-border px-[8px] text-[13px] font-medium text-folk-text"
                       >
                         <option value="all">All statuses</option>
                         {orderStatuses.map((status) => (
@@ -224,7 +226,7 @@ export default function OrdersPage() {
                       <select
                         value={fundingFilter}
                         onChange={(event) => setFundingFilter(event.target.value as OrderFundingSource | "all")}
-                        className="h-[32px] w-full rounded-none border border-folk-border px-[8px] text-[13px] font-medium text-folk-text"
+                        className="h-[32px] w-full rounded-[6px] border border-folk-border px-[8px] text-[13px] font-medium text-folk-text"
                       >
                         <option value="all">All funding sources</option>
                         {orderFundingSources.map((source) => (
@@ -237,7 +239,7 @@ export default function OrdersPage() {
                       <select
                         value={clientFilter}
                         onChange={(event) => setClientFilter(event.target.value)}
-                        className="h-[32px] w-full rounded-none border border-folk-border px-[8px] text-[13px] font-medium text-folk-text"
+                        className="h-[32px] w-full rounded-[6px] border border-folk-border px-[8px] text-[13px] font-medium text-folk-text"
                       >
                         <option value="all">All clients</option>
                         {clients.map((client) => (
@@ -320,7 +322,7 @@ export default function OrdersPage() {
                         </td>
                         <td className={TABLE_PROFILE_CELL}>
                           <div className={TABLE_CELL_INNER}>
-                            <span className={cn("inline-flex h-[22px] items-center rounded-none px-[8px] text-[11px] font-medium", getOrderStatusClasses(order.status))}>
+                            <span className={cn("inline-flex h-[22px] items-center rounded-[6px] px-[8px] text-[11px] font-medium", getOrderStatusClasses(order.status))}>
                               {getOrderStatusLabel(order.status)}
                             </span>
                           </div>

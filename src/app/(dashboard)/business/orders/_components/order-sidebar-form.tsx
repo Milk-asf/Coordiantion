@@ -123,7 +123,7 @@ export function OrderSidebarForm({
             {isEditing ? "Order details" : "Add order"}
           </h2>
           {order && (
-            <span className={cn("mt-[6px] inline-flex h-[22px] items-center rounded-none px-[8px] text-[11px] font-medium", getOrderStatusClasses(form.status))}>
+            <span className={cn("mt-[6px] inline-flex h-[22px] items-center rounded-[6px] px-[8px] text-[11px] font-medium", getOrderStatusClasses(form.status))}>
               {getOrderStatusLabel(form.status)}
             </span>
           )}
@@ -131,7 +131,7 @@ export function OrderSidebarForm({
         <button
           type="button"
           onClick={onClose}
-          className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+          className="flex h-[24px] w-[24px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
           tabIndex={0}
           aria-label="Close order form"
         >
@@ -142,7 +142,7 @@ export function OrderSidebarForm({
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="px-[24px] py-[14px]">
           {order?.createdByName && (
-            <div className="mb-[14px] rounded-none border border-folk-border bg-folk-page px-[12px] py-[10px]">
+            <div className="mb-[14px] rounded-[6px] border border-folk-border bg-folk-page px-[12px] py-[10px]">
               <p className="text-[11px] font-medium text-folk-secondary">Created by</p>
               <p className="mt-[2px] text-[13px] font-medium text-folk-text">{order.createdByName}</p>
               {order.approvedByName && (
@@ -155,12 +155,12 @@ export function OrderSidebarForm({
           )}
 
           <div className="mb-[14px]">
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Status</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Status</label>
             <button
               ref={statusBtnRef}
               type="button"
               onClick={() => setIsStatusOpen((open) => !open)}
-              className="flex h-[36px] w-full items-center justify-between rounded-none border border-folk-border bg-folk-surface px-[10px] text-left transition-colors hover:border-[#bababa]"
+              className="flex h-[38px] w-full items-center justify-between rounded-[6px] border border-folk-border bg-white px-[10px] text-left transition-colors hover:border-[#bababa]"
               tabIndex={0}
             >
               <span className="text-[13px] font-medium text-folk-text">{getOrderStatusLabel(form.status)}</span>
@@ -188,14 +188,14 @@ export function OrderSidebarForm({
           </div>
 
           <div className="mb-[14px]">
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Client</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Client</label>
             <button
               ref={clientBtnRef}
               type="button"
               disabled={!editable}
               onClick={() => editable && setIsClientOpen((open) => !open)}
               className={cn(
-                "flex h-[36px] w-full items-center gap-[8px] rounded-none border border-folk-border px-[10px] text-left transition-colors",
+                "flex h-[36px] w-full items-center gap-[8px] rounded-[6px] border border-folk-border px-[10px] text-left transition-colors",
                 editable ? "bg-folk-surface hover:border-[#bababa]" : "cursor-not-allowed bg-folk-page text-folk-secondary"
               )}
               tabIndex={0}
@@ -216,19 +216,19 @@ export function OrderSidebarForm({
           </div>
 
           <div className="mb-[14px]">
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Title</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Title</label>
             <input
               type="text"
               value={form.title}
               disabled={!editable}
               onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-              className="h-[36px] w-full rounded-none border border-folk-border px-[10px] text-[13px] font-medium text-folk-text outline-none transition-colors focus:border-[#a3c4f3] disabled:bg-folk-page disabled:text-folk-secondary"
+              className="h-[38px] w-full rounded-[6px] border border-folk-border px-[10px] text-[13px] font-medium text-folk-text outline-none transition-colors focus:border-[#a3c4f3] disabled:bg-folk-page disabled:text-folk-secondary"
               placeholder="Order title"
             />
           </div>
 
           <div className="mb-[14px]">
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Amount</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Amount</label>
             <div className="relative">
               <span className="pointer-events-none absolute left-[10px] top-1/2 -translate-y-1/2 text-[13px] font-medium text-folk-secondary">$</span>
               <input
@@ -238,20 +238,20 @@ export function OrderSidebarForm({
                 value={Number.isFinite(form.amount) ? form.amount : 0}
                 disabled={!editable}
                 onChange={(event) => setForm((current) => ({ ...current, amount: Number(event.target.value) || 0 }))}
-                className="h-[36px] w-full rounded-none border border-folk-border pl-[22px] pr-[10px] text-[13px] font-medium text-folk-text outline-none transition-colors focus:border-[#a3c4f3] disabled:bg-folk-page disabled:text-folk-secondary"
+                className="h-[38px] w-full rounded-[6px] border border-folk-border pl-[22px] pr-[10px] text-[13px] font-medium text-folk-text outline-none transition-colors focus:border-[#a3c4f3] disabled:bg-folk-page disabled:text-folk-secondary"
               />
             </div>
           </div>
 
           <div className="mb-[14px]">
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Funding source</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Funding source</label>
             <button
               ref={fundingBtnRef}
               type="button"
               disabled={!editable}
               onClick={() => editable && setIsFundingOpen((open) => !open)}
               className={cn(
-                "flex h-[36px] w-full items-center justify-between rounded-none border border-folk-border px-[10px] text-left transition-colors",
+                "flex h-[36px] w-full items-center justify-between rounded-[6px] border border-folk-border px-[10px] text-left transition-colors",
                 editable ? "bg-folk-surface hover:border-[#bababa]" : "cursor-not-allowed bg-folk-page text-folk-secondary"
               )}
               tabIndex={0}
@@ -283,19 +283,19 @@ export function OrderSidebarForm({
           </div>
 
           <div className="mb-[14px]">
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Description</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Description</label>
             <textarea
               value={form.description}
               disabled={!editable}
               onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
               rows={4}
-              className="w-full resize-none rounded-none border border-folk-border px-[10px] py-[8px] text-[13px] font-medium text-folk-text outline-none transition-colors focus:border-[#a3c4f3] disabled:bg-folk-page disabled:text-folk-secondary"
+              className="w-full resize-none rounded-[6px] border border-folk-border px-[10px] py-[8px] text-[13px] font-medium text-folk-text outline-none transition-colors focus:border-[#a3c4f3] disabled:bg-folk-page disabled:text-folk-secondary"
               placeholder="Add details about this order"
             />
           </div>
 
           <div className="mb-[14px]">
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Attachment</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Attachment</label>
             <input
               ref={fileInputRef}
               type="file"
@@ -312,7 +312,7 @@ export function OrderSidebarForm({
                 type="button"
                 disabled={!editable}
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-[6px] rounded-none border border-folk-border px-[10px] py-[6px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex items-center gap-[6px] rounded-[6px] border border-folk-border px-[10px] py-[6px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover disabled:cursor-not-allowed disabled:opacity-50"
                 tabIndex={0}
               >
                 <Upload className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -328,7 +328,7 @@ export function OrderSidebarForm({
                 <button
                   type="button"
                   onClick={onDownloadAttachment}
-                  className="flex h-[30px] w-[30px] items-center justify-center rounded-none border border-folk-border text-folk-secondary transition-colors hover:bg-folk-hover"
+                  className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-folk-border text-folk-secondary transition-colors hover:bg-folk-hover"
                   tabIndex={0}
                   aria-label="Download attachment"
                 >
@@ -343,27 +343,27 @@ export function OrderSidebarForm({
       <div className="border-t border-folk-border px-[24px] py-[14px]">
         <div className="flex flex-wrap gap-[8px]">
           {(editable || statusChanged) && (
-            <Button onClick={handleSave} disabled={!canSave || isSaving} className="h-[36px] rounded-none px-[16px]">
+            <Button onClick={handleSave} disabled={!canSave || isSaving} className="h-[36px] rounded-[6px] px-[16px]">
               {isSaving ? "Saving…" : isEditing ? "Save changes" : "Create order"}
             </Button>
           )}
           {editable && onSend && order && (order.status === "draft" || order.status === "returned") && (
-            <Button variant="secondary" onClick={onSend} disabled={isSaving} className="h-[36px] rounded-none px-[16px]">
+            <Button variant="secondary" onClick={onSend} disabled={isSaving} className="h-[36px] rounded-[6px] px-[16px]">
               Send for approval
             </Button>
           )}
           {isAdmin && order?.status === "sent" && onApprove && (
-            <Button onClick={onApprove} disabled={isSaving} className="h-[36px] rounded-none px-[16px]">
+            <Button onClick={onApprove} disabled={isSaving} className="h-[36px] rounded-[6px] px-[16px]">
               Approve
             </Button>
           )}
           {isAdmin && order?.status === "sent" && onReturn && (
-            <Button variant="secondary" onClick={onReturn} disabled={isSaving} className="h-[36px] rounded-none px-[16px]">
+            <Button variant="secondary" onClick={onReturn} disabled={isSaving} className="h-[36px] rounded-[6px] px-[16px]">
               Return
             </Button>
           )}
           {onDelete && order && (order.status === "draft" || isAdmin) && (
-            <Button variant="danger" onClick={onDelete} disabled={isSaving} className="h-[36px] rounded-none px-[16px]">
+            <Button variant="danger" onClick={onDelete} disabled={isSaving} className="h-[36px] rounded-[6px] px-[16px]">
               Delete
             </Button>
           )}

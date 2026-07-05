@@ -154,7 +154,7 @@ export function ReimbursementSidebarForm({
             {isEditing ? "Reimbursement" : "New reimbursement"}
           </h2>
           {reimbursement && (
-            <span className={cn("mt-[6px] inline-flex h-[22px] items-center rounded-none px-[8px] text-[11px] font-medium", getReimbursementStatusClasses(form.status))}>
+            <span className={cn("mt-[6px] inline-flex h-[22px] items-center rounded-[6px] px-[8px] text-[11px] font-medium", getReimbursementStatusClasses(form.status))}>
               {getReimbursementStatusLabel(form.status)}
             </span>
           )}
@@ -162,7 +162,7 @@ export function ReimbursementSidebarForm({
         <button
           type="button"
           onClick={onClose}
-          className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+          className="flex h-[24px] w-[24px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
           tabIndex={0}
           aria-label="Close reimbursement form"
         >
@@ -173,14 +173,14 @@ export function ReimbursementSidebarForm({
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="px-[24px] py-[14px]">
           {reimbursement?.status === "returned" && reimbursement.reviewNote && (
-            <div className="mb-[14px] rounded-none border border-amber-200 bg-amber-50 px-[12px] py-[10px]">
+            <div className="mb-[14px] rounded-[6px] border border-amber-200 bg-amber-50 px-[12px] py-[10px]">
               <p className="text-[12px] font-semibold text-amber-900">Returned for changes</p>
               <p className="mt-[4px] text-[12px] leading-snug text-amber-800">{reimbursement.reviewNote}</p>
             </div>
           )}
 
           {reimbursement?.createdByName && (
-            <div className="mb-[14px] rounded-none border border-folk-border bg-folk-page px-[12px] py-[10px]">
+            <div className="mb-[14px] rounded-[6px] border border-folk-border bg-folk-page px-[12px] py-[10px]">
               <p className="text-[11px] font-medium text-folk-secondary">Submitted by</p>
               <p className="mt-[2px] text-[13px] font-medium text-folk-text">{reimbursement.createdByName}</p>
               {reimbursement.approvedByName && (
@@ -193,12 +193,12 @@ export function ReimbursementSidebarForm({
           )}
 
           <div className="mb-[14px]">
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Status</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Status</label>
             <button
               ref={statusBtnRef}
               type="button"
               onClick={() => setIsStatusOpen((open) => !open)}
-              className="flex h-[36px] w-full items-center justify-between rounded-none border border-folk-border bg-folk-surface px-[10px] text-left transition-colors hover:border-[#bababa]"
+              className="flex h-[38px] w-full items-center justify-between rounded-[6px] border border-folk-border bg-white px-[10px] text-left transition-colors hover:border-[#bababa]"
               tabIndex={0}
             >
               <span className="text-[13px] font-medium text-folk-text">{getReimbursementStatusLabel(form.status)}</span>
@@ -226,20 +226,20 @@ export function ReimbursementSidebarForm({
           </div>
 
           <div className="mb-[14px]">
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">What is this for?</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">What is this for?</label>
             <input
               type="text"
               value={form.title}
               disabled={!editable}
               onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-              className="h-[36px] w-full rounded-none border border-folk-border px-[10px] text-[13px] font-medium text-folk-text outline-none transition-colors focus:border-[#a3c4f3] disabled:bg-folk-page disabled:text-folk-secondary"
+              className="h-[38px] w-full rounded-[6px] border border-folk-border px-[10px] text-[13px] font-medium text-folk-text outline-none transition-colors focus:border-[#a3c4f3] disabled:bg-folk-page disabled:text-folk-secondary"
               placeholder="e.g. Parking at appointment"
             />
           </div>
 
           <div className="mb-[14px] grid grid-cols-2 gap-[12px]">
             <div>
-              <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Amount</label>
+              <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Amount</label>
               <div className="relative">
                 <span className="pointer-events-none absolute left-[10px] top-1/2 -translate-y-1/2 text-[13px] font-medium text-folk-secondary">$</span>
                 <input
@@ -254,31 +254,31 @@ export function ReimbursementSidebarForm({
                     const parsed = Number(raw)
                     setForm((current) => ({ ...current, amount: raw === "" || Number.isNaN(parsed) ? 0 : parsed }))
                   }}
-                  className="h-[36px] w-full rounded-none border border-folk-border pl-[22px] pr-[10px] text-[13px] font-medium text-folk-text outline-none transition-colors focus:border-[#a3c4f3] disabled:bg-folk-page disabled:text-folk-secondary"
+                  className="h-[38px] w-full rounded-[6px] border border-folk-border pl-[22px] pr-[10px] text-[13px] font-medium text-folk-text outline-none transition-colors focus:border-[#a3c4f3] disabled:bg-folk-page disabled:text-folk-secondary"
                 />
               </div>
             </div>
             <div>
-              <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Date incurred</label>
+              <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Date incurred</label>
               <input
                 type="date"
                 value={form.dateIncurred ?? ""}
                 disabled={!editable}
                 onChange={(event) => setForm((current) => ({ ...current, dateIncurred: event.target.value || null }))}
-                className="h-[36px] w-full rounded-none border border-folk-border px-[10px] text-[13px] font-medium text-folk-text outline-none transition-colors focus:border-[#a3c4f3] disabled:bg-folk-page disabled:text-folk-secondary"
+                className="h-[38px] w-full rounded-[6px] border border-folk-border px-[10px] text-[13px] font-medium text-folk-text outline-none transition-colors focus:border-[#a3c4f3] disabled:bg-folk-page disabled:text-folk-secondary"
               />
             </div>
           </div>
 
           <div className="mb-[14px]">
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Category</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Category</label>
             <button
               ref={categoryBtnRef}
               type="button"
               disabled={!editable}
               onClick={() => editable && setIsCategoryOpen((open) => !open)}
               className={cn(
-                "flex h-[36px] w-full items-center justify-between rounded-none border border-folk-border px-[10px] text-left transition-colors",
+                "flex h-[36px] w-full items-center justify-between rounded-[6px] border border-folk-border px-[10px] text-left transition-colors",
                 editable ? "bg-folk-surface hover:border-[#bababa]" : "cursor-not-allowed bg-folk-page text-folk-secondary",
               )}
               tabIndex={0}
@@ -309,14 +309,14 @@ export function ReimbursementSidebarForm({
 
           <div className="mb-[14px] grid grid-cols-2 gap-[12px]">
             <div>
-              <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Participant</label>
+              <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Participant</label>
               <button
                 ref={clientBtnRef}
                 type="button"
                 disabled={!editable}
                 onClick={() => editable && setIsClientOpen((open) => !open)}
                 className={cn(
-                  "flex h-[36px] w-full items-center justify-between rounded-none border border-folk-border px-[10px] text-left transition-colors",
+                  "flex h-[36px] w-full items-center justify-between rounded-[6px] border border-folk-border px-[10px] text-left transition-colors",
                   editable ? "bg-folk-surface hover:border-[#bababa]" : "cursor-not-allowed bg-folk-page text-folk-secondary",
                 )}
                 tabIndex={0}
@@ -356,14 +356,14 @@ export function ReimbursementSidebarForm({
               </FixedSelectDropdown>
             </div>
             <div>
-              <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Shift</label>
+              <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Shift</label>
               <button
                 ref={shiftBtnRef}
                 type="button"
                 disabled={!editable || !form.clientId}
                 onClick={() => editable && form.clientId && setIsShiftOpen((open) => !open)}
                 className={cn(
-                  "flex h-[36px] w-full items-center justify-between rounded-none border border-folk-border px-[10px] text-left transition-colors",
+                  "flex h-[36px] w-full items-center justify-between rounded-[6px] border border-folk-border px-[10px] text-left transition-colors",
                   editable && form.clientId ? "bg-folk-surface hover:border-[#bababa]" : "cursor-not-allowed bg-folk-page text-folk-secondary",
                 )}
                 tabIndex={0}
@@ -412,19 +412,19 @@ export function ReimbursementSidebarForm({
           </div>
 
           <div className="mb-[14px]">
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Description</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Description</label>
             <textarea
               value={form.description}
               disabled={!editable}
               onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
               rows={4}
-              className="w-full resize-none rounded-none border border-folk-border px-[10px] py-[8px] text-[13px] font-medium text-folk-text outline-none transition-colors focus:border-[#a3c4f3] disabled:bg-folk-page disabled:text-folk-secondary"
+              className="w-full resize-none rounded-[6px] border border-folk-border px-[10px] py-[8px] text-[13px] font-medium text-folk-text outline-none transition-colors focus:border-[#a3c4f3] disabled:bg-folk-page disabled:text-folk-secondary"
               placeholder="Add any details about this expense"
             />
           </div>
 
           <div className="mb-[14px]">
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Receipt</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Receipt</label>
             <input
               ref={fileInputRef}
               type="file"
@@ -441,7 +441,7 @@ export function ReimbursementSidebarForm({
                 type="button"
                 disabled={!editable}
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-[6px] rounded-none border border-folk-border px-[10px] py-[6px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex items-center gap-[6px] rounded-[6px] border border-folk-border px-[10px] py-[6px] text-[13px] font-medium text-folk-text transition-colors hover:bg-folk-hover disabled:cursor-not-allowed disabled:opacity-50"
                 tabIndex={0}
               >
                 <Upload className="h-[13px] w-[13px]" strokeWidth={1.5} />
@@ -457,7 +457,7 @@ export function ReimbursementSidebarForm({
                 <button
                   type="button"
                   onClick={onDownloadAttachment}
-                  className="flex h-[30px] w-[30px] items-center justify-center rounded-none border border-folk-border text-folk-secondary transition-colors hover:bg-folk-hover"
+                  className="flex h-[30px] w-[30px] items-center justify-center rounded-[6px] border border-folk-border text-folk-secondary transition-colors hover:bg-folk-hover"
                   tabIndex={0}
                   aria-label="Download receipt"
                 >
@@ -470,7 +470,7 @@ export function ReimbursementSidebarForm({
               <img
                 src={localPreviewUrl || previewUrl || ""}
                 alt={attachmentLabel || "Receipt preview"}
-                className="mt-[10px] max-h-[220px] w-full rounded-none border border-folk-border object-contain"
+                className="mt-[10px] max-h-[220px] w-full rounded-[6px] border border-folk-border object-contain"
               />
             )}
           </div>
@@ -485,14 +485,14 @@ export function ReimbursementSidebarForm({
               onChange={(event) => setReturnNote(event.target.value)}
               placeholder="Reason for returning (optional)"
               rows={3}
-              className="w-full resize-y rounded-none border border-folk-border px-[10px] py-[8px] text-[13px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
+              className="w-full resize-y rounded-[6px] border border-folk-border px-[10px] py-[8px] text-[13px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
               autoFocus
             />
             <div className="flex items-center justify-end gap-[8px]">
-              <Button variant="secondary" onClick={() => setIsReturning(false)} disabled={isSaving} className="h-[34px] rounded-none px-[14px]">
+              <Button variant="secondary" onClick={() => setIsReturning(false)} disabled={isSaving} className="h-[34px] rounded-[6px] px-[14px]">
                 Cancel
               </Button>
-              <Button onClick={() => onReturn?.(returnNote.trim())} disabled={isSaving} className="h-[34px] rounded-none px-[14px]">
+              <Button onClick={() => onReturn?.(returnNote.trim())} disabled={isSaving} className="h-[34px] rounded-[6px] px-[14px]">
                 {isSaving ? "Returning…" : "Return reimbursement"}
               </Button>
             </div>
@@ -500,27 +500,27 @@ export function ReimbursementSidebarForm({
         ) : (
           <div className="flex flex-wrap gap-[8px]">
             {(editable || statusChanged) && (
-              <Button onClick={handleSave} disabled={!canSave || isSaving} className="h-[36px] rounded-none px-[16px]">
+              <Button onClick={handleSave} disabled={!canSave || isSaving} className="h-[36px] rounded-[6px] px-[16px]">
                 {isSaving ? "Saving…" : isEditing ? "Save changes" : "Create reimbursement"}
               </Button>
             )}
             {editable && onSend && reimbursement && (reimbursement.status === "draft" || reimbursement.status === "returned") && (
-              <Button variant="secondary" onClick={onSend} disabled={isSaving} className="h-[36px] rounded-none px-[16px]">
+              <Button variant="secondary" onClick={onSend} disabled={isSaving} className="h-[36px] rounded-[6px] px-[16px]">
                 Send for approval
               </Button>
             )}
             {isAdmin && reimbursement?.status === "sent" && onApprove && (
-              <Button onClick={onApprove} disabled={isSaving} className="h-[36px] rounded-none px-[16px]">
+              <Button onClick={onApprove} disabled={isSaving} className="h-[36px] rounded-[6px] px-[16px]">
                 Approve
               </Button>
             )}
             {isAdmin && reimbursement?.status === "sent" && onReturn && (
-              <Button variant="secondary" onClick={() => setIsReturning(true)} disabled={isSaving} className="h-[36px] rounded-none px-[16px]">
+              <Button variant="secondary" onClick={() => setIsReturning(true)} disabled={isSaving} className="h-[36px] rounded-[6px] px-[16px]">
                 Return
               </Button>
             )}
             {onDelete && reimbursement && (reimbursement.status === "draft" || isAdmin) && (
-              <Button variant="danger" onClick={onDelete} disabled={isSaving} className="h-[36px] rounded-none px-[16px]">
+              <Button variant="danger" onClick={onDelete} disabled={isSaving} className="h-[36px] rounded-[6px] px-[16px]">
                 Delete
               </Button>
             )}

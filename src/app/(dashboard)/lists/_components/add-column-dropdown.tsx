@@ -8,7 +8,7 @@ import {
   type CustomFieldKind,
   type CustomFieldTypeDef,
 } from "@/lib/lists/custom-field-types"
-import { getSourceColumns, type ListColumn, type ListField } from "@/lib/lists/definitions"
+import { getSourceColumns, listAddRecordsNoun, type ListColumn, type ListField } from "@/lib/lists/definitions"
 import { cn } from "@/lib/utils"
 import { FieldTypePreview } from "./field-type-preview"
 
@@ -119,6 +119,31 @@ export function AddColumnDropdown({
             <p className="px-[12px] py-[10px] text-[12px] text-folk-secondary">No matching fields.</p>
           ) : (
             <>
+              {showHidden && (
+                <div>
+                  <p className="px-[12px] pb-[4px] pt-[6px] text-[11px] font-medium capitalize text-folk-secondary">
+                    {listAddRecordsNoun(sourceKey, true)} data
+                  </p>
+                  {hiddenFields.map((field) => (
+                    <button
+                      key={field.key}
+                      type="button"
+                      onClick={() => handleSelectSource(field)}
+                      onMouseEnter={() => {
+                        setHoveredCustom(null)
+                        setHoverRect(null)
+                      }}
+                      className="flex w-full items-center gap-[10px] px-[12px] py-[7px] text-left transition-colors hover:bg-folk-hover"
+                      tabIndex={0}
+                    >
+                      <span className="min-w-0 flex-1 truncate text-[13px] text-folk-text">{field.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {showCustom && showHidden && <div className="my-[4px] border-t border-folk-border-subtle" />}
+
               {showCustom && (
                 <div>
                   <p className="px-[12px] pb-[4px] pt-[6px] text-[11px] font-medium text-folk-secondary">New field</p>
@@ -147,29 +172,6 @@ export function AddColumnDropdown({
                       </button>
                     )
                   })}
-                </div>
-              )}
-
-              {showCustom && showHidden && <div className="my-[4px] border-t border-folk-border-subtle" />}
-
-              {showHidden && (
-                <div>
-                  <p className="px-[12px] pb-[4px] pt-[6px] text-[11px] font-medium text-folk-secondary">Hidden fields</p>
-                  {hiddenFields.map((field) => (
-                    <button
-                      key={field.key}
-                      type="button"
-                      onClick={() => handleSelectSource(field)}
-                      onMouseEnter={() => {
-                        setHoveredCustom(null)
-                        setHoverRect(null)
-                      }}
-                      className="flex w-full items-center gap-[10px] px-[12px] py-[7px] text-left transition-colors hover:bg-folk-hover"
-                      tabIndex={0}
-                    >
-                      <span className="min-w-0 flex-1 truncate text-[13px] text-folk-text">{field.label}</span>
-                    </button>
-                  ))}
                 </div>
               )}
             </>

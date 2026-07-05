@@ -122,7 +122,7 @@ export function TemplateCenter({ onClose, onUseTemplate, onBlankForm }: Template
                 <button
                   type="button"
                   onClick={() => onUseTemplate(preview)}
-                  className="primary-btn px-[12px] py-[6px] text-[13px] font-medium"
+                  className="primary-btn folk-pill-btn h-[32px] px-[14px] text-[13px] font-medium"
                   tabIndex={0}
                 >
                   Use This Template
@@ -236,7 +236,7 @@ function TemplatePreview({ template }: { template: FormTemplate }) {
               {field.label ?? getFieldTypeLabel(field.type)}
               {field.required && <span className="ml-[2px] text-red-500">*</span>}
             </label>
-            <div className="mt-[6px] h-[38px] rounded-[6px] border border-folk-border bg-folk-page px-[12px] text-[13px] leading-[38px] text-folk-placeholder">
+            <div className="mt-[6px] h-[38px] rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] leading-[38px] text-folk-placeholder">
               {field.placeholder || getFieldTypeLabel(field.type)}
             </div>
           </div>

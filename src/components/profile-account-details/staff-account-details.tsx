@@ -246,7 +246,7 @@ export function StaffAccountDetails({
               <button
                 ref={sidebarAssignBtnRef}
                 onClick={() => { onSetIsSidebarAssignOpen(!isSidebarAssignOpen); setTimeout(() => sidebarAssignInputRef.current?.focus(), 50) }}
-                className="flex w-full min-w-0 items-center justify-between gap-[6px] rounded-none px-[6px] py-[3px] text-left transition-colors hover:bg-folk-hover"
+                className="flex w-full min-w-0 items-center justify-between gap-[6px] rounded-[6px] px-[6px] py-[3px] text-left transition-colors hover:bg-folk-hover"
                 tabIndex={0}
                 aria-label="Manage assigned clients"
               >
@@ -291,7 +291,7 @@ export function StaffAccountDetails({
             {isSidebarAssignOpen && canAssignClients && (
               <>
                 <div className="fixed inset-0 z-[49]" onClick={() => { onSetIsSidebarAssignOpen(false); onSetAssignClientSearch("") }} />
-                <div className="absolute left-0 top-full z-[50] mt-[4px] w-[260px] overflow-hidden rounded-none border border-folk-border bg-folk-surface shadow-folk">
+                <div className="absolute left-0 top-full z-[50] mt-[4px] w-[260px] overflow-hidden rounded-[6px] border border-folk-border bg-folk-surface shadow-folk">
                   <div className="border-b border-folk-border-subtle px-[12px] py-[8px]">
                     <input
                       ref={sidebarAssignInputRef}

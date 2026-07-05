@@ -41,7 +41,7 @@ export function DeleteActionsMenu({
   ariaLabel = "More actions",
   menuAlign = "right",
   className = "",
-  buttonClassName = "flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-placeholder transition-colors hover:bg-[#ebebeb] hover:text-folk-secondary",
+  buttonClassName = "flex h-[28px] w-[28px] items-center justify-center rounded-[4px] text-folk-placeholder transition-colors hover:bg-[#ebebeb] hover:text-folk-secondary",
   stopPropagation = false,
 }: DeleteActionsMenuProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -120,7 +120,7 @@ export function DeleteActionsMenu({
           estimatedHeight={menuItemCount * 40 + 8}
           minWidth={160}
           align={align}
-          menuClassName="rounded-none border-folk-border-subtle shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
+          menuClassName="rounded-[6px] border-folk-border-subtle shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
         >
           {onEdit && (
             <button

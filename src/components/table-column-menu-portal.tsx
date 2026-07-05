@@ -24,7 +24,7 @@ export function TableColumnMenuPortal({ isOpen, position, onClose, children }: T
       />
       <div
         className={cn(
-          "fixed w-[200px] overflow-hidden rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk",
+          "fixed w-[200px] overflow-hidden rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk",
           FIXED_DROPDOWN_MENU_Z_CLASS
         )}
         style={{ top: position.top, left: position.left }}

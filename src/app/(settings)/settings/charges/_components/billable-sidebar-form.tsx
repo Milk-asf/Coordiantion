@@ -149,7 +149,7 @@ export function BillableSidebarForm({
       <div className="min-h-0 flex-1 overflow-y-auto px-[24px] py-[14px]">
         {!isEditing && (
           <>
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Support category</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Support category</label>
             <select
               value={categoryFilter}
               onChange={(e) => {
@@ -157,7 +157,7 @@ export function BillableSidebarForm({
                 setIsSearchOpen(true)
                 setSearchIdx(-1)
               }}
-              className="mb-[14px] h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
+              className="mb-[14px] h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
             >
               <option value="">All categories</option>
               {categoryOptions.map(([id, label]) => (
@@ -167,7 +167,7 @@ export function BillableSidebarForm({
               ))}
             </select>
 
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Search NDIS pricing booklet</label>
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Search NDIS pricing booklet</label>
             <div className="relative mb-[14px]">
               <div className="pointer-events-none absolute left-[10px] top-1/2 -translate-y-1/2">
                 <Search className="h-[14px] w-[14px] text-folk-placeholder" strokeWidth={1.75} />
@@ -183,7 +183,7 @@ export function BillableSidebarForm({
                 onFocus={() => setIsSearchOpen(true)}
                 onKeyDown={handleSearchKeyDown}
                 placeholder="Search by name, item number, or registration group..."
-                className="w-full rounded-none border border-folk-border bg-folk-page py-[9px] pl-[32px] pr-[32px] text-[13px] text-folk-text placeholder:text-folk-placeholder focus:border-[#a3c4f3] focus:outline-none"
+                className="h-[38px] w-full rounded-[6px] border border-folk-border bg-white pl-[32px] pr-[32px] text-[13px] text-folk-text placeholder:text-folk-placeholder focus:border-[#a3c4f3] focus:outline-none"
               />
               {searchQuery && (
                 <button
@@ -204,7 +204,7 @@ export function BillableSidebarForm({
                   <div className="fixed inset-0 z-[40]" onClick={() => setIsSearchOpen(false)} />
                   <div
                     ref={listRef}
-                    className="absolute left-0 top-full z-[50] mt-[4px] max-h-[240px] w-full overflow-y-auto rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]"
+                    className="absolute left-0 top-full z-[50] mt-[4px] max-h-[240px] w-full overflow-y-auto rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk-sm"
                   >
                     {searchResults.length === 0 ? (
                       <p className="px-[14px] py-[12px] text-[13px] text-folk-secondary">
@@ -244,25 +244,25 @@ export function BillableSidebarForm({
         {(isEditing || form.itemNumber) && (
           <div className={cn(!isEditing && "border-t border-folk-border-subtle pt-[16px]")}>
             <div className="mb-[14px]">
-              <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Name</label>
+              <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Name</label>
               <input
                 type="text"
                 value={form.reference}
                 onChange={(e) => setForm({ ...form, reference: e.target.value })}
                 placeholder="Billable name"
-                className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none transition-colors placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
+                className="h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium text-folk-text outline-none transition-colors placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
               />
             </div>
 
             <div className="mb-[14px]">
-              <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Item number</label>
-              <span className="inline-flex items-center rounded-none border border-folk-border bg-folk-page px-[8px] py-[3px] font-mono text-[12px] font-medium text-[#555]">
+              <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Item number</label>
+              <span className="inline-flex items-center rounded-[6px] border border-folk-border bg-folk-page px-[8px] py-[3px] font-mono text-[12px] font-medium text-[#555]">
                 {form.itemNumber}
               </span>
             </div>
 
             <div className="mb-[14px]">
-              <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Price</label>
+              <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Price</label>
               <p className="text-[13px] font-medium text-[#555]">
                 {form.price > 0
                   ? `$${form.price.toFixed(2)} / ${formatChargeUnitLabel(form.unit).toLowerCase()}`
@@ -271,13 +271,13 @@ export function BillableSidebarForm({
             </div>
 
             <div className="mb-[14px]">
-              <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Status</label>
+              <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Status</label>
               <select
                 value={form.status}
                 onChange={(e) =>
                   setForm({ ...form, status: e.target.value === "inactive" ? "inactive" : "active" })
                 }
-                className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
+                className="h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
               >
                 {billableStatuses.map((status) => (
                   <option key={status.value} value={status.value}>
@@ -293,11 +293,11 @@ export function BillableSidebarForm({
             </div>
 
             <div className="mb-[14px]">
-              <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Claim type</label>
+              <label className="mb-[6px] block text-[13px] font-medium text-folk-text">Claim type</label>
               <select
                 value={form.claimType}
                 onChange={(e) => setForm({ ...form, claimType: e.target.value })}
-                className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
+                className="h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
               >
                 {claimTypes.map((ct) => (
                   <option key={ct.value} value={ct.value}>
@@ -308,11 +308,11 @@ export function BillableSidebarForm({
             </div>
 
             <div className="mb-[14px]">
-              <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">GST</label>
+              <label className="mb-[6px] block text-[13px] font-medium text-folk-text">GST</label>
               <select
                 value={form.gstCode}
                 onChange={(e) => setForm({ ...form, gstCode: e.target.value })}
-                className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
+                className="h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
               >
                 {gstCodes.map((g) => (
                   <option key={g.value} value={g.value}>
@@ -346,7 +346,7 @@ export function BillableSidebarForm({
           <button
             type="button"
             onClick={onClose}
-            className="outline-btn px-[12px] py-[6px] text-[12px] font-medium"
+            className="outline-btn folk-pill-btn h-[32px] px-[12px] text-[13px] font-medium"
             tabIndex={0}
           >
             Cancel
@@ -355,7 +355,7 @@ export function BillableSidebarForm({
             type="button"
             onClick={handleSubmit}
             disabled={!canSave}
-            className="primary-btn px-[12px] py-[6px] text-[12px] font-medium transition-colors disabled:opacity-50"
+            className="primary-btn folk-pill-btn h-[32px] px-[14px] text-[13px] font-medium transition-colors disabled:opacity-50"
             tabIndex={0}
           >
             {isEditing ? "Save and close" : "Add"}

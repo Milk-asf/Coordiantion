@@ -55,7 +55,7 @@ function emptyDraft(): DraftEntry {
 }
 
 const inputClass =
-  "h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[10px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3]"
+  "h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[10px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3]"
 
 const labelClass = "mb-[4px] block text-[12px] font-medium text-folk-secondary"
 
@@ -278,7 +278,7 @@ export function BillableEntriesTab({ clientId, clientName, enabledCharges }: Bil
               ref={recipientTriggerRef}
               type="button"
               onClick={() => setIsRecipientOpen((v) => !v)}
-              className="flex h-[28px] min-w-[160px] items-center justify-between gap-[8px] rounded-none border border-folk-border bg-folk-surface px-[10px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+              className="flex h-[28px] min-w-[160px] items-center justify-between gap-[8px] rounded-[6px] border border-folk-border bg-folk-surface px-[10px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
               tabIndex={0}
             >
               <span className={recipientContact ? "text-folk-text" : "text-folk-placeholder"}>
@@ -392,7 +392,7 @@ export function BillableEntriesTab({ clientId, clientName, enabledCharges }: Bil
                             e.stopPropagation()
                             handleDelete(entry)
                           }}
-                          className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary opacity-0 transition-all hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
+                          className="flex h-[24px] w-[24px] items-center justify-center rounded-[6px] text-folk-secondary opacity-0 transition-all hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
                           aria-label="Delete entry"
                           tabIndex={0}
                         >
@@ -417,7 +417,7 @@ export function BillableEntriesTab({ clientId, clientName, enabledCharges }: Bil
       {isFormOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/20" onClick={closeForm} />
-          <div className="relative z-10 w-[440px] rounded-none bg-folk-surface shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+          <div className="relative z-10 w-[440px] rounded-[6px] bg-folk-surface shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
             <div className="flex items-center justify-between px-[24px] pt-[20px]">
               <div className="flex items-center gap-[8px]">
                 <Coins className="h-[16px] w-[16px] text-[#555]" strokeWidth={1.5} />
@@ -427,7 +427,7 @@ export function BillableEntriesTab({ clientId, clientName, enabledCharges }: Bil
               </div>
               <button
                 onClick={closeForm}
-                className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+                className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
                 aria-label="Close"
                 tabIndex={0}
               >
@@ -443,7 +443,7 @@ export function BillableEntriesTab({ clientId, clientName, enabledCharges }: Bil
                     ref={chargeTriggerRef}
                     type="button"
                     onClick={() => setIsChargeOpen((v) => !v)}
-                    className="flex h-[36px] w-full items-center justify-between rounded-none border border-folk-border bg-folk-page px-[10px] text-[13px] font-medium outline-none transition-colors focus:border-[#a3c4f3]"
+                    className="flex h-[38px] w-full items-center justify-between rounded-[6px] border border-folk-border bg-white px-[10px] text-[13px] font-medium outline-none transition-colors focus:border-[#a3c4f3]"
                     tabIndex={0}
                   >
                     <span className={selectedChargeLabel ? "text-folk-text" : "text-folk-placeholder"}>

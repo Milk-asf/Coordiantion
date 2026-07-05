@@ -78,7 +78,7 @@ export function CancelShiftDialog({ isOpen, shift, onConfirm, onCancel }: Cancel
       aria-labelledby="cancel-shift-title"
     >
       <div
-        className={`mx-[16px] w-full max-w-[420px] rounded-none bg-folk-surface p-[24px] shadow-folk ${motion.scaleIn}`}
+        className={`mx-[16px] w-full max-w-[420px] rounded-[6px] bg-folk-surface p-[24px] shadow-folk ${motion.scaleIn}`}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex flex-col items-center gap-[12px] text-center">
@@ -108,7 +108,7 @@ export function CancelShiftDialog({ isOpen, shift, onConfirm, onCancel }: Cancel
                     aria-checked={isSelected}
                     onClick={() => setCancelledBy(option.value)}
                     className={cn(
-                      "flex w-full items-start gap-[10px] rounded-none border px-[12px] py-[10px] text-left transition-colors",
+                      "flex w-full items-start gap-[10px] rounded-[6px] border px-[12px] py-[10px] text-left transition-colors",
                       isSelected
                         ? "border-[#fdba74] bg-[#fff7ed]"
                         : "border-folk-border bg-folk-page hover:bg-folk-hover"
@@ -132,7 +132,7 @@ export function CancelShiftDialog({ isOpen, shift, onConfirm, onCancel }: Cancel
           </div>
 
           <div>
-            <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary" htmlFor="cancel-shift-reason">
+            <label className="mb-[6px] block text-[13px] font-medium text-folk-text" htmlFor="cancel-shift-reason">
               Reason
             </label>
             <textarea
@@ -144,7 +144,7 @@ export function CancelShiftDialog({ isOpen, shift, onConfirm, onCancel }: Cancel
                 if (error) setError(null)
               }}
               placeholder="Why was this shift cancelled?"
-              className="min-h-[88px] w-full resize-y rounded-none border border-folk-border bg-folk-page px-[12px] py-[8px] text-[13px] font-medium leading-[1.5] text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]"
+              className="min-h-[88px] w-full resize-y rounded-[6px] border border-folk-border bg-white px-[12px] py-[8px] text-[13px] font-medium leading-[1.5] text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]"
             />
             {error && (
               <p className="mt-[6px] text-[12px] font-medium text-red-600">{error}</p>
@@ -152,7 +152,7 @@ export function CancelShiftDialog({ isOpen, shift, onConfirm, onCancel }: Cancel
           </div>
 
           {claimSuggestion && (
-            <div className="rounded-none border border-[#fde68a] bg-[#fffbeb] px-[12px] py-[10px] text-left">
+            <div className="rounded-[6px] border border-[#fde68a] bg-[#fffbeb] px-[12px] py-[10px] text-left">
               <p className="text-[12px] font-semibold text-amber-900">NDIS billing note</p>
               <p className="mt-[4px] text-[12px] leading-snug text-amber-900/90">{claimSuggestion}</p>
             </div>
@@ -163,7 +163,7 @@ export function CancelShiftDialog({ isOpen, shift, onConfirm, onCancel }: Cancel
           <button
             type="button"
             onClick={onCancel}
-            className={`flex-1 rounded-none border border-folk-border bg-folk-surface px-[14px] py-[9px] text-[13px] font-medium text-folk-secondary ${motion.interactive} hover:bg-folk-hover`}
+            className={`flex-1 rounded-[6px] border border-folk-border bg-folk-surface px-[14px] py-[9px] text-[13px] font-medium text-folk-secondary ${motion.interactive} hover:bg-folk-hover`}
             tabIndex={0}
           >
             Keep shift
@@ -172,7 +172,7 @@ export function CancelShiftDialog({ isOpen, shift, onConfirm, onCancel }: Cancel
             ref={confirmRef}
             type="button"
             onClick={handleConfirm}
-            className={`flex-1 rounded-none bg-[#c2410c] px-[14px] py-[9px] text-[13px] font-medium text-white ${motion.interactive} hover:bg-[#9a3412]`}
+            className={`flex-1 rounded-[6px] bg-[#c2410c] px-[14px] py-[9px] text-[13px] font-medium text-white ${motion.interactive} hover:bg-[#9a3412]`}
             tabIndex={0}
           >
             Cancel shift

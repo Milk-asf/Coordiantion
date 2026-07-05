@@ -277,27 +277,31 @@ export default function NotesPage() {
 
   return (
     <div className="flex h-full flex-col bg-white">
-      <PageTitleBar title="Notes" />
+      <PageTitleBar
+        title="Notes"
+        trailing={
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="primary-btn folk-pill-btn flex items-center gap-[5px] px-[12px] py-[6px] text-[13px] font-medium transition-colors"
+            tabIndex={0}
+          >
+            <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+            Add new
+          </button>
+        }
+      />
       {/* Header row */}
-      <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-folk-border bg-white px-[20px]">
+      <div className="flex h-[44px] shrink-0 items-center border-b border-folk-border bg-white px-[20px]">
         <div className="flex items-center gap-[8px]">
           <ProfileTabButton isActive label="All" />
           <button
-            className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-[var(--folk-border-subtle)] hover:text-[#555]"
+            className="flex h-[24px] w-[24px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-[var(--folk-border-subtle)] hover:text-[#555]"
             tabIndex={0}
             aria-label="Add view"
           >
             <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
           </button>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="primary-btn folk-pill-btn flex items-center gap-[5px] px-[12px] py-[6px] text-[13px] font-medium transition-colors"
-          tabIndex={0}
-        >
-          <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-          Add new
-        </button>
       </div>
 
       {/* Filter / display bar */}
@@ -316,7 +320,7 @@ export default function NotesPage() {
             {isFilterMenuOpen && (
               <>
                 <div className="fixed inset-0 z-[55]" onClick={() => setIsFilterMenuOpen(false)} />
-                <div className="absolute left-0 top-full z-[60] mt-[4px] w-[180px] rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk">
+                <div className="absolute left-0 top-full z-[60] mt-[4px] w-[180px] rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk">
                   <p className="px-[16px] py-[6px] text-[11px] font-medium text-folk-secondary">Filter by</p>
                   <button
                     onClick={() => { setActiveFilterDropdown("client"); setIsFilterMenuOpen(false) }}
@@ -339,21 +343,21 @@ export default function NotesPage() {
             )}
           </div>
           {clientFilter.length > 0 && (
-            <div className="flex items-center gap-[6px] rounded-none border border-[#d9d9d9] px-[8px] py-[4px] text-[12px] font-medium text-[#555]">
+            <div className="flex items-center gap-[6px] rounded-[6px] border border-[#d9d9d9] px-[8px] py-[4px] text-[12px] font-medium text-[#555]">
               <Users className="h-[12px] w-[12px] text-folk-secondary" strokeWidth={1.5} />
               <button ref={(el) => { filterPillRefs.current["client"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "client" ? null : "client")} className="hover:underline" tabIndex={0}>Client</button>
               <span className="text-folk-secondary">is</span>
               <span>{clientFilter.length} {clientFilter.length === 1 ? "value" : "values"}</span>
-              <button onClick={() => setClientFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear client filter"><X className="h-[11px] w-[11px]" strokeWidth={1.5} /></button>
+              <button onClick={() => setClientFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear client filter"><X className="h-[11px] w-[11px]" strokeWidth={1.5} /></button>
             </div>
           )}
           {creatorFilter.length > 0 && (
-            <div className="flex items-center gap-[6px] rounded-none border border-[#d9d9d9] px-[8px] py-[4px] text-[12px] font-medium text-[#555]">
+            <div className="flex items-center gap-[6px] rounded-[6px] border border-[#d9d9d9] px-[8px] py-[4px] text-[12px] font-medium text-[#555]">
               <User className="h-[12px] w-[12px] text-folk-secondary" strokeWidth={1.5} />
               <button ref={(el) => { filterPillRefs.current["creator"] = el }} onClick={() => setActiveFilterDropdown(activeFilterDropdown === "creator" ? null : "creator")} className="hover:underline" tabIndex={0}>Created by</button>
               <span className="text-folk-secondary">is</span>
               <span>{creatorFilter.length} {creatorFilter.length === 1 ? "value" : "values"}</span>
-              <button onClick={() => setCreatorFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear creator filter"><X className="h-[11px] w-[11px]" strokeWidth={1.5} /></button>
+              <button onClick={() => setCreatorFilter([])} className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0} aria-label="Clear creator filter"><X className="h-[11px] w-[11px]" strokeWidth={1.5} /></button>
             </div>
           )}
         </div>
@@ -368,7 +372,7 @@ export default function NotesPage() {
               <ChevronDown className="h-[11px] w-[11px] text-folk-secondary" strokeWidth={1.5} />
             </button>
             {isSortOpen && (
-              <div className="absolute right-0 top-full z-50 mt-[4px] w-[120px] rounded-none border border-[#d9d9d9] bg-folk-surface py-[4px] shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
+              <div className="absolute right-0 top-full z-50 mt-[4px] w-[120px] rounded-[6px] border border-[#d9d9d9] bg-folk-surface py-[4px] shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
                 {perPageOptions.map((opt) => (
                   <button
                     key={opt}
@@ -399,7 +403,7 @@ export default function NotesPage() {
               <div className="flex gap-[8px] border-b border-folk-border-subtle px-[12px] py-[12px]">
                 <button
                   onClick={() => setViewMode("list")}
-                  className={`flex flex-1 flex-col items-center gap-[6px] rounded-none border py-[12px] transition-colors ${viewMode === "list" ? "border-folk-border bg-white text-folk-text" : "border-transparent bg-white text-folk-secondary hover:border-folk-border"}`}
+                  className={`flex flex-1 flex-col items-center gap-[6px] rounded-[6px] border py-[12px] transition-colors ${viewMode === "list" ? "border-folk-border bg-white text-folk-text" : "border-transparent bg-white text-folk-secondary hover:border-folk-border"}`}
                   tabIndex={0}
                   aria-label="List view"
                 >
@@ -408,7 +412,7 @@ export default function NotesPage() {
                 </button>
                 <button
                   onClick={() => setViewMode("grid")}
-                  className={`flex flex-1 flex-col items-center gap-[6px] rounded-none border py-[12px] transition-colors ${viewMode === "grid" ? "border-folk-border bg-white text-folk-text" : "border-transparent bg-white text-folk-secondary hover:border-folk-border"}`}
+                  className={`flex flex-1 flex-col items-center gap-[6px] rounded-[6px] border py-[12px] transition-colors ${viewMode === "grid" ? "border-folk-border bg-white text-folk-text" : "border-transparent bg-white text-folk-secondary hover:border-folk-border"}`}
                   tabIndex={0}
                   aria-label="Card view"
                 >
@@ -436,7 +440,7 @@ export default function NotesPage() {
         <div className="mb-[24px]">
           <p className="mb-[8px] text-[12px] font-medium text-folk-secondary">Favorites</p>
           {favoriteNotes.length === 0 ? (
-            <div className="flex items-center justify-center rounded-none border border-dashed border-folk-border py-[32px]">
+            <div className="flex items-center justify-center rounded-[6px] border border-dashed border-folk-border py-[32px]">
               <div className="text-center">
                 <p className="text-[14px] font-semibold text-folk-text">Favorites</p>
                 <p className="mt-[4px] text-[12px] text-folk-secondary">Notes that you favorite will appear here</p>
@@ -507,7 +511,7 @@ export default function NotesPage() {
             const dropdownStyle = { top: rect.bottom + 4, left: rect.left, minWidth: 200 }
 
             if (activeFilterDropdown === "client") return (
-              <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk" style={dropdownStyle}>
+              <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk" style={dropdownStyle}>
                 <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0}>
                   <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
                   <span>Back</span>
@@ -526,13 +530,13 @@ export default function NotesPage() {
                 })}
                 {uniqueNoteClients.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-folk-secondary">No clients</p>}
                 <div className="border-t border-folk-border-subtle px-[8px] py-[4px]">
-                  <button onClick={() => { setClientFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded-none px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
+                  <button onClick={() => { setClientFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded-[6px] px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
                 </div>
               </div>
             )
 
             if (activeFilterDropdown === "creator") return (
-              <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk" style={dropdownStyle}>
+              <div className="fixed z-[60] max-h-[280px] overflow-y-auto rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk" style={dropdownStyle}>
                 <button onClick={() => { setActiveFilterDropdown(null); setIsFilterMenuOpen(true) }} className="flex w-full items-center gap-[6px] px-[16px] py-[6px] text-[11px] font-medium text-folk-secondary transition-colors hover:text-folk-text" tabIndex={0}>
                   <ChevronLeft className="h-[11px] w-[11px]" strokeWidth={1.5} />
                   <span>Back</span>
@@ -551,7 +555,7 @@ export default function NotesPage() {
                 })}
                 {uniqueNoteCreators.length === 0 && <p className="px-[16px] py-[8px] text-[13px] text-folk-secondary">No creators</p>}
                 <div className="border-t border-folk-border-subtle px-[8px] py-[4px]">
-                  <button onClick={() => { setCreatorFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded-none px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
+                  <button onClick={() => { setCreatorFilter([]); setActiveFilterDropdown(null) }} className="w-full rounded-[6px] px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text" tabIndex={0}>Clear</button>
                 </div>
               </div>
             )
@@ -606,7 +610,7 @@ function NoteCard({ note, viewMode, isFavorite, onSelect, onToggleFavorite, onDe
         role="button"
         onClick={() => onSelect(note)}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(note) } }}
-        className="group flex w-full cursor-pointer items-center gap-[16px] rounded-none border border-[#d9d9d9] bg-folk-surface px-[16px] py-[12px] text-left transition-all hover:border-folk-border hover:shadow-sm"
+        className="group flex w-full cursor-pointer items-center gap-[16px] rounded-[6px] border border-[#d9d9d9] bg-folk-surface px-[16px] py-[12px] text-left transition-all hover:border-folk-border hover:shadow-sm"
         tabIndex={0}
       >
         <div className="min-w-0 flex-1">
@@ -624,7 +628,7 @@ function NoteCard({ note, viewMode, isFavorite, onSelect, onToggleFavorite, onDe
           <span className="text-[11px] text-folk-placeholder">{formatDate(note.createdAt)}</span>
           <button
             onClick={(e) => { e.stopPropagation(); onToggleFavorite(note.id) }}
-            className={`flex h-[24px] w-[24px] items-center justify-center rounded-none transition-colors ${isFavorite ? "text-amber-400" : "text-[#ddd] opacity-0 group-hover:opacity-100"} hover:text-amber-400`}
+            className={`flex h-[24px] w-[24px] items-center justify-center rounded-[6px] transition-colors ${isFavorite ? "text-amber-400" : "text-[#ddd] opacity-0 group-hover:opacity-100"} hover:text-amber-400`}
             tabIndex={-1}
             aria-label="Toggle favorite"
           >
@@ -636,7 +640,7 @@ function NoteCard({ note, viewMode, isFavorite, onSelect, onToggleFavorite, onDe
             confirmTitle="Delete note"
             stopPropagation
             className="opacity-0 transition-opacity group-hover:opacity-100"
-            buttonClassName="flex h-[24px] w-[24px] items-center justify-center rounded-none text-[#ddd] transition-colors hover:bg-folk-hover hover:text-folk-secondary"
+            buttonClassName="flex h-[24px] w-[24px] items-center justify-center rounded-[6px] text-[#ddd] transition-colors hover:bg-folk-hover hover:text-folk-secondary"
             ariaLabel="Note actions"
           />
         </div>
@@ -649,7 +653,7 @@ function NoteCard({ note, viewMode, isFavorite, onSelect, onToggleFavorite, onDe
       role="button"
       onClick={() => onSelect(note)}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(note) } }}
-      className="group flex min-h-[180px] w-full cursor-pointer flex-col rounded-none border border-[#d9d9d9] bg-folk-surface p-[20px] text-left transition-all hover:border-folk-border hover:shadow-sm"
+      className="group flex min-h-[180px] w-full cursor-pointer flex-col rounded-[6px] border border-[#d9d9d9] bg-folk-surface p-[20px] text-left transition-all hover:border-folk-border hover:shadow-sm"
       tabIndex={0}
     >
       <div className="mb-[10px] flex items-center justify-between">
@@ -659,7 +663,7 @@ function NoteCard({ note, viewMode, isFavorite, onSelect, onToggleFavorite, onDe
         <div className="flex items-center gap-[2px]">
           <button
             onClick={(e) => { e.stopPropagation(); onToggleFavorite(note.id) }}
-            className={`flex h-[22px] w-[22px] items-center justify-center rounded-none transition-colors ${isFavorite ? "text-amber-400" : "text-[#ddd] opacity-0 group-hover:opacity-100"} hover:text-amber-400`}
+            className={`flex h-[22px] w-[22px] items-center justify-center rounded-[6px] transition-colors ${isFavorite ? "text-amber-400" : "text-[#ddd] opacity-0 group-hover:opacity-100"} hover:text-amber-400`}
             tabIndex={-1}
             aria-label="Toggle favorite"
           >
@@ -671,7 +675,7 @@ function NoteCard({ note, viewMode, isFavorite, onSelect, onToggleFavorite, onDe
             confirmTitle="Delete note"
             stopPropagation
             className="opacity-0 transition-opacity group-hover:opacity-100"
-            buttonClassName="flex h-[22px] w-[22px] items-center justify-center rounded-none text-[#ddd] transition-colors hover:bg-folk-hover hover:text-folk-secondary"
+            buttonClassName="flex h-[22px] w-[22px] items-center justify-center rounded-[6px] text-[#ddd] transition-colors hover:bg-folk-hover hover:text-folk-secondary"
             ariaLabel="Note actions"
           />
         </div>

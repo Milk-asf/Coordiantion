@@ -548,7 +548,7 @@ export default function ImportHistorySettingsPage() {
         <>
           <div className="mb-[20px] flex items-center justify-between px-[20px] py-[16px]">
             <div className="flex items-center gap-[12px]">
-              <div className="flex h-[36px] w-[36px] items-center justify-center rounded-none bg-[var(--folk-border-subtle)]">
+              <div className="flex h-[36px] w-[36px] items-center justify-center rounded-[6px] bg-[var(--folk-border-subtle)]">
                 <FileText className="h-[16px] w-[16px] text-folk-secondary" strokeWidth={1.75} />
               </div>
               <div>
@@ -573,9 +573,9 @@ export default function ImportHistorySettingsPage() {
             onDragLeave={handleDragLeave}
             onClick={() => fileInputRef.current?.click()}
             className={cn(
-              "flex cursor-pointer flex-col items-center justify-center rounded-none border-2 border-dashed px-[20px] py-[48px] transition-colors",
+              "flex cursor-pointer flex-col items-center justify-center rounded-[6px] border-2 border-dashed px-[20px] py-[48px] transition-colors",
               isDragOver
-                ? "border-blue-400 bg-blue-50/50"
+                ? "border-[#8fa8e0] bg-[#f8faff]"
                 : "border-folk-border bg-folk-page hover:border-[#bababa] hover:bg-folk-hover"
             )}
             role="button"
@@ -583,7 +583,7 @@ export default function ImportHistorySettingsPage() {
             aria-label="Upload CSV file"
             onKeyDown={(e) => { if (e.key === "Enter") fileInputRef.current?.click() }}
           >
-            <div className="flex h-[48px] w-[48px] items-center justify-center rounded-none bg-folk-hover">
+            <div className="flex h-[48px] w-[48px] items-center justify-center rounded-[6px] bg-folk-hover">
               <Upload className="h-[20px] w-[20px] text-folk-secondary" strokeWidth={1.75} />
             </div>
             <p className="mt-[12px] text-[14px] font-medium text-folk-text">
@@ -595,7 +595,7 @@ export default function ImportHistorySettingsPage() {
           <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleFileChange} />
 
           {importError && (
-            <div className="mt-[16px] flex items-center gap-[8px] rounded-none bg-red-50 px-[16px] py-[12px]">
+            <div className="mt-[16px] flex items-center gap-[8px] rounded-[6px] bg-red-50 px-[16px] py-[12px]">
               <AlertTriangle className="h-[14px] w-[14px] shrink-0 text-red-500" strokeWidth={1.75} />
               <p className="text-[13px] font-medium text-red-600">{importError}</p>
             </div>
@@ -626,16 +626,16 @@ export default function ImportHistorySettingsPage() {
           <div className="mb-[24px] flex items-start justify-between">
             <div>
               <div className="flex items-center gap-[12px]">
-                <span className="inline-flex h-[24px] items-center rounded-none bg-green-100 px-[10px] text-[12px] font-medium text-green-700">
+                <span className="inline-flex h-[24px] items-center rounded-[6px] bg-green-100 px-[10px] text-[12px] font-medium text-green-700">
                   {validRows.length} ready
                 </span>
                 {errorRows.length > 0 && (
-                  <span className="inline-flex h-[24px] items-center rounded-none bg-red-50 px-[10px] text-[12px] font-medium text-red-600">
+                  <span className="inline-flex h-[24px] items-center rounded-[6px] bg-red-50 px-[10px] text-[12px] font-medium text-red-600">
                     {errorRows.length} {errorRows.length === 1 ? "error" : "errors"}
                   </span>
                 )}
                 {warningRows.length > 0 && (
-                  <span className="inline-flex h-[24px] items-center rounded-none bg-red-50 px-[10px] text-[12px] font-medium text-red-600">
+                  <span className="inline-flex h-[24px] items-center rounded-[6px] bg-red-50 px-[10px] text-[12px] font-medium text-red-600">
                     {warningRows.length} {warningRows.length === 1 ? "warning" : "warnings"}
                   </span>
                 )}
@@ -665,7 +665,7 @@ export default function ImportHistorySettingsPage() {
           </div>
 
           {importError && (
-            <div className="mb-[16px] flex items-center gap-[8px] rounded-none bg-red-50 px-[16px] py-[12px]">
+            <div className="mb-[16px] flex items-center gap-[8px] rounded-[6px] bg-red-50 px-[16px] py-[12px]">
               <AlertTriangle className="h-[14px] w-[14px] shrink-0 text-red-500" strokeWidth={1.75} />
               <p className="text-[13px] font-medium text-red-600">{importError}</p>
             </div>
@@ -757,7 +757,7 @@ export default function ImportHistorySettingsPage() {
           {issuePopupRow && (
             <>
               <div className="fixed inset-0 z-40 bg-black/20" onClick={() => setIssuePopupRow(null)} />
-              <div className="fixed left-1/2 top-1/2 z-50 w-[400px] max-w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 rounded-none border border-folk-border-subtle bg-folk-surface shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
+              <div className="fixed left-1/2 top-1/2 z-50 w-[400px] max-w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 rounded-[6px] border border-folk-border-subtle bg-folk-surface shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
                 <div className="flex items-center justify-between border-b border-folk-border-subtle px-[20px] py-[14px]">
                   <div className="flex items-center gap-[8px]">
                     <AlertTriangle className="h-[14px] w-[14px] text-red-400" strokeWidth={1.75} />

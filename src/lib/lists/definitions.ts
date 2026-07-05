@@ -13,7 +13,7 @@ import {
   User,
   Users,
 } from "lucide-react"
-import { getDataSource, type DataEntity } from "@/lib/analytics/definitions"
+import { asTimesheetRecord, getDataSource, type DataEntity } from "@/lib/analytics/definitions"
 import type { Document, Incident, Invoice, Reimbursement, StaffMember, Task, Client } from "@/lib/types"
 import type { Form } from "@/lib/form-definitions"
 import type { Timesheet, TravelClaim } from "@/lib/timesheets/types"
@@ -97,9 +97,80 @@ function sourceFromEntity(entityKey: string, primary: ListField, icon?: IconType
   }
 }
 
+/** Whole years since an ISO date — used for Age columns. */
+function yearsSince(iso: string | null | undefined): number | null {
+  if (!iso) return null
+  const dob = new Date(iso)
+  if (Number.isNaN(dob.getTime())) return null
+  const now = new Date()
+  let age = now.getFullYear() - dob.getFullYear()
+  const beforeBirthday =
+    now.getMonth() < dob.getMonth() ||
+    (now.getMonth() === dob.getMonth() && now.getDate() < dob.getDate())
+  if (beforeBirthday) age -= 1
+  return age >= 0 && age < 130 ? age : null
+}
+
+/** Extend an entity-derived source with list-only fields (skips duplicate keys). */
+function withExtraFields(source: ListSource, extras: ListField[]): ListSource {
+  const existing = new Set(source.fields.map((item) => item.key))
+  return { ...source, fields: [...source.fields, ...extras.filter((item) => !existing.has(item.key))] }
+}
+
 // ---------------------------------------------------------------------------
 // Sources
 // ---------------------------------------------------------------------------
+
+const clientsSource = withExtraFields(
+  sourceFromEntity("clients", field<Client>("__name", "Name", "text", (c) => c.name || "Participant"), User),
+  [
+    field<Client>("dateOfBirth", "Date of birth", "date", (c) => c.participant?.dateOfBirth || null),
+    field<Client>("age", "Age", "number", (c) => yearsSince(c.participant?.dateOfBirth)),
+    field<Client>("pronouns", "Pronouns", "category", (c) => c.participant?.pronouns || "—"),
+    field<Client>("ndisNumber", "NDIS number", "text", (c) => c.participant?.ndisNumber || ""),
+    field<Client>("medicareNumber", "Medicare number", "text", (c) => c.participant?.medicareNumber || ""),
+    field<Client>("email", "Email", "text", (c) => c.participant?.email || ""),
+    field<Client>("phone", "Phone", "text", (c) => c.participant?.mobile || c.participant?.phone || ""),
+    field<Client>("address", "Address", "text", (c) => c.participant?.address || ""),
+    field<Client>("primaryDiagnosis", "Primary diagnosis", "category", (c) => c.participant?.primaryDiagnosis || "—"),
+    field<Client>("secondaryDiagnosis", "Secondary diagnosis", "category", (c) => c.participant?.secondaryDiagnosis || "—"),
+    field<Client>("serviceCommencementDate", "Service commenced", "date", (c) => c.participant?.serviceCommencementDate || null),
+    field<Client>("planStartDate", "Plan start date", "date", (c) => c.participant?.planStartDate || null),
+    field<Client>("planManagerName", "Plan manager", "category", (c) => c.participant?.planManagerName || "—"),
+    field<Client>("planManagerOrg", "Plan manager org", "category", (c) => c.participant?.planManagerOrg || "—"),
+    field<Client>(
+      "budgetTotal",
+      "Total budget",
+      "number",
+      (c) => {
+        const budgets = c.participant?.budgets ?? []
+        if (budgets.length === 0) return null
+        return budgets.reduce((sum, budget) => sum + (budget.allocatedAmount || 0), 0)
+      },
+      "currency",
+    ),
+  ],
+)
+
+const staffSource = withExtraFields(
+  sourceFromEntity("staff", field<StaffMember>("__name", "Name", "text", (s) => s.name || "Staff member"), Users),
+  [
+    field<StaffMember>("gender", "Gender", "category", (s) => s.details?.gender || "—"),
+    field<StaffMember>("dateOfBirth", "Date of birth", "date", (s) => s.details?.dateOfBirth || null),
+    field<StaffMember>("age", "Age", "number", (s) => yearsSince(s.details?.dateOfBirth)),
+    field<StaffMember>("pronouns", "Pronouns", "category", (s) => s.details?.pronouns || "—"),
+    field<StaffMember>("email", "Email", "text", (s) => s.details?.email || s.invitedEmail || ""),
+    field<StaffMember>("phone", "Phone", "text", (s) => s.details?.mobile || s.details?.phone || ""),
+    field<StaffMember>("address", "Address", "text", (s) => s.details?.address || ""),
+    field<StaffMember>("endDate", "End date", "date", (s) => s.details?.endDate || null),
+    field<StaffMember>("qualifications", "Qualifications", "text", (s) => s.details?.qualifications || ""),
+    field<StaffMember>("certifications", "Certifications", "text", (s) => s.details?.certifications || ""),
+    field<StaffMember>("ndisScreeningNumber", "NDIS screening number", "text", (s) => s.details?.ndisScreeningNumber || ""),
+    field<StaffMember>("ndisScreeningExpiry", "NDIS screening expiry", "date", (s) => s.details?.ndisScreeningExpiry || null),
+    field<StaffMember>("emergencyContactName", "Emergency contact", "text", (s) => s.details?.emergencyContactName || ""),
+    field<StaffMember>("emergencyContactPhone", "Emergency contact phone", "text", (s) => s.details?.emergencyContactPhone || ""),
+  ],
+)
 
 const documentsSource: ListSource = {
   key: "documents",
@@ -213,8 +284,8 @@ const spendingPlansSource: ListSource = {
 }
 
 export const LIST_SOURCES: ListSource[] = [
-  sourceFromEntity("clients", field<Client>("__name", "Name", "text", (c) => c.name || "Participant"), User),
-  sourceFromEntity("staff", field<StaffMember>("__name", "Name", "text", (s) => s.name || "Staff member"), Users),
+  clientsSource,
+  staffSource,
   budgetsSource,
   spendingPlansSource,
   documentsSource,
@@ -222,7 +293,7 @@ export const LIST_SOURCES: ListSource[] = [
   sourceFromEntity("incidents", field<Incident>("__name", "Incident", "text", (i) => i.description?.trim() || (i.incidentNumber ? `Incident ${i.incidentNumber}` : "Incident")), AlertTriangle),
   sourceFromEntity("tasks", field<Task>("__name", "Title", "text", (t) => t.title || "Untitled task"), SquareCheck),
   sourceFromEntity("shifts", field<RosterShift>("__name", "Shift", "text", (s) => s.title || s.clientName || "Shift"), CalendarRange),
-  sourceFromEntity("timesheets", field<Timesheet>("__name", "Timesheet", "text", (t) => t.submittedByName || "Timesheet"), CalendarRange),
+  sourceFromEntity("timesheets", field<unknown>("__name", "Timesheet", "text", (t) => asTimesheetRecord(t).timesheet.submittedByName || "Timesheet"), CalendarRange),
   sourceFromEntity(
     "timesheets.travelClaims",
     field<TravelClaimListRecord>(
@@ -335,6 +406,8 @@ export interface CustomList {
   kanbanStages: string[] | null
   /** Per-record stage labels for list kanban (record id → stage). */
   kanbanRecordStages: Record<string, string> | null
+  /** Per-stage chip colour overrides (stage → folk status palette key). */
+  kanbanStageColors?: Record<string, string> | null
   /** Record ids explicitly added to this list. Empty = zero state until user adds rows. */
   recordIds: string[]
   /** Per-record values for custom columns (record id → field key → value). */
@@ -361,6 +434,31 @@ function generateId(prefix: string): string {
     return `${prefix}_${crypto.randomUUID()}`
   }
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`
+}
+
+/** Custom list primary keys must be UUIDs for Postgres. Handles legacy `list_<uuid>` ids. */
+export function resolveListDbId(id: string): string | null {
+  const trimmed = id.trim()
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed)) {
+    return trimmed
+  }
+  const legacy = trimmed.match(/^list_([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i)
+  return legacy ? legacy[1] : null
+}
+
+/** Match list ids across plain UUIDs and legacy `list_<uuid>` prefixes. */
+export function listIdsMatch(a: string, b: string): boolean {
+  if (a === b) return true
+  const resolvedA = resolveListDbId(a)
+  const resolvedB = resolveListDbId(b)
+  return Boolean(resolvedA && resolvedB && resolvedA === resolvedB)
+}
+
+function newListId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID()
+  }
+  return generateId("list").replace(/^list_/, "")
 }
 
 export function createListColumn(fieldKey: string): ListColumn {
@@ -434,7 +532,7 @@ export function createList(params: {
       ? params.kanbanField
       : source.fields.find((field) => field.kind === "category")?.key ?? null
   return {
-    id: generateId("list"),
+    id: newListId(),
     workspaceId: params.workspaceId,
     name: params.name?.trim() || `Untitled ${source.noun} list`,
     icon: params.icon || LIST_ICON_CHOICES[0],
@@ -445,6 +543,7 @@ export function createList(params: {
     kanbanField,
     kanbanStages: null,
     kanbanRecordStages: null,
+    kanbanStageColors: null,
     recordIds: [],
     customValues: {},
     pinned: false,

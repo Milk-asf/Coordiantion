@@ -408,43 +408,10 @@ export default function DocumentsPage() {
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
     >
-      <PageTitleBar title="Documents" />
-      {/* Header */}
-      <div className="flex h-[44px] shrink-0 items-center justify-between border-b border-folk-border-subtle bg-white px-[16px]">
-        <div className="flex items-center gap-[8px]">
-          {/* Breadcrumb inline */}
-          <button
-            onClick={() => { setCurrentPath(""); setSearchQuery(""); setGlobalSearch("") }}
-            className={`text-[13px] font-medium transition-colors ${!currentPath && !isGlobalSearchActive ? "text-folk-text" : "text-folk-secondary hover:text-folk-text"}`}
-            tabIndex={0}
-          >
-            All files
-          </button>
-          {isGlobalSearchActive && (
-            <>
-              <ChevronRight className="h-[12px] w-[12px] text-[#ccc]" strokeWidth={2} />
-              <span className="text-[13px] font-medium text-folk-text">Search results</span>
-            </>
-          )}
-          {!isGlobalSearchActive && breadcrumbs.map((crumb, i) => {
-            const path = breadcrumbs.slice(0, i + 1).join("/")
-            const isLast = i === breadcrumbs.length - 1
-            return (
-              <span key={path} className="flex items-center gap-[4px]">
-                <ChevronRight className="h-[12px] w-[12px] text-[#ccc]" strokeWidth={2} />
-                <button
-                  onClick={() => { setCurrentPath(path); setSearchQuery("") }}
-                  className={`text-[13px] font-medium transition-colors ${isLast ? "text-folk-text" : "text-folk-secondary hover:text-folk-text"}`}
-                  tabIndex={0}
-                >
-                  {crumb}
-                </button>
-              </span>
-            )
-          })}
-        </div>
-        <div className="flex items-center gap-[8px]">
-          {canManageDocuments && (
+      <PageTitleBar
+        title="Documents"
+        trailing={
+          canManageDocuments ? (
             <div className="relative" ref={uploadPickerRef}>
               <button
                 onClick={(e) => { if (isAddNewOpen) { setIsAddNewOpen(false) } else { openAddNew(e.currentTarget) } }}
@@ -459,7 +426,7 @@ export default function DocumentsPage() {
                 <>
                   <div className="fixed inset-0 z-[29]" onClick={() => setIsAddNewOpen(false)} />
                   <div
-                    className="fixed z-[30] w-[180px] rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk"
+                    className="fixed z-[30] w-[180px] rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk"
                     style={addNewAnchor ?? undefined}
                   >
                     <button
@@ -485,7 +452,7 @@ export default function DocumentsPage() {
                 <>
                   <div className="fixed inset-0 z-[29]" onClick={() => { setIsUploadPickerOpen(false); setIsAddNewOpen(false) }} />
                   <div
-                    className="fixed z-[30] w-[260px] overflow-hidden rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk"
+                    className="fixed z-[30] w-[260px] overflow-hidden rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk"
                     style={addNewAnchor ?? undefined}
                   >
                     <p className="px-[12px] py-[6px] text-[11px] font-medium tracking-wide text-folk-secondary">DESTINATION</p>
@@ -525,7 +492,42 @@ export default function DocumentsPage() {
                 </>
               )}
             </div>
+          ) : null
+        }
+      />
+      {/* Header */}
+      <div className="flex h-[44px] shrink-0 items-center border-b border-folk-border-subtle bg-white px-[16px]">
+        <div className="flex items-center gap-[8px]">
+          {/* Breadcrumb inline */}
+          <button
+            onClick={() => { setCurrentPath(""); setSearchQuery(""); setGlobalSearch("") }}
+            className={`text-[13px] font-medium transition-colors ${!currentPath && !isGlobalSearchActive ? "text-folk-text" : "text-folk-secondary hover:text-folk-text"}`}
+            tabIndex={0}
+          >
+            All files
+          </button>
+          {isGlobalSearchActive && (
+            <>
+              <ChevronRight className="h-[12px] w-[12px] text-[#ccc]" strokeWidth={2} />
+              <span className="text-[13px] font-medium text-folk-text">Search results</span>
+            </>
           )}
+          {!isGlobalSearchActive && breadcrumbs.map((crumb, i) => {
+            const path = breadcrumbs.slice(0, i + 1).join("/")
+            const isLast = i === breadcrumbs.length - 1
+            return (
+              <span key={path} className="flex items-center gap-[4px]">
+                <ChevronRight className="h-[12px] w-[12px] text-[#ccc]" strokeWidth={2} />
+                <button
+                  onClick={() => { setCurrentPath(path); setSearchQuery("") }}
+                  className={`text-[13px] font-medium transition-colors ${isLast ? "text-folk-text" : "text-folk-secondary hover:text-folk-text"}`}
+                  tabIndex={0}
+                >
+                  {crumb}
+                </button>
+              </span>
+            )
+          })}
         </div>
       </div>
 
@@ -546,7 +548,7 @@ export default function DocumentsPage() {
             <>
               <div className="fixed inset-0 z-40" onClick={() => setIsFilterOpen(false)} />
               <div
-                className="absolute left-0 top-full z-50 mt-[4px] w-[200px] overflow-hidden rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk"
+                className="absolute left-0 top-full z-50 mt-[4px] w-[200px] overflow-hidden rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk"
               >
                 <p className="px-[12px] py-[6px] text-[11px] font-medium tracking-wide text-folk-secondary">FILE TYPE</p>
                 {typeFilterOptions.map((opt) => (
@@ -606,7 +608,7 @@ export default function DocumentsPage() {
             onChange={(e) => setNewFileName(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") handleCreateFile(); if (e.key === "Escape") { setIsNewFileOpen(false); setNewFileName("") } }}
             placeholder="Folder name"
-            className="h-[28px] w-[200px] rounded-none border border-folk-border bg-folk-surface px-[8px] text-[12px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none focus:border-[#a3c4f3]"
+            className="h-[28px] w-[200px] rounded-[6px] border border-folk-border bg-folk-surface px-[8px] text-[12px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none focus:border-[#a3c4f3]"
           />
           <button onClick={handleCreateFile} disabled={!newFileName.trim()} className="primary-btn px-[10px] py-[4px] text-[11px] font-medium disabled:opacity-40" tabIndex={0}>Create</button>
           <button onClick={() => { setIsNewFileOpen(false); setNewFileName("") }} className="text-[12px] font-medium text-folk-secondary hover:text-folk-text" tabIndex={0}>Cancel</button>
@@ -616,7 +618,7 @@ export default function DocumentsPage() {
       {/* Content */}
       <div className={listViewBodyClass(cn("relative", isDragOver && "bg-blue-50/50"))}>
         {isDragOver && isInsideFile && (
-          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-none border-2 border-dashed border-blue-400 bg-blue-50/80">
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-[6px] border-2 border-dashed border-blue-400 bg-blue-50/80">
             <p className="text-[14px] font-medium text-blue-600">Drop a document here to add</p>
           </div>
         )}
@@ -693,7 +695,7 @@ export default function DocumentsPage() {
                               onChange={(e) => setRenameFileValue(e.target.value)}
                               onBlur={() => handleRenameFile(file.path)}
                               onKeyDown={(e) => { if (e.key === "Enter") handleRenameFile(file.path); if (e.key === "Escape") setRenamingFilePath(null) }}
-                              className="min-w-0 flex-1 rounded-none border border-[#a3c4f3] bg-folk-surface px-[6px] py-[2px] text-[13px] font-medium text-folk-text outline-none shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
+                              className="min-w-0 flex-1 rounded-[6px] border border-[#a3c4f3] bg-folk-surface px-[6px] py-[2px] text-[13px] font-medium text-folk-text outline-none shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
                               onClick={(e) => e.stopPropagation()}
                             />
                           ) : (
@@ -713,7 +715,7 @@ export default function DocumentsPage() {
                       <td className={cellLast}>
                         <button
                           onClick={(e) => { e.stopPropagation(); setFileContextMenu({ path: file.path, name: file.name, x: e.clientX, y: e.clientY }) }}
-                          className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-[#ccc] transition-all hover:bg-[#e8e8e8] hover:text-folk-secondary"
+                          className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-[#ccc] transition-all hover:bg-[#e8e8e8] hover:text-folk-secondary"
                           tabIndex={0}
                           aria-label="File options"
                         >
@@ -741,7 +743,7 @@ export default function DocumentsPage() {
                             onChange={(e) => setRenameValue(e.target.value)}
                             onBlur={() => handleRename(doc.id)}
                             onKeyDown={(e) => { if (e.key === "Enter") handleRename(doc.id); if (e.key === "Escape") setRenamingId(null) }}
-                            className="min-w-0 flex-1 rounded-none border border-[#a3c4f3] bg-folk-surface px-[6px] py-[2px] text-[13px] font-medium text-folk-text outline-none shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
+                            className="min-w-0 flex-1 rounded-[6px] border border-[#a3c4f3] bg-folk-surface px-[6px] py-[2px] text-[13px] font-medium text-folk-text outline-none shadow-[0_0_0_3px_rgba(163,196,243,0.25)]"
                           />
                         ) : (
                           <div className="min-w-0 flex-1">
@@ -786,7 +788,7 @@ export default function DocumentsPage() {
                     <td className={`${cellLast} group-hover:bg-[#fafafa]`}>
                       <button
                         onClick={(e) => { e.stopPropagation(); setContextMenu({ doc, x: e.clientX, y: e.clientY }) }}
-                        className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-[#ccc] transition-all hover:bg-[var(--folk-border-subtle)] hover:text-folk-secondary"
+                        className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-[#ccc] transition-all hover:bg-[var(--folk-border-subtle)] hover:text-folk-secondary"
                         tabIndex={0}
                         aria-label="Document options"
                       >
@@ -816,7 +818,7 @@ export default function DocumentsPage() {
       {contextMenu && (
         <div
           ref={contextMenuRef}
-          className="fixed z-50 w-[160px] rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk"
+          className="fixed z-50 w-[160px] rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk"
           style={{ top: contextMenu.y, left: contextMenu.x }}
         >
           <button
@@ -858,7 +860,7 @@ export default function DocumentsPage() {
       {fileContextMenu && (
         <div
           ref={fileContextMenuRef}
-          className="fixed z-50 w-[160px] rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk"
+          className="fixed z-50 w-[160px] rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk"
           style={{ top: fileContextMenu.y, left: fileContextMenu.x }}
         >
           <button

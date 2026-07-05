@@ -103,7 +103,7 @@ export function KeyboardShortcutsHelp({
       aria-label="Keyboard shortcuts"
     >
       <div
-        className={`mx-[16px] w-full max-w-[420px] rounded-none bg-folk-surface shadow-xl ${motion.scaleIn}`}
+        className={`mx-[16px] w-full max-w-[420px] rounded-[6px] bg-folk-surface shadow-xl ${motion.scaleIn}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-folk-border-subtle px-[20px] py-[14px]">
@@ -113,7 +113,7 @@ export function KeyboardShortcutsHelp({
           </div>
           <button
             onClick={onClose}
-            className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+            className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
             aria-label="Close"
             tabIndex={0}
           >
@@ -123,9 +123,9 @@ export function KeyboardShortcutsHelp({
         <div className="max-h-[400px] overflow-y-auto p-[16px]">
           <div className="space-y-[2px]">
             {shortcuts.map((shortcut) => (
-              <div key={shortcut.key + shortcut.description} className={`flex items-center justify-between rounded-none px-[10px] py-[8px] hover:bg-folk-page ${motion.row}`}>
+              <div key={shortcut.key + shortcut.description} className={`flex items-center justify-between rounded-[6px] px-[10px] py-[8px] hover:bg-folk-page ${motion.row}`}>
                 <span className="text-[13px] text-[#555]">{shortcut.description}</span>
-                <kbd className="rounded-none border border-folk-border bg-[#f8f8f8] px-[6px] py-[2px] font-mono text-[11px] text-folk-secondary">
+                <kbd className="rounded-[6px] border border-folk-border bg-[#f8f8f8] px-[6px] py-[2px] font-mono text-[11px] text-folk-secondary">
                   {shortcut.label}
                 </kbd>
               </div>
@@ -133,7 +133,7 @@ export function KeyboardShortcutsHelp({
           </div>
         </div>
         <div className="border-t border-folk-border-subtle px-[20px] py-[10px]">
-          <p className="text-[11px] text-folk-placeholder">Press <kbd className="rounded-none border border-folk-border bg-[#f8f8f8] px-[3px] py-[1px] font-mono text-[10px]">?</kbd> to toggle this panel</p>
+          <p className="text-[11px] text-folk-placeholder">Press <kbd className="rounded-[6px] border border-folk-border bg-[#f8f8f8] px-[3px] py-[1px] font-mono text-[10px]">?</kbd> to toggle this panel</p>
         </div>
       </div>
     </div>

@@ -6,11 +6,14 @@ import {
   CalendarClock,
   CalendarRange,
   CircleDollarSign,
+  ClipboardList,
+  FileText,
   Hash,
   LineChart,
   PieChart,
   Plane,
   ReceiptText,
+  Rows3,
   SquareCheck,
   Table2,
   TriangleAlert,
@@ -23,6 +26,7 @@ import type {
   Budget,
   BudgetReleasePeriod,
   Client,
+  Document,
   Incident,
   Invoice,
   InvoiceLineItem,
@@ -32,10 +36,31 @@ import type {
 } from "@/lib/types"
 import type { Timesheet, TravelClaim } from "@/lib/timesheets/types"
 import type { RosterShift } from "@/lib/roster/types"
+import type { Form } from "@/lib/form-definitions"
+import { getFormProcess } from "@/lib/form-definitions"
+import {
+  countAnswerFields,
+  flattenFormAnswerRecords,
+  type FormAnswerRecord,
+  type FormSubmissionRecord,
+} from "./form-submissions"
+import {
+  DOCUMENT_EXPIRY_LABELS,
+  INCIDENT_CASE_STATE_LABELS,
+  ROSTER_MATCH_LABELS,
+  SCREENING_STATUS_LABELS,
+  SHIFT_NOTE_STATUS_LABELS,
+  getDocumentExpiryStatus,
+  getIncidentCaseState,
+  getScreeningStatus,
+  getShiftNoteStatus,
+  getTimesheetRosterMatch,
+} from "./record-status"
+import type { DateWindowKey, WidgetFilter } from "./scope"
 
 type IconType = ComponentType<{ className?: string; strokeWidth?: number }>
 
-export type VisualizationType = "metric" | "bar" | "line" | "area" | "pie" | "donut" | "funnel" | "table"
+export type VisualizationType = "metric" | "bar" | "line" | "area" | "pie" | "donut" | "funnel" | "table" | "list"
 
 export type AggregationType = "count" | "sum" | "avg" | "min" | "max"
 
@@ -59,6 +84,9 @@ export type AnalyticsDataSourceKey =
   | "reimbursements"
   | "clients"
   | "staff"
+  | "documents"
+  | "forms"
+  | "formSubmissions"
 
 export type RootSourceData = Partial<Record<AnalyticsDataSourceKey, unknown[]>>
 
@@ -66,12 +94,13 @@ export type RootSourceData = Partial<Record<AnalyticsDataSourceKey, unknown[]>>
 // Visualizations
 // ---------------------------------------------------------------------------
 
-export type VisualizationCategory = "single" | "comparison" | "trend" | "proportion"
+export type VisualizationCategory = "single" | "records" | "comparison" | "trend" | "proportion"
 
-export const VISUALIZATION_CATEGORY_ORDER: VisualizationCategory[] = ["single", "comparison", "trend", "proportion"]
+export const VISUALIZATION_CATEGORY_ORDER: VisualizationCategory[] = ["single", "records", "comparison", "trend", "proportion"]
 
 export const VISUALIZATION_CATEGORY_LABELS: Record<VisualizationCategory, string> = {
   single: "Single value",
+  records: "Records",
   comparison: "Comparison",
   trend: "Trend over time",
   proportion: "Proportion",
@@ -89,6 +118,7 @@ export interface VisualizationMeta {
 
 export const VISUALIZATIONS: VisualizationMeta[] = [
   { type: "metric", label: "Metric", description: "A single headline number", category: "single", icon: Hash, needsGroup: false, singleSeries: true },
+  { type: "list", label: "Record list", description: "Drillable rows of matching records", category: "records", icon: Rows3, needsGroup: false, singleSeries: true },
   { type: "bar", label: "Bar", description: "Compare values across groups", category: "comparison", icon: BarChart3, needsGroup: true, singleSeries: false },
   { type: "table", label: "Table", description: "Rows of grouped values", category: "comparison", icon: Table2, needsGroup: true, singleSeries: false },
   { type: "line", label: "Line", description: "Track change over time", category: "trend", icon: LineChart, needsGroup: true, singleSeries: false },
@@ -144,8 +174,26 @@ export interface MeasureDef {
   get: (record: unknown) => number
 }
 
+/** A column in a record-list visualisation. */
+export interface ListColumn {
+  key: string
+  label: string
+  get: (record: unknown) => string
+}
+
+/** How an entity renders as a drillable record list. */
+export interface ListMeta {
+  columns: ListColumn[]
+  /** In-app link for a row — jump straight to the record to fix it. */
+  getHref?: (record: unknown) => string | null
+  /** ISO date used to order rows. */
+  getDate?: (record: unknown) => string | null
+  /** "desc" = most recent first (default), "asc" = soonest deadline first. */
+  dateSort?: "asc" | "desc"
+}
+
 /**
- * A node in the data-source tree. Top-level entities (isRoot) are the eight
+ * A node in the data-source tree. Top-level entities (isRoot) are the root
  * domains; nested entities (e.g. Participants → Budgets → Budget periods)
  * derive their records by flattening the root domain's records.
  */
@@ -157,12 +205,17 @@ export interface DataEntity {
   isRoot: boolean
   /** Which root domain array this entity is derived from. */
   rootKey: AnalyticsDataSourceKey
-  /** Flattens the root array into this entity's records. */
-  getRecords: (rootRecords: unknown[]) => unknown[]
+  /**
+   * Flattens the root array into this entity's records. Receives the full
+   * source data so entities can join across domains (e.g. timesheets pull in
+   * their rostered shift to compute the roster match).
+   */
+  getRecords: (rootRecords: unknown[], data: RootSourceData) => unknown[]
   dimensions: DimensionDef[]
   measures: MeasureDef[]
   defaultGroupBy: string
   children?: DataEntity[]
+  list?: ListMeta
 }
 
 const INCIDENT_CATEGORY_LABEL = INCIDENT_CATEGORIES.reduce<Record<string, string>>((acc, category) => {
@@ -187,6 +240,43 @@ function measure<T>(key: string, label: string, format: MeasureFormat, get: (rec
   return { key, label, format, get: (record) => get(record as T) }
 }
 
+function col<T>(key: string, label: string, get: (record: T) => string): ListColumn {
+  return { key, label, get: (record) => get(record as T) }
+}
+
+const LIST_DATE_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+function formatListDate(value: string | null | undefined): string {
+  if (!value) return "—"
+  const date = value.length <= 10 ? new Date(`${value}T00:00:00`) : new Date(value)
+  if (Number.isNaN(date.getTime())) return "—"
+  return `${date.getDate()} ${LIST_DATE_MONTHS[date.getMonth()]} ${date.getFullYear()}`
+}
+
+function sentenceCase(value: string): string {
+  if (!value) return "—"
+  return value.charAt(0).toUpperCase() + value.slice(1).replace(/[-_]/g, " ")
+}
+
+const FILE_TYPE_LABELS: [RegExp, string][] = [
+  [/pdf/, "PDF"],
+  [/image\//, "Image"],
+  [/wordprocessing|msword/, "Word"],
+  [/spreadsheet|excel|csv/, "Spreadsheet"],
+  [/presentation|powerpoint/, "Presentation"],
+  [/video\//, "Video"],
+  [/audio\//, "Audio"],
+  [/text\//, "Text"],
+]
+
+function fileTypeLabel(mimeType: string, name: string): string {
+  for (const [pattern, label] of FILE_TYPE_LABELS) {
+    if (pattern.test(mimeType || "")) return label
+  }
+  const ext = name.includes(".") ? name.split(".").pop() : ""
+  return ext ? ext.toUpperCase() : "File"
+}
+
 const CLIENT_STATUS_LABEL: Record<string, string> = { active: "Active", archived: "Archived" }
 const FUNDING_LABEL: Record<string, string> = {
   "plan-managed": "Plan managed",
@@ -201,6 +291,29 @@ const FUNDING_COMPONENT_LABEL: Record<string, string> = {
 }
 
 // Composite records produced when drilling into nested objects.
+/**
+ * Timesheet joined to its rostered shift so reports can compare the two.
+ * Carries the timesheet's id so generic record identity (list membership,
+ * row keys) keeps working on the joined shape.
+ */
+export interface TimesheetAnalyticsRecord {
+  id: string
+  timesheet: Timesheet
+  shift: RosterShift | null
+}
+
+/**
+ * Coerces either record shape — joined ({timesheet, shift}) or a raw
+ * Timesheet — so consumers that still feed raw arrays (e.g. lists) never
+ * crash on the timesheet dimensions.
+ */
+export function asTimesheetRecord(record: unknown): TimesheetAnalyticsRecord {
+  if (record && typeof record === "object" && "timesheet" in record) {
+    return record as TimesheetAnalyticsRecord
+  }
+  const timesheet = record as Timesheet
+  return { id: timesheet?.id ?? "", timesheet, shift: null }
+}
 interface BudgetRecord {
   budget: Budget
   client: Client
@@ -323,6 +436,26 @@ const invoiceLineItemsEntity: DataEntity = {
   ],
 }
 
+const formAnswersEntity: DataEntity = {
+  key: "formSubmissions.answers",
+  label: "Form answers",
+  noun: "answers",
+  icon: ClipboardList,
+  isRoot: false,
+  rootKey: "formSubmissions",
+  getRecords: (records) => flattenFormAnswerRecords(records as FormSubmissionRecord[]),
+  defaultGroupBy: "answer",
+  dimensions: [
+    dim<FormAnswerRecord>("formName", "Form", "category", (r) => r.formName),
+    dim<FormAnswerRecord>("fieldLabel", "Field", "category", (r) => r.fieldLabel),
+    dim<FormAnswerRecord>("fieldType", "Field type", "category", (r) => r.fieldType),
+    dim<FormAnswerRecord>("answer", "Answer", "category", (r) => r.answer),
+    dim<FormAnswerRecord>("submittedByName", "Submitted by", "category", (r) => r.submittedByName),
+    dim<FormAnswerRecord>("submittedAt", "Submitted", "date", (r) => r.submittedAt || null),
+  ],
+  measures: [],
+}
+
 // --- Root entities ----------------------------------------------------------
 
 const identity = (records: unknown[]) => records
@@ -344,11 +477,24 @@ export const DATA_SOURCES: DataEntity[] = [
       dim<RosterShift>("sessionType", "Session type", "category", (r) => r.sessionType || "—"),
       dim<RosterShift>("location", "Location", "category", (r) => r.location || "—"),
       dim<RosterShift>("hasNote", "Has progress note", "boolean", (r) => Boolean(r.progressNote)),
+      dim<RosterShift>("noteStatus", "Progress note status", "category", (r) => SHIFT_NOTE_STATUS_LABELS[getShiftNoteStatus(r)]),
       dim<RosterShift>("date", "Shift date", "date", (r) => r.date || null),
     ],
     measures: [
       measure<RosterShift>("duration", "Shift hours", "hours", (r) => minutesBetween(r.startTime, r.endTime) / 60),
     ],
+    list: {
+      columns: [
+        col<RosterShift>("date", "Date", (r) => formatListDate(r.date)),
+        col<RosterShift>("time", "Time", (r) => `${r.startTime}–${r.endTime}`),
+        col<RosterShift>("staff", "Support worker", (r) => r.staffName || "Unassigned"),
+        col<RosterShift>("client", "Participant", (r) => r.clientName || "—"),
+        col<RosterShift>("status", "Status", (r) => sentenceCase(r.status)),
+        col<RosterShift>("note", "Progress note", (r) => SHIFT_NOTE_STATUS_LABELS[getShiftNoteStatus(r)]),
+      ],
+      getHref: (r) => `/roster?date=${(r as RosterShift).date}`,
+      getDate: (r) => (r as RosterShift).date || null,
+    },
   },
   {
     key: "incidents",
@@ -362,8 +508,10 @@ export const DATA_SOURCES: DataEntity[] = [
     dimensions: [
       dim<Incident>("incidentStatus", "Status", "category", (r) => r.incidentStatus),
       dim<Incident>("investigationStatus", "Investigation", "category", (r) => r.investigationStatus || "—"),
+      dim<Incident>("caseState", "Case state", "category", (r) => INCIDENT_CASE_STATE_LABELS[getIncidentCaseState(r.investigationStatus)]),
       dim<Incident>("category", "Category", "category", (r) => INCIDENT_CATEGORY_LABEL[r.category] || r.category || "Other"),
       dim<Incident>("isReportable", "Reportable", "boolean", (r) => r.isReportable),
+      dim<Incident>("commissionNotified", "Commission notified", "boolean", (r) => Boolean(r.commissionAdvisedAt)),
       dim<Incident>("reportedByName", "Reported by", "category", (r) => r.reportedByName || "—"),
       dim<Incident>("location", "Location", "category", (r) => r.location || "—"),
       dim<Incident>("incidentDate", "Incident date", "date", (r) => r.incidentDate || null),
@@ -371,6 +519,18 @@ export const DATA_SOURCES: DataEntity[] = [
     measures: [
       measure<Incident>("attachments", "Attachments", "number", (r) => r.attachments?.length ?? 0),
     ],
+    list: {
+      columns: [
+        col<Incident>("number", "Incident", (r) => r.incidentNumber || "—"),
+        col<Incident>("date", "Date", (r) => formatListDate(r.incidentDate)),
+        col<Incident>("category", "Category", (r) => INCIDENT_CATEGORY_LABEL[r.category] || r.category || "Other"),
+        col<Incident>("clients", "Participants", (r) => r.clientNames || "—"),
+        col<Incident>("state", "Case state", (r) => INCIDENT_CASE_STATE_LABELS[getIncidentCaseState(r.investigationStatus)]),
+        col<Incident>("reportable", "Reportable", (r) => (r.isReportable ? (r.commissionAdvisedAt ? "Yes — notified" : "Yes — not notified") : "No")),
+      ],
+      getHref: (r) => `/incidents/${(r as Incident).id}`,
+      getDate: (r) => (r as Incident).incidentDate || null,
+    },
   },
   {
     key: "tasks",
@@ -399,19 +559,47 @@ export const DATA_SOURCES: DataEntity[] = [
     icon: CalendarRange,
     isRoot: true,
     rootKey: "timesheets",
-    getRecords: identity,
+    // Join each timesheet to its rostered shift so reports can compare them.
+    getRecords: (timesheets, data) => {
+      const shiftById = new Map(((data.shifts ?? []) as RosterShift[]).map((shift) => [shift.id, shift]))
+      return (timesheets as Timesheet[]).map<TimesheetAnalyticsRecord>((timesheet) => ({
+        id: timesheet.id,
+        timesheet,
+        shift: timesheet.shiftId ? shiftById.get(timesheet.shiftId) ?? null : null,
+      }))
+    },
     defaultGroupBy: "status",
     dimensions: [
-      dim<Timesheet>("status", "Status", "category", (r) => r.status),
-      dim<Timesheet>("submittedByName", "Submitted by", "category", (r) => r.submittedByName || "—"),
-      dim<Timesheet>("startDate", "Shift date", "date", (r) => r.startDate || null),
+      dim<unknown>("status", "Status", "category", (r) => asTimesheetRecord(r).timesheet.status),
+      dim<unknown>("submittedByName", "Submitted by", "category", (r) => asTimesheetRecord(r).timesheet.submittedByName || "—"),
+      dim<unknown>("rosterMatch", "Roster match", "category", (r) => {
+        const record = asTimesheetRecord(r)
+        return ROSTER_MATCH_LABELS[getTimesheetRosterMatch(record.timesheet, record.shift)]
+      }),
+      dim<unknown>("clientName", "Participant", "category", (r) => asTimesheetRecord(r).shift?.clientName || "—"),
+      dim<unknown>("startDate", "Shift date", "date", (r) => asTimesheetRecord(r).timesheet.startDate || null),
     ],
     measures: [
-      measure<Timesheet>("workedHours", "Worked hours", "hours", (r) => (r.workedMinutes || 0) / 60),
-      measure<Timesheet>("breakMinutes", "Break (min)", "number", (r) => r.breakMinutes || 0),
-      measure<Timesheet>("travelClaims", "Travel claims", "number", (r) => r.travelClaims?.length ?? 0),
+      measure<unknown>("workedHours", "Worked hours", "hours", (r) => (asTimesheetRecord(r).timesheet.workedMinutes || 0) / 60),
+      measure<unknown>("breakMinutes", "Break (min)", "number", (r) => asTimesheetRecord(r).timesheet.breakMinutes || 0),
+      measure<unknown>("travelClaims", "Travel claims", "number", (r) => asTimesheetRecord(r).timesheet.travelClaims?.length ?? 0),
     ],
     children: [travelClaimsEntity],
+    list: {
+      columns: [
+        col<unknown>("date", "Date", (r) => formatListDate(asTimesheetRecord(r).timesheet.startDate)),
+        col<unknown>("staff", "Submitted by", (r) => asTimesheetRecord(r).timesheet.submittedByName || "—"),
+        col<unknown>("client", "Participant", (r) => asTimesheetRecord(r).shift?.clientName || "—"),
+        col<unknown>("hours", "Worked", (r) => `${(Math.round(((asTimesheetRecord(r).timesheet.workedMinutes || 0) / 60) * 10) / 10).toLocaleString("en-AU")}h`),
+        col<unknown>("status", "Status", (r) => sentenceCase(asTimesheetRecord(r).timesheet.status)),
+        col<unknown>("match", "Roster match", (r) => {
+          const record = asTimesheetRecord(r)
+          return ROSTER_MATCH_LABELS[getTimesheetRosterMatch(record.timesheet, record.shift)]
+        }),
+      ],
+      getHref: () => "/timesheets",
+      getDate: (r) => asTimesheetRecord(r).timesheet.startDate || null,
+    },
   },
   {
     key: "invoices",
@@ -478,6 +666,18 @@ export const DATA_SOURCES: DataEntity[] = [
       measure<Client>("goals", "Goals", "number", (r) => r.participant?.goals?.length ?? 0),
     ],
     children: [budgetsEntity],
+    list: {
+      columns: [
+        col<Client>("name", "Participant", (r) => r.name || "—"),
+        col<Client>("funding", "Funding type", (r) => FUNDING_LABEL[r.participant?.fundingType ?? ""] || "Unspecified"),
+        col<Client>("owner", "Coordinator", (r) => r.owner || "—"),
+        col<Client>("planEnd", "Plan ends", (r) => formatListDate(r.participant?.planEndDate)),
+        col<Client>("status", "Status", (r) => CLIENT_STATUS_LABEL[r.status] || r.status),
+      ],
+      getHref: (r) => `/clients/${(r as Client).id}`,
+      getDate: (r) => (r as Client).participant?.planEndDate || null,
+      dateSort: "asc",
+    },
   },
   {
     key: "staff",
@@ -493,9 +693,111 @@ export const DATA_SOURCES: DataEntity[] = [
       dim<StaffMember>("role", "Role", "category", (r) => r.details?.role || "—"),
       dim<StaffMember>("department", "Department", "category", (r) => r.details?.department || "—"),
       dim<StaffMember>("employmentType", "Employment type", "category", (r) => r.details?.employmentType || "—"),
+      dim<StaffMember>("screeningStatus", "Screening status", "category", (r) => SCREENING_STATUS_LABELS[getScreeningStatus(r.details?.ndisScreeningExpiry)]),
       dim<StaffMember>("startDate", "Start date", "date", (r) => r.details?.startDate || null),
+      dim<StaffMember>("screeningExpiry", "Screening expiry", "date", (r) => r.details?.ndisScreeningExpiry || null),
     ],
     measures: [],
+    list: {
+      columns: [
+        col<StaffMember>("name", "Staff member", (r) => r.name || "—"),
+        col<StaffMember>("role", "Role", (r) => r.details?.role || "—"),
+        col<StaffMember>("screeningExpiry", "Screening expires", (r) => formatListDate(r.details?.ndisScreeningExpiry)),
+        col<StaffMember>("screening", "Screening", (r) => SCREENING_STATUS_LABELS[getScreeningStatus(r.details?.ndisScreeningExpiry)]),
+        col<StaffMember>("status", "Status", (r) => sentenceCase(r.status)),
+      ],
+      getHref: (r) => `/staff/${(r as StaffMember).id}`,
+      getDate: (r) => (r as StaffMember).details?.ndisScreeningExpiry || null,
+      dateSort: "asc",
+    },
+  },
+  {
+    key: "documents",
+    label: "Documents",
+    noun: "documents",
+    icon: FileText,
+    isRoot: true,
+    rootKey: "documents",
+    getRecords: identity,
+    defaultGroupBy: "expiryStatus",
+    dimensions: [
+      dim<Document>("expiryStatus", "Expiry status", "category", (r) => DOCUMENT_EXPIRY_LABELS[getDocumentExpiryStatus(r.validTo)]),
+      dim<Document>("folder", "Folder", "category", (r) => r.folder || "Ungrouped"),
+      dim<Document>("fileType", "File type", "category", (r) => fileTypeLabel(r.mimeType, r.name)),
+      dim<Document>("validTo", "Expiry date", "date", (r) => r.validTo || null),
+      dim<Document>("validFrom", "Valid from", "date", (r) => r.validFrom || null),
+      dim<Document>("createdAt", "Uploaded", "date", (r) => r.createdAt || null),
+    ],
+    measures: [
+      measure<Document>("sizeMb", "Size (MB)", "number", (r) => (r.size || 0) / (1024 * 1024)),
+    ],
+    list: {
+      columns: [
+        col<Document>("name", "Document", (r) => r.name || "—"),
+        col<Document>("folder", "Folder", (r) => r.folder || "Ungrouped"),
+        col<Document>("type", "Type", (r) => fileTypeLabel(r.mimeType, r.name)),
+        col<Document>("validTo", "Expires", (r) => (r.validTo ? formatListDate(r.validTo) : "No expiry")),
+        col<Document>("status", "Status", (r) => DOCUMENT_EXPIRY_LABELS[getDocumentExpiryStatus(r.validTo)]),
+      ],
+      getHref: () => "/documents",
+      getDate: (r) => (r as Document).validTo || null,
+      dateSort: "asc",
+    },
+  },
+  {
+    key: "forms",
+    label: "Forms",
+    noun: "forms",
+    icon: ClipboardList,
+    isRoot: true,
+    rootKey: "forms",
+    getRecords: identity,
+    defaultGroupBy: "status",
+    dimensions: [
+      dim<Form>("status", "Status", "category", (r) => r.status),
+      dim<Form>("connectedProcess", "Connected process", "category", (r) => {
+        const key = r.settings.connectedProcess
+        if (!key) return "Standalone"
+        return getFormProcess(key)?.label ?? key
+      }),
+      dim<Form>("createdByName", "Created by", "category", (r) => r.createdByName || "—"),
+      dim<Form>("archived", "Archived", "boolean", (r) => r.archived),
+      dim<Form>("isIncidentForm", "Incident form", "boolean", (r) => r.isIncidentForm),
+      dim<Form>("createdAt", "Created", "date", (r) => r.createdAt || null),
+      dim<Form>("publishedAt", "Published", "date", (r) => r.publishedAt || null),
+    ],
+    measures: [
+      measure<Form>("fields", "Fields", "number", (r) => countAnswerFields(r)),
+    ],
+  },
+  {
+    key: "formSubmissions",
+    label: "Form submissions",
+    noun: "submissions",
+    icon: ClipboardList,
+    isRoot: true,
+    rootKey: "formSubmissions",
+    getRecords: identity,
+    defaultGroupBy: "formName",
+    dimensions: [
+      dim<FormSubmissionRecord>("formName", "Form", "category", (r) => r.formName),
+      dim<FormSubmissionRecord>("formStatus", "Form status", "category", (r) => r.formStatus),
+      dim<FormSubmissionRecord>("connectedProcess", "Connected process", "category", (r) => r.connectedProcess),
+      dim<FormSubmissionRecord>("submittedByName", "Submitted by", "category", (r) => r.submittedByName),
+      dim<FormSubmissionRecord>("submittedAt", "Submitted", "date", (r) => r.submittedAt || null),
+    ],
+    measures: [],
+    children: [formAnswersEntity],
+    list: {
+      columns: [
+        col<FormSubmissionRecord>("form", "Form", (r) => r.formName),
+        col<FormSubmissionRecord>("submittedBy", "Submitted by", (r) => r.submittedByName),
+        col<FormSubmissionRecord>("process", "Process", (r) => r.connectedProcess),
+        col<FormSubmissionRecord>("submittedAt", "Submitted", (r) => formatListDate(r.submittedAt)),
+      ],
+      getHref: () => "/forms",
+      getDate: (r) => (r as FormSubmissionRecord).submittedAt || null,
+    },
   },
 ]
 
@@ -526,7 +828,37 @@ export function getEntityPath(key: string): DataEntity[] {
 
 export function resolveEntityRecords(key: string, rootData: RootSourceData): unknown[] {
   const entity = getDataSource(key)
-  return entity.getRecords(rootData[entity.rootKey] ?? [])
+  return entity.getRecords(rootData[entity.rootKey] ?? [], rootData)
+}
+
+/**
+ * List rendering metadata for an entity. Entities without curated columns
+ * fall back to their first few dimensions so every source can render a list.
+ */
+export function getListMeta(entity: DataEntity): ListMeta {
+  if (entity.list) return entity.list
+  const columns = entity.dimensions.slice(0, 4).map<ListColumn>((dimension) => ({
+    key: dimension.key,
+    label: dimension.label,
+    get: (record) => {
+      const raw = dimension.get(record)
+      if (raw === null || raw === undefined || raw === "") return "—"
+      if (typeof raw === "boolean") return raw ? "Yes" : "No"
+      if (Array.isArray(raw)) return raw.join(", ") || "—"
+      if (dimension.kind === "date") return formatListDate(String(raw))
+      return String(raw)
+    },
+  }))
+  const dateDim = entity.dimensions.find((dimension) => dimension.kind === "date")
+  return {
+    columns,
+    getDate: dateDim
+      ? (record) => {
+          const raw = dateDim.get(record)
+          return typeof raw === "string" ? raw : null
+        }
+      : undefined,
+  }
 }
 
 export function getDimension(source: DataEntity, key: string | null): DimensionDef | null {
@@ -559,6 +891,12 @@ export interface AnalyticsWidget {
   width: WidgetWidth
   showLegend: boolean
   showValues: boolean
+  /** Field filters — keep only records matching every filter. */
+  filters: WidgetFilter[]
+  /** Relative date window applied before computing (e.g. last 30 days). */
+  dateWindow: DateWindowKey
+  /** Date dimension the window applies to; null = the entity's first date field. */
+  dateField: string | null
 }
 
 export interface AnalyticsSpace {
@@ -582,6 +920,16 @@ function generateId(prefix: string): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`
 }
 
+/** Backfills fields added after a widget was saved (filters, date window). */
+export function normalizeWidget(widget: AnalyticsWidget): AnalyticsWidget {
+  return {
+    ...widget,
+    filters: Array.isArray(widget.filters) ? widget.filters : [],
+    dateWindow: widget.dateWindow ?? "all",
+    dateField: widget.dateField ?? null,
+  }
+}
+
 export function createWidget(params?: Partial<AnalyticsWidget>): AnalyticsWidget {
   const source = params?.source ?? "shifts"
   const def = getDataSource(source)
@@ -600,6 +948,9 @@ export function createWidget(params?: Partial<AnalyticsWidget>): AnalyticsWidget
     width: params?.width ?? "third",
     showLegend: params?.showLegend ?? true,
     showValues: params?.showValues ?? true,
+    filters: params?.filters ?? [],
+    dateWindow: params?.dateWindow ?? "all",
+    dateField: params?.dateField ?? null,
   }
 }
 
@@ -625,6 +976,21 @@ export function createEmptySpace(params: {
   }
 }
 
+/** analytics_spaces insert payload — shared by the reports context and signup provisioning. */
+export function spaceToInsertRow(space: AnalyticsSpace) {
+  return {
+    workspace_id: space.workspaceId,
+    name: space.name,
+    description: space.description,
+    icon: space.icon,
+    icon_color: space.iconColor,
+    widgets: space.widgets,
+    created_by_name: space.createdByName,
+    created_at: space.createdAt,
+    updated_at: space.updatedAt,
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Templates
 // ---------------------------------------------------------------------------
@@ -638,7 +1004,48 @@ export interface SpaceTemplate {
   widgets: Partial<AnalyticsWidget>[]
 }
 
+/** Shorthand for template filters — id doubles as the dimension key. */
+function tf(dimension: string, values: string[]): WidgetFilter {
+  return { id: dimension, dimension, values }
+}
+
+/**
+ * One-click, audit-ready compliance space. Every widget uses the universal
+ * builder features (filters, computed statuses, date windows, record lists) —
+ * nothing here is compliance-only code.
+ */
+export const NDIS_COMPLIANCE_TEMPLATE: SpaceTemplate = {
+  id: "ndis-compliance",
+  name: "NDIS compliance",
+  description: "The gaps auditors look for: missing notes, worker screening, reportable incidents, timesheet mismatches and expiring documents.",
+  icon: "🛡️",
+  iconColor: "#16a34a",
+  widgets: [
+    // Headline metrics — the numbers that should be zero.
+    { title: "Overdue progress notes", visualization: "metric", source: "shifts", aggregation: "count", width: "third", dateWindow: "last30", filters: [tf("noteStatus", ["Note overdue"])] },
+    { title: "Screening issues — active staff", visualization: "metric", source: "staff", aggregation: "count", width: "third", filters: [tf("status", ["active"]), tf("screeningStatus", ["Expired", "Expiring soon", "Missing"])] },
+    { title: "Open reportable incidents", visualization: "metric", source: "incidents", aggregation: "count", width: "third", filters: [tf("isReportable", ["yes"]), tf("caseState", ["Open"])] },
+    { title: "Timesheets awaiting approval", visualization: "metric", source: "timesheets", aggregation: "count", width: "third", filters: [tf("status", ["sent"])] },
+    { title: "Roster–timesheet mismatches", visualization: "metric", source: "timesheets", aggregation: "count", width: "third", dateWindow: "last30", filters: [tf("rosterMatch", ["Differs from roster"])] },
+    { title: "Documents expired or expiring", visualization: "metric", source: "documents", aggregation: "count", width: "third", filters: [tf("expiryStatus", ["Expired", "Expiring soon"])] },
+    // Health at a glance.
+    { title: "Worker screening health", visualization: "donut", source: "staff", aggregation: "count", groupBy: "screeningStatus", width: "half", filters: [tf("status", ["active"])] },
+    { title: "Progress notes — completed shifts (30 days)", visualization: "donut", source: "shifts", aggregation: "count", groupBy: "noteStatus", width: "half", dateWindow: "last30", filters: [tf("status", ["completed"])] },
+    { title: "Commission notified — reportable incidents", visualization: "pie", source: "incidents", aggregation: "count", groupBy: "commissionNotified", width: "half", filters: [tf("isReportable", ["yes"])] },
+    { title: "Incidents by week (90 days)", visualization: "line", source: "incidents", aggregation: "count", groupBy: "incidentDate", dateGrain: "week", width: "half", dateWindow: "last90" },
+    // The actual records to fix — drillable lists.
+    { title: "Shifts needing notes", visualization: "list", source: "shifts", width: "full", limit: 8, dateWindow: "last30", filters: [tf("noteStatus", ["Note due", "Note overdue"])] },
+    { title: "Worker screening to chase", visualization: "list", source: "staff", width: "half", limit: 8, filters: [tf("status", ["active"]), tf("screeningStatus", ["Expired", "Expiring soon", "Missing"])] },
+    { title: "Documents needing renewal", visualization: "list", source: "documents", width: "half", limit: 8, filters: [tf("expiryStatus", ["Expired", "Expiring soon"])] },
+    { title: "Timesheets that don't match the roster", visualization: "list", source: "timesheets", width: "full", limit: 8, dateWindow: "last30", filters: [tf("rosterMatch", ["Differs from roster", "No linked shift"])] },
+    // Complaints, onboarding and other governance forms.
+    { title: "Form submissions by form (90 days)", visualization: "bar", source: "formSubmissions", aggregation: "count", groupBy: "formName", width: "half", dateWindow: "last90" },
+    { title: "Form submissions over time", visualization: "line", source: "formSubmissions", aggregation: "count", groupBy: "submittedAt", dateGrain: "week", width: "half", dateWindow: "last90" },
+  ],
+}
+
 export const SPACE_TEMPLATES: SpaceTemplate[] = [
+  NDIS_COMPLIANCE_TEMPLATE,
   {
     id: "service-delivery",
     name: "Service delivery overview",
@@ -677,6 +1084,21 @@ export const SPACE_TEMPLATES: SpaceTemplate[] = [
       { title: "Reimbursements", visualization: "metric", source: "reimbursements", aggregation: "sum", measureField: "amount", width: "third" },
       { title: "Invoices by status", visualization: "donut", source: "invoices", aggregation: "count", groupBy: "status", width: "third" },
       { title: "Allocated budget by component", visualization: "bar", source: "clients.budgets", aggregation: "sum", measureField: "allocatedAmount", groupBy: "fundingComponent", width: "full" },
+    ],
+  },
+  {
+    id: "form-responses",
+    name: "Form responses",
+    description: "Submission volume, trends over time, and breakdowns by form and field answers.",
+    icon: "📋",
+    iconColor: "#8B5CF6",
+    widgets: [
+      { title: "Total submissions", visualization: "metric", source: "formSubmissions", aggregation: "count", width: "third" },
+      { title: "Forms by status", visualization: "donut", source: "forms", aggregation: "count", groupBy: "status", width: "third" },
+      { title: "Submissions by form", visualization: "donut", source: "formSubmissions", aggregation: "count", groupBy: "formName", width: "third" },
+      { title: "Submissions over time", visualization: "line", source: "formSubmissions", aggregation: "count", groupBy: "submittedAt", width: "half" },
+      { title: "By submitter", visualization: "bar", source: "formSubmissions", aggregation: "count", groupBy: "submittedByName", width: "half" },
+      { title: "Answers by field", visualization: "bar", source: "formSubmissions.answers", aggregation: "count", groupBy: "answer", segmentBy: "fieldLabel", width: "full" },
     ],
   },
 ]

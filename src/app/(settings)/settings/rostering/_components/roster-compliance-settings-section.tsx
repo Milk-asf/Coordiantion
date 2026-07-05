@@ -6,7 +6,7 @@ import type { ComplianceEnforcement, RosterComplianceSettings } from "@/lib/rost
 const rowClass = "flex items-start justify-between gap-[16px] border-b border-[#f5f5f5] px-[20px] py-[16px] last:border-b-0"
 const labelClass = "text-[14px] font-medium text-folk-text"
 const descriptionClass = "mt-[2px] text-[13px] text-folk-secondary"
-const sectionClass = "rounded-none border border-folk-border-subtle bg-folk-surface"
+const sectionClass = "rounded-[6px] border border-folk-border-subtle bg-folk-surface"
 
 function SettingsRow({
   label,
@@ -41,7 +41,7 @@ function EnforcementSelect({
     <select
       value={value}
       onChange={(event) => onChange(event.target.value as ComplianceEnforcement)}
-      className="h-[36px] min-w-[120px] border border-folk-border bg-folk-page px-[10px] text-[13px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
+      className="h-[36px] min-w-[120px] border border-folk-border bg-white px-[10px] text-[13px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
       aria-label={ariaLabel}
     >
       <option value="off">Off</option>
@@ -91,7 +91,7 @@ export function RosterComplianceSettingsSection({
             max={168}
             value={compliance.progressNoteDeadlineHours}
             onChange={(event) => onChange({ progressNoteDeadlineHours: Number(event.target.value) })}
-            className="h-[36px] w-[72px] border border-folk-border bg-folk-page px-[10px] text-[13px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
+            className="h-[36px] w-[72px] border border-folk-border bg-white px-[10px] text-[13px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
             aria-label="Progress note deadline hours"
           />
         </SettingsRow>
@@ -208,7 +208,7 @@ export function RosterComplianceSettingsSection({
                 max={24}
                 value={compliance.minRestHoursBetweenShifts}
                 onChange={(event) => onChange({ minRestHoursBetweenShifts: Number(event.target.value) })}
-                className="h-[36px] w-[72px] border border-folk-border bg-folk-page px-[10px] text-[13px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
+                className="h-[36px] w-[72px] border border-folk-border bg-white px-[10px] text-[13px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
                 aria-label="Minimum rest hours"
               />
             </SettingsRow>
@@ -223,7 +223,7 @@ export function RosterComplianceSettingsSection({
                 max={24}
                 value={compliance.maxShiftLengthHours}
                 onChange={(event) => onChange({ maxShiftLengthHours: Number(event.target.value) })}
-                className="h-[36px] w-[72px] border border-folk-border bg-folk-page px-[10px] text-[13px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
+                className="h-[36px] w-[72px] border border-folk-border bg-white px-[10px] text-[13px] font-medium text-folk-text outline-none focus:border-[#a3c4f3]"
                 aria-label="Maximum shift length hours"
               />
             </SettingsRow>

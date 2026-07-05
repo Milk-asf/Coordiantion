@@ -36,7 +36,7 @@ export function SuitabilityStatusSelect({
           setIsOpen((current) => !current)
         }}
         className={cn(
-          "inline-flex items-center gap-[6px] rounded-none border border-folk-border bg-folk-surface px-[10px] py-[5px] text-[13px] font-medium transition-colors hover:bg-folk-page",
+          "inline-flex items-center gap-[6px] rounded-[6px] border border-folk-border bg-folk-surface px-[10px] py-[5px] text-[13px] font-medium transition-colors hover:bg-folk-page",
           compact && "px-[8px] py-[4px] text-[12px]",
           disabled && "cursor-not-allowed opacity-60 hover:bg-folk-surface",
           config.selectClassName
@@ -79,7 +79,7 @@ export function SuitabilityDisallowedChip({ className }: { className?: string })
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center rounded-none px-[6px] py-[2px] text-[10px] font-semibold uppercase tracking-[0.04em]",
+        "inline-flex shrink-0 items-center rounded-[6px] px-[6px] py-[2px] text-[10px] font-semibold uppercase tracking-[0.04em]",
         suitabilityStatusConfig.disallowed.chipClassName,
         className
       )}

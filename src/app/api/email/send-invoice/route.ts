@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { sendInvoiceSchema } from "@/lib/validations"
-import { rateLimit, getRateLimitHeaders } from "@/lib/rate-limit"
+import { checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit"
 import type { Invoice } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const rl = rateLimit(`send-invoice:${user.id}`, { maxRequests: 10, windowMs: 60_000 })
+  const rl = await checkRateLimit(`send-invoice:${user.id}`, { maxRequests: 10, windowMs: 60_000 })
   if (!rl.success) {
     return NextResponse.json(
       { error: "Too many requests. Please wait before sending another invoice." },

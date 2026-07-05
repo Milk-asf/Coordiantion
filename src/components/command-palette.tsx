@@ -175,7 +175,7 @@ export function CommandPalette() {
     <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[20vh]">
       <div className={`fixed inset-0 bg-black/40 backdrop-blur-[2px] ${motion.overlayIn}`} onClick={() => setIsOpen(false)} />
 
-      <div className={`relative w-[560px] overflow-hidden rounded-none border border-folk-border bg-folk-surface shadow-2xl ${motion.scaleIn}`}>
+      <div className={`relative w-[560px] overflow-hidden rounded-[6px] border border-folk-border bg-folk-surface shadow-2xl ${motion.scaleIn}`}>
         {/* Search input */}
         <div className="flex items-center gap-[12px] border-b border-folk-border-subtle px-[16px]">
           <Search className="h-[16px] w-[16px] shrink-0 text-folk-secondary" />
@@ -187,7 +187,7 @@ export function CommandPalette() {
             placeholder="Search pages, clients, tasks…"
             className="h-[48px] flex-1 bg-transparent text-[14px] text-folk-text outline-none placeholder:text-folk-placeholder"
           />
-          <kbd className="rounded-none border border-[#d9d9d9] bg-folk-hover px-[6px] py-[2px] text-[11px] text-folk-secondary">esc</kbd>
+          <kbd className="rounded-[6px] border border-[#d9d9d9] bg-folk-hover px-[6px] py-[2px] text-[11px] text-folk-secondary">esc</kbd>
         </div>
 
         {/* Results */}
@@ -215,7 +215,7 @@ export function CommandPalette() {
                     <button
                       key={item.id}
                       onClick={() => handleSelect(item)}
-                      className={`flex w-full items-center gap-[10px] rounded-none px-[12px] py-[10px] text-left transition-colors ${
+                      className={`flex w-full items-center gap-[10px] rounded-[6px] px-[12px] py-[10px] text-left transition-colors ${
                         idx === selectedIndex ? "bg-[#f0f4ff] text-folk-text" : "text-[#555] hover:bg-[#f8f8f8]"
                       }`}
                       tabIndex={-1}

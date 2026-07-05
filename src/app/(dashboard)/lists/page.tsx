@@ -18,7 +18,8 @@ import {
 } from "@/components/workspace-card"
 import { useLists } from "@/lib/lists/context"
 import { getListSource, sortLists, type CustomList } from "@/lib/lists/definitions"
-import { NewListModal, type NewListConfig } from "./_components/new-list-modal"
+import { NewListFlow } from "./_components/new-list-flow"
+import type { NewListConfig } from "./_components/new-list-modal"
 
 function formatDate(value: string): string {
   if (!value) return "—"
@@ -65,19 +66,21 @@ export default function ListsPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <PageTitleBar title="Lists" />
-      <div className="flex h-[44px] shrink-0 items-center justify-end gap-[8px] border-b border-folk-border-subtle bg-white px-[16px]">
-        <button
-          type="button"
-          onClick={() => setIsCreating(true)}
-          className={folkPrimaryAddBtnClass()}
-          tabIndex={0}
-          aria-label="Add new list"
-        >
-          <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-          <span>Add new</span>
-        </button>
-      </div>
+      <PageTitleBar
+        title="Lists"
+        trailing={
+          <button
+            type="button"
+            onClick={() => setIsCreating(true)}
+            className={folkPrimaryAddBtnClass()}
+            tabIndex={0}
+            aria-label="Add new list"
+          >
+            <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+            <span>Add new</span>
+          </button>
+        }
+      />
 
       {lists.length === 0 ? (
         <div className="flex-1 overflow-y-auto bg-folk-surface">
@@ -118,7 +121,7 @@ export default function ListsPage() {
         </>
       )}
 
-      {isCreating && <NewListModal onClose={() => setIsCreating(false)} onCreate={handleCreate} />}
+      {isCreating && <NewListFlow onClose={() => setIsCreating(false)} onCreate={handleCreate} />}
     </div>
   )
 }

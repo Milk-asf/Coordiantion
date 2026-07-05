@@ -45,7 +45,7 @@ export function WorkspaceCard({
       onClick={onClick}
       onKeyDown={handleKeyDown}
       className={cn(
-        "group flex cursor-pointer flex-col overflow-hidden rounded-none border border-[#d9d9d9] bg-white text-left transition-colors hover:border-[#bababa] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a3c4f3]/50",
+        "group flex cursor-pointer flex-col overflow-hidden rounded-[6px] border border-[#d9d9d9] bg-white text-left transition-colors hover:border-[#bababa] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a3c4f3]/50",
         className,
       )}
     >

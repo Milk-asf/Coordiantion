@@ -52,9 +52,9 @@ export function GoalSidebarForm({ goal, onSave, onDelete, onClose, onOpenTask, r
     onSave({ title: title.trim(), goalType, status, achievementStrategies: achievementStrategies.trim(), barriers: barriers.trim() })
   }
 
-  const labelCls = "mb-[4px] block text-[12px] font-medium text-folk-secondary"
-  const inputCls = "h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]"
-  const textareaCls = "min-h-[76px] w-full resize-y rounded-none border border-folk-border bg-folk-page px-[12px] py-[8px] text-[13px] font-medium leading-[1.5] text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]"
+  const labelCls = "mb-[6px] block text-[13px] font-medium text-folk-text"
+  const inputCls = "h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]"
+  const textareaCls = "min-h-[76px] w-full resize-y rounded-[6px] border border-folk-border bg-white px-[12px] py-[8px] text-[13px] font-medium leading-[1.5] text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]"
 
   return (
     <>
@@ -62,7 +62,7 @@ export function GoalSidebarForm({ goal, onSave, onDelete, onClose, onOpenTask, r
         <h2 className="text-[13px] font-semibold text-folk-text">{isEditing ? "Edit goal" : "New goal"}</h2>
         <button
           onClick={onClose}
-          className="flex h-[24px] w-[24px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+          className="flex h-[24px] w-[24px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
           tabIndex={0}
           aria-label="Close goal form"
         >
@@ -92,7 +92,7 @@ export function GoalSidebarForm({ goal, onSave, onDelete, onClose, onOpenTask, r
                   key={type}
                   type="button"
                   onClick={() => setGoalType(type)}
-                  className={`flex h-[36px] flex-1 items-center justify-center rounded-none border text-[13px] font-medium transition-colors ${goalType === type ? "border-[#a3c4f3] bg-[#eef4fd] text-[#2563EB]" : "border-folk-border bg-folk-page text-folk-secondary hover:bg-folk-hover"}`}
+                  className={`flex h-[36px] flex-1 items-center justify-center rounded-[6px] border text-[13px] font-medium transition-colors ${goalType === type ? "border-[#a3c4f3] bg-[#eef4fd] text-[#2563EB]" : "border-folk-border bg-folk-page text-folk-secondary hover:bg-folk-hover"}`}
                   tabIndex={0}
                 >
                   {goalTypeConfig[type].label}
@@ -108,10 +108,10 @@ export function GoalSidebarForm({ goal, onSave, onDelete, onClose, onOpenTask, r
                 ref={statusDropdownRef}
                 type="button"
                 onClick={() => setIsStatusOpen((v) => !v)}
-                className="flex h-[36px] w-full items-center justify-between rounded-none border border-folk-border bg-folk-page px-[12px] text-[13px] font-medium outline-none transition-colors hover:border-[#bababa] focus:border-[#a3c4f3]"
+                className="flex h-[38px] w-full items-center justify-between rounded-[6px] border border-folk-border bg-white px-[12px] text-[13px] font-medium outline-none transition-colors hover:border-[#bababa] focus:border-[#a3c4f3]"
                 tabIndex={0}
               >
-                <span className={`inline-flex h-[24px] items-center whitespace-nowrap rounded-none px-[12px] text-[12px] font-medium ${goalStatusConfig[status].chip}`}>{goalStatusConfig[status].label}</span>
+                <span className={`inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] px-[12px] text-[12px] font-medium ${goalStatusConfig[status].chip}`}>{goalStatusConfig[status].label}</span>
                 <ChevronDown className={`h-[14px] w-[14px] text-folk-secondary transition-transform ${isStatusOpen ? "rotate-180" : ""}`} strokeWidth={1.5} />
               </button>
               <FixedSelectDropdown
@@ -129,7 +129,7 @@ export function GoalSidebarForm({ goal, onSave, onDelete, onClose, onOpenTask, r
                     className="flex w-full items-center px-[10px] py-[6px] text-left transition-colors hover:bg-folk-hover"
                     tabIndex={0}
                   >
-                    <span className={`inline-flex h-[24px] items-center whitespace-nowrap rounded-none px-[12px] text-[12px] font-medium ${goalStatusConfig[s].chip}`}>{goalStatusConfig[s].label}</span>
+                    <span className={`inline-flex h-[24px] items-center whitespace-nowrap rounded-[6px] px-[12px] text-[12px] font-medium ${goalStatusConfig[s].chip}`}>{goalStatusConfig[s].label}</span>
                   </button>
                 ))}
               </FixedSelectDropdown>
@@ -180,7 +180,7 @@ export function GoalSidebarForm({ goal, onSave, onDelete, onClose, onOpenTask, r
                       tabIndex={canOpen ? 0 : undefined}
                       onClick={canOpen ? () => onOpenTask!(lt.taskId) : undefined}
                       onKeyDown={canOpen ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpenTask!(lt.taskId) } } : undefined}
-                      className={`group flex items-center justify-between gap-[8px] rounded-none border border-folk-border-subtle bg-folk-page px-[10px] py-[8px] ${canOpen ? "cursor-pointer transition-colors hover:border-folk-border hover:bg-folk-hover" : ""}`}
+                      className={`group flex items-center justify-between gap-[8px] rounded-[6px] border border-folk-border-subtle bg-folk-page px-[10px] py-[8px] ${canOpen ? "cursor-pointer transition-colors hover:border-folk-border hover:bg-folk-hover" : ""}`}
                     >
                       <div className="flex min-w-0 items-center gap-[8px]">
                         <CheckSquare className={`h-[14px] w-[14px] shrink-0 ${status === "done" ? "text-[#2563EB]" : "text-folk-placeholder"}`} strokeWidth={1.5} />
@@ -213,7 +213,7 @@ export function GoalSidebarForm({ goal, onSave, onDelete, onClose, onOpenTask, r
                 {linkedShifts.map((linkedShift) => (
                   <div
                     key={linkedShift.shiftId}
-                    className="flex items-center justify-between gap-[8px] rounded-none border border-folk-border-subtle bg-folk-page px-[10px] py-[8px]"
+                    className="flex items-center justify-between gap-[8px] rounded-[6px] border border-folk-border-subtle bg-folk-page px-[10px] py-[8px]"
                   >
                     <div className="flex min-w-0 items-center gap-[8px]">
                       <CalendarDays className="h-[14px] w-[14px] shrink-0 text-[#2563EB]" strokeWidth={1.5} />
@@ -254,7 +254,7 @@ export function GoalSidebarForm({ goal, onSave, onDelete, onClose, onOpenTask, r
         <div className="flex items-center gap-[8px]">
           <button
             onClick={onClose}
-            className="rounded-none border border-folk-border bg-folk-surface px-[12px] py-[6px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+            className="rounded-[6px] border border-folk-border bg-folk-surface px-[12px] py-[6px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
             tabIndex={0}
           >
             Cancel
@@ -262,7 +262,7 @@ export function GoalSidebarForm({ goal, onSave, onDelete, onClose, onOpenTask, r
           <button
             onClick={handleSave}
             disabled={!title.trim()}
-            className="primary-btn px-[12px] py-[6px] text-[12px] font-medium transition-colors disabled:opacity-50"
+            className="primary-btn folk-pill-btn h-[32px] px-[14px] text-[13px] font-medium transition-colors disabled:opacity-50"
             tabIndex={0}
           >
             {isEditing ? "Save changes" : "Create goal"}

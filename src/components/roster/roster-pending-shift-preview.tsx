@@ -44,7 +44,7 @@ export function RosterPendingShiftPreview({
   return (
     <div
       className={cn(
-        "pointer-events-none absolute z-[5] overflow-hidden rounded-none border border-dashed border-[var(--primary-color)] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]",
+        "pointer-events-none absolute z-[5] overflow-hidden rounded-[6px] border border-dashed border-[var(--primary-color)] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]",
         className
       )}
       style={{ left, width, top: DAY_VIEW_SHIFT_INSET, height: shiftBlockHeight, maxHeight: shiftBlockHeight }}

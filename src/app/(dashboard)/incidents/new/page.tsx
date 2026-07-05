@@ -23,7 +23,7 @@ export default function NewIncidentPage() {
   const { clients } = useClients()
   const { staff } = useStaff()
   const { currentUserName } = useWorkspace()
-  const { canManageIncidents, userId } = usePermissions()
+  const { canReportIncidents, userId } = usePermissions()
   const { addIncident, isLoading } = useIncidents()
   const { incidentFormId, getForm, addSubmission, isLoading: isFormsLoading } = useForms()
   const [isSaving, setIsSaving] = useState(false)
@@ -36,13 +36,13 @@ export default function NewIncidentPage() {
     return clientId ? [clientId] : []
   }, [searchParams])
 
-  if (!canManageIncidents && !isLoading) {
+  if (!canReportIncidents && !isLoading) {
     return (
       <div className="flex h-full items-center justify-center px-[24px]">
         <EmptyState
           icon={AlertTriangle}
-          title="Admin access required"
-          description="Only workspace admins can report incidents."
+          title="No access"
+          description="You do not have permission to report incidents."
           className="py-[40px]"
         />
       </div>
@@ -91,7 +91,7 @@ export default function NewIncidentPage() {
   return (
     <div className="flex h-full flex-col bg-white">
       <PageTitleBar
-        title={customForm ? customForm.name || "Report incident" : "Report incident"}
+        title="Report incident"
         onBack={() => router.push("/incidents")}
         backLabel="Back to incidents"
       />

@@ -51,7 +51,7 @@ export function ProfileRecordHeader({
       : name
     : ""
 
-  const hasToolbar = Boolean(actions) || metadata.length > 0
+  const hasMetadata = metadata.length > 0
 
   return (
     <>
@@ -60,19 +60,17 @@ export function ProfileRecordHeader({
         onBack={onBack}
         backLabel={backLabel}
         showBack={Boolean(onBack)}
+        trailing={actions ? <div className="flex shrink-0 items-center gap-[12px]">{actions}</div> : undefined}
       />
-      {hasToolbar && (
-        <PageToolbarBar align={metadata.length > 0 ? "between" : "right"}>
-          {metadata.length > 0 ? (
-            <div className="hidden min-w-0 flex-wrap items-center gap-[6px] lg:flex">
-              {metadata.map((item) => (
-                <ProfileMetadataPill key={item.label} icon={item.icon} label={item.label} />
-              ))}
-            </div>
-          ) : null}
-          {actions ? <div className="flex shrink-0 items-center gap-[12px]">{actions}</div> : null}
+      {hasMetadata ? (
+        <PageToolbarBar align="left">
+          <div className="hidden min-w-0 flex-wrap items-center gap-[6px] lg:flex">
+            {metadata.map((item) => (
+              <ProfileMetadataPill key={item.label} icon={item.icon} label={item.label} />
+            ))}
+          </div>
         </PageToolbarBar>
-      )}
+      ) : null}
     </>
   )
 }

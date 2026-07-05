@@ -12,7 +12,8 @@ interface ListAddRecordsDropdownProps {
   memberIds: string[]
   onAdd: (recordId: string) => void
   onAddAll: () => void
-  variant?: "toolbar" | "inline"
+  /** "icon" renders a compact round "+" — used in kanban stage headers. */
+  variant?: "toolbar" | "inline" | "icon"
 }
 
 export function ListAddRecordsDropdown({
@@ -69,15 +70,16 @@ export function ListAddRecordsDropdown({
         onClick={() => setIsOpen((open) => !open)}
         className={cn(
           "flex items-center gap-[6px] transition-colors",
-          variant === "toolbar"
-            ? "outline-btn folk-pill-btn px-[10px] py-[4px] text-[12px] font-medium"
-            : "text-[13px] text-folk-secondary hover:text-folk-text",
+          variant === "toolbar" && "outline-btn folk-pill-btn px-[10px] py-[4px] text-[12px] font-medium",
+          variant === "inline" && "text-[13px] text-folk-secondary hover:text-folk-text",
+          variant === "icon" &&
+            "h-[20px] w-[20px] justify-center rounded-[4px] text-folk-secondary hover:bg-folk-hover hover:text-folk-text",
         )}
         aria-label={`Add ${pluralNoun}`}
         tabIndex={0}
       >
-        <Plus className={cn(variant === "toolbar" ? "h-[13px] w-[13px]" : "h-[14px] w-[14px]")} strokeWidth={1.75} />
-        <span>{variant === "toolbar" ? `Add ${pluralNoun}` : "Add new"}</span>
+        <Plus className={cn(variant === "inline" ? "h-[14px] w-[14px]" : "h-[13px] w-[13px]")} strokeWidth={1.75} />
+        {variant !== "icon" && <span>{variant === "toolbar" ? `Add ${pluralNoun}` : "Add new"}</span>}
       </button>
 
       <FixedSelectDropdown

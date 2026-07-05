@@ -46,7 +46,7 @@ export function ShiftWorkspaceCard({ shift, headerName, headerIconText, onClick,
       onClick={onClick}
       onKeyDown={onClick ? handleKeyDown : undefined}
       className={cn(
-        "flex w-full flex-col overflow-hidden rounded-none border border-[#d9d9d9] bg-white text-left transition-colors",
+        "flex w-full flex-col overflow-hidden rounded-[6px] border border-[#d9d9d9] bg-white text-left transition-colors",
         onClick && "cursor-pointer hover:border-[#bababa] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a3c4f3]/50",
         className,
       )}

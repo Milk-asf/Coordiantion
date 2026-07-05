@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import type { Client, StaffMember } from "@/lib/types"
 import type { IncidentInput } from "@/lib/incidents-context"
 import { INCIDENT_CATEGORIES, getDefaultReportableForCategory } from "@/lib/incident-definitions"
@@ -125,8 +126,36 @@ export function IncidentCustomForm({
 }: IncidentCustomFormProps) {
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({})
   const [errors, setErrors] = useState<Set<string>>(new Set())
+  const [pageIndex, setPageIndex] = useState(0)
 
-  const fields = form.schema.fields
+  const { steps, fields } = form.schema
+
+  // Same virtual-page model as the forms preview: no steps = one page.
+  const pages = useMemo(
+    () => (steps.length ? steps : [{ id: "__all__", title: "" }]),
+    [steps],
+  )
+
+  const questionNumbers = useMemo(() => {
+    if (!form.settings.showQuestionNumbers) return {} as Record<string, number>
+    const map: Record<string, number> = {}
+    let counter = 0
+    for (const field of fields) {
+      if (isContentField(field.type)) continue
+      counter += 1
+      map[field.id] = counter
+    }
+    return map
+  }, [fields, form.settings.showQuestionNumbers])
+
+  const getPageFields = (pageId: string): FormField[] => {
+    if (!steps.length) return fields
+    return fields.filter((field) => (field.stepId ?? steps[0].id) === pageId)
+  }
+
+  const currentPage = pages[Math.min(pageIndex, pages.length - 1)]
+  const pageFields = getPageFields(currentPage.id)
+  const isLastPage = pageIndex >= pages.length - 1
 
   const setAnswer = (fieldId: string, value: AnswerValue) => {
     setAnswers((prev) => ({ ...prev, [fieldId]: value }))
@@ -146,44 +175,90 @@ export function IncidentCustomForm({
     return Boolean(value && String(value).trim())
   }
 
-  const requiredFields = useMemo(
-    () => fields.filter((field) => !isContentField(field.type) && field.required),
-    [fields],
-  )
+  const validatePage = (): boolean => {
+    const missing = pageFields.filter((field) => !isContentField(field.type) && field.required && !isAnswered(field))
+    if (missing.length === 0) return true
+    setErrors(new Set(missing.map((field) => field.id)))
+    document.getElementById(`field-${missing[0].id}`)?.scrollIntoView({ behavior: "smooth", block: "center" })
+    return false
+  }
 
-  const handleSubmit = async () => {
-    const missing = requiredFields.filter((field) => !isAnswered(field))
-    if (missing.length > 0) {
-      setErrors(new Set(missing.map((field) => field.id)))
-      const firstMissing = fields.find((field) => missing.some((m) => m.id === field.id))
-      if (firstMissing) {
-        document.getElementById(`field-${firstMissing.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" })
-      }
+  const handleNext = async () => {
+    if (!validatePage()) return
+    if (!isLastPage) {
+      setPageIndex((index) => index + 1)
       return
     }
     const input = buildIncidentInput(form, answers, clients, staff, initialClientIds)
     await onSubmit(input, answers as Record<string, unknown>)
   }
 
+  const handleBack = () => setPageIndex((index) => Math.max(0, index - 1))
+
   return (
     <div className="flex h-full flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-[760px] px-[24px] py-[28px]">
-          {form.settings.showFormDescription && form.description && (
-            <p className="mb-[20px] text-[13px] leading-[1.6] text-folk-secondary">{form.description}</p>
+        <div className="mx-auto w-full max-w-[560px] px-[24px] py-[28px]">
+          {form.settings.showCover && (
+            <div
+              className="mb-[16px] h-[120px] rounded-[8px] bg-folk-hover"
+              style={
+                form.settings.coverImage
+                  ? { backgroundImage: `url(${form.settings.coverImage})`, backgroundSize: "cover", backgroundPosition: "center" }
+                  : { backgroundColor: form.settings.coverColor }
+              }
+            />
           )}
 
-          <div className="flex flex-col gap-[18px]">
-            {fields.length === 0 ? (
-              <p className="text-[13px] text-folk-tertiary">This form has no fields yet.</p>
+          <div className="flex items-center gap-[10px]">
+            {form.settings.showIcon && <span className="text-[24px]">{form.icon}</span>}
+            <h1 className="text-[22px] font-bold text-folk-text">{form.name || "Report incident"}</h1>
+          </div>
+          {form.settings.showFormDescription && form.description && (
+            <p className="mt-[6px] text-[13px] leading-[1.6] text-folk-secondary">{form.description}</p>
+          )}
+
+          {pages.length > 1 && (
+            <div className="mt-[16px] flex items-center gap-[8px]">
+              {pages.map((page, index) => (
+                <button
+                  key={page.id}
+                  type="button"
+                  onClick={() => form.settings.allowStepNavigation && setPageIndex(index)}
+                  disabled={!form.settings.allowStepNavigation}
+                  className={cn(
+                    "flex items-center gap-[6px] text-[12px] transition-colors",
+                    index === pageIndex ? "font-semibold text-folk-text" : "text-folk-tertiary",
+                    form.settings.allowStepNavigation && "hover:text-folk-text",
+                  )}
+                  tabIndex={0}
+                >
+                  <span
+                    className={cn(
+                      "flex h-[18px] w-[18px] items-center justify-center rounded-full text-[10px]",
+                      index === pageIndex ? "bg-folk-text text-white" : "bg-folk-hover text-folk-secondary",
+                    )}
+                  >
+                    {index + 1}
+                  </span>
+                  {page.title}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-[20px] flex flex-col gap-[18px]">
+            {pageFields.length === 0 ? (
+              <p className="text-[13px] text-folk-tertiary">This {pages.length > 1 ? "step" : "form"} has no fields yet.</p>
             ) : (
-              fields.map((field) => (
+              pageFields.map((field) => (
                 <div key={field.id} id={`field-${field.id}`}>
                   <FieldRenderer
                     field={field}
                     value={answers[field.id] ?? null}
                     onChange={(value) => setAnswer(field.id, value)}
                     hasError={errors.has(field.id)}
+                    number={questionNumbers[field.id]}
                   />
                 </div>
               ))
@@ -192,25 +267,38 @@ export function IncidentCustomForm({
         </div>
       </div>
 
-      <div className="flex h-[60px] shrink-0 items-center justify-between border-t border-folk-border bg-white px-[24px]">
+      <div className="flex h-[60px] shrink-0 items-center justify-between border-t border-folk-border-subtle bg-white px-[24px]">
+        {pageIndex === 0 ? (
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-[6px] px-[12px] py-[7px] text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+            tabIndex={0}
+          >
+            Cancel
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleBack}
+            className="flex items-center gap-[6px] rounded-[6px] px-[12px] py-[7px] text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+            tabIndex={0}
+          >
+            <ChevronLeft className="h-[14px] w-[14px]" strokeWidth={1.75} />
+            Back
+          </button>
+        )}
         <button
           type="button"
-          onClick={onClose}
-          className="rounded-[6px] px-[12px] py-[7px] text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
-          tabIndex={0}
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={handleSubmit}
+          onClick={handleNext}
           disabled={isSaving}
-          className={cn(
-            "rounded-[6px] bg-folk-text px-[16px] py-[8px] text-[13px] font-medium text-white transition-colors hover:bg-black disabled:opacity-60",
-          )}
+          className="flex items-center gap-[6px] rounded-[6px] bg-folk-text px-[14px] py-[7px] text-[13px] font-medium text-white transition-colors hover:bg-black disabled:opacity-60"
           tabIndex={0}
         >
-          {isSaving ? "Submitting…" : "Submit report"}
+          {isLastPage
+            ? isSaving ? "Submitting…" : form.settings.submitButtonText || "Submit report"
+            : "Next"}
+          {!isLastPage && <ChevronRight className="h-[14px] w-[14px]" strokeWidth={1.75} />}
         </button>
       </div>
     </div>

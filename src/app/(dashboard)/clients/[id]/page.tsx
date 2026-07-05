@@ -21,6 +21,7 @@ import { useDocuments } from "@/lib/hooks/use-documents"
 import { useCarePlans, getCarePlanFolder } from "@/lib/hooks/use-care-plans"
 import { useNotes } from "@/lib/hooks/use-notes"
 import { useIncidents } from "@/lib/hooks/use-incidents"
+import { useListReturnBack } from "@/lib/lists/list-return"
 import { useWorkspace } from "@/lib/workspace-context"
 import type { ParticipantDetails, Document, Budget, BudgetLineItem, BudgetPeriod, BudgetReleasePeriod, ActivityEntry, ClientGoal, Attachment, Note, SpendingPlan } from "@/lib/types"
 import { DocumentPreview } from "@/components/document-preview"
@@ -116,6 +117,10 @@ export default function ParticipantProfilePage() {
   const params = useParams()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { onBack: handleProfileBack, backLabel: profileBackLabel } = useListReturnBack({
+    path: "/clients",
+    label: "Back to clients",
+  })
   const { isVisible: isSaved, showSaved } = useSaveIndicator()
   const initialTabRaw = searchParams.get("tab") || "overview"
   const initialTab = initialTabRaw === "plan" ? "budgets" : initialTabRaw
@@ -1267,8 +1272,8 @@ export default function ParticipantProfilePage() {
       <div ref={headerRef} className="flex shrink-0 flex-col bg-white">
         <ProfileRecordHeader
           name={client.displayName}
-          onBack={() => router.push("/clients")}
-          backLabel="Back to clients"
+          onBack={handleProfileBack}
+          backLabel={profileBackLabel}
           actions={
             <>
               <SaveIndicator isVisible={isSaved} />
@@ -1343,7 +1348,7 @@ export default function ParticipantProfilePage() {
               <>
                 <div className="fixed inset-0 z-[48]" onClick={resetQuickAdd} />
                 <div
-                  className="fixed z-[49] w-[520px] rounded-none border border-folk-border bg-folk-surface shadow-[0_8px_30px_rgba(0,0,0,0.12)]"
+                  className="fixed z-[49] w-[520px] rounded-[6px] border border-folk-border bg-folk-surface shadow-[0_8px_30px_rgba(0,0,0,0.12)]"
                   style={(() => {
                     const rect = headerRef.current?.getBoundingClientRect()
                     if (!rect) return {}
@@ -1372,7 +1377,7 @@ export default function ParticipantProfilePage() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-[6px] px-[16px] pb-[4px] pt-[10px]">
-                    <div className="flex items-center gap-[5px] rounded-none border border-folk-border bg-folk-hover px-[8px] py-[3px]">
+                    <div className="flex items-center gap-[5px] rounded-[6px] border border-folk-border bg-folk-hover px-[8px] py-[3px]">
                       <Building2 className="h-[12px] w-[12px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
                       <span className="text-[12px] font-medium text-folk-text">{client.displayName}</span>
                     </div>
@@ -1392,7 +1397,7 @@ export default function ParticipantProfilePage() {
                         }
                         return (
                           <>
-                            <div className={`flex items-center gap-[5px] rounded-none border px-[8px] py-[3px] transition-colors ${quickActiveField === "assignee" ? "border-blue-400" : "border-folk-border"}`}>
+                            <div className={`flex items-center gap-[5px] rounded-[6px] border px-[8px] py-[3px] transition-colors ${quickActiveField === "assignee" ? "border-blue-400" : "border-folk-border"}`}>
                               <User className={`h-[12px] w-[12px] shrink-0 ${quickAssignee ? "text-folk-secondary" : "text-[#ccc]"}`} strokeWidth={1.5} />
                               <input
                                 ref={quickAssigneeInputRef}
@@ -1436,7 +1441,7 @@ export default function ParticipantProfilePage() {
                             {isQuickAssigneeOpen && (
                               <>
                                 <div className="fixed inset-0 z-[59]" onClick={() => { setIsQuickAssigneeOpen(false); setQuickAssigneeIdx(-1); setQuickAssigneeSearch("") }} />
-                                <div ref={quickAssigneeListRef} className="absolute left-0 top-full z-[60] mt-[4px] max-h-[200px] w-[220px] overflow-y-auto rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk">
+                                <div ref={quickAssigneeListRef} className="absolute left-0 top-full z-[60] mt-[4px] max-h-[200px] w-[220px] overflow-y-auto rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk">
                                   {filteredStaff.length === 0 ? (
                                     <div className="px-[12px] py-[7px] text-[12px] font-medium text-folk-secondary">No matches</div>
                                   ) : (
@@ -1481,7 +1486,7 @@ export default function ParticipantProfilePage() {
                         }
                         return (
                           <>
-                            <div className={`flex items-center gap-[5px] rounded-none border px-[8px] py-[3px] transition-colors ${quickActiveField === "charge" ? "border-blue-400" : "border-folk-border"}`}>
+                            <div className={`flex items-center gap-[5px] rounded-[6px] border px-[8px] py-[3px] transition-colors ${quickActiveField === "charge" ? "border-blue-400" : "border-folk-border"}`}>
                               <Tag className={`h-[12px] w-[12px] shrink-0 ${quickCharge ? "text-folk-secondary" : "text-[#ccc]"}`} strokeWidth={1.5} />
                               <input
                                 ref={quickChargeInputRef}
@@ -1525,7 +1530,7 @@ export default function ParticipantProfilePage() {
                             {isQuickChargeOpen && (
                               <>
                                 <div className="fixed inset-0 z-[59]" onClick={() => { setIsQuickChargeOpen(false); setQuickChargeIdx(-1); setQuickChargeSearch("") }} />
-                                <div ref={quickChargeListRef} className="absolute left-0 top-full z-[60] mt-[4px] max-h-[220px] w-[200px] overflow-y-auto rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk">
+                                <div ref={quickChargeListRef} className="absolute left-0 top-full z-[60] mt-[4px] max-h-[220px] w-[200px] overflow-y-auto rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk">
                                   {filteredCharges.length === 0 ? (
                                     <div className="px-[12px] py-[7px] text-[12px] font-medium text-folk-secondary">No matches</div>
                                   ) : (
@@ -1549,7 +1554,7 @@ export default function ParticipantProfilePage() {
                       })()}
                     </div>
 
-                    <div className="flex items-center gap-[5px] rounded-none border border-folk-border px-[8px] py-[4px]">
+                    <div className="flex items-center gap-[5px] rounded-[6px] border border-folk-border px-[8px] py-[4px]">
                       <Clock className={`h-[12px] w-[12px] ${quickTime ? "text-folk-secondary" : "text-[#ccc]"}`} strokeWidth={1.5} />
                       <input
                         ref={quickTimeRef}
@@ -1570,7 +1575,7 @@ export default function ParticipantProfilePage() {
                   <div className="flex items-center justify-between border-t border-folk-border-subtle px-[16px] py-[10px]">
                     <span className="text-[11px] font-medium text-[#ccc]">Enter ↵ next · Esc close</span>
                     <div className="flex items-center gap-[6px]">
-                      <button type="button" onClick={resetQuickAdd} className="rounded-none px-[8px] py-[4px] text-[12px] font-medium text-folk-secondary transition-colors hover:bg-[var(--folk-border-subtle)]" tabIndex={0}>Cancel</button>
+                      <button type="button" onClick={resetQuickAdd} className="rounded-[6px] px-[8px] py-[4px] text-[12px] font-medium text-folk-secondary transition-colors hover:bg-[var(--folk-border-subtle)]" tabIndex={0}>Cancel</button>
                       <button type="button" onClick={handleQuickFinish} disabled={!quickTitle.trim()} className="primary-btn px-[12px] py-[4px] text-[12px] font-medium transition-colors disabled:opacity-40" tabIndex={0}>Create</button>
                     </div>
                   </div>
@@ -1934,7 +1939,7 @@ export default function ParticipantProfilePage() {
       {isAddContactOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/20" onClick={() => { setIsAddContactOpen(false); setIsRelationshipOpen(false); setNewContact({ firstName: "", email: "", phone: "", relationship: "" }) }} />
-          <div className="relative z-10 w-[440px] rounded-none bg-folk-surface shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+          <div className="relative z-10 w-[440px] rounded-[6px] bg-folk-surface shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
             <div className="flex items-center justify-between px-[24px] pt-[20px]">
               <div className="flex items-center gap-[8px]">
                 <UserPlus className="h-[16px] w-[16px] text-[#555]" strokeWidth={1.5} />
@@ -1942,7 +1947,7 @@ export default function ParticipantProfilePage() {
               </div>
               <button
                 onClick={() => { setIsAddContactOpen(false); setIsRelationshipOpen(false); setNewContact({ firstName: "", email: "", phone: "", relationship: "" }) }}
-                className="flex h-[28px] w-[28px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+                className="flex h-[28px] w-[28px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
                 tabIndex={0}
                 aria-label="Close"
               >
@@ -1953,7 +1958,7 @@ export default function ParticipantProfilePage() {
             <div className="px-[24px] pb-[20px] pt-[16px]">
               <div className="mb-[14px]">
                 <label className="mb-[4px] block text-[12px] font-medium text-folk-secondary">Account</label>
-                <div className="flex h-[36px] items-center rounded-none border border-folk-border bg-folk-page px-[10px]">
+                <div className="flex h-[36px] items-center rounded-[6px] border border-folk-border bg-folk-page px-[10px]">
                   <div className="flex items-center gap-[6px]">
                     <ClientIcon client={client} size="sm" />
                     <span className="text-[13px] font-medium text-folk-text">{client.displayName}</span>
@@ -1968,7 +1973,7 @@ export default function ParticipantProfilePage() {
                   placeholder="Full name"
                   value={newContact.firstName}
                   onChange={(e) => setNewContact({ ...newContact, firstName: e.target.value })}
-                  className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[10px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3]"
+                  className="h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[10px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3]"
                 />
               </div>
 
@@ -1979,7 +1984,7 @@ export default function ParticipantProfilePage() {
                   placeholder="name@company.com"
                   value={newContact.email}
                   onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
-                  className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[10px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3]"
+                  className="h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[10px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3]"
                 />
               </div>
 
@@ -1990,7 +1995,7 @@ export default function ParticipantProfilePage() {
                   placeholder="Phone number"
                   value={newContact.phone}
                   onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
-                  className="h-[36px] w-full rounded-none border border-folk-border bg-folk-page px-[10px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3]"
+                  className="h-[38px] w-full rounded-[6px] border border-folk-border bg-white px-[10px] text-[13px] font-medium text-folk-text placeholder:text-folk-placeholder outline-none transition-colors focus:border-[#a3c4f3]"
                 />
               </div>
 
@@ -2000,7 +2005,7 @@ export default function ParticipantProfilePage() {
                   ref={relationshipRef}
                   type="button"
                   onClick={() => setIsRelationshipOpen(!isRelationshipOpen)}
-                  className="flex h-[36px] w-full items-center justify-between rounded-none border border-folk-border bg-folk-page px-[10px] text-[13px] font-medium outline-none transition-colors focus:border-[#a3c4f3]"
+                  className="flex h-[38px] w-full items-center justify-between rounded-[6px] border border-folk-border bg-white px-[10px] text-[13px] font-medium outline-none transition-colors focus:border-[#a3c4f3]"
                   tabIndex={0}
                 >
                   {newContact.relationship ? (

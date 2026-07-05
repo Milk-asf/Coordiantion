@@ -72,7 +72,7 @@ export function TableMultiFilter({
           onClose={() => setIsFilterMenuOpen(false)}
           estimatedHeight={filters.length * 36 + 40}
           minWidth={200}
-          className="py-[4px] bg-white shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+          className="py-[4px] bg-folk-surface shadow-folk-sm"
         >
           <p className="px-[16px] py-[6px] text-[11px] font-normal text-folk-secondary">Filter by</p>
           {filters.map((item) => {
@@ -122,7 +122,7 @@ export function TableMultiFilter({
             <button
               type="button"
               onClick={() => onChange(filter.key, [])}
-              className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-none text-folk-secondary transition-colors hover:text-folk-text"
+              className="ml-[2px] flex h-[16px] w-[16px] items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:text-folk-text"
               tabIndex={0}
               aria-label={`Clear ${filter.label.toLowerCase()} filter`}
             >
@@ -227,7 +227,7 @@ function FilterValueDropdown({
         <button
           type="button"
           onClick={onClear}
-          className="w-full rounded-none px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+          className="w-full rounded-[6px] px-[8px] py-[6px] text-left text-[13px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
           tabIndex={0}
         >
           Clear

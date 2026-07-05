@@ -25,10 +25,10 @@ export const EMPTY_PROGRESS_NOTE_DRAFT: ProgressNoteDraft = {
   signature: "",
 }
 
-const FORM_LABEL_CLASS = "mb-[4px] block text-[12px] font-medium text-folk-secondary"
+const FORM_LABEL_CLASS = "mb-[6px] block text-[13px] font-medium text-folk-text"
 const HINT_CLASS = "mb-[6px] text-[11px] leading-snug text-folk-secondary"
 const TEXTAREA_CLASS =
-  "min-h-[84px] w-full resize-y rounded-none border border-folk-border bg-folk-page px-[12px] py-[8px] text-[13px] font-medium leading-[1.5] text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]"
+  "min-h-[84px] w-full resize-y rounded-[6px] border border-folk-border bg-white px-[12px] py-[8px] text-[13px] font-medium leading-[1.5] text-folk-text outline-none placeholder:text-folk-placeholder hover:border-[#bababa] focus:border-[#a3c4f3]"
 
 interface ShiftProgressNoteEditorProps {
   value: ProgressNoteDraft
@@ -104,7 +104,7 @@ export function ShiftProgressNoteEditor({
 
   return (
     <div className="space-y-[16px]">
-      <div className="flex items-start gap-[8px] rounded-none border border-folk-border-subtle bg-folk-page px-[12px] py-[10px]">
+      <div className="flex items-start gap-[8px] rounded-[6px] border border-folk-border-subtle bg-folk-page px-[12px] py-[10px]">
         <ClipboardList className="mt-[1px] h-[14px] w-[14px] shrink-0 text-folk-secondary" strokeWidth={1.75} />
         <p className="text-[12px] leading-snug text-folk-secondary">
           Progress note for <span className="font-semibold text-folk-text">{clientName || "this participant"}</span>.
@@ -141,7 +141,7 @@ export function ShiftProgressNoteEditor({
 
       <label
         className={cn(
-          "flex cursor-pointer items-start gap-[10px] rounded-none border px-[12px] py-[10px] transition-colors",
+          "flex cursor-pointer items-start gap-[10px] rounded-[6px] border px-[12px] py-[10px] transition-colors",
           value.incidentOccurred
             ? "border-amber-300 bg-amber-50"
             : "border-folk-border-subtle bg-folk-page hover:border-[#bababa]",

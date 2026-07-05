@@ -47,7 +47,7 @@ export function ProfileNotesTab({ notes, onOpenNote, onCreateNote, isCreating = 
                     tabIndex={0}
                     onClick={() => onOpenNote(note.id)}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpenNote(note.id) } }}
-                    className="group flex min-h-[150px] cursor-pointer flex-col rounded-none border border-[#d9d9d9] bg-folk-surface p-[18px] text-left transition-all hover:border-folk-border hover:shadow-sm"
+                    className="group flex min-h-[150px] cursor-pointer flex-col rounded-[6px] border border-[#d9d9d9] bg-folk-surface p-[18px] text-left transition-all hover:border-folk-border hover:shadow-sm"
                   >
                     <p className="truncate text-[14px] font-semibold text-folk-text">{note.title || "Untitled"}</p>
                     <p className="mt-[6px] line-clamp-4 flex-1 text-[13px] leading-[1.5] text-folk-secondary">{preview || "No content yet"}</p>

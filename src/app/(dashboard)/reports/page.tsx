@@ -64,19 +64,21 @@ export default function AnalyticsPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <PageTitleBar title="Reports" />
-      <div className="flex h-[44px] shrink-0 items-center justify-end gap-[8px] border-b border-folk-border-subtle bg-white px-[16px]">
-        <button
-          type="button"
-          onClick={() => setIsChooserOpen(true)}
-          className={folkPrimaryAddBtnClass()}
-          tabIndex={0}
-          aria-label="Add new"
-        >
-          <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-          <span>Add new</span>
-        </button>
-      </div>
+      <PageTitleBar
+        title="Reports"
+        trailing={
+          <button
+            type="button"
+            onClick={() => setIsChooserOpen(true)}
+            className={folkPrimaryAddBtnClass()}
+            tabIndex={0}
+            aria-label="Add new"
+          >
+            <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
+            <span>Add new</span>
+          </button>
+        }
+      />
 
       {spaces.length === 0 ? (
         <div className="flex-1 overflow-y-auto bg-folk-surface">

@@ -56,7 +56,7 @@ export function ProfileTabOverflowMenu({
           <div className={cn("fixed inset-0", FIXED_DROPDOWN_BACKDROP_Z_CLASS)} onClick={onClose} />
           <div
             className={cn(
-              "fixed w-[180px] overflow-hidden rounded-none border border-folk-border bg-folk-surface py-[4px] shadow-folk",
+              "fixed w-[180px] overflow-hidden rounded-[6px] border border-folk-border bg-folk-surface py-[4px] shadow-folk",
               FIXED_DROPDOWN_MENU_Z_CLASS
             )}
             style={menuStyle}

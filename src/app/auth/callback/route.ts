@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import type { EmailOtpType } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/server"
-import { createAdminClient } from "@/lib/supabase/admin"
+import { activateInvitedMemberships } from "@/lib/invites/accept"
 
 function safeNext(raw: string | null, fallback = ""): string {
   if (raw && raw.startsWith("/") && !raw.startsWith("//")) return raw
@@ -46,29 +46,13 @@ export async function GET(request: Request) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  let isInvitedMember = false
-
-  if (user?.email) {
-    const adminClient = createAdminClient()
-    if (adminClient) {
-      const { data: pending } = await adminClient
-        .from("workspace_members")
-        .select("id")
-        .eq("invited_email", user.email)
-        .is("user_id", null)
-        .limit(1)
-        .maybeSingle()
-
-      if (pending) {
-        isInvitedMember = true
-        await adminClient
-          .from("workspace_members")
-          .update({ user_id: user.id, status: "active" })
-          .eq("invited_email", user.email)
-          .is("user_id", null)
-      }
-    }
-  }
+  // Claim any pending invitations. This must also match membership rows the
+  // invite API already linked to this user (it sets user_id when the auth
+  // account is created at invite time) — matching only user_id-is-null rows
+  // left invited members stuck on "invited" and routed into onboarding.
+  const isInvitedMember = user
+    ? (await activateInvitedMemberships(user.email, user.id)) > 0
+    : false
 
   // Invited members skip onboarding (workspace already exists; mark complete)
   // then go through the branded create-password flow before entering the app.

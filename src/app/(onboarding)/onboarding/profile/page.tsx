@@ -190,7 +190,7 @@ export default function OnboardingProfilePage() {
         )}
 
         {error && (
-          <p className="rounded-none bg-red-50 px-[12px] py-[8px] text-[12px] font-medium text-red-600">
+          <p className="rounded-[6px] bg-red-50 px-[12px] py-[8px] text-[12px] font-medium text-red-600">
             {error}
           </p>
         )}

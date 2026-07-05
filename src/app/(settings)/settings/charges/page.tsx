@@ -42,7 +42,7 @@ export default function NdisPriceBookSettingsPage() {
       {activeTab === "price-book-import" && <PriceBookImportTab />}
 
       {activeTab === "settings" && (
-        <div className="rounded-none border border-folk-border-subtle bg-folk-page px-[24px] py-[48px] text-center">
+        <div className="rounded-[6px] border border-folk-border-subtle bg-folk-page px-[24px] py-[48px] text-center">
           <p className="text-[14px] font-medium text-folk-text">Provider settings</p>
           <p className="mt-[6px] text-[13px] text-folk-secondary">
             Provider identification and claiming defaults will be configured here in a later step.

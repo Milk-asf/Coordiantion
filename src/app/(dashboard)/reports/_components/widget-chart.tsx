@@ -1,17 +1,23 @@
 "use client"
 
-import { BarChart3 } from "lucide-react"
+import { useMemo } from "react"
+import { useRouter } from "next/navigation"
+import { ArrowUpRight, BarChart3 } from "lucide-react"
 import { getFolkMetricColor } from "@/components/folk-metrics/folk-metric-colors"
 import { formatMeasure, type WidgetComputation } from "@/lib/analytics/compute"
-import type { AnalyticsWidget } from "@/lib/analytics/definitions"
+import { getDataSource, getListMeta, type AnalyticsWidget } from "@/lib/analytics/definitions"
+import { cn } from "@/lib/utils"
 
 interface WidgetChartProps {
   widget: AnalyticsWidget
   computation: WidgetComputation
+  /** When false (builder preview), record-list rows don't navigate. */
+  interactive?: boolean
 }
 
-export function WidgetChart({ widget, computation }: WidgetChartProps) {
+export function WidgetChart({ widget, computation, interactive = true }: WidgetChartProps) {
   if (widget.visualization === "metric") return <MetricChart computation={computation} />
+  if (widget.visualization === "list") return <ListChart widget={widget} computation={computation} interactive={interactive} />
 
   if (computation.isEmpty) return <ChartEmpty />
 
@@ -241,6 +247,104 @@ function FunnelChart({ computation }: WidgetChartProps) {
           </div>
         )
       })}
+    </div>
+  )
+}
+
+const LIST_ROW_CAP = 50
+
+function ListChart({ widget, computation, interactive }: { widget: AnalyticsWidget; computation: WidgetComputation; interactive: boolean }) {
+  const router = useRouter()
+  const entity = getDataSource(widget.source)
+  const meta = getListMeta(entity)
+
+  const rows = useMemo(() => {
+    const sorted = [...computation.records]
+    if (meta.getDate) {
+      const direction = meta.dateSort === "asc" ? 1 : -1
+      sorted.sort((a, b) => {
+        const dateA = meta.getDate!(a)
+        const dateB = meta.getDate!(b)
+        if (!dateA && !dateB) return 0
+        // Records without a date sink to the bottom either way.
+        if (!dateA) return 1
+        if (!dateB) return -1
+        return dateA.localeCompare(dateB) * direction
+      })
+    }
+    return sorted
+  }, [computation.records, meta])
+
+  if (rows.length === 0) return <ChartEmpty />
+
+  const limit = widget.limit > 0 ? widget.limit : LIST_ROW_CAP
+  const visible = rows.slice(0, limit)
+  const hasLinks = Boolean(meta.getHref)
+
+  const handleOpen = (record: unknown) => {
+    if (!interactive) return
+    const href = meta.getHref?.(record)
+    if (href) router.push(href)
+  }
+
+  return (
+    <div className="flex min-h-[160px] flex-col">
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-[12px]">
+          <thead>
+            <tr className="border-b border-folk-border-subtle text-left text-[11px] font-medium uppercase tracking-wide text-folk-tertiary">
+              {meta.columns.map((column) => (
+                <th key={column.key} className="whitespace-nowrap py-[6px] pr-[12px] font-medium last:pr-0">
+                  {column.label}
+                </th>
+              ))}
+              {hasLinks && <th className="w-[20px] py-[6px]" aria-label="Open record" />}
+            </tr>
+          </thead>
+          <tbody>
+            {visible.map((record, index) => {
+              const href = meta.getHref?.(record) ?? null
+              const clickable = interactive && Boolean(href)
+              return (
+                <tr
+                  key={index}
+                  onClick={() => handleOpen(record)}
+                  className={cn(
+                    "group/row border-b border-folk-border-subtle last:border-0",
+                    clickable && "cursor-pointer transition-colors hover:bg-folk-hover",
+                  )}
+                  title={clickable ? "Open record" : undefined}
+                >
+                  {meta.columns.map((column, columnIndex) => (
+                    <td
+                      key={column.key}
+                      className={cn(
+                        "max-w-[220px] truncate py-[7px] pr-[12px] last:pr-0",
+                        columnIndex === 0 ? "font-medium text-folk-text" : "text-folk-secondary",
+                      )}
+                      title={column.get(record)}
+                    >
+                      {column.get(record)}
+                    </td>
+                  ))}
+                  {hasLinks && (
+                    <td className="py-[7px] text-right">
+                      {href ? (
+                        <ArrowUpRight className="ml-auto h-[13px] w-[13px] text-folk-placeholder opacity-0 transition-opacity group-hover/row:opacity-100" strokeWidth={1.75} />
+                      ) : null}
+                    </td>
+                  )}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+      {rows.length > visible.length && (
+        <p className="pt-[8px] text-[11px] font-medium text-folk-tertiary">
+          Showing {visible.length} of {rows.length} {entity.noun}
+        </p>
+      )}
     </div>
   )
 }

@@ -17,6 +17,7 @@ import {
   type Form,
   type FormProcessKey,
 } from "@/lib/form-definitions"
+import { useListReturnBack } from "@/lib/lists/list-return"
 import { cn } from "@/lib/utils"
 import { FormBuilder } from "../_components/form-builder"
 import { FormPreviewModal } from "../_components/form-preview"
@@ -166,13 +167,18 @@ export default function FormWorkspacePage() {
     toast("Form moved to draft", "success")
   }, [isSaving, persist, reconcileProcessBinding, toast])
 
+  const { onBack: handleListReturnBack, backLabel: listReturnBackLabel, listReturnPath } = useListReturnBack({
+    path: "/forms",
+    label: "Back to forms",
+  })
+
   const handleBack = useCallback(async () => {
     if (dirtyRef.current && formRef.current) {
       await persist(formRef.current)
       await reconcileProcessBinding(formRef.current)
     }
-    router.push("/forms")
-  }, [persist, reconcileProcessBinding, router])
+    router.push(listReturnPath ?? "/forms")
+  }, [persist, reconcileProcessBinding, router, listReturnPath])
 
   useEffect(() => {
     ensureSubmissionsLoaded(params.id)
@@ -223,7 +229,7 @@ export default function FormWorkspacePage() {
   if (!workingForm) {
     return (
       <div className="flex h-full flex-col">
-        <PageTitleBar title="Forms" onBack={() => router.push("/forms")} backLabel="Back to forms" />
+        <PageTitleBar title="Forms" onBack={handleListReturnBack} backLabel={listReturnBackLabel} />
         <div className="flex flex-1 items-center justify-center">
           <EmptyState
             icon={LayoutTemplate}
@@ -289,7 +295,7 @@ export default function FormWorkspacePage() {
     <div className="flex h-full flex-col">
       <PageTitleBar
         onBack={handleBack}
-        backLabel="Back to forms"
+        backLabel={listReturnBackLabel}
         title={
           <input
             value={workingForm.name}

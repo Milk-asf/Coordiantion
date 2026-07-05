@@ -222,7 +222,7 @@ export function SidebarCheckInField({
         ref={triggerRef}
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full items-center justify-between gap-[8px] rounded-none px-[6px] py-[4px] text-[13px] font-medium transition-colors hover:bg-folk-hover"
+        className="flex w-full items-center justify-between gap-[8px] rounded-[6px] px-[6px] py-[4px] text-[13px] font-medium transition-colors hover:bg-folk-hover"
         tabIndex={0}
         aria-label="Set check-in cadence and start date"
       >
@@ -246,7 +246,7 @@ export function SidebarCheckInField({
                     )
                   : undefined)
               }
-              className={`fixed ${FIXED_DROPDOWN_MENU_Z_CLASS} w-[240px] overflow-y-auto overscroll-contain rounded-none border border-folk-border bg-folk-surface shadow-[0_4px_16px_rgba(0,0,0,0.1)]`}
+              className={`fixed ${FIXED_DROPDOWN_MENU_Z_CLASS} w-[240px] overflow-y-auto overscroll-contain rounded-[6px] border border-folk-border bg-folk-surface shadow-[0_4px_16px_rgba(0,0,0,0.1)]`}
             >
               <div className="px-[10px] pb-[8px] pt-[10px]">
                 <p className="mb-[6px] px-[2px] text-[10px] font-semibold uppercase tracking-wide text-folk-secondary">Date</p>
@@ -269,7 +269,7 @@ export function SidebarCheckInField({
                     value={days}
                     onChange={(e) => handleDaysChange(e.target.value)}
                     placeholder="30"
-                    className="h-[30px] w-[60px] rounded-none border border-folk-border bg-folk-page px-[8px] text-center text-[13px] font-medium text-folk-text outline-none transition-colors hover:border-[#bababa] focus:border-[#a3c4f3]"
+                    className="h-[30px] w-[60px] rounded-[6px] border border-folk-border bg-folk-page px-[8px] text-center text-[13px] font-medium text-folk-text outline-none transition-colors hover:border-[#bababa] focus:border-[#a3c4f3]"
                     aria-label="Check-in interval in days"
                   />
                   <span>days</span>

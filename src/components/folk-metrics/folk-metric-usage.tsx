@@ -36,9 +36,9 @@ export function FolkMetricUsage({
     >
       {hasValue ? (
         <div className={`flex w-full items-center ${isFeatured ? "gap-[16px]" : "gap-[12px]"}`}>
-          <div className={`${barHeightClass} min-w-0 flex-1 overflow-hidden rounded-none bg-folk-border-subtle`}>
+          <div className={`${barHeightClass} min-w-0 flex-1 overflow-hidden rounded-[6px] bg-folk-border-subtle`}>
             <div
-              className={`h-full rounded-none ${fillColor} transition-all`}
+              className={`h-full rounded-[6px] ${fillColor} transition-all`}
               style={{ width: `${pct}%` }}
             />
           </div>

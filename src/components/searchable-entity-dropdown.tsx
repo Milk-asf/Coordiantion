@@ -119,7 +119,7 @@ export function SearchableEntityDropdown({
       <div className={cn("fixed inset-0 z-[210]", FIXED_DROPDOWN_BACKDROP_Z_CLASS)} data-floating-overlay onClick={handleClose} />
       <div
         className={cn(
-          "fixed z-[211] flex max-h-[260px] flex-col rounded-none border border-folk-border bg-folk-surface shadow-folk",
+          "fixed z-[211] flex max-h-[260px] flex-col rounded-[6px] border border-folk-border bg-folk-surface shadow-folk",
           FIXED_DROPDOWN_MENU_Z_CLASS
         )}
         data-floating-overlay
@@ -136,7 +136,7 @@ export function SearchableEntityDropdown({
             }}
             onKeyDown={handleSearchKeyDown}
             placeholder={searchPlaceholder}
-            className="w-full rounded-none border border-folk-border bg-folk-page px-[10px] py-[6px] text-[13px] text-folk-text outline-none transition-colors focus:border-[#bbb]"
+            className="w-full rounded-[4px] border border-folk-border bg-folk-page px-[10px] py-[6px] text-[13px] text-folk-text outline-none transition-colors focus:border-[#bbb]"
           />
         </div>
 
@@ -181,7 +181,7 @@ export function SearchableEntityDropdown({
                 {option.badge && (
                   <span
                     className={cn(
-                      "shrink-0 rounded-none px-[6px] py-[2px] text-[10px] font-semibold uppercase tracking-[0.04em]",
+                      "shrink-0 rounded-[4px] px-[6px] py-[2px] text-[10px] font-semibold uppercase tracking-[0.04em]",
                       option.badgeClassName ?? "bg-[#FEE2E2] text-[#991B1B]"
                     )}
                   >

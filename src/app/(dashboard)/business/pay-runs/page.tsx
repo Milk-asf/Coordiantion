@@ -220,7 +220,7 @@ export default function PayRunsPage() {
             max={periodEnd}
             disabled={isLocked}
             onChange={(event) => setPeriodStart(event.target.value)}
-            className="rounded-none border border-folk-border bg-white px-[8px] py-[4px] text-[12px] text-folk-text outline-none focus:border-[#a3c4f3] disabled:cursor-not-allowed disabled:bg-folk-page disabled:text-folk-secondary"
+            className="rounded-[6px] border border-folk-border bg-white px-[8px] py-[4px] text-[12px] text-folk-text outline-none focus:border-[#a3c4f3] disabled:cursor-not-allowed disabled:bg-folk-page disabled:text-folk-secondary"
             aria-label="Pay period start"
           />
           <span className="text-[12px] text-folk-secondary">to</span>
@@ -230,7 +230,7 @@ export default function PayRunsPage() {
             min={periodStart}
             disabled={isLocked}
             onChange={(event) => setPeriodEnd(event.target.value)}
-            className="rounded-none border border-folk-border bg-white px-[8px] py-[4px] text-[12px] text-folk-text outline-none focus:border-[#a3c4f3] disabled:cursor-not-allowed disabled:bg-folk-page disabled:text-folk-secondary"
+            className="rounded-[6px] border border-folk-border bg-white px-[8px] py-[4px] text-[12px] text-folk-text outline-none focus:border-[#a3c4f3] disabled:cursor-not-allowed disabled:bg-folk-page disabled:text-folk-secondary"
             aria-label="Pay period end"
           />
           {isLocked && (
@@ -246,13 +246,13 @@ export default function PayRunsPage() {
               <button
                 type="button"
                 onClick={() => setIsUnlockOpen(true)}
-                className="flex items-center gap-[5px] rounded-none border border-folk-border px-[10px] py-[6px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
+                className="flex items-center gap-[5px] rounded-[6px] border border-folk-border px-[10px] py-[6px] text-[12px] font-medium text-folk-text transition-colors hover:bg-folk-hover"
                 tabIndex={0}
               >
                 <LockOpen className="h-[12px] w-[12px]" strokeWidth={1.75} />
                 Unlock
               </button>
-              <Button variant="primary" onClick={handleReExport} disabled={rows.length === 0} className="rounded-none">
+              <Button variant="primary" onClick={handleReExport} disabled={rows.length === 0} className="rounded-[6px]">
                 <Download className="h-[13px] w-[13px]" strokeWidth={1.5} />
                 <span>Re-export CSV</span>
               </Button>
@@ -278,7 +278,7 @@ export default function PayRunsPage() {
           type below. Travel is paid through travel claims.
         </p>
         {unconfigured.length > 0 && (
-          <span className="ml-auto shrink-0 rounded-none bg-amber-50 px-[8px] py-[3px] text-[11px] font-medium text-amber-700">
+          <span className="ml-auto shrink-0 rounded-[6px] bg-amber-50 px-[8px] py-[3px] text-[11px] font-medium text-amber-700">
             {unconfigured.length} need a base rate
           </span>
         )}
@@ -318,7 +318,7 @@ export default function PayRunsPage() {
                         value={row.employmentType}
                         disabled={!row.staffId || isLocked}
                         onChange={(event) => row.staffId && setConfig(row.staffId, { employmentType: event.target.value as EmploymentType })}
-                        className="w-full rounded-none border border-folk-border bg-white px-[6px] py-[3px] text-[12px] text-folk-text outline-none focus:border-[#a3c4f3] disabled:cursor-not-allowed disabled:bg-folk-page"
+                        className="w-full rounded-[6px] border border-folk-border bg-white px-[6px] py-[3px] text-[12px] text-folk-text outline-none focus:border-[#a3c4f3] disabled:cursor-not-allowed disabled:bg-folk-page"
                         onClick={(event) => event.stopPropagation()}
                       >
                         {EMPLOYMENT_TYPES.map((type) => (
@@ -340,7 +340,7 @@ export default function PayRunsPage() {
                         placeholder={String(SCHADS_LEVEL_RATES[row.level] ?? 0)}
                         onChange={(event) => row.staffId && setConfig(row.staffId, { baseRate: Number(event.target.value) })}
                         onClick={(event) => event.stopPropagation()}
-                        className="w-[110px] rounded-none border border-folk-border bg-white px-[6px] py-[3px] text-[12px] text-folk-text outline-none focus:border-[#a3c4f3] disabled:cursor-not-allowed disabled:bg-folk-page"
+                        className="w-[110px] rounded-[6px] border border-folk-border bg-white px-[6px] py-[3px] text-[12px] text-folk-text outline-none focus:border-[#a3c4f3] disabled:cursor-not-allowed disabled:bg-folk-page"
                       />
                     </div>
                   </td>
@@ -353,7 +353,7 @@ export default function PayRunsPage() {
                   <td className={TABLE_PROFILE_CELL_LAST}>
                     <div className={TABLE_CELL_INNER}>
                       {row.totalGross > 0 ? (
-                        <span className="inline-flex h-[22px] items-center rounded-none bg-green-50 px-[8px] text-[12px] font-medium text-green-700">
+                        <span className="inline-flex h-[22px] items-center rounded-[6px] bg-green-50 px-[8px] text-[12px] font-medium text-green-700">
                           {formatPayCurrency(row.totalGross)}
                         </span>
                       ) : (
@@ -399,7 +399,7 @@ export default function PayRunsPage() {
               value={unlockReason}
               onChange={(event) => setUnlockReason(event.target.value)}
               placeholder="Reason for unlocking (e.g. corrected start time for J. Smith)"
-              className="mt-[12px] min-h-[80px] w-full resize-y rounded-none border border-folk-border bg-folk-page px-[12px] py-[8px] text-[13px] font-medium leading-[1.5] text-folk-text outline-none placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
+              className="mt-[12px] min-h-[80px] w-full resize-y rounded-[6px] border border-folk-border bg-white px-[12px] py-[8px] text-[13px] font-medium leading-[1.5] text-folk-text outline-none placeholder:text-folk-placeholder focus:border-[#a3c4f3]"
               autoFocus
             />
             <div className="mt-[14px] flex items-center justify-end gap-[8px]">
@@ -409,7 +409,7 @@ export default function PayRunsPage() {
                   setIsUnlockOpen(false)
                   setUnlockReason("")
                 }}
-                className="outline-btn px-[12px] py-[6px] text-[12px] font-medium"
+                className="outline-btn folk-pill-btn h-[32px] px-[12px] text-[13px] font-medium"
                 tabIndex={0}
               >
                 Cancel
@@ -418,7 +418,7 @@ export default function PayRunsPage() {
                 type="button"
                 onClick={handleConfirmUnlock}
                 disabled={unlockReason.trim().length === 0}
-                className="rounded-none border border-[#fdba74] bg-[#fff7ed] px-[12px] py-[6px] text-[12px] font-medium text-[#c2410c] transition-colors hover:bg-[#ffedd5] disabled:opacity-50"
+                className="rounded-[6px] border border-[#fdba74] bg-[#fff7ed] px-[12px] py-[6px] text-[12px] font-medium text-[#c2410c] transition-colors hover:bg-[#ffedd5] disabled:opacity-50"
                 tabIndex={0}
               >
                 Unlock pay run

@@ -26,7 +26,7 @@ const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => ({
 }))
 
 const selectClassName =
-  "h-[28px] max-w-[132px] cursor-pointer appearance-none rounded-none border border-transparent bg-transparent pl-[6px] pr-[22px] text-[12px] font-semibold text-folk-text outline-none transition-colors hover:border-[#d9d9d9] hover:bg-folk-hover focus:border-[#a3c4f3] focus:bg-folk-surface"
+  "h-[28px] max-w-[132px] cursor-pointer appearance-none rounded-[6px] border border-transparent bg-transparent pl-[6px] pr-[22px] text-[12px] font-semibold text-folk-text outline-none transition-colors hover:border-[#d9d9d9] hover:bg-folk-hover focus:border-[#a3c4f3] focus:bg-folk-surface"
 
 export function DatePicker({
   value,
@@ -94,7 +94,7 @@ export function DatePicker({
   ]
 
   return (
-    <div className={bare ? "w-full" : "w-[260px] rounded-none border border-folk-border bg-folk-surface shadow-folk"}>
+    <div className={bare ? "w-full" : "w-[260px] rounded-[6px] border border-folk-border bg-folk-surface shadow-folk"}>
       {!hideQuickDates && (
       <div className="flex gap-[4px] border-b border-folk-border-subtle px-[12px] py-[8px]">
         {quickDates.map((quickDate) => {
@@ -112,7 +112,7 @@ export function DatePicker({
                 onChange(dateStr)
                 onClose()
               }}
-              className={`rounded-none px-[8px] py-[4px] text-[11px] font-medium transition-colors ${isSelected ? "bg-[#2563EB] text-white" : "text-[#555] hover:bg-folk-hover"}`}
+              className={`rounded-[6px] px-[8px] py-[4px] text-[11px] font-medium transition-colors ${isSelected ? "bg-[#2563EB] text-white" : "text-[#555] hover:bg-folk-hover"}`}
               tabIndex={0}
             >
               {quickDate.label}
@@ -126,7 +126,7 @@ export function DatePicker({
         <button
           type="button"
           onClick={handlePrevMonth}
-          className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+          className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
           tabIndex={0}
           aria-label="Previous month"
         >
@@ -167,7 +167,7 @@ export function DatePicker({
         <button
           type="button"
           onClick={handleNextMonth}
-          className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-none text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+          className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
           tabIndex={0}
           aria-label="Next month"
         >
@@ -198,7 +198,7 @@ export function DatePicker({
                 key={day}
                 type="button"
                 onClick={() => handleSelect(day)}
-                className={`flex h-[30px] w-full items-center justify-center rounded-none text-[12px] font-medium transition-colors ${
+                className={`flex h-[30px] w-full items-center justify-center rounded-[6px] text-[12px] font-medium transition-colors ${
                   isSelected
                     ? selectedClassName
                     : isToday
@@ -248,7 +248,7 @@ export function DatePicker({
               onChange("")
               onClose()
             }}
-            className="w-full rounded-none px-[8px] py-[4px] text-left text-[12px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+            className="w-full rounded-[6px] px-[8px] py-[4px] text-left text-[12px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
             tabIndex={0}
           >
             Clear date
