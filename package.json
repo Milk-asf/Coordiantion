@@ -5,8 +5,10 @@
   "scripts": {
     "dev": "next dev",
     "dev:clean": "rm -rf .next && next dev",
-    "build": "NEXT_DIST_DIR=.next-build next build",
-    "start": "NEXT_DIST_DIR=.next-build next start",
+    "build": "sh -c 'if [ -n \"$VERCEL\" ] || [ -n \"$CI\" ]; then next build; else NEXT_DIST_DIR=.next-build next build; fi'",
+    "build:local": "NEXT_DIST_DIR=.next-build next build",
+    "start": "sh -c 'if [ -n \"$VERCEL\" ] || [ -n \"$CI\" ]; then next start; else NEXT_DIST_DIR=.next-build next start; fi'",
+    "start:local": "NEXT_DIST_DIR=.next-build next start",
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest"
