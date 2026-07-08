@@ -10,6 +10,7 @@ import { FixedTimePickerDropdown } from "@/components/fixed-time-picker-dropdown
 import { SignaturePad } from "@/components/signature-pad"
 import { EntityMultiPicker } from "@/app/(dashboard)/incidents/_components/entity-multi-picker"
 import { useToast } from "@/components/toast"
+import { RosterShiftChipButton } from "@/components/roster/roster-shift-chip-button"
 import { useClients } from "@/lib/hooks/use-clients"
 import { usePermissions } from "@/lib/hooks/use-permissions"
 import { useRosterContext } from "@/lib/roster-context"
@@ -446,26 +447,32 @@ export function TimesheetFormPanel({
 
               <div>
                 <span className={FORM_LABEL_CLASS}>Rostered shift</span>
-                <button
-                  ref={shiftBtnRef}
-                  type="button"
-                  disabled={isReadOnly}
-                  onClick={() => setActiveDropdown(activeDropdown === "shift" ? null : "shift")}
-                  className={cn(FIELD_BUTTON_CLASS, isReadOnly && "cursor-not-allowed opacity-70")}
-                  tabIndex={0}
-                  aria-expanded={activeDropdown === "shift"}
-                >
-                  <span className="flex min-w-0 items-center gap-[8px]">
-                    <Link2 className="h-[13px] w-[13px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
-                    <span className={cn("truncate", !selectedShift && "text-folk-placeholder")}>
-                      {selectedShift
-                        ? `${selectedShift.clientName} · ${formatTimeLabel(selectedShift.startTime)}–${formatTimeLabel(selectedShift.endTime)}`
-                        : matchingShifts.length === 0
-                          ? "No matching shift"
-                          : "Select shift"}
+                {selectedShift ? (
+                  <RosterShiftChipButton
+                    buttonRef={shiftBtnRef}
+                    shift={selectedShift}
+                    disabled={isReadOnly}
+                    onClick={() => setActiveDropdown(activeDropdown === "shift" ? null : "shift")}
+                    ariaExpanded={activeDropdown === "shift"}
+                  />
+                ) : (
+                  <button
+                    ref={shiftBtnRef}
+                    type="button"
+                    disabled={isReadOnly}
+                    onClick={() => setActiveDropdown(activeDropdown === "shift" ? null : "shift")}
+                    className={cn(FIELD_BUTTON_CLASS, isReadOnly && "cursor-not-allowed opacity-70")}
+                    tabIndex={0}
+                    aria-expanded={activeDropdown === "shift"}
+                  >
+                    <span className="flex min-w-0 items-center gap-[8px]">
+                      <Link2 className="h-[13px] w-[13px] shrink-0 text-folk-secondary" strokeWidth={1.5} />
+                      <span className="truncate text-folk-placeholder">
+                        {matchingShifts.length === 0 ? "No matching shift" : "Select shift"}
+                      </span>
                     </span>
-                  </span>
-                </button>
+                  </button>
+                )}
                 {!manualShift && selectedShift && (
                   <p className="mt-[6px] text-[11px] text-folk-secondary">Auto-matched from your roster</p>
                 )}

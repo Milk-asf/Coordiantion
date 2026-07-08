@@ -112,10 +112,14 @@ export default function ContactsPage() {
   const viewNameInputRef = useRef<HTMLInputElement>(null)
 
   const applySavedView = useCallback((view: SavedView) => {
-    setVisibleColumnKeys(view.columnKeys)
-    setDisplayRelationships(view.displayRelationships || [])
-    setFilters(view.filters ?? {})
-    setSearch(view.search ?? "")
+    setVisibleColumnKeys(
+      Array.isArray(view.columnKeys) && view.columnKeys.length > 0
+        ? view.columnKeys
+        : defaultVisibleKeys
+    )
+    setDisplayRelationships(Array.isArray(view.displayRelationships) ? view.displayRelationships : [])
+    setFilters(view.filters && typeof view.filters === "object" ? view.filters : {})
+    setSearch(typeof view.search === "string" ? view.search : "")
     setSort(view.sort ?? null)
   }, [setFilters, setSearch, setSort])
 
@@ -157,13 +161,16 @@ export default function ContactsPage() {
       search: queryState.search,
       sort: queryState.sort,
     }),
+    defaultColumnKeys: defaultVisibleKeys,
   })
 
   useEffect(() => {
     syncActiveView()
   }, [displayRelationships, queryState.filters, queryState.search, queryState.sort, syncActiveView, visibleColumnKeys])
 
-  const visibleColumns = visibleColumnKeys
+  const safeVisibleColumnKeys = Array.isArray(visibleColumnKeys) ? visibleColumnKeys : defaultVisibleKeys
+
+  const visibleColumns = safeVisibleColumnKeys
     .filter((key) => key === "name" || !contactDisabled.has(key))
     .map((key) => allColumns.find((col) => col.key === key))
     .filter(Boolean) as typeof allColumns
@@ -434,7 +441,7 @@ export default function ContactsPage() {
             onOpenChange={setIsDisplayOpen}
             buttonRef={displayBtnRef}
             triggerHiddenCount={
-              displayFields.filter((field) => !field.locked && !visibleColumnKeys.includes(field.key)).length
+              displayFields.filter((field) => !field.locked && !safeVisibleColumnKeys.includes(field.key)).length
               + allRelationshipKeys.length
               - visibleRelationshipKeys.length
             }

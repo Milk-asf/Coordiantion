@@ -10,6 +10,7 @@ import { ClientsProvider } from "@/lib/clients-context"
 import { ContactsProvider } from "@/lib/contacts-context"
 import { StaffProvider } from "@/lib/staff-context"
 import { TasksProvider } from "@/lib/tasks-context"
+import { InvoicesProvider } from "@/lib/invoices-context"
 import { NotesProvider } from "@/lib/notes-context"
 import { IncidentsProvider } from "@/lib/incidents-context"
 import { DocumentsProvider } from "@/lib/documents-context"
@@ -35,6 +36,7 @@ export default function DashboardLayout({
           <ContactsProvider>
             <StaffProvider>
               <TasksProvider>
+                <InvoicesProvider>
                 <NotesProvider>
                   <IncidentsProvider>
                   <DocumentsProvider>
@@ -68,6 +70,7 @@ export default function DashboardLayout({
                   </DocumentsProvider>
                   </IncidentsProvider>
                 </NotesProvider>
+                </InvoicesProvider>
               </TasksProvider>
             </StaffProvider>
           </ContactsProvider>

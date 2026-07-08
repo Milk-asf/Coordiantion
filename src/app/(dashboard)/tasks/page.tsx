@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback, useEffect, useMemo } from "react"
+import { useState, useRef, useCallback, useEffect, useMemo, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import {
   Table2,
@@ -53,6 +53,14 @@ import {
 
 
 export default function TasksPage() {
+  return (
+    <Suspense fallback={<PageLoader label="Loading tasks…" />}>
+      <TasksPageContent />
+    </Suspense>
+  )
+}
+
+function TasksPageContent() {
   const router = useRouter()
   const { toast } = useToast()
   const { tasks: allTasks, isLoading, fetchError, hasMore, isLoadingMore, loadMore, addTask, updateTask: updateTaskDb, deleteTask: deleteTaskDb, refetch } = useTasks()
@@ -111,7 +119,7 @@ export default function TasksPage() {
     const ids = new Set<string>()
     for (const inv of invoices) {
       if (inv.status !== "unsent") {
-        for (const tid of inv.taskIds) ids.add(tid)
+        for (const tid of inv.taskIds ?? []) ids.add(tid)
       }
     }
     return ids
@@ -154,8 +162,12 @@ export default function TasksPage() {
   const taskViewNameInputRef = useRef<HTMLInputElement>(null)
 
   const applyTaskView = useCallback((view: TaskSavedView) => {
-    setViewMode(view.viewMode)
-    setVisibleTaskColumnKeys(view.visibleColumnKeys)
+    setViewMode(view.viewMode === "week" ? "week" : "list")
+    setVisibleTaskColumnKeys(
+      Array.isArray(view.visibleColumnKeys) && view.visibleColumnKeys.length > 0
+        ? view.visibleColumnKeys
+        : defaultTaskVisibleKeys
+    )
     setWeekOffset(0)
   }, [])
 
@@ -188,6 +200,14 @@ export default function TasksPage() {
       ...view,
       viewMode,
       visibleColumnKeys: [...visibleTaskColumnKeys],
+    }),
+    sanitizeView: (view) => ({
+      ...view,
+      viewMode: view.viewMode === "week" ? "week" : "list",
+      visibleColumnKeys:
+        Array.isArray(view.visibleColumnKeys) && view.visibleColumnKeys.length > 0
+          ? view.visibleColumnKeys
+          : defaultTaskVisibleKeys,
     }),
   })
 
@@ -254,8 +274,12 @@ export default function TasksPage() {
   const uniqueAssignees = Array.from(new Set(tasks.map((t) => t.assignee).filter(Boolean))).sort()
   const uniqueCharges = Array.from(new Set(tasks.map((t) => t.chargeType).filter(Boolean))).sort()
 
+  const safeVisibleTaskColumnKeys = Array.isArray(visibleTaskColumnKeys)
+    ? visibleTaskColumnKeys
+    : defaultTaskVisibleKeys
+
   const visibleTaskColumns = taskColumnDefs.filter(
-    (col) => ("alwaysVisible" in col && col.alwaysVisible) || visibleTaskColumnKeys.includes(col.key)
+    (col) => ("alwaysVisible" in col && col.alwaysVisible) || safeVisibleTaskColumnKeys.includes(col.key)
   )
   const taskGridTemplate = visibleTaskColumns.map((c) => c.width).join(" ")
 
@@ -520,7 +544,7 @@ export default function TasksPage() {
   const [isPageSizeOpen, setIsPageSizeOpen] = useState(false)
   const pageSizeBtnRef = useRef<HTMLButtonElement>(null)
 
-  const isColVisible = (key: string) => visibleTaskColumnKeys.includes(key)
+  const isColVisible = (key: string) => safeVisibleTaskColumnKeys.includes(key)
 
   const renderTaskListHeader = () => (
     <div

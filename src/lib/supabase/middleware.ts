@@ -15,11 +15,10 @@ export async function updateSession(request: NextRequest) {
   const isOnboardingPath = path.startsWith("/onboarding")
   const isApiPath = path.startsWith("/api")
 
+  // Without Supabase the app runs in local demo mode (contexts fall back to
+  // localStorage) — there is no session to protect, so let requests through.
   if (!isConfigured()) {
-    if (isAuthPage) return NextResponse.next({ request })
-    const url = request.nextUrl.clone()
-    url.pathname = "/login"
-    return NextResponse.redirect(url)
+    return NextResponse.next({ request })
   }
 
   let supabaseResponse = NextResponse.next({ request })

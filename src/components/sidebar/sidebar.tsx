@@ -487,18 +487,19 @@ const notifIcon: Record<AppNotification["type"], React.ComponentType<{ className
   "travel-claim-approved": CheckCircle2,
 }
 
+// Folk chip palette tones — matches status chips across approvals and roster.
 const notifColor: Record<AppNotification["type"], string> = {
-  "overdue-task": "text-red-500 bg-red-50",
-  "task-completed": "text-green-500 bg-green-50",
-  "invoice-sent": "text-blue-500 bg-blue-50",
-  "invoice-paid": "text-green-500 bg-green-50",
-  "invoice-overdue": "text-orange-500 bg-orange-50",
-  "new-client": "text-violet-500 bg-violet-50",
-  "plan-expiring": "text-amber-500 bg-amber-50",
-  "timesheet-returned": "text-amber-500 bg-amber-50",
-  "timesheet-approved": "text-green-500 bg-green-50",
-  "travel-claim-returned": "text-amber-500 bg-amber-50",
-  "travel-claim-approved": "text-green-500 bg-green-50",
+  "overdue-task": "bg-[#fee2e2] text-[#b91c1c]",
+  "task-completed": "bg-[#e7f5ec] text-[#1a7f43]",
+  "invoice-sent": "bg-[#e3f2fd] text-[#1565c0]",
+  "invoice-paid": "bg-[#e7f5ec] text-[#1a7f43]",
+  "invoice-overdue": "bg-[#fef3c7] text-[#b45309]",
+  "new-client": "bg-[#f3e5f5] text-[#7b1fa2]",
+  "plan-expiring": "bg-[#fff8e1] text-[#f57f17]",
+  "timesheet-returned": "bg-[#fef3c7] text-[#b45309]",
+  "timesheet-approved": "bg-[#e7f5ec] text-[#1a7f43]",
+  "travel-claim-returned": "bg-[#fef3c7] text-[#b45309]",
+  "travel-claim-approved": "bg-[#e7f5ec] text-[#1a7f43]",
 }
 
 function formatNotifTime(date: Date): string {
@@ -535,23 +536,23 @@ const NotificationPanel = forwardRef<HTMLDivElement, {
       className="fixed z-50 flex max-h-[420px] w-[320px] flex-col overflow-hidden rounded-[6px] border border-folk-border bg-folk-surface shadow-folk"
       style={{ top: position.top, left: position.left }}
     >
-      <div className="flex items-center justify-between border-b border-folk-border-subtle px-4 py-3">
-        <h2 className="text-[14px] font-semibold text-folk-text">Notifications</h2>
+      <div className="flex h-[44px] items-center justify-between border-b border-folk-border-subtle px-[14px]">
+        <h2 className="text-[13px] font-semibold text-folk-text">Notifications</h2>
         <button
           onClick={onClose}
-          className="flex h-6 w-6 items-center justify-center rounded-[6px] text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
+          className="flex h-[26px] w-[26px] items-center justify-center rounded-full text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
           aria-label="Close notifications"
           tabIndex={0}
         >
-          <X className="h-3.5 w-3.5" strokeWidth={2} />
+          <X className="h-[14px] w-[14px]" strokeWidth={1.75} />
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto">
         {notifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center px-6 py-12">
-            <p className="text-[13px] text-folk-secondary">No new notifications.</p>
-            <p className="mt-1 text-[12px] text-folk-placeholder">Check back later.</p>
+          <div className="flex flex-col items-center justify-center px-[24px] py-[40px]">
+            <p className="text-[13px] font-medium text-folk-secondary">No new notifications</p>
+            <p className="mt-[3px] text-[12px] text-folk-placeholder">You&apos;re all caught up.</p>
           </div>
         ) : (
           <ul className="divide-y divide-[#f5f5f5]">
@@ -562,8 +563,8 @@ const NotificationPanel = forwardRef<HTMLDivElement, {
                 <li
                   key={n.id}
                   className={cn(
-                    "flex gap-2.5 px-4 py-3 transition-colors hover:bg-folk-page",
-                    !n.read && "bg-blue-50/30"
+                    "flex cursor-pointer gap-[10px] px-[14px] py-[10px] transition-colors hover:bg-folk-hover",
+                    !n.read && "bg-[#f5f9ff]"
                   )}
                   onClick={() => {
                     onMarkRead(n.id)
@@ -578,20 +579,20 @@ const NotificationPanel = forwardRef<HTMLDivElement, {
                     }
                   }}
                 >
-                  <div className={cn("mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full", colors)}>
-                    <Icon className="h-3 w-3" strokeWidth={2} />
+                  <div className={cn("mt-[1px] flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full", colors)}>
+                    <Icon className="h-[13px] w-[13px]" strokeWidth={1.75} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className={cn("text-[12px] leading-tight", n.read ? "text-folk-secondary" : "font-medium text-folk-text")}>
+                    <div className="flex items-start justify-between gap-[8px]">
+                      <p className={cn("text-[13px] leading-snug", n.read ? "text-folk-secondary" : "font-medium text-folk-text")}>
                         {n.title}
                       </p>
-                      <span className="shrink-0 text-[10px] text-[#aaa]">{formatNotifTime(n.timestamp)}</span>
+                      <span className="shrink-0 text-[11px] tabular-nums text-folk-placeholder">{formatNotifTime(n.timestamp)}</span>
                     </div>
-                    <p className="mt-0.5 text-[11px] leading-snug text-folk-secondary">{n.description}</p>
+                    <p className="mt-[2px] text-[12px] leading-snug text-folk-secondary">{n.description}</p>
                   </div>
                   {!n.read && (
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />
+                    <span className="mt-[7px] h-[6px] w-[6px] shrink-0 rounded-full bg-[#dc2626]" />
                   )}
                 </li>
               )
@@ -600,10 +601,10 @@ const NotificationPanel = forwardRef<HTMLDivElement, {
         )}
       </div>
 
-      <div className="border-t border-folk-border-subtle px-4 py-2.5">
+      <div className="flex items-center justify-end border-t border-folk-border-subtle px-[14px] py-[8px]">
         <button
           onClick={onMarkAllRead}
-          className="ml-auto block text-[12px] font-medium text-folk-secondary transition-colors hover:text-folk-text"
+          className="rounded-full px-[8px] py-[4px] text-[12px] font-medium text-folk-secondary transition-colors hover:bg-folk-hover hover:text-folk-text"
           tabIndex={0}
         >
           Mark all as read

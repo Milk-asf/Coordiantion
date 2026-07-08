@@ -249,7 +249,7 @@ export async function pushInvoiceToXero(params: {
     issueDate: row.issue_date,
     dueDate: row.due_date,
     clientName: row.client_name,
-    lineItems: (row.line_items ?? []) as InvoiceLineItem[],
+    lineItems: (Array.isArray(row.line_items) ? row.line_items : []) as InvoiceLineItem[],
   } as AppInvoice
 
   if (appInvoice.lineItems.length === 0) throw new Error("Invoice has no line items to send")

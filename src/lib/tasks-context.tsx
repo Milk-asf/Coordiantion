@@ -52,7 +52,7 @@ function dbToTask(row: TaskRow): Task {
     client: row.client_name || "",
     clientId: row.client_id || null,
     dueDate: row.due_date || null,
-    attachments: row.attachments || [],
+    attachments: Array.isArray(row.attachments) ? row.attachments : [],
     chargeType: row.charge_type || "",
     timeSpent: row.time_spent || 0,
     secondaryChargeType: row.secondary_charge_type || "",

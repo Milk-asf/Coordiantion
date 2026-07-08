@@ -154,7 +154,7 @@ export function useNotifications() {
       }
 
       if (timesheet.status === "draft") continue
-      for (const claim of timesheet.travelClaims) {
+      for (const claim of timesheet.travelClaims ?? []) {
         if (claim.status === "returned" && isEnabled("travel-claim-returned")) {
           const claimId = `travel-claim-returned-${timesheet.id}-${claim.id}-${stamp}`
           items.push({

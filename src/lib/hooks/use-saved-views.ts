@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { ensureStringArray } from "@/lib/ensure-array"
 
 interface SavedViewBase {
   id: string
@@ -14,6 +15,10 @@ interface UseSavedViewsParams<TView extends SavedViewBase> {
   applyView: (view: TView) => void
   resetState: () => void
   syncView: (view: TView) => TView
+  /** Normalizes views restored from localStorage before they are applied. */
+  sanitizeView?: (view: TView) => TView
+  /** When set, coerces a legacy `columnKeys` field before apply/sanitize. */
+  defaultColumnKeys?: string[]
 }
 
 export function useSavedViews<TView extends SavedViewBase>({
@@ -23,11 +28,14 @@ export function useSavedViews<TView extends SavedViewBase>({
   applyView,
   resetState,
   syncView,
+  sanitizeView,
+  defaultColumnKeys,
 }: UseSavedViewsParams<TView>) {
   const [savedViews, setSavedViews] = useState<TView[]>(() => {
     if (typeof window === "undefined") return []
     try {
-      return JSON.parse(localStorage.getItem(viewsStorageKey) || "[]") as TView[]
+      const parsed = JSON.parse(localStorage.getItem(viewsStorageKey) || "[]")
+      return Array.isArray(parsed) ? (parsed as TView[]) : []
     } catch { return [] }
   })
   const [activeViewId, setActiveViewId] = useState<string | null>(() => {
@@ -44,11 +52,25 @@ export function useSavedViews<TView extends SavedViewBase>({
   applyViewRef.current = applyView
   const resetStateRef = useRef(resetState)
   resetStateRef.current = resetState
+  const sanitizeViewRef = useRef(sanitizeView)
+  sanitizeViewRef.current = sanitizeView
+
+  const resolveView = useCallback((view: TView) => {
+    let resolved = view
+    if (defaultColumnKeys && typeof view === "object" && view !== null && "columnKeys" in view) {
+      const record = view as TView & { columnKeys?: unknown }
+      resolved = {
+        ...view,
+        columnKeys: ensureStringArray(record.columnKeys, defaultColumnKeys),
+      } as TView
+    }
+    return sanitizeViewRef.current ? sanitizeViewRef.current(resolved) : resolved
+  }, [defaultColumnKeys])
 
   useEffect(() => {
     if (activeViewId) {
       const activeView = savedViews.find((view) => view.id === activeViewId)
-      if (activeView) applyViewRef.current(activeView)
+      if (activeView) applyViewRef.current(resolveView(activeView))
     }
     isInitialMount.current = false
     // Only run on mount
@@ -91,8 +113,8 @@ export function useSavedViews<TView extends SavedViewBase>({
 
   const selectView = useCallback((view: TView) => {
     setActiveViewId(view.id)
-    applyViewRef.current(view)
-  }, [])
+    applyViewRef.current(resolveView(view))
+  }, [resolveView])
 
   const selectDefaultView = useCallback(() => {
     setActiveViewId(null)

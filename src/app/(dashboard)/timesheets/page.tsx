@@ -19,6 +19,7 @@ import { useWorkspace } from "@/lib/workspace-context"
 import { type Timesheet } from "@/lib/timesheets/types"
 import { folkAddBtnClass } from "@/lib/folk-ui"
 import { TimesheetFormPanel } from "./_components/timesheet-form-panel"
+import { ShiftNoteFormPanel } from "./_components/shift-note-form-panel"
 
 type WorkTab = "timesheets" | "notes"
 
@@ -28,6 +29,7 @@ export default function MyWorkPage() {
   const { currentUserName } = useWorkspace()
   const [activeTab, setActiveTab] = useState<WorkTab>("timesheets")
   const [isPanelOpen, setIsPanelOpen] = useState(false)
+  const [isNotePanelOpen, setIsNotePanelOpen] = useState(false)
   const [editing, setEditing] = useState<Timesheet | null>(null)
   const [now, setNow] = useState(() => Date.now())
 
@@ -63,7 +65,12 @@ export default function MyWorkPage() {
 
   const elapsedMs = activeClock?.clockedInAt ? now - new Date(activeClock.clockedInAt).getTime() : 0
 
+  // "Add new" follows the active tab: a timesheet or a shift note.
   const handleAdd = () => {
+    if (activeTab === "notes") {
+      setIsNotePanelOpen(true)
+      return
+    }
     setEditing(null)
     setIsPanelOpen(true)
   }
@@ -98,10 +105,10 @@ export default function MyWorkPage() {
               onClick={handleAdd}
               className={folkAddBtnClass("flex items-center gap-[5px] px-[8px] py-[4px] text-[13px] font-medium transition-colors")}
               tabIndex={0}
-              aria-label="Add timesheet"
+              aria-label="Add new"
             >
               <Plus className="h-[13px] w-[13px]" strokeWidth={1.5} />
-              <span>Timesheet</span>
+              <span>Add new</span>
             </button>
           }
         />
@@ -151,6 +158,7 @@ export default function MyWorkPage() {
       </div>
 
       <TimesheetFormPanel isOpen={isPanelOpen} timesheet={editing} onClose={handleClose} />
+      <ShiftNoteFormPanel isOpen={isNotePanelOpen} onClose={() => setIsNotePanelOpen(false)} />
     </div>
   )
 }

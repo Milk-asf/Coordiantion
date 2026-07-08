@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useRef, useState, useEffect, type RefObject } from "react"
+import { useMemo, useRef, useState, useEffect, Suspense, type RefObject } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { AlertTriangle, ArrowUpDown, ChevronDown, Kanban, ListFilter, Plus, Table2, X } from "lucide-react"
 import { folkPrimaryAddBtnClass } from "@/lib/folk-ui"
@@ -45,6 +45,14 @@ import {
 } from "@/lib/table-styles"
 
 export default function IncidentsPage() {
+  return (
+    <Suspense fallback={<PageLoader label="Loading incidents…" />}>
+      <IncidentsPageContent />
+    </Suspense>
+  )
+}
+
+function IncidentsPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()

@@ -169,7 +169,11 @@ export default function ClientsPage() {
   const viewNameInputRef = useRef<HTMLInputElement>(null)
 
   const applySavedView = useCallback((view: SavedView) => {
-    setVisibleColumnKeys(view.columnKeys)
+    setVisibleColumnKeys(
+      Array.isArray(view.columnKeys) && view.columnKeys.length > 0
+        ? view.columnKeys
+        : defaultVisibleKeys
+    )
   }, [])
 
   const resetSavedViewState = useCallback(() => {
@@ -198,13 +202,14 @@ export default function ClientsPage() {
       ...view,
       columnKeys: [...visibleColumnKeys],
     }),
+    defaultColumnKeys: defaultVisibleKeys,
   })
 
   useEffect(() => {
     syncActiveView()
   }, [syncActiveView, visibleColumnKeys])
 
-  const visibleColumns = visibleColumnKeys
+  const visibleColumns = (Array.isArray(visibleColumnKeys) ? visibleColumnKeys : defaultVisibleKeys)
     .filter((key) => !participantDisabled.has(key))
     .map((key) => allPropertyColumns.find((col) => col.key === key))
     .filter(Boolean) as typeof allPropertyColumns

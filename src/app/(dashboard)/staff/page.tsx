@@ -257,7 +257,11 @@ export default function StaffPage() {
   const viewNameInputRef = useRef<HTMLInputElement>(null)
 
   const applySavedView = useCallback((view: SavedView) => {
-    setVisibleColumnKeys(view.columnKeys)
+    setVisibleColumnKeys(
+      Array.isArray(view.columnKeys) && view.columnKeys.length > 0
+        ? view.columnKeys
+        : defaultVisibleKeys
+    )
   }, [])
 
   const resetSavedViewState = useCallback(() => {
@@ -286,13 +290,16 @@ export default function StaffPage() {
       ...view,
       columnKeys: [...visibleColumnKeys],
     }),
+    defaultColumnKeys: defaultVisibleKeys,
   })
 
   useEffect(() => {
     syncActiveView()
   }, [syncActiveView, visibleColumnKeys])
 
-  const visibleColumns = visibleColumnKeys
+  const safeVisibleColumnKeys = Array.isArray(visibleColumnKeys) ? visibleColumnKeys : defaultVisibleKeys
+
+  const visibleColumns = safeVisibleColumnKeys
     .filter((key) => !staffDisabled.has(key))
     .map((key) => allPropertyColumns.find((col) => col.key === key))
     .filter(Boolean) as typeof allPropertyColumns
@@ -367,14 +374,14 @@ export default function StaffPage() {
 
   const exportCsvColumns = useMemo(() => {
     const cols: { key: string; label: string }[] = [{ key: "name", label: "Name" }]
-    for (const vk of visibleColumnKeys) {
+    for (const vk of safeVisibleColumnKeys) {
       const tableDef = allPropertyColumns.find((c) => c.key === vk)
       if (!tableDef) continue
       const csvKey = staffTableKeyMap[vk] || vk
       cols.push({ key: csvKey, label: tableDef.label })
     }
     return cols
-  }, [visibleColumnKeys, staffTableKeyMap])
+  }, [safeVisibleColumnKeys, staffTableKeyMap])
 
   const uniqueStatuses = useMemo(() => {
     const set = new Set(staff.filter((s) => s.status !== "inactive").map((s) => s.status))
@@ -439,14 +446,14 @@ export default function StaffPage() {
   const exportCsvData = useMemo(() =>
     filteredStaff.map((s) => {
       const row: Record<string, string> = { name: s.name }
-      for (const vk of visibleColumnKeys) {
+      for (const vk of safeVisibleColumnKeys) {
         const csvKey = staffTableKeyMap[vk] || vk
         if (csvKey === "_status") { row[csvKey] = s.status; continue }
         row[csvKey] = (s.details as unknown as Record<string, string>)[csvKey] || ""
       }
       return row
     }),
-    [filteredStaff, visibleColumnKeys, staffTableKeyMap]
+    [filteredStaff, safeVisibleColumnKeys, staffTableKeyMap]
   )
 
   const handleCsvImport = useCallback(async (rows: Record<string, string>[]) => {

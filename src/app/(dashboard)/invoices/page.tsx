@@ -218,13 +218,17 @@ export default function InvoicesPage() {
   }, [])
 
   const applySavedView = useCallback((view: InvoicesSavedView) => {
-    setVisibleColumnKeys(view.visibleColumnKeys)
-    setDisplayParticipants(view.displayParticipants)
-    setDisplayEmails(view.displayEmails)
-    setDisplayStatuses(view.displayStatuses)
-    setDateFilter(view.dateFilter)
-    setParticipantFilter(view.participantFilter)
-    setStatusFilter(view.statusFilter)
+    setVisibleColumnKeys(
+      Array.isArray(view.visibleColumnKeys) && view.visibleColumnKeys.length > 0
+        ? view.visibleColumnKeys
+        : defaultVisibleColumnKeys
+    )
+    setDisplayParticipants(Array.isArray(view.displayParticipants) ? view.displayParticipants : [])
+    setDisplayEmails(Array.isArray(view.displayEmails) ? view.displayEmails : [])
+    setDisplayStatuses(Array.isArray(view.displayStatuses) ? view.displayStatuses : [])
+    setDateFilter(Array.isArray(view.dateFilter) ? view.dateFilter : [])
+    setParticipantFilter(Array.isArray(view.participantFilter) ? view.participantFilter : [])
+    setStatusFilter(Array.isArray(view.statusFilter) ? view.statusFilter : [])
   }, [])
 
   const {
@@ -258,6 +262,19 @@ export default function InvoicesPage() {
       dateFilter,
       participantFilter,
       statusFilter,
+    }),
+    sanitizeView: (view) => ({
+      ...view,
+      visibleColumnKeys:
+        Array.isArray(view.visibleColumnKeys) && view.visibleColumnKeys.length > 0
+          ? view.visibleColumnKeys
+          : defaultVisibleColumnKeys,
+      displayParticipants: Array.isArray(view.displayParticipants) ? view.displayParticipants : [],
+      displayEmails: Array.isArray(view.displayEmails) ? view.displayEmails : [],
+      displayStatuses: Array.isArray(view.displayStatuses) ? view.displayStatuses : [],
+      dateFilter: Array.isArray(view.dateFilter) ? view.dateFilter : [],
+      participantFilter: Array.isArray(view.participantFilter) ? view.participantFilter : [],
+      statusFilter: Array.isArray(view.statusFilter) ? view.statusFilter : [],
     }),
   })
 
@@ -378,7 +395,9 @@ export default function InvoicesPage() {
     countHiddenDisplayFilters(uniqueParticipants, displayParticipants)
     + countHiddenDisplayFilters(uniqueEmails, displayEmails)
     + countHiddenDisplayFilters(uniqueStatuses, displayStatuses)
-  const visibleColumns = invoiceColumnDefs.filter((column) => visibleColumnKeys.includes(column.key))
+  const visibleColumns = invoiceColumnDefs.filter((column) =>
+    (Array.isArray(visibleColumnKeys) ? visibleColumnKeys : defaultVisibleColumnKeys).includes(column.key)
+  )
 
   // "Batches" view: the same invoices grouped by the day they were issued, so a
   // bulk run can be audited as one unit. This replaces the old Batches tab.

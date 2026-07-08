@@ -71,7 +71,7 @@ function dbToClient(row: ClientRow): Client {
     iconText: deriveInitials(participant, row.name),
     iconShape: row.icon_shape || "square",
     participant,
-    industry: row.industry || [],
+    industry: Array.isArray(row.industry) ? row.industry : [],
     lastInteraction: row.last_interaction || "",
     revenue: row.revenue || "",
     headcount: row.headcount || "",

@@ -80,7 +80,10 @@ export default function NotesPage() {
   const filterPillRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const [favorites, setFavorites] = useState<string[]>(() => {
     if (typeof window === "undefined") return []
-    try { return JSON.parse(localStorage.getItem("note-favorites") || "[]") } catch { return [] }
+    try {
+      const parsed = JSON.parse(localStorage.getItem("note-favorites") || "[]")
+      return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : []
+    } catch { return [] }
   })
 
   const sortRef = useRef<HTMLDivElement>(null)
